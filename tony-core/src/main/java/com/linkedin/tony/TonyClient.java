@@ -235,7 +235,7 @@ public class TonyClient {
 
     tonyConf.addResource(Constants.TONY_DEFAULT_XML);
     if (cliParser.hasOption("conf_file")) {
-      tonyConf.addResource(cliParser.getOptionValue("conf_file"));
+      tonyConf.addResource(new Path(cliParser.getOptionValue("conf_file")));
     } else {
       tonyConf.addResource(Constants.TONY_XML);
     }
