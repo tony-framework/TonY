@@ -73,13 +73,15 @@ Then you can launch your job:
                 -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output --steps 2500 --batch_size 64' \
                 -python_venv my-venv.zip \
                 -python_binary_path Python/bin/python \
-                -src_dir src
+                -src_dir src \
+                -shell_env LD_LIBRARY_PATH=/usr/java/latest/jre/lib/amd64/server
 The command line arguments are as follows:
 * `executes` describes the location to the entry point of your training code.
 * `task_params` describe the command line arguments which will be passed to your entry point.
 * `python_venv` describes the name of the zip locally which will invoke your python script.
 * `python_binary_path` describes the relative path in your python virtual environment which contains the python binary, or an absolute path to use a python binary already installed on all worker nodes.
 * `src_dir` specifies the name of the root directory locally which contains all of your python model source code. This directory will be copied to all worker nodes.
+* `shell_env` specifies key-value pairs for environment variables which will be set in your python worker/ps processes.
 
 #### TonY configurations
 
@@ -116,7 +118,21 @@ Here is a full example of configuring your TonY application:
                 -python_binary_path Python/bin/python \
                 -python_venv my-venv.zip \
                 -executes src/mnist_distributed.py \
+                -shell_env LD_LIBRARY_PATH=/usr/java/latest/jre/lib/amd64/server \
                 -conf tony.ps.instances=2 \
                 -conf tony.worker.instances=2
 
 CLI configurations have highest priority, so we will get 2 ps instances and 2 worker instances. Then the XML file takes next priority so each worker will get 4g memory and 1 GPU. Finally every other configuration will be default value, e.g. each ps will get 2g memory.
+
+## FAQ
+
+1. My tensorflow process hangs with  
+    ```
+    2018-09-13 03:02:31.538790: E tensorflow/core/distributed_runtime/master.cc:272] CreateSession failed because worker /job:worker/replica:0/task:0 returned error: Unavailable: OS Error
+    INFO:tensorflow:An error was raised while a session was being created. This may be due to a preemption of a connected worker or parameter server. A new session will be created. Error: OS Error
+    INFO:tensorflow:Graph was finalized.
+    2018-09-13 03:03:33.792490: I tensorflow/core/distributed_runtime/master_session.cc:1150] Start master session ea811198d338cc1d with config: 
+    INFO:tensorflow:Waiting for model to be ready.  Ready_for_local_init_op:  Variables not initialized: conv1/Variable, conv1/Variable_1, conv2/Variable, conv2/Variable_1, fc1/Variable, fc1/Variable_1, fc2/Variable, fc2/Variable_1, global_step, adam_optimizer/beta1_power, adam_optimizer/beta2_power, conv1/Variable/Adam, conv1/Variable/Adam_1, conv1/Variable_1/Adam, conv1/Variable_1/Adam_1, conv2/Variable/Adam, conv2/Variable/Adam_1, conv2/Variable_1/Adam, conv2/Variable_1/Adam_1, fc1/Variable/Adam, fc1/Variable/Adam_1, fc1/Variable_1/Adam, fc1/Variable_1/Adam_1, fc2/Variable/Adam, fc2/Variable/Adam_1, fc2/Variable_1/Adam, fc2/Variable_1/Adam_1, ready: None
+    ```  
+    Why?
+    Try adding the path to your libjvm.so shared library to your LD_LIBRARY_PATH environment variable for your workers. See above for an example.
