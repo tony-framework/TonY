@@ -40,20 +40,20 @@ For example:
     $ cat tony/tony.xml
     <configuration>
       <property>
-      <name>tony.worker.instances</name>
-      <value>4</value>
+        <name>tony.worker.instances</name>
+        <value>4</value>
       </property>
       <property>
-      <name>tony.worker.memory</name>
-      <value>4g</value>
+        <name>tony.worker.memory</name>
+        <value>4g</value>
       </property>
       <property>
-      <name>tony.worker.gpus</name>
-      <value>1</value>
+        <name>tony.worker.gpus</name>
+        <value>1</value>
       </property>
       <property>
-      <name>tony.ps.memory</name>
-      <value>3g</value>
+        <name>tony.ps.memory</name>
+        <value>3g</value>
       </property>
     </configuration>
 
@@ -135,4 +135,5 @@ CLI configurations have highest priority, so we will get 2 ps instances and 2 wo
     INFO:tensorflow:Waiting for model to be ready.  Ready_for_local_init_op:  Variables not initialized: conv1/Variable, conv1/Variable_1, conv2/Variable, conv2/Variable_1, fc1/Variable, fc1/Variable_1, fc2/Variable, fc2/Variable_1, global_step, adam_optimizer/beta1_power, adam_optimizer/beta2_power, conv1/Variable/Adam, conv1/Variable/Adam_1, conv1/Variable_1/Adam, conv1/Variable_1/Adam_1, conv2/Variable/Adam, conv2/Variable/Adam_1, conv2/Variable_1/Adam, conv2/Variable_1/Adam_1, fc1/Variable/Adam, fc1/Variable/Adam_1, fc1/Variable_1/Adam, fc1/Variable_1/Adam_1, fc2/Variable/Adam, fc2/Variable/Adam_1, fc2/Variable_1/Adam, fc2/Variable_1/Adam_1, ready: None
     ```  
     Why?
+    
     Try adding the path to your libjvm.so shared library to your LD_LIBRARY_PATH environment variable for your workers. See above for an example.
