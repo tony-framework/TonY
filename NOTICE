@@ -1,0 +1,22 @@
+Copyright 2018 LinkedIn Corporation
+All Rights Reserved.
+
+Licensed under the BSD 2-Clause License (the "License").
+See LICENSE in the project root for license information.
+
+================================================================================
+
+This product includes/uses TensorFlow (https://github.com/tensorflow)
+Copyright 2018 The TensorFlow Authors
+License: Apache-2.0
+
+This product includes/uses TensorFlowOnYARN (https://github.com/Intel-bigdata/TensorFlowOnYARN)
+Copyright 2018 Intel-bigdata
+License: Apache-2.0
+
+================================================================================
+
+In addition, this product automatically loads third party code from an external repository
+using the Gradle build system. Such third party code is subject to other license
+terms than as set forth above. In addition, such third party code may also
+depend on and load multiple tiers of dependencies.

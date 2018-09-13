@@ -1,0 +1,149 @@
+group "com.linkedin"
+version "0.1.0"
+
+apply plugin: "java"
+apply plugin: "eclipse"
+apply plugin: "idea"
+
+sourceCompatibility = 1.8
+
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "com.github.jengelman.gradle.plugins:shadow:2.0.4"
+    classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.1"
+    classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
+  }
+}
+
+def hadoopVersion = "3.1.1"
+
+ext.deps = [
+    hadoop: [
+        "common": "org.apache.hadoop:hadoop-common:${hadoopVersion}",
+        "common_test": "org.apache.hadoop:hadoop-common:${hadoopVersion}:tests",
+        "hdfs": "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}",
+        "hdfs_client": "org.apache.hadoop:hadoop-hdfs-client:${hadoopVersion}",
+        "hdfs_test": "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}:tests",
+        "mapreduce_client_core": "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoopVersion}",
+        "minicluster": "org.apache.hadoop:hadoop-minicluster:${hadoopVersion}",
+        "yarn_api": "org.apache.hadoop:hadoop-yarn-api:${hadoopVersion}",
+        "yarn_client": "org.apache.hadoop:hadoop-yarn-client:${hadoopVersion}",
+        "yarn_common": "org.apache.hadoop:hadoop-yarn-common:${hadoopVersion}",
+        "yarn_server_test": "org.apache.hadoop:hadoop-yarn-server-tests:${hadoopVersion}:tests"
+    ],
+    external: [
+        "avro": "org.apache.avro:avro:1.8.2",
+        "guava": "com.google.guava:guava:16.0.1",
+        "jackson_databind": "com.fasterxml.jackson.core:jackson-databind:2.8.3",
+        "jackson_dataformat_yaml": "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.6",
+        // Only needed by Hadoop test classes
+        "junit": "junit:junit:4.12",
+        "objenesis": "org.objenesis:objenesis:2.6",
+        "py4j": "net.sf.py4j:py4j:0.8.2.1",
+        "sshd": "org.apache.sshd:sshd-core:1.1.0",
+        "testng": "org.testng:testng:6.4",
+        "text": "org.apache.commons:commons-text:1.4",
+        "zip4j": "net.lingala.zip4j:zip4j:1.3.2"
+    ]
+]
+
+allprojects {
+  project.version= "0.1.0"
+  group = "com.linkedin.tony"
+}
+
+subprojects {
+  apply plugin: "license"
+  apply plugin: "com.google.protobuf"
+  apply plugin: "java"
+  apply plugin: "eclipse"
+  apply plugin: "idea"
+  repositories {
+    mavenCentral()
+  }
+  plugins.withType(JavaPlugin) {
+    sourceCompatibility = 1.8
+    dependencies {
+      // dependency defined in product_spec.json
+      testCompile deps.external.testng
+    }
+
+    test {
+      useTestNG()
+    }
+  }
+
+  license {
+    header rootProject.file('license_header')
+    // Set the year in the license
+    ext.year = Calendar.getInstance().get(Calendar.YEAR)
+    skipExistingHeaders = false
+    excludes(["com/linkedin/tony/rpc/proto/", "**/*.properties"])
+  }
+  configurations {
+    hadoopRuntime.extendsFrom(runtime)
+    hadoopRuntime {
+      exclude group: "org.apache.hadoop"
+    }
+  }
+}
+
+apply plugin: 'distribution'
+
+// Generates a closure which is used to set up the contents
+// for a distribution; parametrized by the name of the
+// configuration to include in the lib directory.
+def generateDistContents(configurationName) {
+  return {
+    into('.') {
+      from rootProject.fileTree('.') {
+        include 'README.md'
+        include 'LICENSE'
+        include 'NOTICE'
+        include 'CONTRIBUTING.md'
+      }
+    }
+    into('bin') {
+      def bashFiles = []
+      rootProject.subprojects.each {
+        bashFiles << it.fileTree("src/main/bash") {
+          include "*.sh"
+        }
+      }
+      from bashFiles
+    }
+    into('lib') {
+      def dependencies = files()
+      def jars = []
+      rootProject.subprojects.each {
+        // Use subtraction to eliminate duplicates
+        dependencies = dependencies + (it.configurations[configurationName] - dependencies)
+        jars << it.jar
+      }
+      from dependencies
+      from jars
+    }
+  }
+}
+
+distributions {
+  // main distribution does not include Hadoop JARs; this is the one
+  // typically expected to be used on a system properly set up with
+  // an existing Hadoop installation.
+  main {
+    baseName = rootProject.name
+    contents generateDistContents('hadoopRuntime')
+  }
+  // fat distribution includes all dependencies.
+  fat {
+    baseName = rootProject.name + '-fat'
+    contents generateDistContents('runtime')
+  }
+}
+
+build.dependsOn(distZip)

@@ -1,0 +1,20 @@
+apply plugin: 'java'
+
+dependencies {
+  compile deps.external.avro
+  compile deps.external.guava
+  compile deps.external.jackson_databind
+  compile deps.external.jackson_dataformat_yaml
+  compile deps.external.objenesis
+  compile deps.external.py4j
+  compile deps.external.sshd
+  compile deps.hadoop.common
+  compile deps.hadoop.common_test
+  compile deps.hadoop.hdfs
+  compile deps.hadoop.hdfs_client
+  compile deps.hadoop.hdfs_test
+  compile deps.hadoop.yarn_api
+  compile deps.hadoop.yarn_client
+  compile deps.hadoop.yarn_common
+  compile deps.hadoop.yarn_server_test
+}

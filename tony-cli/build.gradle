@@ -1,0 +1,20 @@
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+dependencies {
+  compile project(':tony-core')
+}
+
+shadowJar {
+  mergeServiceFiles()
+  dependencies {
+    exclude(dependency('org.apache.hadoop::.*'))
+  }
+}
+
+jar.enabled = false
+configurations.all {
+  artifacts.removeAll artifacts.findAll { !it.archiveTask.enabled }
+}
+
+build.dependsOn(shadowJar)
