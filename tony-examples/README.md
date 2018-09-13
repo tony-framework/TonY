@@ -3,7 +3,7 @@
 To run the examples here, you need to:
 
 * build a Python virtual environment with TensorFlow 1.9.0 installed
-* install Hadoop 2.9+
+* install Hadoop 3.1+
 
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
 
