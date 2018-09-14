@@ -145,7 +145,7 @@ public class TensorFlowSession {
         LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(tonyConfPath)),
             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
             tonyConfLength, tonyConfTimestamp);
-    localResources.put(Constants.TONY_XML, tonyConfResource);
+    localResources.put(Constants.TONY_FINAL_XML, tonyConfResource);
 
     try {
       if (hdfsClasspathDir != null) {

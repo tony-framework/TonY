@@ -151,7 +151,7 @@ public class TaskExecutor {
   }
 
   protected boolean init(String[] args) throws Exception {
-    tonyConf.addResource(new Path(Constants.TONY_XML));
+    tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
     opts.addOption("task_command", true, "The task command to run.");

@@ -352,7 +352,7 @@ public class TonyClient {
     appResourcesPath = new Path(homeFS.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
     addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.ARCHIVE, Constants.TF_ZIP_NAME, localResources);
-    addLocalResources(homeFS, Constants.TONY_FINAL_XML, LocalResourceType.FILE, Constants.TONY_XML, localResources);
+    addLocalResources(homeFS, Constants.TONY_FINAL_XML, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     if (hdfsClasspathDir != null) {
       try {
         FileSystem remoteFS = FileSystem.get(new URI(hdfsClasspathDir), hdfsConf);
@@ -521,7 +521,7 @@ public class TonyClient {
     LocalResource zipResource = localResources.get(Constants.TF_ZIP_NAME);
     Utils.addEnvironmentForResource(zipResource, fs, Constants.TF_ZIP_PREFIX, containerEnv);
 
-    LocalResource tonyConfResource = localResources.get(Constants.TONY_XML);
+    LocalResource tonyConfResource = localResources.get(Constants.TONY_FINAL_XML);
     Utils.addEnvironmentForResource(tonyConfResource, fs, Constants.TONY_CONF_PREFIX, containerEnv);
 
     // Add AppMaster.jar location to classpath

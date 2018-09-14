@@ -185,7 +185,7 @@ public class TonyApplicationMaster {
    * @return whether the initialization is successful or not.
    */
   private boolean init(String[] args) {
-    tonyConf.addResource(new Path(Constants.TONY_XML));
+    tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     if (System.getenv(HDFS_SITE_CONF) != null) {
       hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
       yarnConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
