@@ -60,10 +60,17 @@ public class Constants {
   public static final String HADOOP_CLASSPATH_COMMAND = "CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob) ";
   public static final String SKIP_HADOOP_PATH = "SKIP_HADOOP_PATH";
 
-  public static final String TONY_DEFAULT_XML = "tony-default.xml";
-  public static final String TONY_XML = "tony.xml";
-  public static final String TONY_FINAL_XML = "tony-final.xml";
   public static final String TONY_FOLDER = ".tony";
+
+  // Configuration related constants
+
+  // Name of the file containing all configuration keys and their default values
+  public static final String TONY_DEFAULT_XML = "tony-default.xml";
+  // Default file name of user-provided configuration file
+  public static final String TONY_XML = "tony.xml";
+  // TonY-internal file name for final configurations, after user-provided configuration
+  // file and CLI confs are combined. This file is uploaded to HDFS and localized to containers
+  public static final String TONY_FINAL_XML = "tony-final.xml";
 
   private Constants() { }
 }
