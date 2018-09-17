@@ -55,7 +55,7 @@
       50 times via ipc.client.connect.max.retries and tony.application.num-rm-connect-retries is set to 1, the retry
       policy will try to connect once, but the IPC client will still try to connect 50 times.
     </description>
-    <name>tony.application.num-rm-connect-retries</name>
+    <name>tony.application.num-client-rm-connect-retries</name>
     <value>3</value>
   </property>
 
