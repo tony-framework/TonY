@@ -47,6 +47,18 @@
     <value>0</value>
   </property>
 
+
+  <property>
+    <description>
+      How many times the proxies in TonyClient should retry on connection failure. Note that this controls the number of
+      retries from the retry policy, not the internal Hadoop IPC client, e.g. if your IPC client is configured to retry
+      50 times via ipc.client.connect.max.retries and tony.application.num-rm-connect-retries is set to 1, the retry
+      policy will try to connect once, but the IPC client will still try to connect 50 times.
+    </description>
+    <name>tony.application.num-rm-connect-retries</name>
+    <value>1</value>
+  </property>
+
   <!-- Task configurations -->
   <property>
     <description>JVM opts for each TaskExecutor.</description>
