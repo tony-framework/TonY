@@ -38,7 +38,7 @@ public class TestTaskExecutor {
     TaskExecutor taskExecutor = new TaskExecutor();
     Configuration tonyConf = new Configuration(false);
     tonyConf.setInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS, 2000);
-    File confFile = new File(System.getProperty("user.dir"), Constants.TONY_XML);
+    File confFile = new File(System.getProperty("user.dir"), Constants.TONY_FINAL_XML);
     try (OutputStream os = new FileOutputStream(confFile)) {
       tonyConf.writeXml(os);
     }
