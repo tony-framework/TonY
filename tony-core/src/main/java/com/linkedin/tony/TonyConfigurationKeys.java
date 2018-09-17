@@ -35,7 +35,7 @@ public class TonyConfigurationKeys {
   public static final int DEFAULT_APPLICATION_TIMEOUT = 0;
 
   public static final String RM_CONNECT_RETRY_MULTIPLIER = TONY_APPLICATION_PREFIX + "num-rm-connect-retries";
-  public static final int DEFAULT_RM_CONNECT_RETRY_MULTIPLIER = 1;
+  public static final int DEFAULT_RM_CONNECT_RETRY_MULTIPLIER = 3;
 
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";

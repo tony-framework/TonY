@@ -56,7 +56,7 @@
       policy will try to connect once, but the IPC client will still try to connect 50 times.
     </description>
     <name>tony.application.num-rm-connect-retries</name>
-    <value>1</value>
+    <value>3</value>
   </property>
 
   <!-- Task configurations -->
