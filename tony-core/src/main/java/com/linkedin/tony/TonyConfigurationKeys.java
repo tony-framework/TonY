@@ -34,8 +34,8 @@ public class TonyConfigurationKeys {
   public static final String APPLICATION_TIMEOUT = TONY_APPLICATION_PREFIX + "timeout";
   public static final int DEFAULT_APPLICATION_TIMEOUT = 0;
 
-  public static final String RM_CONNECT_RETRY_MULTIPLIER = TONY_APPLICATION_PREFIX + "num-rm-connect-retries";
-  public static final int DEFAULT_RM_CONNECT_RETRY_MULTIPLIER = 3;
+  public static final String RM_CLIENT_CONNECT_RETRY_MULTIPLIER = TONY_APPLICATION_PREFIX + "num-client-rm-connect-retries";
+  public static final int DEFAULT_RM_CLIENT_CONNECT_RETRY_MULTIPLIER = 3;
 
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";

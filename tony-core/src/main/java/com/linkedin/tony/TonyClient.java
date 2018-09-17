@@ -197,8 +197,8 @@ public class TonyClient {
     if (this.hdfsConfAddress != null) {
       this.hdfsConf.addResource(new Path(this.hdfsConfAddress));
     }
-    int numRMConnectRetries = tonyConf.getInt(TonyConfigurationKeys.RM_CONNECT_RETRY_MULTIPLIER,
-        TonyConfigurationKeys.DEFAULT_RM_CONNECT_RETRY_MULTIPLIER);
+    int numRMConnectRetries = tonyConf.getInt(TonyConfigurationKeys.RM_CLIENT_CONNECT_RETRY_MULTIPLIER,
+        TonyConfigurationKeys.DEFAULT_RM_CLIENT_CONNECT_RETRY_MULTIPLIER);
     long rmMaxWaitMS = yarnConf.getLong(YarnConfiguration.RESOURCEMANAGER_CONNECT_RETRY_INTERVAL_MS,
         YarnConfiguration.DEFAULT_RESOURCEMANAGER_CONNECT_RETRY_INTERVAL_MS) * numRMConnectRetries;
     yarnConf.setLong(YarnConfiguration.RESOURCEMANAGER_CONNECT_MAX_WAIT_MS, rmMaxWaitMS);
