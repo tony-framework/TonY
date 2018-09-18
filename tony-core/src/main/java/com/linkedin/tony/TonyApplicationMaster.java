@@ -829,24 +829,13 @@ public class TonyApplicationMaster {
       try {
         // Post YARN-7974 or Hadoop 3.1.2 release
         // amRMClient.updateTrackingUrl(spec);
-      } catch (NoSuchMethodError nsme) {
-        // Pre YARN-7974
         YarnClient yarnClient = YarnClient.createYarnClient();
         yarnClient.init(yarnConf);
-        if (!insecureMode) {
-          String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
-          Credentials cred = Credentials.readTokenStorageFile(new File(fileLocation), yarnConf);
-          for (Token<? extends TokenIdentifier> token : cred.getAllTokens()) {
-            UserGroupInformation.getCurrentUser().addToken(token);
-          }
-          for (Token token : UserGroupInformation.getCurrentUser().getTokens()) {
-            LOG.info("Current user's token : " + token);
-          }
-        }
-        yarnClient.start();
-        //noinspection JavaReflectionMemberAccess
-        Method method = YarnClient.class.getMethod("updateTrackingURL", String.class, String.class);
-        method.invoke(yarnClient, appIdString, spec);
+        Method method = YarnClient.class.getMethod("updateTrackingURL", String.class);
+        method.invoke(yarnClient, spec);
+      } catch (NoSuchMethodException nsme) {
+        LOG.warn("This Hadoop version doesn't have the YARN-7974 patch, TonY won't register TensorBoard URL with"
+                 + "application's tracking URL");
       }
       return "SUCCEEDED";
     } else {
