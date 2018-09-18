@@ -252,9 +252,11 @@ public class TonyApplicationMaster {
   @VisibleForTesting
   static String buildBaseTaskCommand(String pythonVenvZip, String pythonBinaryPath, String script,
       String taskParams) {
-    String pythonInterpreter;
+    String pythonInterpreter = "";
     if (pythonVenvZip == null || pythonBinaryPath.startsWith("/")) {
-      pythonInterpreter = pythonBinaryPath;
+      if (pythonBinaryPath != null) {
+        pythonInterpreter = pythonBinaryPath;
+      }
     } else {
       // Note that we always extract the Python venv zip to a "venv" (Constants.PYTHON_VENV_DIR) directory.
       pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar + pythonBinaryPath;
@@ -620,6 +622,7 @@ public class TonyApplicationMaster {
       int tbPort = tbSocket.getLocalPort();
       extraEnv.put(Constants.TB_PORT, String.valueOf(tbPort));
       String tbUrl = Utils.getCurrentHostName() + ":" + tbPort;
+      proxyUrl = tbUrl;
       LOG.info("Registering tensorboard url for single node training: " + tbUrl);
       registerTensorBoardUrlToRM(tbUrl);
       tbSocket.close();

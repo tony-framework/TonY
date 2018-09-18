@@ -1,3 +1,7 @@
+/**
+ * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
+ * See LICENSE in the project root for license information.
+ */
 package com.linkedin.tony.cli;
 
 import com.linkedin.tony.TonyClient;
@@ -11,8 +15,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.UUID;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
@@ -21,8 +24,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+
+import static com.linkedin.tony.Constants.*;
 
 
 public class NotebookSubmitter {
@@ -37,9 +41,6 @@ public class NotebookSubmitter {
     opts.addOption("exec", true, "The file to be executed inside the downloaded archive file.");
     opts.addOption("timeout", true, "the timeout to stop notebook executor, in seconds.");
 
-    String pattern = "yyyy-MM-dd";
-    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
-    String date = simpleDateFormat.format(new Date());
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     CommandLine cliParser = new GnuParser().parse(opts, args);
     String fileUrl = cliParser.getOptionValue("file_url", "");
@@ -50,26 +51,28 @@ public class NotebookSubmitter {
     String fileName = "notebook.zip";
     Files.copy(in, Paths.get(fileName), StandardCopyOption.REPLACE_EXISTING);
 
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-
-    String tmpDirBase = conf.get("hadoop.tmp.dir");
-
-    String tmpPath = tmpDirBase + File.separatorChar + UserGroupInformation.getCurrentUser().getShortUserName() + date;
-
-    // This is the path we gonna store required libraries in the local HDFS.
-    Path cachedLibPath = new Path(tmpPath);
-    if (fs.exists(cachedLibPath)) {
-      fs.delete(cachedLibPath, true);
+    int exitCode = 0;
+    Path cachedLibPath = null;
+    Configuration hdfsConf = new Configuration();
+    try (FileSystem fs = FileSystem.get(hdfsConf)) {
+      cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
+      fs.mkdirs(cachedLibPath);
+      fs.copyFromLocalFile(new Path(jarPath), cachedLibPath);
+      LOG.info("Copying " + jarPath + " to: " + cachedLibPath);
+      fs.copyFromLocalFile(new Path(fileName), cachedLibPath);
+      LOG.info("Copying " + fileName + " to: " + cachedLibPath);
+    } catch (IOException e) {
+      LOG.fatal("Failed to create FileSystem: ", e);
+      exitCode = -1;
     }
-    fs.mkdirs(cachedLibPath);
-    fs.copyFromLocalFile(new Path(jarPath), new Path(tmpPath));
-    String tonyArguments = "";
-    tonyArguments += " --hdfs_classpath " + tmpPath;
-    tonyArguments += " --src " + fileName;
-    tonyArguments += " --exec " + exec;
-    tonyArguments += " --singleNode";
-    String[] tonyArgumentsArray = tonyArguments.split(" ");
+    if (cachedLibPath == null) {
+      System.exit(-1);
+    }
+    String[] tonyArgumentsArray = new String[]{
+        "--src_dir", fileName,
+        "--executes", exec,
+        "--hdfs_classpath", cachedLibPath.toString(),
+    };
 
     TonyClient client = TonyClient.createClientInstance(tonyArgumentsArray, new Configuration());
     if (client == null) {
@@ -95,6 +98,7 @@ public class NotebookSubmitter {
       }
     }
     Thread.sleep(timeout);
+    System.exit(exitCode);
 
   }
 }
