@@ -829,10 +829,8 @@ public class TonyApplicationMaster {
       try {
         // Post YARN-7974 or Hadoop 3.1.2 release
         // amRMClient.updateTrackingUrl(spec);
-        YarnClient yarnClient = YarnClient.createYarnClient();
-        yarnClient.init(yarnConf);
-        Method method = YarnClient.class.getMethod("updateTrackingURL", String.class);
-        method.invoke(yarnClient, spec);
+        Method method = AMRMClientAsync.class.getMethod("updateTrackingUrl", String.class);
+        method.invoke(amRMClient, spec);
       } catch (NoSuchMethodException nsme) {
         LOG.warn("This Hadoop version doesn't have the YARN-7974 patch, TonY won't register TensorBoard URL with"
                  + "application's tracking URL");
