@@ -301,7 +301,12 @@ public class Utils {
     } finally {
       IOUtils.closeQuietly(raf);
     }
-    return fileSignature == 0x504B0304 || fileSignature == 0x504B0506 || fileSignature == 0x504B0708;
+    return fileSignature == 0x504B0304 // zip
+           || fileSignature == 0x504B0506 // zip
+           || fileSignature == 0x504B0708 // zip
+           || fileSignature == 0x74657374 // tar
+           || fileSignature == 0x75737461 // tar
+           || (fileSignature & 0xFFFF0000) == 0x1F8B0000; // tar.gz
   }
 
   public static boolean renameFile(String oldName, String newName) {

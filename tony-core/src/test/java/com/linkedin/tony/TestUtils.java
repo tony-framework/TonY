@@ -70,4 +70,26 @@ public class TestUtils {
     // Check job does not exist if no instances are configured.
     assertFalse(requests.containsKey("chief"));
   }
+
+  @Test
+  public void testIsArchive() {
+    ClassLoader classLoader = getClass().getClassLoader();
+    File file1 = new File(classLoader.getResource("test.zip").getFile());
+    File file2 = new File(classLoader.getResource("test.tar").getFile());
+    File file3 = new File(classLoader.getResource("test.tar.gz").getFile());
+    assertTrue(Utils.isArchive(file1.getAbsolutePath()));
+    assertTrue(Utils.isArchive(file2.getAbsolutePath()));
+    assertTrue(Utils.isArchive(file3.getAbsolutePath()));
+  }
+
+  @Test
+  public void testRenameFile() throws IOException {
+    ClassLoader classLoader = getClass().getClassLoader();
+    File file1 = new File(classLoader.getResource("file_move.txt").getFile());
+    boolean result = Utils.renameFile(file1.getAbsolutePath(),
+                                      file1.getAbsolutePath() + "bak");
+    assertTrue(Files.exists(Paths.get(file1.getAbsolutePath() + "bak")));
+    assertTrue(result);
+    Files.deleteIfExists(Paths.get(file1.getAbsolutePath() + "bak"));
+  }
 }
