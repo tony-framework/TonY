@@ -112,6 +112,9 @@ public class TonyClient {
   private int hbInterval;
   private int maxHbMisses;
 
+  // Used to expose notebookUrl for TonyCLI
+  public String notebookUrl;
+
   public TonyClient() {
     this(new Configuration(false));
   }
@@ -121,7 +124,7 @@ public class TonyClient {
     tonyConf = conf;
   }
 
-  boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
+  public boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
     LOG.info("Starting client..");
     yarnClient.start();
 
@@ -164,7 +167,7 @@ public class TonyClient {
 
     // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(appId, appName,
+        createAMContainerSpec(appId,
                               this.amMemory, this.taskParams,
                               this.pythonBinaryPath, this.pythonVenv, this.executes, getTokens(),
                               this.hdfsClasspath);
@@ -319,8 +322,7 @@ public class TonyClient {
     return true;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, String appName,
-                                                      long amMemory,
+  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory,
                                                       String taskParams, String pythonBinaryPath,
                                                       String pythonVenv, String executes, ByteBuffer tokens,
                                                       String hdfsClasspathDir) throws IOException {
@@ -432,7 +434,12 @@ public class TonyClient {
   private void zipArchive() throws IOException {
     FileOutputStream fos = new FileOutputStream(ARCHIVE_PATH);
     ZipOutputStream zos = new ZipOutputStream(fos);
-    addDirToZip(zos, srcDir);
+    // Accept archive file as srcDir.
+    if (!Utils.isArchive(srcDir)) {
+      addDirToZip(zos, srcDir);
+    } else {
+      Utils.renameFile(srcDir, ARCHIVE_PATH);
+    }
     if (hdfsConfAddress != null) {
       addFileToZip(zos, hdfsConfAddress);
     }
@@ -675,6 +682,18 @@ public class TonyClient {
     } catch (IOException | YarnException e) {
       LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
     }
+  }
+
+  public static TonyClient createClientInstance(String[] args, Configuration conf) throws ParseException {
+    TonyClient client;
+    client = new TonyClient(conf);
+    boolean sanityCheck = client.init(args);
+    client.createYarnClient();
+    if (!sanityCheck) {
+      LOG.fatal("Failed to init client.");
+      return null;
+    }
+    return client;
   }
 
   public static int start(String[] args) {
