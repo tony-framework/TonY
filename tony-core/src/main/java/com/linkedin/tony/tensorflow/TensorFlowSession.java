@@ -229,7 +229,7 @@ public class TensorFlowSession {
    * @param allocationRequestId the allocationRequestId of the allocated container
    * @return task to be assigned to this allocation
    */
-  public synchronized TFTask getRemainingTask(long allocationRequestId) {
+  public synchronized TFTask getMatchingTask(long allocationRequestId) {
     for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
       if (!jobTypeToAllocationIds.get(jobName).contains(allocationRequestId)) {

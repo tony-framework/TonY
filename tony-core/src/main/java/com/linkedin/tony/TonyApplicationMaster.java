@@ -126,6 +126,8 @@ public class TonyApplicationMaster {
   private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
 
+  // allocationRequestIds are allocated to TF tasks sequentially. lastAllocationRequestId
+  // tracks the latest allocationRequestId allocated.
   private long lastAllocationRequestId = 0;
 
   // TensorFlow session
@@ -1021,7 +1023,7 @@ public class TonyApplicationMaster {
       containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
-      TFTask task = session.getRemainingTask(container.getAllocationRequestId());
+      TFTask task = session.getMatchingTask(container.getAllocationRequestId());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
       task.addContainer(container);
