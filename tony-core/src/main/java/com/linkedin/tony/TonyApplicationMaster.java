@@ -869,7 +869,7 @@ public class TonyApplicationMaster {
     session.addAllocationIdToJob(request.getJobName(), lastAllocationRequestId);
     AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority,
         lastAllocationRequestId++);
-    LOG.info("Requested container ask: " + request.toString());
+    LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
   }
 
