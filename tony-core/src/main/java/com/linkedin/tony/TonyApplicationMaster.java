@@ -95,6 +95,7 @@ public class TonyApplicationMaster {
   private ByteBuffer allTokens;
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
   private Configuration tonyConf = new Configuration();
+  private ContainerId containerId;
 
   // The environment set up for the TaskExecutor
   private Map<String, String> containerEnv = new ConcurrentHashMap<>();
@@ -240,7 +241,7 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     enablePreprocessing = tonyConf.getBoolean(TonyConfigurationKeys.ENABLE_PREPROCESSING_JOB,
                                               TonyConfigurationKeys.DEFAULT_ENABLE_PREPROCESSING_JOB);
-    ContainerId containerId = ContainerId.fromString(envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
+    containerId = ContainerId.fromString(envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     appIdString = containerId.getApplicationAttemptId().getApplicationId().toString();
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
@@ -636,6 +637,7 @@ public class TonyApplicationMaster {
     }
 
     extraEnv.put(Constants.PREPROCESSING_JOB, "true");
+    extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
     String taskCommand = baseTaskCommand;
     LOG.info("Executing command: " + taskCommand);
@@ -695,16 +697,20 @@ public class TonyApplicationMaster {
 
     @Override
     public Set<TaskUrl> getTaskUrls() {
-      if (session != null && session.allTasksScheduled()) {
+      LOG.info("Client requesting TaskUrls!");
+      if (singleNode && proxyUrl != null) {
+        return new HashSet<TaskUrl>(){{
+          add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
+                          Utils.getCurrentHostName() + ":"
+                          + System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()), containerId)));
+          add(new TaskUrl(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
+        }};
+      }
+
+      if (!singleNode && session != null && session.allTasksScheduled()) {
         return session.getTFTasks().values().stream()
             .flatMap(tasks -> Arrays.stream(tasks).map(TFTask::getTaskUrl))
             .collect(Collectors.toSet());
-      }
-
-      if (singleNode && proxyUrl != null) {
-        return new HashSet<TaskUrl>(){{
-          add(new TaskUrl("notebook", "0", proxyUrl));
-        }};
       }
 
       return Collections.emptySet();

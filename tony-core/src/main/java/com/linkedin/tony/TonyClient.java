@@ -648,7 +648,12 @@ public class TonyClient {
     if (amRpcServerInitialized && !hasPrintedTaskUrls) {
       Set<TaskUrl> taskUrls = amRpcClient.getTaskUrls();
       if (!taskUrls.isEmpty()) {
-        new TreeSet<TaskUrl>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
+        new TreeSet<TaskUrl>(taskUrls).forEach(task -> {
+            if (task.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
+                notebookUrl = task.getUrl();
+            }
+            Utils.printTaskUrl(task, LOG);
+        });
         hasPrintedTaskUrls = true;
       }
     }

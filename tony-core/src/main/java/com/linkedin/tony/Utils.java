@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 
@@ -126,6 +127,15 @@ public class Utils {
     try {
       return String.format(WORKER_LOG_URL_TEMPLATE, container.getNodeHttpAddress(), container.getId(),
           UserGroupInformation.getCurrentUser().getShortUserName());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static String constructContainerUrl(String nodeAddress, ContainerId containerId) {
+    try {
+      return String.format(WORKER_LOG_URL_TEMPLATE, nodeAddress, containerId,
+                           UserGroupInformation.getCurrentUser().getShortUserName());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

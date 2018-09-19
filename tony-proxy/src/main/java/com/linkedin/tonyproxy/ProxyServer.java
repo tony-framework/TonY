@@ -36,7 +36,7 @@ public class ProxyServer {
              + " on port " + localPort);
     ServerSocket server = new ServerSocket(localPort);
     while (true) {
-      new Proxy(server.accept(), host, remotePort);
+      new Proxy(server.accept(), host, remotePort).start();
     }
   }
 

@@ -95,7 +95,7 @@ subprojects {
     // Set the year in the license
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
     skipExistingHeaders = false
-    excludes(["com/linkedin/tony/rpc/proto/", "**/*.properties"])
+    excludes(["com/linkedin/tony/rpc/proto/", "**/*.properties", "**/*.txt"])
   }
   configurations {
     hadoopRuntime.extendsFrom(runtime)

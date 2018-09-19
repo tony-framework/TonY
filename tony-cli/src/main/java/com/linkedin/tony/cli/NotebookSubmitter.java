@@ -38,19 +38,24 @@ public class NotebookSubmitter {
     LOG.info("Starting NotebookSubmitter..");
     Options opts = new Options();
     opts.addOption("file_url", true, "The file to be downloaded.");
+    opts.addOption("src_dir", true, "The file to be downloaded.");
     opts.addOption("exec", true, "The file to be executed inside the downloaded archive file.");
     opts.addOption("timeout", true, "the timeout to stop notebook executor, in seconds.");
 
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     CommandLine cliParser = new GnuParser().parse(opts, args);
-    String fileUrl = cliParser.getOptionValue("file_url", "");
+    String fileUrl = cliParser.getOptionValue("file_url");
     String exec = cliParser.getOptionValue("exec", "");
+    String srcDir = cliParser.getOptionValue("src_dir", "");
     int timeout = Integer.parseInt(cliParser.getOptionValue("timeout", "3600000"));
     timeout = Math.min(timeout, 24 * 3600 * 1000);
-    InputStream in = new URL(fileUrl).openStream();
     String fileName = "notebook.zip";
-    Files.copy(in, Paths.get(fileName), StandardCopyOption.REPLACE_EXISTING);
-
+    if (fileUrl != null) {
+      InputStream in = new URL(fileUrl).openStream();
+      Files.copy(in, Paths.get(fileName), StandardCopyOption.REPLACE_EXISTING);
+    } else {
+      fileName = srcDir;
+    }
     int exitCode = 0;
     Path cachedLibPath = null;
     Configuration hdfsConf = new Configuration();
@@ -59,8 +64,6 @@ public class NotebookSubmitter {
       fs.mkdirs(cachedLibPath);
       fs.copyFromLocalFile(new Path(jarPath), cachedLibPath);
       LOG.info("Copying " + jarPath + " to: " + cachedLibPath);
-      fs.copyFromLocalFile(new Path(fileName), cachedLibPath);
-      LOG.info("Copying " + fileName + " to: " + cachedLibPath);
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
       exitCode = -1;
@@ -93,6 +96,7 @@ public class NotebookSubmitter {
         int localPort = localSocket.getLocalPort();
         localSocket.close();
         ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
+        LOG.info("Please run [ssh -L 8080:localhost:" + String.valueOf(localPort) + " name_of_this_host] in your console and open [localhost:8080] in your browser to visit Notebook");
         server.start();
         break;
       }
