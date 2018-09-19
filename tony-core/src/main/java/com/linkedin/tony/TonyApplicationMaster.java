@@ -126,6 +126,10 @@ public class TonyApplicationMaster {
   private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
 
+  // allocationRequestIds are allocated to TF tasks sequentially. lastAllocationRequestId
+  // tracks the latest allocationRequestId allocated.
+  private long lastAllocationRequestId = 0;
+
   // TensorFlow session
   private TensorFlowSession session = new TensorFlowSession(); // Create a dummy session for single node training.
   private TensorFlowSession.Builder sessionBuilder;
@@ -566,13 +570,13 @@ public class TonyApplicationMaster {
     }
     if (this.taskHasMissesHB) {
       session.setFinalStatus(FinalApplicationStatus.FAILED,
-                             "Application failed due to missed heartbeats");
+          "Application failed due to missed heartbeats");
     } else {
       session.updateSessionStatus();
     }
 
     LOG.info("Total completed worker tasks: " + numCompletedWorkerTasks.get()
-             + ", total worker tasks: " + numTotalWorkerTasks);
+        + ", total worker tasks: " + numTotalWorkerTasks);
     boolean success = true;
     FinalApplicationStatus status = session.getFinalStatus();
     String appMessage = session.getFinalMessage();
@@ -861,17 +865,14 @@ public class TonyApplicationMaster {
   }
 
   private AMRMClient.ContainerRequest setupContainerRequestForRM(TensorFlowContainerRequest request) {
-    return setupContainerRequestForRM(request.getVirtualCores(), request.getMemory(), request.getGPU(),
-                                      request.getPriority());
-  }
-
-  private AMRMClient.ContainerRequest setupContainerRequestForRM(int vCores, long mem, final int gpu, int priority) {
-    Priority pi = Priority.newInstance(priority);
-    Resource capability = Resource.newInstance(mem, vCores);
-    Utils.setCapabilityGPU(capability, gpu);
-    AMRMClient.ContainerRequest request = new AMRMClient.ContainerRequest(capability, null, null, pi);
-    LOG.info("Requested container ask: " + request.toString());
-    return request;
+    Priority priority = Priority.newInstance(request.getPriority());
+    Resource capability = Resource.newInstance(request.getMemory(), request.getVirtualCores());
+    Utils.setCapabilityGPU(capability, request.getGPU());
+    session.addAllocationId(request.getJobName(), lastAllocationRequestId);
+    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority,
+        lastAllocationRequestId++);
+    LOG.info("Requested container ask: " + containerRequest.toString());
+    return containerRequest;
   }
 
   private NMCallbackHandler createNMCallbackHandler() {
@@ -1022,7 +1023,7 @@ public class TonyApplicationMaster {
       containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
-      TFTask task = session.getRemainingTask(container.getResource());
+      TFTask task = session.getMatchingTask(container.getAllocationRequestId());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
       task.addContainer(container);
