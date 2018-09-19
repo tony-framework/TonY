@@ -37,15 +37,15 @@ public class NotebookSubmitter {
   public static void main(String[] args) throws  Exception {
     LOG.info("Starting NotebookSubmitter..");
     Options opts = new Options();
-    opts.addOption("file_url", true, "The file to be downloaded.");
-    opts.addOption("src_dir", true, "The file to be downloaded.");
-    opts.addOption("exec", true, "The file to be executed inside the downloaded archive file.");
+    opts.addOption("file_url", true, "The zip file to be downloaded.");
+    opts.addOption("src_dir", true, "The directory that contains the JupyterNotebook executable file, this is an alternative to providing a file url to download.");
+    opts.addOption("executes", true, "The file to be executed inside the downloaded archive file.");
     opts.addOption("timeout", true, "the timeout to stop notebook executor, in seconds.");
 
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     CommandLine cliParser = new GnuParser().parse(opts, args);
     String fileUrl = cliParser.getOptionValue("file_url");
-    String exec = cliParser.getOptionValue("exec", "");
+    String exec = cliParser.getOptionValue("executes", "");
     String srcDir = cliParser.getOptionValue("src_dir", "");
     int timeout = Integer.parseInt(cliParser.getOptionValue("timeout", "3600000"));
     timeout = Math.min(timeout, 24 * 3600 * 1000);
