@@ -216,7 +216,7 @@ public class TensorFlowSession {
    * @param jobName the TensorFlow job name
    * @param allocationRequestId the allocationRequestId which corresponds to an instance of this job
    */
-  public void addAllocationIdToJob(String jobName, long allocationRequestId) {
+  public void addAllocationId(String jobName, long allocationRequestId) {
     if (jobTypeToAllocationIds.get(jobName) == null) {
       jobTypeToAllocationIds.put(jobName, new HashSet<>());
     }

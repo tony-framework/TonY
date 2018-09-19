@@ -868,7 +868,7 @@ public class TonyApplicationMaster {
     Priority priority = Priority.newInstance(request.getPriority());
     Resource capability = Resource.newInstance(request.getMemory(), request.getVirtualCores());
     Utils.setCapabilityGPU(capability, request.getGPU());
-    session.addAllocationIdToJob(request.getJobName(), lastAllocationRequestId);
+    session.addAllocationId(request.getJobName(), lastAllocationRequestId);
     AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority,
         lastAllocationRequestId++);
     LOG.info("Requested container ask: " + containerRequest.toString());
