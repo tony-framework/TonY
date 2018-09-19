@@ -101,8 +101,8 @@ public class TonyConfigurationKeys {
   public static final int DEFAULT_WORKER_INSTANCES = 1;
 
   // Local testing configurations
-  public static final String IS_INSECURE_MODE = TONY_APPLICATION_PREFIX + "insecure-mode";
-  public static final boolean DEFAULT_IS_INSECURE_MODE = false;
+  public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";
+  public static final boolean DEFAULT_SECURITY_ENABLED = true;
 
   public static final String HDFS_CONF_LOCATION = TONY_APPLICATION_PREFIX + "hdfs-conf-path";
 

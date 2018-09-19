@@ -101,7 +101,7 @@ public class TonyClient {
   private String pythonVenv = "";
   private String executes;
   private long appTimeout;
-  private boolean insecureMode;
+  private boolean secureMode;
   private String srcDir;
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
@@ -261,8 +261,8 @@ public class TonyClient {
         TonyConfigurationKeys.DEFAULT_AM_VCORES);
     amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
         TonyConfigurationKeys.DEFAULT_AM_GPUS);
-    insecureMode = tonyConf.getBoolean(TonyConfigurationKeys.IS_INSECURE_MODE,
-        TonyConfigurationKeys.DEFAULT_IS_INSECURE_MODE);
+    secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
+        TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     maxHbMisses = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
@@ -545,7 +545,7 @@ public class TonyClient {
 
   // Set up delegation token
   private ByteBuffer getTokens() throws IOException, URISyntaxException, YarnException {
-    if (this.insecureMode) {
+    if (!this.secureMode) {
       return null;
     }
     Credentials cred = new Credentials();

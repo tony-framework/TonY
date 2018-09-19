@@ -56,7 +56,7 @@ public class TestTonyE2E {
   public void testSingleNodeTrainingShouldPass() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     int exitCode = TonyClient.start(new String[] {
@@ -73,7 +73,7 @@ public class TestTonyE2E {
   @Test
   public void testPSWorkerTrainingShouldFailMissedHeartbeat() {
     Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.setInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS, 2);
@@ -91,7 +91,7 @@ public class TestTonyE2E {
   @Test
   public void testPSSkewedWorkerTrainingShouldPass() {
     Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.setInt(TonyConfigurationKeys.WORKER_INSTANCES, 2);
@@ -110,7 +110,7 @@ public class TestTonyE2E {
   @Test
   public void testPSWorkerTrainingShouldPass() {
     Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     int exitCode = TonyClient.start(new String[]{
@@ -127,7 +127,7 @@ public class TestTonyE2E {
   @Test
   public void testPSWorkerTrainingShouldFail() {
     Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     int exitCode = TonyClient.start(new String[]{
@@ -144,7 +144,7 @@ public class TestTonyE2E {
   public void testSingleNodeTrainingShouldFail() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     int exitCode = TonyClient.start(new String[]{
@@ -161,7 +161,7 @@ public class TestTonyE2E {
   public void testAMCrashTonyShouldFail() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     int exitCode = TonyClient.start(new String[]{
@@ -182,7 +182,7 @@ public class TestTonyE2E {
   @Test(enabled = false)
   public void testAMRequestsNewContainersAfterTimeout() {
     Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.setInt(TonyConfigurationKeys.PS_INSTANCES, 2);
@@ -207,7 +207,7 @@ public class TestTonyE2E {
   @Test
   public void testAMStopsJobAfterTimeout() {
     Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.IS_INSECURE_MODE, true);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_TIMEOUT_SEC, 5);
