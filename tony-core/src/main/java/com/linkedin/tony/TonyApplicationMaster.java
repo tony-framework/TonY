@@ -141,8 +141,8 @@ public class TonyApplicationMaster {
   // Cluster spec
   private ApplicationRpcServer rpcServer;
 
-  // Local mode
-  private boolean insecureMode;
+  // Set to false when testing locally / running in insecure cluster
+  private boolean secureMode;
 
   // Single node training
   private boolean singleNode;
@@ -251,8 +251,8 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_AM_RETRY_COUNT);
     singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
         TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
-    insecureMode = tonyConf.getBoolean(TonyConfigurationKeys.IS_INSECURE_MODE,
-        TonyConfigurationKeys.DEFAULT_IS_INSECURE_MODE);
+    secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
+        TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     enablePreprocessing = tonyConf.getBoolean(TonyConfigurationKeys.ENABLE_PREPROCESSING_JOB,
                                               TonyConfigurationKeys.DEFAULT_ENABLE_PREPROCESSING_JOB);
     ContainerId containerId = ContainerId.fromString(envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
@@ -393,7 +393,7 @@ public class TonyApplicationMaster {
       response = amRMClient.registerApplicationMaster(hostname, amPort, null);
       amHostPort = hostname + ":" + amPort;
       LOG.info("RPC server running at: " + amHostPort);
-      if (!insecureMode) {
+      if (secureMode) {
         ClientToAMTokenIdentifier identifier =
             new ClientToAMTokenIdentifier(appAttemptID, UserGroupInformation.getCurrentUser().getShortUserName());
         byte[] secret = response.getClientToAMTokenMasterKey().array();
@@ -1056,7 +1056,7 @@ public class TonyApplicationMaster {
       acls.put(ApplicationAccessType.MODIFY_APP, " ");
 
       ByteBuffer tokens = null;
-      if (!insecureMode) {
+      if (secureMode) {
         tokens = allTokens.duplicate();
       }
       ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(new ConcurrentHashMap<>(localResources),

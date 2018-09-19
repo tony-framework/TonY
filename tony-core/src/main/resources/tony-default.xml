@@ -171,8 +171,8 @@
       Whether this application is running in a Kerberized grid. Enabling this will fetch tokens from the cluster as
       well as between the client and AM.
     </description>
-    <name>tony.application.insecure-mode</name>
-    <value>false</value>
+    <name>tony.application.security.enabled</name>
+    <value>true</value>
   </property>
 
   <property>
