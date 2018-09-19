@@ -1,4 +1,4 @@
-# TonY
+# TonY [![Build Status](https://travis-ci.org/linkedin/TonY.svg?branch=master)](https://travis-ci.org/linkedin/TonY)
 
 TensorFlow on YARN (TonY) is a framework to _natively_ run [TensorFlow](https://github.com/tensorflow/tensorflow) 
 on [Apache Hadoop](http://hadoop.apache.org/). TonY enables running either single node or distributed TensorFlow 
@@ -93,7 +93,7 @@ containing your configurations. (As before, the parent directory of this file mu
 
 If you wish to override configurations from your configuration file via command line, you can do so by passing `-conf <tony.conf.key>=<tony.conf.value>` argument pairs on the command line.
 
-Finally, please check `tony-default.xml` or the wiki for default values of each TonY configuration.
+Finally, please check `tony-default.xml` or the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for default values of each TonY configuration.
 
 Here is a full example of configuring your TonY application:
 
