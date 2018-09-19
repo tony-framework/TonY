@@ -12,9 +12,11 @@ import com.linkedin.tony.rpc.TaskUrl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -62,7 +64,7 @@ public class TensorFlowSession {
   private Map<String, String> shellEnv;
   private String jvmArgs;
   private TensorFlowContainerRequest workerContainerRequest;
-  private Map<String, TensorFlowContainerRequest> jobTypeToRequestMap;
+  private Map<String, Set<Long>> jobTypeToAllocationIds = new HashMap<String, Set<Long>>();
 
   public enum TaskType {
     TASK_TYPE_CHIEF, TASK_TYPE_PARAMETER_SERVER, TASK_TYPE_OTHERS
@@ -112,8 +114,6 @@ public class TensorFlowSession {
 
     TFTask[] psTasks = new TFTask[this.numPs];
     jobTasks.put(PS_JOB_NAME, psTasks);
-
-    this.jobTypeToRequestMap = ImmutableMap.of("ps", psContainerRequest, "worker", workerContainerRequest);
   }
 
   public Map<String, TFTask[]> getTFTasks() {
@@ -211,17 +211,35 @@ public class TensorFlowSession {
     return true;
   }
 
-  // Get a task that hasn't been scheduled.
-  public synchronized TFTask getRemainingTask(Resource resource) {
+  /**
+   * Associate an allocationRequestId to a TensorFlow job.
+   * @param jobName the TensorFlow job name
+   * @param allocationRequestId the allocationRequestId which corresponds to an instance of this job
+   */
+  public void addAllocationIdToJob(String jobName, long allocationRequestId) {
+    if (jobTypeToAllocationIds.get(jobName) == null) {
+      jobTypeToAllocationIds.put(jobName, new HashSet<>());
+    }
+    jobTypeToAllocationIds.get(jobName).add(allocationRequestId);
+    LOG.info(String.format("Job %s with allocationRequestId %d", jobName, allocationRequestId));
+  }
+
+  /**
+   * Get a TensorFlow task that hasn't been scheduled.
+   * @param allocationRequestId the allocationRequestId of the allocated container
+   * @return task to be assigned to this allocation
+   */
+  public synchronized TFTask getRemainingTask(long allocationRequestId) {
     for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
-      if (!jobTypeToRequestMap.get(jobName).matchesResourceRequest(resource)) {
+      if (!jobTypeToAllocationIds.get(jobName).contains(allocationRequestId)) {
         continue;
       }
       TFTask[] tasks = entry.getValue();
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
           tasks[i] = new TFTask(jobName, String.valueOf(i));
+          LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
         }
       }
