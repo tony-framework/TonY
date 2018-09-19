@@ -5,6 +5,8 @@
 package com.linkedin.tony.cli;
 
 import com.linkedin.tony.TonyClient;
+import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.Utils;
 import com.linkedin.tonyproxy.ProxyServer;
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.UUID;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -36,26 +39,12 @@ public class NotebookSubmitter {
 
   public static void main(String[] args) throws  Exception {
     LOG.info("Starting NotebookSubmitter..");
-    Options opts = new Options();
-    opts.addOption("file_url", true, "The zip file to be downloaded.");
-    opts.addOption("src_dir", true, "The directory that contains the JupyterNotebook executable file, this is an alternative to providing a file url to download.");
-    opts.addOption("executes", true, "The file to be executed inside the downloaded archive file.");
-    opts.addOption("timeout", true, "the timeout to stop notebook executor, in seconds.");
-
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-    CommandLine cliParser = new GnuParser().parse(opts, args);
-    String fileUrl = cliParser.getOptionValue("file_url");
-    String exec = cliParser.getOptionValue("executes", "");
-    String srcDir = cliParser.getOptionValue("src_dir", "");
-    int timeout = Integer.parseInt(cliParser.getOptionValue("timeout", "3600000"));
-    timeout = Math.min(timeout, 24 * 3600 * 1000);
-    String fileName = "notebook.zip";
-    if (fileUrl != null) {
-      InputStream in = new URL(fileUrl).openStream();
-      Files.copy(in, Paths.get(fileName), StandardCopyOption.REPLACE_EXISTING);
-    } else {
-      fileName = srcDir;
-    }
+    Options opts = Utils.getCommonOptions();
+    opts.addOption("conf", true, "User specified configuration, as key=val pairs");
+    opts.addOption("conf_file", true, "Name of user specified conf file, on the classpath");
+    opts.addOption("src_dir", true, "Name of directory of source files.");
+
     int exitCode = 0;
     Path cachedLibPath = null;
     Configuration hdfsConf = new Configuration();
@@ -71,13 +60,14 @@ public class NotebookSubmitter {
     if (cachedLibPath == null) {
       System.exit(-1);
     }
-    String[] tonyArgumentsArray = new String[]{
-        "--src_dir", fileName,
-        "--executes", exec,
-        "--hdfs_classpath", cachedLibPath.toString(),
-    };
 
-    TonyClient client = TonyClient.createClientInstance(tonyArgumentsArray, new Configuration());
+    String[] updatedArgs = Arrays.copyOf(args, args.length + 4);
+    updatedArgs[args.length] = "--hdfs_classpath";
+    updatedArgs[args.length + 1] = cachedLibPath.toString();
+    updatedArgs[args.length + 2] = "--conf";
+    updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + String.valueOf(24 * 3600 *1000);
+
+    TonyClient client = TonyClient.createClientInstance(updatedArgs, new Configuration());
     if (client == null) {
       System.exit(-1);
     }
@@ -96,12 +86,12 @@ public class NotebookSubmitter {
         int localPort = localSocket.getLocalPort();
         localSocket.close();
         ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
-        LOG.info("Please run [ssh -L 8080:localhost:" + String.valueOf(localPort) + " name_of_this_host] in your console and open [localhost:8080] in your browser to visit Notebook");
+        LOG.info("Please run [ssh -L 8080:localhost:" + String.valueOf(localPort) + " name_of_this_host] in your laptop and open [localhost:8080] in your browser to visit Notebook");
         server.start();
         break;
       }
     }
-    Thread.sleep(timeout);
+    clientThread.join();
     System.exit(exitCode);
 
   }

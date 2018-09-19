@@ -18,8 +18,6 @@ public class Constants {
   // Distributed TensorFlow job name, e.g. "ps" or "worker",
   // as per https://www.tensorflow.org/deploy/distributed
   public static final String JOB_NAME = "JOB_NAME";
-  public static final String PRE_JOB_SHELL = "PRE_JOB_SHELL";
-  public static final String POST_JOB_SHELL = "POST_JOB_SHELL";
   public static final String SESSION_ID = "SESSION_ID";
   public static final String PREPROCESSING_JOB = "PREPROCESSING_JOB";
   public static final String PY4JGATEWAY = "PY4J_GATEWAY_PORT";
