@@ -1,0 +1,17 @@
+apply plugin: 'java'
+
+dependencies {
+  compile deps.azkaban.az_core
+  compile deps.azkaban.azkaban_common
+  compile deps.azkaban.az_hadoop_jobtype_plugin
+  compile deps.azkaban.azkaban_hadoop_security_plugin
+  compile deps.hadoop.common
+  compile deps.external.log4j
+
+  testCompile deps.azkaban.az_hadoop_jobtype_plugin
+  testCompile deps.external.commons_io
+  testCompile deps.external.guice
+  testCompile deps.external.testng
+}
+
+configurations.compile.dependencies.all { transitive = false }
