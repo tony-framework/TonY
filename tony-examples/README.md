@@ -36,8 +36,8 @@ If your Hadoop cluster is not running with security enabled (e.g.: for local tes
 ```
 <configuration>
   <property>
-    <name>tony.application.insecure-mode</name>
-    <value>true</value>
+    <name>tony.application.security.enabled</name>
+    <value>false</value>
   </property>
 </configuration>
 ```
