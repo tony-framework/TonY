@@ -57,7 +57,7 @@ For example:
       </property>
     </configuration>
 
-For a full list of configurations, please see the wiki.
+For a full list of configurations, please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations).
 
 #### Model code
 
