@@ -26,8 +26,8 @@ ext.deps = [
   azkaban: [
     "az_core": "com.linkedin.azkaban:az-core:3.58.0",
     "azkaban_common": "com.linkedin.azkaban:azkaban-common:3.58.0",
-    "azkaban_plugins": "com.linkedin.azkaban:az-hadoop-jobtype-plugin:3.58.0",
-    "azkaban_security": "com.linkedin.azkaban:azkaban-hadoop-security-plugin:3.58.0"
+    "az_hadoop_jobtype_plugin": "com.linkedin.azkaban:az-hadoop-jobtype-plugin:3.58.0",
+    "azkaban_hadoop_security_plugin": "com.linkedin.azkaban:azkaban-hadoop-security-plugin:3.58.0"
   ],
   hadoop: [
     "common": "org.apache.hadoop:hadoop-common:${hadoopVersion}",

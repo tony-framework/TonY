@@ -66,11 +66,6 @@ public class TensorFlowJob extends HadoopJavaJob {
     return classPath;
   }
 
-  /**
-   * First refresh the extract
-   * once the status is found, log the results and cancel the job if
-   * the status was an error or a timeout
-   */
   @Override
   public void run() throws Exception {
     getLog().info("Hello world from TensorFlow!");
