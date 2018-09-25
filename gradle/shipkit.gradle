@@ -1,0 +1,30 @@
+shipkit {
+  gitHub.repository = "linkedin/TonY"
+
+  gitHub.readOnlyAuthToken = "c0ad6053cebce2e5aa54053228930bcc264ebe9b"
+
+  gitHub.writeAuthToken = System.getenv("GH_WRITE_TOKEN")
+}
+
+allprojects {
+  plugins.withId("org.shipkit.bintray") {
+
+    //Bintray configuration is handled by JFrog Bintray Gradle Plugin
+    //For reference see the official documentation: https://github.com/bintray/gradle-bintray-plugin
+    bintray {
+
+      user = System.getenv("BINTRAY_USER")
+      key = System.getenv("BINTRAY_API_KEY")
+
+      pkg {
+        repo = "maven"
+        userOrg = "linkedin"
+        name = "TonY"
+        licenses = ["BSD 2-Clause"]
+        labels = ["Hadoop", "machine learning", "TensorFlow"]
+        version {
+        }
+      }
+    }
+  }
+}
