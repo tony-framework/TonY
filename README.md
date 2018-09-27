@@ -137,3 +137,7 @@ CLI configurations have highest priority, so we will get 2 ps instances and 2 wo
     Why?
     
     Try adding the path to your libjvm.so shared library to your LD_LIBRARY_PATH environment variable for your workers. See above for an example.
+
+2. How do I configure arbitrary TensorFlow job types?
+
+    Please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations#task-configuration) on TensorFlow task configuration for details.
