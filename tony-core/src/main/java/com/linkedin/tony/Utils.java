@@ -9,13 +9,20 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.core.ZipFile;
 import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -229,5 +236,54 @@ public class Utils {
     env.put(envPrefix + Constants.PATH_SUFFIX, resourcePath.toString());
     env.put(envPrefix + Constants.LENGTH_SUFFIX, Long.toString(resourceLength));
     env.put(envPrefix + Constants.TIMESTAMP_SUFFIX, Long.toString(resourceTimestamp));
+  }
+
+  /**
+   * Parses resource requests from configuration of the form "tony.x.y" where "x" is the
+   * TensorFlow job name, and "y" is "instances" or the name of a resource type
+   * (i.e. memory, vcores, gpus).
+   * @param conf the TonY configuration.
+   * @return map from configured job name to its corresponding resource request
+   */
+  public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
+    Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
+        .map(key -> getTaskType(key))
+        .collect(Collectors.toSet());
+    Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
+    int priority = 0;
+    for (String jobName : jobNames) {
+      int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName),
+          TonyConfigurationKeys.getDefaultInstances(jobName));
+      String memoryString = conf.get(TonyConfigurationKeys.getMemoryKey(jobName),
+          TonyConfigurationKeys.DEFAULT_MEMORY);
+      long memory = Long.parseLong(parseMemoryString(memoryString));
+      int vCores = conf.getInt(TonyConfigurationKeys.getVCoresKey(jobName),
+          TonyConfigurationKeys.DEFAULT_VCORES);
+      int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
+          TonyConfigurationKeys.DEFAULT_GPUS);
+      // The priority of different task types MUST be different.
+      // Otherwise the requests will overwrite each other on the RM
+      // scheduling side. See YARN-7631 for details.
+      // For now we set the priorities of different task types arbitrarily.
+      if (numInstances > 0) {
+        containerRequests.put(jobName, new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority++));
+      }
+    }
+    return containerRequests;
+  }
+
+  /**
+   * Extracts TensorFlow job name from configuration key of the form "tony.*.instances".
+   * @param confKey Name of the configuration key
+   * @return TensorFlow job name
+   */
+  private static String getTaskType(String confKey) {
+    Pattern instancePattern = Pattern.compile(TonyConfigurationKeys.INSTANCES_REGEX);
+    Matcher instanceMatcher = instancePattern.matcher(confKey);
+    if (instanceMatcher.matches()) {
+      return instanceMatcher.group(1);
+    } else {
+      return null;
+    }
   }
 }

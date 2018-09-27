@@ -70,35 +70,42 @@ public class TonyConfigurationKeys {
   public static final String AM_GPUS = AM_PREFIX + "gpus";
   public static final int DEFAULT_AM_GPUS = 0;
 
-  // PS configurations
-  public static final String PS_PREFIX = TONY_PREFIX + "ps.";
+  // Keys/default values for configurable TensorFlow job names
+  public static final String INSTANCES_REGEX = "tony\\.([a-z]+)\\.instances";
+  public static final String DEFAULT_MEMORY = "2g";
+  public static final int DEFAULT_VCORES = 1;
+  public static final int DEFAULT_GPUS = 0;
 
-  public static final String PS_MEMORY = PS_PREFIX + "memory";
-  public static final String DEFAULT_PS_MEMORY = "2g";
+  public static String getInstancesKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.instances", jobName);
+  }
 
-  public static final String PS_VCORES = PS_PREFIX + "vcores";
-  public static final int DEFAULT_PS_VCORES = 1;
+  public static int getDefaultInstances(String jobName) {
+    switch (jobName) {
+      case Constants.PS_JOB_NAME:
+      case Constants.WORKER_JOB_NAME:
+        return 1;
+      default:
+        return 0;
+    }
+  }
+  public static String getMemoryKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.memory", jobName);
+  }
 
-  public static final String PS_INSTANCES = PS_PREFIX + "instances";
-  public static final int DEFAULT_PS_INSTANCES = 1;
+  public static String getVCoresKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.vcores", jobName);
+  }
+
+  public static String getGPUsKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.gpus", jobName);
+  }
 
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
 
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
   public static final int DEFAULT_WORKER_TIMEOUT = 0;
-
-  public static final String WORKER_MEMORY = WORKER_PREFIX + "memory";
-  public static final String DEFAULT_WORKER_MEMORY = "2g";
-
-  public static final String WORKER_VCORES = WORKER_PREFIX  + "vcores";
-  public static final int DEFAULT_WORKER_VCORES = 1;
-
-  public static final String WORKER_GPUS = WORKER_PREFIX + "gpus";
-  public static final int DEFAULT_WORKER_GPUS = 0;
-
-  public static final String WORKER_INSTANCES = WORKER_PREFIX + "instances";
-  public static final int DEFAULT_WORKER_INSTANCES = 1;
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";

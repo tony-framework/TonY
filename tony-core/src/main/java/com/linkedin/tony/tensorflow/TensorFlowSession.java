@@ -48,8 +48,7 @@ public class TensorFlowSession {
 
   private String venv;
   private String amAddress;
-  private int numWorkers;
-  private int numPs;
+  private Map<String, TensorFlowContainerRequest> containerRequests;
 
   // sessionId to distinguish different sessions. Currently used to distinguish
   // failed session and new session.
@@ -101,19 +100,13 @@ public class TensorFlowSession {
     this.taskCmd = builder.taskCmd;
     this.venv = builder.venv;
     this.amAddress = builder.amAddress;
-    this.psContainerRequest = builder.psContainerRequest;
-    this.workerContainerRequest = builder.workerContainerRequest;
+    this.containerRequests = builder.containerRequests;
     this.shellEnv = builder.shellEnv;
     this.jvmArgs = builder.jvmArgs;
 
-    this.numWorkers = builder.numWorkers;
-    this.numPs = builder.numPs;
-    TFTask[] workerTasks = new TFTask[this.numWorkers];
-    jobTasks.put(WORKER_JOB_NAME, workerTasks);
-
-
-    TFTask[] psTasks = new TFTask[this.numPs];
-    jobTasks.put(PS_JOB_NAME, psTasks);
+    for (String jobName : containerRequests.keySet()) {
+      jobTasks.put(jobName, new TFTask[containerRequests.get(jobName).getNumInstances()]);
+    }
   }
 
   public Map<String, TFTask[]> getTFTasks() {
@@ -181,22 +174,15 @@ public class TensorFlowSession {
       TFTask[] tasks = entry.getValue();
       for (TFTask task : tasks) {
         if (task == null) {
-          requests.add(createContainerRequestForType(entry.getKey()));
+          requests.add(getContainerRequestForType(entry.getKey()));
         }
       }
     }
     return requests;
   }
 
-  public TensorFlowContainerRequest createContainerRequestForType(String jobType) {
-    switch (jobType) {
-      case PS_JOB_NAME:
-        return new TensorFlowContainerRequest(psContainerRequest);
-      case WORKER_JOB_NAME:
-        return new TensorFlowContainerRequest(workerContainerRequest);
-      default:
-        throw new IllegalArgumentException("Invalid job type: " + jobType);
-    }
+  public TensorFlowContainerRequest getContainerRequestForType(String jobType) {
+    return containerRequests.get(jobType);
   }
 
   public boolean allTasksScheduled() {
@@ -314,7 +300,7 @@ public class TensorFlowSession {
         }
         boolean isCompleted = task.isCompleted();
         if (!isCompleted) {
-          String msg = "Job " + task.jobName + " at index: " + task.jobIndex + " haven't finished yet.";
+          String msg = "Job " + task.jobName + " at index: " + task.taskIndex + " haven't finished yet.";
           LOG.error(msg);
           setFinalStatus(FinalApplicationStatus.FAILED, msg);
           return;
@@ -361,13 +347,13 @@ public class TensorFlowSession {
     return type;
   }
 
-  private TFTask getTask(String jobName, String jobIndex) {
+  private TFTask getTask(String jobName, String taskIndex) {
     for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
       TFTask[] tasks = entry.getValue();
       for (TFTask task : tasks) {
         String job = task.getJobName();
-        String index = task.getJobIndex();
-        if (job.equals(jobName) && index.equals(jobIndex)) {
+        String index = task.getTaskIndex();
+        if (job.equals(jobName) && index.equals(taskIndex)) {
           return task;
         }
       }
@@ -384,27 +370,14 @@ public class TensorFlowSession {
    */
   public static class Builder {
     private String taskCmd;
-    private int numWorkers;
-    private int numPs;
     private String venv;
     private Map<String, String> shellEnv;
     private String amAddress;
-    private TensorFlowContainerRequest psContainerRequest;
-    private TensorFlowContainerRequest workerContainerRequest;
+    private Map<String, TensorFlowContainerRequest> containerRequests;
     private String jvmArgs;
 
     public TensorFlowSession build() {
       return new TensorFlowSession(this);
-    }
-
-    public Builder setNumWorkers(int numWorkers) {
-      this.numWorkers = numWorkers;
-      return this;
-    }
-
-    public Builder setNumPs(int numPs) {
-      this.numPs = numPs;
-      return this;
     }
 
     public Builder setTaskCmd(String taskCmd) {
@@ -432,13 +405,8 @@ public class TensorFlowSession {
       return this;
     }
 
-    public Builder setPsContainerRequest(TensorFlowContainerRequest psRequest) {
-      this.psContainerRequest = psRequest;
-      return this;
-    }
-
-    public Builder setWorkerContainerRequest(TensorFlowContainerRequest workerRequest) {
-      this.workerContainerRequest = workerRequest;
+    public Builder setContainerRequests(Map<String, TensorFlowContainerRequest> requests) {
+      this.containerRequests = requests;
       return this;
     }
   }
@@ -448,7 +416,7 @@ public class TensorFlowSession {
    */
   public class TFTask {
     private final String jobName;
-    private final String jobIndex;
+    private final String taskIndex;
     private String host;
     private int port = -1;
 
@@ -468,8 +436,8 @@ public class TensorFlowSession {
       return jobName;
     }
 
-    public String getJobIndex() {
-      return jobIndex;
+    public String getTaskIndex() {
+      return taskIndex;
     }
 
     public String getHost() {
@@ -513,12 +481,12 @@ public class TensorFlowSession {
       if (container == null) {
         return null;
       }
-      return new TaskUrl(jobName, jobIndex, Utils.constructContainerUrl(container));
+      return new TaskUrl(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
-    TFTask(String jobName, String jobIndex) {
+    TFTask(String jobName, String taskIndex) {
       this.jobName = jobName;
-      this.jobIndex = jobIndex;
+      this.taskIndex = taskIndex;
     }
 
     public void addContainer(Container container) {
@@ -527,11 +495,11 @@ public class TensorFlowSession {
     }
 
     /**
-     * Combination of jobName and Index.
+     * Combination of jobName and taskIndex.
      * @return Id
      */
     public String getId() {
-      return this.jobName + ":" + this.jobIndex;
+      return this.jobName + ":" + this.taskIndex;
     }
 
     @Override
@@ -543,12 +511,12 @@ public class TensorFlowSession {
         return false;
       }
       TFTask tfTask = (TFTask) o;
-      return Objects.equals(jobName, tfTask.jobName) && Objects.equals(jobIndex, tfTask.jobIndex);
+      return Objects.equals(jobName, tfTask.jobName) && Objects.equals(taskIndex, tfTask.taskIndex);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(jobName, jobIndex);
+      return Objects.hash(jobName, taskIndex);
     }
   }
 

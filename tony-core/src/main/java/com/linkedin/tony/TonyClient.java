@@ -290,38 +290,14 @@ public class TonyClient {
 
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
 
-    String psMemoryString = tonyConf.get(TonyConfigurationKeys.PS_MEMORY,
-        TonyConfigurationKeys.DEFAULT_PS_MEMORY);
-    long psMemory = Long.parseLong(Utils.parseMemoryString(psMemoryString));
-    int psVCores = tonyConf.getInt(TonyConfigurationKeys.PS_VCORES,
-        TonyConfigurationKeys.DEFAULT_PS_VCORES);
-    String workerMemoryString = tonyConf.get(TonyConfigurationKeys.WORKER_MEMORY,
-        TonyConfigurationKeys.DEFAULT_WORKER_MEMORY);
-    long workerMemory = Long.parseLong(Utils.parseMemoryString(workerMemoryString));
-    int workerVCores = tonyConf.getInt(TonyConfigurationKeys.WORKER_VCORES,
-        TonyConfigurationKeys.DEFAULT_WORKER_VCORES);
-
-    int numPs = tonyConf.getInt(TonyConfigurationKeys.PS_INSTANCES,
-        TonyConfigurationKeys.DEFAULT_PS_INSTANCES);
-    int numWorkers = tonyConf.getInt(TonyConfigurationKeys.WORKER_INSTANCES,
-        TonyConfigurationKeys.DEFAULT_WORKER_INSTANCES);
-
-    if (psMemory < 0 || psVCores < 0 || workerMemory < 0 || workerVCores < 0) {
-      throw new IllegalArgumentException("Invalid container memory/vcores specified,"
-                                         + " exiting."
-                                         + " Specified psMemory=" + psMemory
-                                         + ", psVCores=" + psVCores
-                                         + ", workerMemory=" + workerMemory
-                                         + ", workerVCores=" + workerVCores);
-    }
-
+    int numWorkers = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME),
+        TonyConfigurationKeys.getDefaultInstances(Constants.WORKER_JOB_NAME));
     boolean singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
         TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
     if (!singleNode) {
-      if (numPs < 1 || numWorkers < 1) {
+      if (numWorkers < 1) {
         throw new IllegalArgumentException(
-            "Cannot request non-positive ps or worker instances. requested numPs=" + numPs
-                + ", requested numWorkers=" + numWorkers);
+            "Cannot request non-positive worker instances. Requested numWorkers=" + numWorkers);
       }
       if (amGpus > 0) {
         LOG.warn("It seems you reserved " + amGpus + " GPUs in application master (driver, which doesn't perform training) during distributed training.");

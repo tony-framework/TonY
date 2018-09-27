@@ -4,40 +4,42 @@
  */
 package com.linkedin.tony.tensorflow;
 
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceInformation;
-import org.apache.hadoop.yarn.exceptions.ResourceNotFoundException;
-
 
 public class TensorFlowContainerRequest {
-  private int virtualCores;
+  private int numInstances;
   private long memory;
+  private int vCores;
   private int priority;
   private int gpu;
   private String jobName;
 
-  public TensorFlowContainerRequest(String jobName, int virtualCores, long memory, int gpu, int priority) {
-    this.virtualCores = virtualCores;
+  public TensorFlowContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority) {
+    this.numInstances = numInstances;
     this.memory = memory;
+    this.vCores = vCores;
     this.priority = priority;
     this.gpu = gpu;
     this.jobName = jobName;
   }
 
   public TensorFlowContainerRequest(TensorFlowContainerRequest that) {
-    this.virtualCores = that.virtualCores;
     this.memory = that.memory;
+    this.vCores = that.vCores;
     this.gpu = that.gpu;
     this.priority = that.priority;
     this.jobName = that.jobName;
   }
 
-  public int getVirtualCores() {
-    return virtualCores;
+  public int getNumInstances() {
+    return numInstances;
   }
 
   public long getMemory() {
     return memory;
+  }
+
+  public int getVCores() {
+    return vCores;
   }
 
   public int getGPU() {

@@ -63,7 +63,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.UpdatedContainer;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
@@ -85,19 +84,12 @@ public class TonyApplicationMaster {
   private String amHostPort;
 
   // Container info
-  private long psMemory;
-  private int psVCores;
-  private long workerMemory;
-  private int workerVCores;
-  private int workerGPUs;
   private int taskRegistrationRetryCount;
   private int taskRegistrationTimeoutSec;
   private int amRetryCount;
   private long workerTimeout;
   private String hdfsClasspath;
   private String baseTaskCommand;
-  private int numWorkers;
-  private int numPs;
   private String pythonVenvZip;
   private int amPort;
   private ByteBuffer allTokens;
@@ -226,23 +218,9 @@ public class TonyApplicationMaster {
         cliParser.getOptionValue("executes"),
         cliParser.getOptionValue("task_params"));
 
-    String psMemoryString = tonyConf.get(TonyConfigurationKeys.PS_MEMORY,
-        TonyConfigurationKeys.DEFAULT_PS_MEMORY);
-    psMemory = Long.parseLong(Utils.parseMemoryString(psMemoryString));
-    psVCores = tonyConf.getInt(TonyConfigurationKeys.PS_VCORES,
-        TonyConfigurationKeys.DEFAULT_PS_VCORES);
-    String workerMemoryString = tonyConf.get(TonyConfigurationKeys.WORKER_MEMORY,
-        TonyConfigurationKeys.DEFAULT_WORKER_MEMORY);
-    workerMemory = Long.parseLong(Utils.parseMemoryString(workerMemoryString));
-    workerVCores = tonyConf.getInt(TonyConfigurationKeys.WORKER_VCORES,
-        TonyConfigurationKeys.DEFAULT_WORKER_VCORES);
-    workerGPUs = tonyConf.getInt(TonyConfigurationKeys.WORKER_GPUS,
-        TonyConfigurationKeys.DEFAULT_WORKER_GPUS);
     workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
-    numPs = tonyConf.getInt(TonyConfigurationKeys.PS_INSTANCES, TonyConfigurationKeys.DEFAULT_PS_INSTANCES);
-    numWorkers = tonyConf.getInt(TonyConfigurationKeys.WORKER_INSTANCES, TonyConfigurationKeys.DEFAULT_WORKER_INSTANCES);
     taskRegistrationRetryCount = tonyConf.getInt(TonyConfigurationKeys.TASK_REGISTRATION_RETRY_COUNT,
         TonyConfigurationKeys.DEFAULT_TASK_REGISTRATION_RETRY_COUNT);
     taskRegistrationTimeoutSec = tonyConf.getInt(TonyConfigurationKeys.TASK_REGISTRATION_TIMEOUT_SEC,
@@ -288,21 +266,14 @@ public class TonyApplicationMaster {
     String taskCommand = "'" + baseTaskCommand + "'";
     LOG.info("Final task command: " + taskCommand);
 
-    /* The priority of PS and worker MUST be different.
-     Otherwise the requests will overwrite each other on the RM
-     scheduling side. See YARN-7631 for details.
-     */
     TensorFlowSession.Builder builder = new TensorFlowSession.Builder()
-        .setNumWorkers(numWorkers)
-        .setNumPs(numPs)
         .setTaskCmd(taskCommand)
         .setVenv(pythonVenvZip)
         .setAMAddress(amHostPort)
         .setShellEnv(shellEnv)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS))
-        .setPsContainerRequest(new TensorFlowContainerRequest("ps", psVCores, psMemory, 0, 1))
-        .setWorkerContainerRequest(new TensorFlowContainerRequest("worker", workerVCores, workerMemory, workerGPUs, 0));
+        .setContainerRequests(Utils.parseContainerRequests(tonyConf));
     sessionBuilder = builder;
     session = builder.build();
   }
@@ -412,18 +383,6 @@ public class TonyApplicationMaster {
 
     long maxMem = response.getMaximumResourceCapability().getMemorySize();
     int maxVCores = response.getMaximumResourceCapability().getVirtualCores();
-    if (psMemory > maxMem) {
-      psMemory = maxMem;
-    }
-    if (psVCores > maxVCores) {
-      psVCores = maxVCores;
-    }
-    if (workerMemory > maxMem) {
-      workerMemory = maxMem;
-    }
-    if (workerVCores > maxVCores) {
-      workerVCores = maxVCores;
-    }
 
     hbMonitor.start();
     return true;
@@ -600,7 +559,7 @@ public class TonyApplicationMaster {
     removeAllContainerRequests();
 
     tasks.forEach(task -> {
-      LOG.info("Task " + task.getJobName() + " " + task.getJobIndex() + " in " + task.getContainer().getId().toString()
+      LOG.info("Task " + task.getJobName() + " " + task.getTaskIndex() + " in " + task.getContainer().getId().toString()
           + " has not registered after " + taskRegistrationTimeoutSec + " seconds. Going to release the container and "
           + "request a new one.");
 
@@ -611,10 +570,10 @@ public class TonyApplicationMaster {
       amRMClient.releaseAssignedContainer(task.getContainer().getId());
 
       // Null out task in TFTasks map
-      session.getTFTasks().get(task.getJobName())[Integer.valueOf(task.getJobIndex())] = null;
+      session.getTFTasks().get(task.getJobName())[Integer.valueOf(task.getTaskIndex())] = null;
 
       // Make new container request
-      scheduleTask(session.createContainerRequestForType(task.getJobName()));
+      scheduleTask(session.getContainerRequestForType(task.getJobName()));
     });
   }
 
@@ -785,7 +744,7 @@ public class TonyApplicationMaster {
               registeredTasks.size(), numRequestedContainers.get() - registeredTasks.size()));
           unregisteredTasks.forEach(t -> LOG.info(
                   String.format("Awaiting registration from task %s %s in %s on host %s",
-                      t.getJobName(), t.getJobIndex(),
+                      t.getJobName(), t.getTaskIndex(),
                       (t.getContainer() != null ? t.getContainer().getId().toString() : "none"),
                       (t.getContainer() != null ? t.getContainer().getNodeId().getHost() : "none")))
           );
@@ -866,7 +825,7 @@ public class TonyApplicationMaster {
 
   private AMRMClient.ContainerRequest setupContainerRequestForRM(TensorFlowContainerRequest request) {
     Priority priority = Priority.newInstance(request.getPriority());
-    Resource capability = Resource.newInstance(request.getMemory(), request.getVirtualCores());
+    Resource capability = Resource.newInstance(request.getMemory(), request.getVCores());
     Utils.setCapabilityGPU(capability, request.getGPU());
     session.addAllocationId(request.getJobName(), lastAllocationRequestId);
     AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority,
@@ -1031,7 +990,7 @@ public class TonyApplicationMaster {
 
       // Add additional environment vars.
       containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
-      containerShellEnv.put(Constants.TASK_INDEX, task.getJobIndex());
+      containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
       containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
 
       List<String> commands = new ArrayList<>();

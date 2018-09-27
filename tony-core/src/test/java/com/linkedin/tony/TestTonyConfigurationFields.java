@@ -29,6 +29,17 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     // Set error modes
     errorIfMissingConfigProps = true;
     errorIfMissingXmlProps = true;
+
+    // We don't explicitly declare constants for these, since the configured TensorFlow job names
+    // are determined at runtime. But we still need default values for them in tony-default.xml.
+    // So ignore the fact that they exist in tony-default.xml and not in TonyConfigurationKeys.
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getInstancesKey(Constants.PS_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getMemoryKey(Constants.PS_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getVCoresKey(Constants.PS_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getMemoryKey(Constants.WORKER_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getVCoresKey(Constants.WORKER_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getGPUsKey(Constants.WORKER_JOB_NAME));
   }
 
   @BeforeTest
