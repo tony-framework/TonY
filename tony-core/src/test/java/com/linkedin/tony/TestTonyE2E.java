@@ -94,7 +94,7 @@ public class TestTonyE2E {
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    conf.setInt(TonyConfigurationKeys.WORKER_INSTANCES, 2);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
     int exitCode = TonyClient.start(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
@@ -185,8 +185,8 @@ public class TestTonyE2E {
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    conf.setInt(TonyConfigurationKeys.PS_INSTANCES, 2);
-    conf.setInt(TonyConfigurationKeys.WORKER_INSTANCES, 2);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey("ps"), 2);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
     conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_TIMEOUT_SEC, 20);
     conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_RETRY_COUNT, 1);
     int exitCode = TonyClient.start(new String[]{
