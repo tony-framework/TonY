@@ -79,7 +79,7 @@ import static com.linkedin.tony.Constants.*;
 public class TonyApplicationMaster {
   private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
 
-  private ApplicationAttemptId appAttemptID;
+  private ApplicationAttemptId appAttemptID = null;
   private String appIdString;
   private String amHostPort;
 
@@ -147,6 +147,7 @@ public class TonyApplicationMaster {
   private boolean enablePreprocessing = false;
 
   // Lifecycle control
+  private long appTimeout;
   private boolean shouldExit = false;
 
   // HeartBeat monitor
@@ -226,6 +227,8 @@ public class TonyApplicationMaster {
         cliParser.getOptionValue("executes"),
         cliParser.getOptionValue("task_params"));
 
+    appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
+                                 TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
     workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
@@ -476,7 +479,14 @@ public class TonyApplicationMaster {
 
     int attempt = 0;
     containerEnv.put(Constants.ATTEMPT_NUMBER, String.valueOf(attempt));
+    long expireTime = System.currentTimeMillis() + appTimeout;
     while (true) {
+      // Checking timeout
+      if (System.currentTimeMillis() > expireTime) {
+        LOG.error("Application times out.");
+        return false;
+      }
+
       if (preprocessExitCode != 0) {
         LOG.info("Preprocess failed with exit code: " + preprocessExitCode);
         return false;
@@ -637,6 +647,12 @@ public class TonyApplicationMaster {
     }
 
     extraEnv.put(Constants.PREPROCESSING_JOB, "true");
+
+    /**
+     YARN sets $HOME to /user/yarn which users don't have access to write there.
+     Unfortunately, some services like Jupyter Notebook wants to write stuff there,
+     set it to user.dir (root of this container's address).
+     */
     extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
     String taskCommand = baseTaskCommand;
@@ -699,12 +715,12 @@ public class TonyApplicationMaster {
     public Set<TaskUrl> getTaskUrls() {
       LOG.info("Client requesting TaskUrls!");
       if (singleNode && proxyUrl != null) {
-        return new HashSet<TaskUrl>(){{
-          add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
+        HashSet<TaskUrl> additionalTasks = new HashSet<>();
+        additionalTasks.add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
                           Utils.getCurrentHostName() + ":"
                           + System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()), containerId)));
-          add(new TaskUrl(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
-        }};
+        additionalTasks.add(new TaskUrl(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
+        return additionalTasks;
       }
 
       if (!singleNode && session != null && session.allTasksScheduled()) {

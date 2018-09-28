@@ -23,20 +23,20 @@ import org.apache.commons.logging.LogFactory;
 public class ProxyServer {
 
   private static final Log LOG = LogFactory.getLog(ProxyServer.class);
-  private String host;
+  private String remoteHost;
   private int remotePort;
   private int localPort;
-  public ProxyServer(String host, int remotePort, int localPort) {
-    this.host = host;
+  public ProxyServer(String remoteHost, int remotePort, int localPort) {
+    this.remoteHost = remoteHost;
     this.remotePort = remotePort;
     this.localPort = localPort;
   }
   public void start() throws IOException {
-    LOG.info("Starting proxy for " + host + ":" + remotePort
+    LOG.info("Starting proxy for " + remoteHost + ":" + remotePort
              + " on port " + localPort);
     ServerSocket server = new ServerSocket(localPort);
     while (true) {
-      new Proxy(server.accept(), host, remotePort).start();
+      new Proxy(server.accept(), remoteHost, remotePort).start();
     }
   }
 
@@ -52,22 +52,14 @@ public class ProxyServer {
 
     @Override
     public void run() {
-      try {
+      try (Socket server = new Socket(serverHost, serverPort);
+          final InputStream inFromClient = clientSocket.getInputStream();
+          final OutputStream outToClient = clientSocket.getOutputStream();
+          final InputStream inFromServer = server.getInputStream();
+          final OutputStream outToServer = server.getOutputStream();
+      ) {
         final byte[] request = new byte[1024];
         byte[] reply = new byte[4096];
-        final InputStream inFromClient = clientSocket.getInputStream();
-        final OutputStream outToClient = clientSocket.getOutputStream();
-        Socket server;
-        try {
-          server = new Socket(serverHost, serverPort);
-        } catch (IOException e) {
-          PrintWriter out = new PrintWriter(new OutputStreamWriter(
-              outToClient));
-          out.flush();
-          throw new RuntimeException(e);
-        }
-        final InputStream inFromServer = server.getInputStream();
-        final OutputStream outToServer = server.getOutputStream();
         new Thread(() -> {
           int bytes_read;
           try {
@@ -75,34 +67,25 @@ public class ProxyServer {
               outToServer.write(request, 0, bytes_read);
               outToServer.flush();
             }
+            outToServer.close();
           } catch (IOException e) {
             LOG.error(e);
           }
-          try {
-            outToServer.close();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
         }).start();
         int bytes_read;
-        try {
-          while ((bytes_read = inFromServer.read(reply)) != -1) {
-            outToClient.write(reply, 0, bytes_read);
-            outToClient.flush();
-          }
-        } catch (IOException e) {
-          e.printStackTrace();
-        } finally {
-          try {
-            server.close();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
+        while ((bytes_read = inFromServer.read(reply)) != -1) {
+          outToClient.write(reply, 0, bytes_read);
+          outToClient.flush();
         }
-        outToClient.close();
-        clientSocket.close();
       } catch (IOException e) {
         e.printStackTrace();
+        throw new RuntimeException(e);
+      } finally {
+        try {
+          clientSocket.close();
+        } catch (IOException e) {
+          LOG.error(e);
+        }
       }
     }
 

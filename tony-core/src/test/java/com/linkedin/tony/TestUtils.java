@@ -83,13 +83,21 @@ public class TestUtils {
   }
 
   @Test
-  public void testRenameFile() throws IOException {
+  public void testIsNotArchive() {
     ClassLoader classLoader = getClass().getClassLoader();
-    File file1 = new File(classLoader.getResource("file_move.txt").getFile());
-    boolean result = Utils.renameFile(file1.getAbsolutePath(),
-                                      file1.getAbsolutePath() + "bak");
-    assertTrue(Files.exists(Paths.get(file1.getAbsolutePath() + "bak")));
+    File file1 = new File(classLoader.getResource("exit_0.py").getFile());
+    assertFalse(Utils.isArchive(file1.getAbsolutePath()));
+  }
+
+
+  @Test
+  public void testRenameFile() throws IOException {
+    File tempFile = File.createTempFile("testRenameFile-", "-suffix");
+    tempFile.deleteOnExit();
+    boolean result = Utils.renameFile(tempFile.getAbsolutePath(),
+                                      tempFile.getAbsolutePath() + "bak");
+    assertTrue(Files.exists(Paths.get(tempFile.getAbsolutePath() + "bak")));
     assertTrue(result);
-    Files.deleteIfExists(Paths.get(file1.getAbsolutePath() + "bak"));
+    Files.deleteIfExists(Paths.get(tempFile.getAbsolutePath() + "bak"));
   }
 }

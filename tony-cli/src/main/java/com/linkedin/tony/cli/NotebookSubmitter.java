@@ -4,9 +4,11 @@
  */
 package com.linkedin.tony.cli;
 
+import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.Utils;
+import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tonyproxy.ProxyServer;
 import java.io.File;
 import java.io.IOException;
@@ -65,7 +67,7 @@ public class NotebookSubmitter {
     updatedArgs[args.length] = "--hdfs_classpath";
     updatedArgs[args.length + 1] = cachedLibPath.toString();
     updatedArgs[args.length + 2] = "--conf";
-    updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + String.valueOf(24 * 3600 *1000);
+    updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + String.valueOf(24 * 60 * 60 * 1000);
 
     TonyClient client = TonyClient.createClientInstance(updatedArgs, new Configuration());
     if (client == null) {
@@ -80,16 +82,23 @@ public class NotebookSubmitter {
     });
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (client.notebookUrl != null) {
-        String[] hostPort = client.notebookUrl.split(":");
-        ServerSocket localSocket = new ServerSocket(0);
-        int localPort = localSocket.getLocalPort();
-        localSocket.close();
-        ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
-        LOG.info("Please run [ssh -L 8080:localhost:" + String.valueOf(localPort) + " name_of_this_host] in your laptop and open [localhost:8080] in your browser to visit Notebook");
-        server.start();
-        break;
+      if (client.taskUrls != null) {
+        for (TaskUrl taskUrl : client.taskUrls) {
+          if (taskUrl.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
+            String[] hostPort = taskUrl.getUrl().split(":");
+            ServerSocket localSocket = new ServerSocket(0);
+            int localPort = localSocket.getLocalPort();
+            localSocket.close();
+            ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
+            LOG.info("Please run [ssh -L 18888:localhost:" + String.valueOf(localPort)
+                     + " name_of_this_host] in your laptop and open [localhost:18888] in your browser to "
+                     + "visit Jupyter Notebook. If the 18888 port is occupied, replace that number with another number");
+            server.start();
+            break;
+          }
+        }
       }
+      Thread.sleep(1000);
     }
     clientThread.join();
     System.exit(exitCode);

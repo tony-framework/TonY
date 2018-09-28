@@ -18,6 +18,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,7 +89,6 @@ public class TonyClient {
   private int amRpcPort;
   private boolean amRpcServerInitialized = false;
   private ApplicationRpcClient amRpcClient;
-  private boolean hasPrintedTaskUrls = false;
 
   private String hdfsConfAddress = null;
   private String yarnConfAddress = null;
@@ -105,6 +105,7 @@ public class TonyClient {
   private String srcDir;
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
+
   private static final String ARCHIVE_PATH = "tf_archive.zip";
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
@@ -112,8 +113,9 @@ public class TonyClient {
   private int hbInterval;
   private int maxHbMisses;
 
-  // Used to expose notebookUrl for TonyCLI
-  public String notebookUrl;
+  // For access from CLI.
+  public Set<TaskUrl> taskUrls = new HashSet<>();
+
 
   public TonyClient() {
     this(new Configuration(false));
@@ -319,6 +321,7 @@ public class TonyClient {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
     }
+    createYarnClient();
     return true;
   }
 
@@ -591,7 +594,7 @@ public class TonyClient {
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
-      printTaskUrls();
+      getApplicationTaskUrls();
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. "
@@ -603,8 +606,7 @@ public class TonyClient {
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
           return false;
         }
-      } else if (YarnApplicationState.KILLED == state
-                 || YarnApplicationState.FAILED == state) {
+      } else if (YarnApplicationState.KILLED == state || YarnApplicationState.FAILED == state) {
         LOG.info("Application did not finish."
                  + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
                  + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
@@ -644,21 +646,15 @@ public class TonyClient {
     }
   }
 
-  private void printTaskUrls() throws IOException, YarnException {
-    if (amRpcServerInitialized && !hasPrintedTaskUrls) {
-      Set<TaskUrl> taskUrls = amRpcClient.getTaskUrls();
+  private void getApplicationTaskUrls() throws IOException, YarnException {
+    if (amRpcServerInitialized && taskUrls.isEmpty()) {
+      taskUrls = amRpcClient.getTaskUrls();
       if (!taskUrls.isEmpty()) {
-        new TreeSet<TaskUrl>(taskUrls).forEach(task -> {
-            if (task.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
-                notebookUrl = task.getUrl();
-            }
-            Utils.printTaskUrl(task, LOG);
-        });
-        hasPrintedTaskUrls = true;
+        // Print TaskUrls
+        taskUrls.forEach(task -> Utils.printTaskUrl(task, LOG));
       }
     }
   }
-
 
   /**
    * Kill a submitted application by sending a call to the ASM
@@ -693,7 +689,6 @@ public class TonyClient {
     TonyClient client;
     client = new TonyClient(conf);
     boolean sanityCheck = client.init(args);
-    client.createYarnClient();
     if (!sanityCheck) {
       LOG.fatal("Failed to init client.");
       return null;
@@ -710,10 +705,8 @@ public class TonyClient {
     boolean result = false;
     TonyClient client = null;
     try {
-      client = new TonyClient(conf);
-      boolean sanityCheck = client.init(args);
-      client.createYarnClient();
-      if (!sanityCheck) {
+      client = createClientInstance(args, conf);
+      if (client == null) {
         LOG.fatal("Failed to init client.");
         System.exit(-1);
       }
