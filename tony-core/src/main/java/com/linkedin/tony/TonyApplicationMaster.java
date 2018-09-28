@@ -479,7 +479,7 @@ public class TonyApplicationMaster {
 
     int attempt = 0;
     containerEnv.put(Constants.ATTEMPT_NUMBER, String.valueOf(attempt));
-    long expireTime = System.currentTimeMillis() + appTimeout;
+    long expireTime = appTimeout == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + appTimeout;
     while (true) {
       // Checking timeout
       if (System.currentTimeMillis() > expireTime) {
@@ -714,6 +714,8 @@ public class TonyApplicationMaster {
     @Override
     public Set<TaskUrl> getTaskUrls() {
       LOG.info("Client requesting TaskUrls!");
+
+      // Special handling for NotebookSubmitter.
       if (singleNode && proxyUrl != null) {
         HashSet<TaskUrl> additionalTasks = new HashSet<>();
         additionalTasks.add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
