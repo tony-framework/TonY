@@ -46,8 +46,9 @@ public class Constants {
 
   public static final String WORKER_JOB_NAME = "worker";
   public static final String PS_JOB_NAME = "ps";
-  public static final String NOTEBOOK_JOB_NAME = "Notebook";
-  public static final String DRIVER_JOB_NAME = "Driver";
+  public static final String NOTEBOOK_JOB_NAME = "notebook";
+  public static final String DRIVER_JOB_NAME = "driver";
+
   public static final String ATTEMPT_NUMBER = "ATTEMPT_NUMBER";
 
   public static final String TEST_AM_CRASH = "TEST_AM_CRASH";
