@@ -9,10 +9,9 @@ shipkit {
 allprojects {
   plugins.withId("org.shipkit.bintray") {
 
-    //Bintray configuration is handled by JFrog Bintray Gradle Plugin
-    //For reference see the official documentation: https://github.com/bintray/gradle-bintray-plugin
+    // Bintray configuration is handled by JFrog Bintray Gradle Plugin
+    // For reference see the official documentation: https://github.com/bintray/gradle-bintray-plugin
     bintray {
-
       user = System.getenv("BINTRAY_USER")
       key = System.getenv("BINTRAY_API_KEY")
 
