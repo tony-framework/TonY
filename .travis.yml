@@ -7,3 +7,7 @@ env:
   - HADOOP_VERSION=3.1.1
 script: "./gradlew test --stacktrace --info && ./gradlew ciPerformRelease"
 
+# safelist
+branches:
+  only:
+  - master
