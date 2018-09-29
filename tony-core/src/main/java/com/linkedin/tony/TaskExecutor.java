@@ -89,10 +89,8 @@ public class TaskExecutor {
       boolean sanitized = executor.init(args);
       if (sanitized) {
         if (executor.venv != null) {
-          LOG.info("Unpacking python venv: " + executor.venv);
-          Utils.unzipArchive(Constants.TF_ZIP_NAME
-              + File.separatorChar
-              + executor.venv, Constants.PYTHON_VENV_DIR);
+          LOG.info("Unpacking Python virtual environment: " + executor.venv);
+          Utils.unzipArchive(executor.venv, Constants.PYTHON_VENV_DIR);
         } else {
           LOG.info("No virtual environment uploaded.");
         }
@@ -168,8 +166,9 @@ public class TaskExecutor {
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
     venv = cliParser.getOptionValue("venv");
+    Utils.unzipArchive(Constants.TF_ZIP_NAME, "./");
     if (System.getenv(Constants.YARN_CONF_PATH) != null) {
-      yarnConf.addResource(new Path(Constants.TF_ZIP_NAME + File.separatorChar + System.getenv(Constants.YARN_CONF_PATH)));
+      yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
     }
     LOG.info("Setting up Rpc client, connecting to: " + amAddress);
     proxy = ApplicationRpcClient.getInstance(amAddress.split(":")[0], Integer.parseInt(amAddress.split(":")[1]), yarnConf);

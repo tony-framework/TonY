@@ -181,6 +181,12 @@ public class TonyApplicationMaster {
    * @return whether the initialization is successful or not.
    */
   private boolean init(String[] args) {
+    try {
+      Utils.unzipArchive(Constants.TF_ZIP_NAME, "./");
+    } catch (IOException e) {
+      LOG.error("Failed to unzip: " + Constants.TF_ZIP_NAME);
+      return false;
+    }
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     if (System.getenv(HDFS_SITE_CONF) != null) {
       hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
@@ -188,11 +194,11 @@ public class TonyApplicationMaster {
       hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     }
     if (System.getenv(Constants.HDFS_CONF_PATH) != null) {
-      hdfsConf.addResource(new Path(Constants.TF_ZIP_NAME +  File.separatorChar + System.getenv(Constants.HDFS_CONF_PATH)));
+      hdfsConf.addResource(new Path(System.getenv(Constants.HDFS_CONF_PATH)));
       containerEnv.put(Constants.HDFS_CONF_PATH, System.getenv(Constants.HDFS_CONF_PATH));
     }
     if (System.getenv(Constants.YARN_CONF_PATH) != null) {
-      yarnConf.addResource(new Path(Constants.TF_ZIP_NAME + File.separatorChar + System.getenv(Constants.YARN_CONF_PATH)));
+      yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
       containerEnv.put(Constants.YARN_CONF_PATH, System.getenv(Constants.YARN_CONF_PATH));
     }
     hbMonitor.init(tonyConf);
@@ -253,7 +259,7 @@ public class TonyApplicationMaster {
       pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar + pythonBinaryPath;
     }
 
-    String baseTaskCommand = pythonInterpreter + " " + Constants.TF_ZIP_NAME + File.separatorChar + script;
+    String baseTaskCommand = pythonInterpreter + " " + script;
 
     if (taskParams != null) {
       baseTaskCommand += " " + taskParams;
@@ -287,7 +293,6 @@ public class TonyApplicationMaster {
    */
   public static void main(String[] args) {
     boolean result = false;
-
     TonyApplicationMaster am = new TonyApplicationMaster();
     boolean sanityCheck = am.init(args);
     if (!sanityCheck) {
@@ -380,10 +385,6 @@ public class TonyApplicationMaster {
       return false;
     }
     rpcServer.start();
-
-    long maxMem = response.getMaximumResourceCapability().getMemorySize();
-    int maxVCores = response.getMaximumResourceCapability().getVirtualCores();
-
     hbMonitor.start();
     return true;
   }
@@ -625,9 +626,7 @@ public class TonyApplicationMaster {
     LOG.info("Start python preprocessing");
     if (pythonVenvZip != null) {
       LOG.info("Unpacking python venv: " + pythonVenvZip);
-      Utils.unzipArchive(Constants.TF_ZIP_NAME
-                         + File.separatorChar
-                         + pythonVenvZip, Constants.PYTHON_VENV_DIR);
+      Utils.unzipArchive(pythonVenvZip, Constants.PYTHON_VENV_DIR);
     } else {
       LOG.warn("No Python virtual environment uploaded, using python_binary_path directly.");
     }
