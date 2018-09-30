@@ -39,6 +39,7 @@ public class ClusterSubmitter {
     String jarLocation = new File(ClusterSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Configuration hdfsConf = new Configuration();
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
+    hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     LOG.info(hdfsConf);
     int exitCode;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
