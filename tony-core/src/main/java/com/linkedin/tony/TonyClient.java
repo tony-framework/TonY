@@ -329,7 +329,7 @@ public class TonyClient {
     FileSystem homeFS = FileSystem.get(hdfsConf);
     appResourcesPath = new Path(homeFS.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.ARCHIVE, Constants.TF_ZIP_NAME, localResources);
+    addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.FILE, Constants.TF_ZIP_NAME, localResources);
     addLocalResources(homeFS, Constants.TONY_FINAL_XML, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     if (hdfsClasspathDir != null) {
       try {
@@ -673,7 +673,7 @@ public class TonyClient {
         fs.delete(appResourcesPath, true);
       }
     } catch (IOException | YarnException e) {
-      LOG.error("Failed to clean up temporary files :" + appResourcesPath + e);
+      LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
     }
   }
 

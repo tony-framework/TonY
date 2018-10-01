@@ -126,7 +126,7 @@ public class TensorFlowSession {
 
     LocalResource zipResource =
         LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(zipPath)),
-            LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
+            LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
             zipLength, zipTimestamp);
     localResources.put(Constants.TF_ZIP_NAME, zipResource);
 
