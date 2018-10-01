@@ -116,11 +116,12 @@ public class TonyConfigurationKeys {
   public static final String YARN_CONF_LOCATION = TONY_APPLICATION_PREFIX + "yarn-conf-path";
 
   // Docker related
-  public static final String IS_DOCKER_MODE = TONY_APPLICATION_PREFIX + "docker-mode";
+  public static final String DOCKER_PREFIX = TONY_PREFIX + "docker.";
+  public static final String IS_DOCKER_MODE = DOCKER_PREFIX + "enabled";
   public static final boolean DEFAULT_IS_DOCKER_MODE = false;
 
-  public static final String DOCKER_BINARY_PATH = TONY_APPLICATION_PREFIX + "docker-path";
+  public static final String DOCKER_BINARY_PATH = DOCKER_PREFIX + "path";
   public static final String DEFAULT_DOCKER_BINARY_PATH = "docker";
 
-  public static final String DOCKER_IMAGE_PATH = TONY_APPLICATION_PREFIX + "docker-image"; // Required for Docker mode.
+  public static final String DOCKER_IMAGE_PATH = DOCKER_PREFIX + "image.path"; // Required for Docker mode.
 }

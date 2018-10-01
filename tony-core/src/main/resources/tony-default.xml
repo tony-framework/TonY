@@ -165,6 +165,31 @@
     <value>1</value>
   </property>
 
+  <!-- Docker configurations -->
+  <property>
+    <description>
+      Whether we are running the script inside a docker image.
+    </description>
+    <name>tony.docker.enabled</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <description>
+      Path to the docker binary.
+    </description>
+    <name>tony.docker.path</name>
+    <value>docker</value>
+  </property>
+
+  <property>
+    <description>
+      The path of the docker image.
+    </description>
+    <name>tony.docker.image.path</name>
+    <value>""</value>
+  </property>
+
   <!-- Local testing configurations -->
   <property>
     <description>
