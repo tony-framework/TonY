@@ -673,7 +673,7 @@ public class TonyClient {
         fs.delete(appResourcesPath, true);
       }
     } catch (IOException | YarnException e) {
-      LOG.error("Failed to clean up temporary files :" + appResourcesPath + e);
+      LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
     }
   }
 

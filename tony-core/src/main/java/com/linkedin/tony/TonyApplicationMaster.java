@@ -184,7 +184,7 @@ public class TonyApplicationMaster {
     try {
       Utils.unzipArchive(Constants.TF_ZIP_NAME, "./");
     } catch (IOException e) {
-      LOG.error("Failed to unzip: " + Constants.TF_ZIP_NAME);
+      LOG.error("Failed to unzip: " + Constants.TF_ZIP_NAME, e);
       return false;
     }
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));

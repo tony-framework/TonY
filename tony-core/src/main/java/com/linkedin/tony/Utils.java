@@ -62,7 +62,7 @@ public class Utils {
         remainingTime -= interval;
       }
     } catch (Exception e) {
-      LOG.error("Polled function throws exception: " + e);
+      LOG.error("Polled function throws exception.", e);
     }
     LOG.warn("Function didn't return true within " + timeOut + " seconds.");
     return false;
@@ -83,7 +83,7 @@ public class Utils {
         remainingTime -= interval;
       }
     } catch (Exception e) {
-      LOG.error("Polled function throws exception: " + e);
+      LOG.error("Polled function throws exception", e);
     }
     LOG.warn("Function didn't return true within " + timeout + " seconds.");
     return null;

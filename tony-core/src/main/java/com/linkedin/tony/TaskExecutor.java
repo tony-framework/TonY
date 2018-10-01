@@ -141,7 +141,7 @@ public class TaskExecutor {
       }
 
     } catch (Exception e) {
-      LOG.error("Failed to start task command with error: " + e);
+      LOG.error("Failed to start task command.", e);
       e.printStackTrace();
       System.exit(-1);
     }
@@ -242,7 +242,7 @@ public class TaskExecutor {
           hbMissCounter--;
         }
       } catch (Exception e) {
-        LOG.error("[" + taskId + "] Failed to send Heart Beat: " + e);
+        LOG.error("[" + taskId + "] Failed to send Heart Beat.", e);
         if (++numFailedHBAttempts > MAX_NUM_FAILED_HB_ATTEMPTS) {
           LOG.error("[" + taskId + "] Exceeded Failed Heart Beat send attempts.. going to die !!");
           e.printStackTrace();
