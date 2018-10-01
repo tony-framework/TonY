@@ -135,7 +135,7 @@ public class TaskExecutor {
           assert(executor.dockerImagePath != null);
           Utils.executeShell(executor.dockerBinaryPath + " pull " + executor.dockerImagePath,
                              10, extraEnv);
-          executor.taskCommand = "docker"
+          executor.taskCommand = executor.dockerBinaryPath
                                  + " run"
                                  + " -p" + String.valueOf(executor.tbPort) + ":" + String.valueOf(executor.tbPort)
                                  + " -p" + String.valueOf(executor.gatewayServerPort) + ":" + String.valueOf(executor.gatewayServerPort);
