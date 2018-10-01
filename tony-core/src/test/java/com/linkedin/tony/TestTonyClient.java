@@ -36,10 +36,9 @@ public class TestTonyClient {
         + File.separator + Constants.TONY_FINAL_XML);
     tonyConfFile.createNewFile();
     tonyConfFile.deleteOnExit();
-    Map<String, String> shellEnv = new HashMap<>();
     client.createYarnClient();
     ApplicationId appId = ApplicationId.newInstance(1, 1);
-    ContainerLaunchContext clc = client.createAMContainerSpec(appId, "tfTest",
+    ContainerLaunchContext clc = client.createAMContainerSpec(appId,
         8192, null, null, null, null, getTokens(), null);
     List<String> cmds = clc.getCommands();
     Assert.assertTrue(cmds.get(0).contains("-Xmx6553m"));
