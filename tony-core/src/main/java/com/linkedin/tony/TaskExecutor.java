@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -63,6 +64,10 @@ public class TaskExecutor {
   private int hbInterval;
   private final ScheduledExecutorService hbExec = Executors.newScheduledThreadPool(1);
   private int numFailedHBAttempts = 0;
+
+  private String dockerImagePath;
+  private String dockerBinaryPath;
+  private boolean isDockerMode;
 
   protected TaskExecutor() throws IOException {
     // Reserve a rpcSocket rpcPort.
@@ -118,15 +123,28 @@ public class TaskExecutor {
         }
 
         // Execute the user command
-        HashMap<String, String> extraEnv = new HashMap<String, String>(executor.shellEnv) {
-          {
-            put(Constants.TB_PORT, String.valueOf(executor.tbPort));
-            put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
-            put(Constants.JOB_NAME, String.valueOf(executor.jobName));
-            put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
-            put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+        HashMap<String, String> extraEnv = new HashMap<>(executor.shellEnv);
+        extraEnv.put(Constants.TB_PORT, String.valueOf(executor.tbPort));
+        extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
+        extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
+        extraEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
+        extraEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+
+        // Reset taskCommand if we are running in Docker mode.
+        if (executor.isDockerMode) {
+          assert(executor.dockerImagePath != null);
+          Utils.executeShell(executor.dockerBinaryPath + " pull " + executor.dockerImagePath,
+                             10, extraEnv);
+          executor.taskCommand = "docker"
+                                 + " run"
+                                 + " -p" + String.valueOf(executor.tbPort) + ":" + String.valueOf(executor.tbPort)
+                                 + " -p" + String.valueOf(executor.gatewayServerPort) + ":" + String.valueOf(executor.gatewayServerPort);
+          for (Map.Entry cursor : extraEnv.entrySet()) {
+            executor.taskCommand += " -e " + cursor.getKey() + "=" + cursor.getValue();
           }
-        };
+          executor.taskCommand += " " + executor.dockerImagePath;
+          executor.taskCommand +=  " " + executor.taskCommand;
+        }
 
         int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, extraEnv);
         // START - worker skew testing:
@@ -162,6 +180,12 @@ public class TaskExecutor {
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
+
+    isDockerMode = tonyConf.getBoolean(TonyConfigurationKeys.IS_DOCKER_MODE,
+                                 TonyConfigurationKeys.DEFAULT_IS_DOCKER_MODE);
+    dockerImagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE_PATH);
+    dockerBinaryPath = tonyConf.get(TonyConfigurationKeys.DOCKER_BINARY_PATH, TonyConfigurationKeys.DEFAULT_DOCKER_BINARY_PATH);
+
     String[] shellEnvs = cliParser.getOptionValues("shell_env");
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);

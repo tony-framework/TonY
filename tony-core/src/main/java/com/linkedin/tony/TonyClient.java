@@ -164,8 +164,7 @@ public class TonyClient {
 
     // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(appId, appName,
-                              this.amMemory, this.taskParams,
+        createAMContainerSpec(appId, this.amMemory, this.taskParams,
                               this.pythonBinaryPath, this.pythonVenv, this.executes, getTokens(),
                               this.hdfsClasspath);
     appContext.setAMContainerSpec(amSpec);
@@ -319,11 +318,9 @@ public class TonyClient {
     return true;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, String appName,
-                                                      long amMemory,
-                                                      String taskParams, String pythonBinaryPath,
-                                                      String pythonVenv, String executes, ByteBuffer tokens,
-                                                      String hdfsClasspathDir) throws IOException {
+  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory, String taskParams,
+                                                      String pythonBinaryPath, String pythonVenv, String executes,
+                                                      ByteBuffer tokens, String hdfsClasspathDir) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
     FileSystem homeFS = FileSystem.get(hdfsConf);
