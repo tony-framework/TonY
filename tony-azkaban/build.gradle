@@ -1,3 +1,5 @@
+apply plugin: 'java'
+
 dependencies {
   compile deps.azkaban.az_core
   compile deps.azkaban.azkaban_common

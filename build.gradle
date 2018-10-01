@@ -1,8 +1,14 @@
 group "com.linkedin"
+version "0.1.0"
+
+apply plugin: "java"
+apply plugin: "eclipse"
+apply plugin: "idea"
+
+sourceCompatibility = 1.8
 
 buildscript {
   repositories {
-    jcenter()
     maven {
       url "https://plugins.gradle.org/m2/"
     }
@@ -11,16 +17,8 @@ buildscript {
     classpath "com.github.jengelman.gradle.plugins:shadow:2.0.4"
     classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.1"
     classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
-    classpath "org.shipkit:shipkit:2.0.13"
   }
 }
-
-apply plugin: "java"
-apply plugin: "eclipse"
-apply plugin: "idea"
-apply plugin: "org.shipkit.java"
-
-sourceCompatibility = 1.8
 
 def hadoopVersion = "3.1.1"
 
@@ -65,6 +63,7 @@ ext.deps = [
 ]
 
 allprojects {
+  project.version= "0.1.0"
   group = "com.linkedin.tony"
 }
 
@@ -74,14 +73,13 @@ subprojects {
   apply plugin: "java"
   apply plugin: "eclipse"
   apply plugin: "idea"
-
   repositories {
     mavenCentral()
   }
-
   plugins.withType(JavaPlugin) {
     sourceCompatibility = 1.8
     dependencies {
+      // dependency defined in product_spec.json
       testCompile deps.external.testng
     }
 

@@ -1,3 +1,4 @@
+apply plugin: 'java'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 dependencies {
@@ -12,6 +13,7 @@ shadowJar {
   }
 }
 
+jar.enabled = false
 configurations.all {
   artifacts.removeAll artifacts.findAll { !it.archiveTask.enabled }
 }
