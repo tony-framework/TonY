@@ -287,8 +287,8 @@ public class TonyApplicationMaster {
   /**
    * Entry point of TonyApplicationMaster
    * The workflow of a training job in AM
-   * prepare -> start -> failed    -> reset -> retry if amRetryCount > 0 otherwise fail the job.
-   *                  -> succeeded -> stop -> job succeeded
+   * 1. prepare 2. start 3a. failed    4a. reset 5a. retry if amRetryCount greater than zero, otherwise fail the job.
+   *                     3b. succeeded 4b. stop  5b. job succeeded
    * @param args the args from user inputs
    */
   public static void main(String[] args) {
