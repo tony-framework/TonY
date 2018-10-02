@@ -79,7 +79,7 @@ import static com.linkedin.tony.Constants.*;
 public class TonyApplicationMaster {
   private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
 
-  private ApplicationAttemptId appAttemptID;
+  private ApplicationAttemptId appAttemptID = null;
   private String appIdString;
   private String amHostPort;
 
@@ -95,6 +95,7 @@ public class TonyApplicationMaster {
   private ByteBuffer allTokens;
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
   private Configuration tonyConf = new Configuration();
+  private ContainerId containerId;
 
   // The environment set up for the TaskExecutor
   private Map<String, String> containerEnv = new ConcurrentHashMap<>();
@@ -140,11 +141,13 @@ public class TonyApplicationMaster {
   private boolean singleNode;
   private boolean preprocessFinished = false;
   private int preprocessExitCode = 0;
+  private String proxyUrl;
 
   // Preprocessing job
   private boolean enablePreprocessing = false;
 
   // Lifecycle control
+  private long appTimeout;
   private boolean shouldExit = false;
 
   // HeartBeat monitor
@@ -224,6 +227,8 @@ public class TonyApplicationMaster {
         cliParser.getOptionValue("executes"),
         cliParser.getOptionValue("task_params"));
 
+    appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
+                                 TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
     workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
@@ -239,7 +244,7 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     enablePreprocessing = tonyConf.getBoolean(TonyConfigurationKeys.ENABLE_PREPROCESSING_JOB,
                                               TonyConfigurationKeys.DEFAULT_ENABLE_PREPROCESSING_JOB);
-    ContainerId containerId = ContainerId.fromString(envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
+    containerId = ContainerId.fromString(envs.get(ApplicationConstants.Environment.CONTAINER_ID.name()));
     appIdString = containerId.getApplicationAttemptId().getApplicationId().toString();
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
@@ -251,9 +256,11 @@ public class TonyApplicationMaster {
   @VisibleForTesting
   static String buildBaseTaskCommand(String pythonVenvZip, String pythonBinaryPath, String script,
       String taskParams) {
-    String pythonInterpreter;
+    String pythonInterpreter = "";
     if (pythonVenvZip == null || pythonBinaryPath.startsWith("/")) {
-      pythonInterpreter = pythonBinaryPath;
+      if (pythonBinaryPath != null) {
+        pythonInterpreter = pythonBinaryPath;
+      }
     } else {
       // Note that we always extract the Python venv zip to a "venv" (Constants.PYTHON_VENV_DIR) directory.
       pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar + pythonBinaryPath;
@@ -472,7 +479,20 @@ public class TonyApplicationMaster {
 
     int attempt = 0;
     containerEnv.put(Constants.ATTEMPT_NUMBER, String.valueOf(attempt));
+    long expireTime = appTimeout == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + appTimeout;
     while (true) {
+      // Checking timeout
+      if (System.currentTimeMillis() > expireTime) {
+        LOG.error("Application times out.");
+        return false;
+      }
+
+      // Check if client signals we should exit.
+      if (shouldExit) {
+        LOG.info("Client signals AM to exit.");
+        return true;
+      }
+
       if (preprocessExitCode != 0) {
         LOG.info("Preprocess failed with exit code: " + preprocessExitCode);
         return false;
@@ -619,6 +639,7 @@ public class TonyApplicationMaster {
       int tbPort = tbSocket.getLocalPort();
       extraEnv.put(Constants.TB_PORT, String.valueOf(tbPort));
       String tbUrl = Utils.getCurrentHostName() + ":" + tbPort;
+      proxyUrl = tbUrl;
       LOG.info("Registering tensorboard url for single node training: " + tbUrl);
       registerTensorBoardUrlToRM(tbUrl);
       tbSocket.close();
@@ -632,6 +653,13 @@ public class TonyApplicationMaster {
     }
 
     extraEnv.put(Constants.PREPROCESSING_JOB, "true");
+
+    /**
+     YARN sets $HOME to /user/yarn which users don't have access to write there.
+     Unfortunately, some services like Jupyter Notebook wants to write stuff there,
+     set it to user.dir (root of this container's address).
+     */
+    extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
     String taskCommand = baseTaskCommand;
     LOG.info("Executing command: " + taskCommand);
@@ -691,7 +719,19 @@ public class TonyApplicationMaster {
 
     @Override
     public Set<TaskUrl> getTaskUrls() {
-      if (session != null && session.allTasksScheduled()) {
+      LOG.info("Client requesting TaskUrls!");
+
+      // Special handling for NotebookSubmitter.
+      if (singleNode && proxyUrl != null) {
+        HashSet<TaskUrl> additionalTasks = new HashSet<>();
+        additionalTasks.add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
+                          Utils.getCurrentHostName() + ":"
+                          + System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()), containerId)));
+        additionalTasks.add(new TaskUrl(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
+        return additionalTasks;
+      }
+
+      if (!singleNode && session != null && session.allTasksScheduled()) {
         return session.getTFTasks().values().stream()
             .flatMap(tasks -> Arrays.stream(tasks).map(TFTask::getTaskUrl))
             .collect(Collectors.toSet());

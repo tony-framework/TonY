@@ -5,6 +5,8 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import java.io.File;
@@ -18,6 +20,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,7 +91,6 @@ public class TonyClient {
   private int amRpcPort;
   private boolean amRpcServerInitialized = false;
   private ApplicationRpcClient amRpcClient;
-  private boolean hasPrintedTaskUrls = false;
 
   private String hdfsConfAddress = null;
   private String yarnConfAddress = null;
@@ -105,12 +107,16 @@ public class TonyClient {
   private String srcDir;
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
+
   private static final String ARCHIVE_PATH = "tf_archive.zip";
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
+
+  // For access from CLI.
+  private Set<TaskUrl> taskUrls = new HashSet<>();
 
   public TonyClient() {
     this(new Configuration(false));
@@ -121,7 +127,11 @@ public class TonyClient {
     tonyConf = conf;
   }
 
-  boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
+  public ImmutableSet<TaskUrl> getTaskUrls() {
+    return ImmutableSet.copyOf(taskUrls);
+  }
+
+  public boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
     LOG.info("Starting client..");
     yarnClient.start();
 
@@ -164,7 +174,7 @@ public class TonyClient {
 
     // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(appId, appName,
+        createAMContainerSpec(appId,
                               this.amMemory, this.taskParams,
                               this.pythonBinaryPath, this.pythonVenv, this.executes, getTokens(),
                               this.hdfsClasspath);
@@ -316,11 +326,11 @@ public class TonyClient {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
     }
+    createYarnClient();
     return true;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, String appName,
-                                                      long amMemory,
+  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory,
                                                       String taskParams, String pythonBinaryPath,
                                                       String pythonVenv, String executes, ByteBuffer tokens,
                                                       String hdfsClasspathDir) throws IOException {
@@ -432,7 +442,12 @@ public class TonyClient {
   private void zipArchive() throws IOException {
     FileOutputStream fos = new FileOutputStream(ARCHIVE_PATH);
     ZipOutputStream zos = new ZipOutputStream(fos);
-    addDirToZip(zos, srcDir);
+    // Accept archive file as srcDir.
+    if (!Utils.isArchive(srcDir)) {
+      addDirToZip(zos, srcDir);
+    } else {
+      Utils.renameFile(srcDir, ARCHIVE_PATH);
+    }
     if (hdfsConfAddress != null) {
       addFileToZip(zos, hdfsConfAddress);
     }
@@ -584,7 +599,16 @@ public class TonyClient {
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
-      printTaskUrls();
+
+      // Query AM for taskUrls if taskUrls is empty.
+      if (amRpcServerInitialized && taskUrls.isEmpty()) {
+        taskUrls = amRpcClient.getTaskUrls();
+        if (!taskUrls.isEmpty()) {
+          // Print TaskUrls
+          taskUrls.forEach(task -> Utils.printTaskUrl(task, LOG));
+        }
+      }
+
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. "
@@ -596,8 +620,7 @@ public class TonyClient {
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
           return false;
         }
-      } else if (YarnApplicationState.KILLED == state
-                 || YarnApplicationState.FAILED == state) {
+      } else if (YarnApplicationState.KILLED == state || YarnApplicationState.FAILED == state) {
         LOG.info("Application did not finish."
                  + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
                  + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
@@ -637,17 +660,6 @@ public class TonyClient {
     }
   }
 
-  private void printTaskUrls() throws IOException, YarnException {
-    if (amRpcServerInitialized && !hasPrintedTaskUrls) {
-      Set<TaskUrl> taskUrls = amRpcClient.getTaskUrls();
-      if (!taskUrls.isEmpty()) {
-        new TreeSet<TaskUrl>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
-        hasPrintedTaskUrls = true;
-      }
-    }
-  }
-
-
   /**
    * Kill a submitted application by sending a call to the ASM
    * @param appId Application Id to be killed.
@@ -677,6 +689,17 @@ public class TonyClient {
     }
   }
 
+  public static TonyClient createClientInstance(String[] args, Configuration conf) throws ParseException {
+    TonyClient client;
+    client = new TonyClient(conf);
+    boolean sanityCheck = client.init(args);
+    if (!sanityCheck) {
+      LOG.fatal("Failed to init client.");
+      return null;
+    }
+    return client;
+  }
+
   public static int start(String[] args) {
     return start(args, new Configuration(false));
   }
@@ -686,10 +709,8 @@ public class TonyClient {
     boolean result = false;
     TonyClient client = null;
     try {
-      client = new TonyClient(conf);
-      boolean sanityCheck = client.init(args);
-      client.createYarnClient();
-      if (!sanityCheck) {
+      client = createClientInstance(args, conf);
+      if (client == null) {
         LOG.fatal("Failed to init client.");
         System.exit(-1);
       }

@@ -23,7 +23,7 @@ import static com.linkedin.tony.Constants.*;
  * ClusterSubmitter is used to submit a distributed Tony
  * job on the cluster.
  *
- * Example usage:
+ * Usage:
  * java -cp tony-cli-x.x.x-all.jar com.linkedin.tony.cli.ClusterSubmitter
  * --src_dir /Users/xxx/hadoop/li-tony_trunk/tony-core/src/test/resources/ \
  * --executes /Users/xxx/hadoop/li-tony_trunk/tony/src/test/resources/exit_0_check_env.py \

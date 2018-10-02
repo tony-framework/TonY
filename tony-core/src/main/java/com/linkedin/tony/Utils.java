@@ -7,6 +7,7 @@ package com.linkedin.tony;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.core.ZipFile;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -29,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 
@@ -124,6 +127,15 @@ public class Utils {
     try {
       return String.format(WORKER_LOG_URL_TEMPLATE, container.getNodeHttpAddress(), container.getId(),
           UserGroupInformation.getCurrentUser().getShortUserName());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static String constructContainerUrl(String nodeAddress, ContainerId containerId) {
+    try {
+      return String.format(WORKER_LOG_URL_TEMPLATE, nodeAddress, containerId,
+                           UserGroupInformation.getCurrentUser().getShortUserName());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -285,5 +297,31 @@ public class Utils {
     } else {
       return null;
     }
+  }
+
+  public static boolean isArchive(String path) {
+    File f = new File(path);
+    int fileSignature = 0;
+    RandomAccessFile raf = null;
+    try {
+      raf = new RandomAccessFile(f, "r");
+      fileSignature = raf.readInt();
+    } catch (IOException e) {
+      // handle if you like
+    } finally {
+      IOUtils.closeQuietly(raf);
+    }
+    return fileSignature == 0x504B0304 // zip
+           || fileSignature == 0x504B0506 // zip
+           || fileSignature == 0x504B0708 // zip
+           || fileSignature == 0x74657374 // tar
+           || fileSignature == 0x75737461 // tar
+           || (fileSignature & 0xFFFF0000) == 0x1F8B0000; // tar.gz
+  }
+
+  public static boolean renameFile(String oldName, String newName) {
+    File oldFile = new File(oldName);
+    File newFile = new File(newName);
+    return oldFile.renameTo(newFile);
   }
 }
