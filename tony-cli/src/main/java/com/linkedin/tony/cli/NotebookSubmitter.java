@@ -33,7 +33,20 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import static com.linkedin.tony.Constants.*;
 
-
+/**
+ * NotebookSubmitter is used to submit a python pex file (for example Jupyter Notebook) to run inside a cluster.
+ *
+ * It would first kick off a container inside the cluster that matches the resource request
+ * (am GPU/Memory/CPU) and run the specified script inside that node. To make it easier for
+ * Jupyter Notebook, we also bake in a proxy server in the submitter which would automatically
+ * proxy the request to that node.
+ *
+ * Usage:
+ * // Suppose you have a folder named bin/ at root directory which contains a notebook pex file: linotebook, you can use
+ * // this command to start the notebook and follow the output message to visit the jupyter notebook page.
+ * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
+ * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
+ */
 public class NotebookSubmitter {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
@@ -82,17 +95,20 @@ public class NotebookSubmitter {
     });
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (client.taskUrls != null) {
-        for (TaskUrl taskUrl : client.taskUrls) {
+      if (client.getTaskUrls() != null) {
+        for (TaskUrl taskUrl : client.getTaskUrls()) {
           if (taskUrl.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
             String[] hostPort = taskUrl.getUrl().split(":");
             ServerSocket localSocket = new ServerSocket(0);
             int localPort = localSocket.getLocalPort();
             localSocket.close();
             ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
-            LOG.info("Please run [ssh -L 18888:localhost:" + String.valueOf(localPort)
+            LOG.info("If you are running NotebookSubmitter in your local box, please open [localhost:"
+                     + String.valueOf(localPort) + "] in your browser to visit the page. Otherwise, if "
+                     + "you're running NotebookSubmitter in a remote machine (like a gateway), please run"
+                     + " [ssh -L 18888:localhost:" + String.valueOf(localPort)
                      + " name_of_this_host] in your laptop and open [localhost:18888] in your browser to "
-                     + "visit Jupyter Notebook. If the 18888 port is occupied, replace that number with another number");
+                     + "visit Jupyter Notebook. If the 18888 port is occupied, replace that number with another number.");
             server.start();
             break;
           }

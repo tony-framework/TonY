@@ -5,6 +5,8 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import java.io.File;
@@ -114,8 +116,7 @@ public class TonyClient {
   private int maxHbMisses;
 
   // For access from CLI.
-  public Set<TaskUrl> taskUrls = new HashSet<>();
-
+  private Set<TaskUrl> taskUrls = new HashSet<>();
 
   public TonyClient() {
     this(new Configuration(false));
@@ -124,6 +125,10 @@ public class TonyClient {
   public TonyClient(Configuration conf) {
     initOptions();
     tonyConf = conf;
+  }
+
+  public ImmutableSet<TaskUrl> getTaskUrls() {
+    return ImmutableSet.copyOf(taskUrls);
   }
 
   public boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
@@ -594,7 +599,16 @@ public class TonyClient {
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
-      getApplicationTaskUrls();
+
+      // Query AM for taskUrls if taskUrls is empty.
+      if (amRpcServerInitialized && taskUrls.isEmpty()) {
+        taskUrls = amRpcClient.getTaskUrls();
+        if (!taskUrls.isEmpty()) {
+          // Print TaskUrls
+          taskUrls.forEach(task -> Utils.printTaskUrl(task, LOG));
+        }
+      }
+
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. "
@@ -643,16 +657,6 @@ public class TonyClient {
       org.apache.hadoop.yarn.api.records.Token clientToAMToken = report.getClientToAMToken();
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken, serviceAddr);
       UserGroupInformation.getCurrentUser().addToken(token);
-    }
-  }
-
-  private void getApplicationTaskUrls() throws IOException, YarnException {
-    if (amRpcServerInitialized && taskUrls.isEmpty()) {
-      taskUrls = amRpcClient.getTaskUrls();
-      if (!taskUrls.isEmpty()) {
-        // Print TaskUrls
-        taskUrls.forEach(task -> Utils.printTaskUrl(task, LOG));
-      }
     }
   }
 

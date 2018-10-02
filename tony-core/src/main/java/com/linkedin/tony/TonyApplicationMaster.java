@@ -487,6 +487,12 @@ public class TonyApplicationMaster {
         return false;
       }
 
+      // Check if client signals we should exit.
+      if (shouldExit) {
+        LOG.info("Client signals AM to exit.");
+        return true;
+      }
+
       if (preprocessExitCode != 0) {
         LOG.info("Preprocess failed with exit code: " + preprocessExitCode);
         return false;
