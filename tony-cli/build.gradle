@@ -13,9 +13,4 @@ shadowJar {
   }
 }
 
-jar.enabled = false
-configurations.all {
-  artifacts.removeAll artifacts.findAll { !it.archiveTask.enabled }
-}
-
 build.dependsOn(shadowJar)

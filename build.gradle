@@ -1,6 +1,3 @@
-group "com.linkedin"
-version "0.1.0"
-
 apply plugin: "java"
 apply plugin: "eclipse"
 apply plugin: "idea"
@@ -63,8 +60,18 @@ ext.deps = [
 ]
 
 allprojects {
-  project.version= "0.1.0"
   group = "com.linkedin.tony"
+  project.version = "0.1.2"
+}
+
+task sourcesJar(type: Jar) {
+  from sourceSets.main.allJava
+  classifier = 'sources'
+}
+
+task javadocJar(type: Jar) {
+  from javadoc
+  classifier = 'javadoc'
 }
 
 subprojects {
@@ -73,6 +80,9 @@ subprojects {
   apply plugin: "java"
   apply plugin: "eclipse"
   apply plugin: "idea"
+  apply plugin: "maven"
+  apply plugin: "maven-publish"
+  apply plugin: "signing"
   repositories {
     mavenCentral()
   }
@@ -101,8 +111,63 @@ subprojects {
       exclude group: "org.apache.hadoop"
     }
   }
-}
 
+  publishing {
+    publications {
+      mavenJava(MavenPublication) {
+        from components.java
+        artifactId = "${project.name}"
+        artifact sourcesJar
+        artifact javadocJar
+        pom {
+          name = "${project.name}".toString()
+          description = "${project.name}".toString()
+          url = 'https://github.com/linkedin/TonY'
+          licenses {
+            license {
+              name = "BSD 2-Clause"
+              url = "https://opensource.org/licenses/BSD-2-Clause"
+            }
+          }
+          developers {
+            developer {
+              id = 'erwa'
+              name = 'Anthony Hsu'
+            }
+            developer {
+              id = 'jhung'
+              name = 'Jonathan Hung'
+            }
+            developer {
+              id = 'oliverhu'
+              name = 'Keqiu Hu'
+            }
+          }
+          scm {
+            connection = 'https://github.com/linkedin/TonY.git'
+            developerConnection = 'git@github.com:linkedin/TonY.git'
+            url = 'https://github.com/linkedin/TonY'
+          }
+        }
+      }
+    }
+    repositories {
+      maven {
+        def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+        def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
+        url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        credentials {
+          username findProperty("mavenUser")
+          password findProperty("mavenPassword")
+        }
+      }
+    }
+  }
+  signing {
+    sign publishing.publications.mavenJava
+  }
+}
+  
 apply plugin: 'distribution'
 
 // Generates a closure which is used to set up the contents
