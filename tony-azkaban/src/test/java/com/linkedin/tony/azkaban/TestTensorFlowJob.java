@@ -10,6 +10,7 @@ import com.google.inject.Injector;
 
 import azkaban.utils.FileIOUtils;
 import azkaban.utils.Props;
+import java.io.File;
 import java.util.List;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
@@ -56,6 +57,7 @@ public class TestTensorFlowJob {
       }
     };
     String args = tfJob.getMainArguments();
+    Assert.assertTrue(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job/tony.xml").exists());
     Assert.assertTrue(args.contains(TensorFlowJobArg.HDFS_CLASSPATH.tfParamName + " hdfs://nn:8020"));
     Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tfParamName + " E2=e2"));
     Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tfParamName + " E1=e1"));
@@ -68,7 +70,12 @@ public class TestTensorFlowJob {
     jobProps.put(TensorFlowJob.WORKING_DIR, FilenameUtils.getFullPath(FileIOUtils.getSourcePathFromClass(Props.class)));
     sysProps.put("jobtype.classpath", "123,456,789");
     sysProps.put("plugin.dir", "Plugins");
-    final TensorFlowJob tfJob = new TensorFlowJob("test_tf_job_class_path", sysProps, jobProps, log);
+    final TensorFlowJob tfJob = new TensorFlowJob("test_tf_job_class_path", sysProps, jobProps, log) {
+      @Override
+      public String getWorkingDirectory() {
+        return System.getProperty("java.io.tmpdir");
+      }
+    };
     List<String> paths = tfJob.getClassPaths();
     int counter = 0;
     for (String path : paths) {
@@ -77,6 +84,6 @@ public class TestTensorFlowJob {
       }
     }
     Assert.assertTrue(counter == 3);
+    Assert.assertTrue(paths.contains(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job_class_path").toString()));
   }
-
 }
