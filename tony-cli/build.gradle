@@ -1,3 +1,4 @@
+apply plugin: 'java'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 dependencies {
@@ -10,10 +11,6 @@ shadowJar {
   dependencies {
     exclude(dependency('org.apache.hadoop::.*'))
   }
-}
-
-configurations.all {
-  artifacts.removeAll artifacts.findAll { !it.archiveTask.enabled }
 }
 
 build.dependsOn(shadowJar)

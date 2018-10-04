@@ -32,9 +32,9 @@ public class TensorFlowJob extends HadoopJavaJob {
   public static final String HADOOP_OPTS = ENV_PREFIX + "HADOOP_OPTS";
   public static final String HADOOP_GLOBAL_OPTS = "hadoop.global.opts";
   public static final String WORKER_ENV_PREFIX = "worker_env.";
-  private static final String TONY_XML = "_tony-conf/tony.xml";
   private static final String TONY_CONF_PREFIX = "tony.";
   private HadoopSecurityManager hadoopSecurityManager;
+  private String tonyXml;
   private File tonyConfFile;
 
   public TensorFlowJob(String jobid, Props sysProps, Props jobProps, Logger log) {
@@ -56,7 +56,8 @@ public class TensorFlowJob extends HadoopJavaJob {
       }
     }
 
-    tonyConfFile = new File(getWorkingDirectory(), TONY_XML);
+    tonyXml = String.format("_tony-conf-%s/tony.xml", jobid);
+    tonyConfFile = new File(getWorkingDirectory(), tonyXml);
   }
 
   @Override
@@ -84,12 +85,12 @@ public class TensorFlowJob extends HadoopJavaJob {
 
   private void setupHadoopOpts(Props props) {
     if (props.containsKey(HADOOP_GLOBAL_OPTS)) {
-      String hadoopGlobalOps = props.getString(HADOOP_GLOBAL_OPTS);
+      String hadoopGlobalOpts = props.getString(HADOOP_GLOBAL_OPTS);
       if (props.containsKey(HADOOP_OPTS)) {
-        String hadoopOps = props.getString(HADOOP_OPTS);
-        props.put(HADOOP_OPTS, String.format("%s %s", hadoopOps, hadoopGlobalOps));
+        String hadoopOpts = props.getString(HADOOP_OPTS);
+        props.put(HADOOP_OPTS, String.format("%s %s", hadoopOpts, hadoopGlobalOpts));
       } else {
-        props.put(HADOOP_OPTS, hadoopGlobalOps);
+        props.put(HADOOP_OPTS, hadoopGlobalOpts);
       }
     }
   }
@@ -180,7 +181,7 @@ public class TensorFlowJob extends HadoopJavaJob {
     try (OutputStream os = new FileOutputStream(tonyConfFile)) {
       tfConf.writeXml(os);
     } catch (Exception e) {
-      throw new RuntimeException("Failed to create " + TONY_XML + " conf file. Exiting.", e);
+      throw new RuntimeException("Failed to create " + tonyXml + " conf file. Exiting.", e);
     }
 
     info("Complete main arguments: " + args);

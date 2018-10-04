@@ -1,3 +1,5 @@
+apply plugin: 'java'
+
 dependencies {
   compile deps.external.avro
   compile deps.external.guava
