@@ -1,0 +1,67 @@
+apply plugin: 'java'
+apply plugin: 'com.google.protobuf'
+
+dependencies {
+  compile deps.external.jackson_databind
+  compile deps.external.py4j
+  compile deps.external.text
+  compile deps.hadoop.common
+  compile deps.hadoop.hdfs
+  compile deps.hadoop.yarn_api
+  compile deps.hadoop.yarn_client
+  compile deps.hadoop.yarn_common
+  compile deps.external.zip4j
+  compile deps.hadoop.mapreduce_client_core
+  compile deps.hadoop.mapreduce_client_hs
+  compile deps.hadoop.mapreduce_client_common
+  compile deps.hadoop.mapreduce_client_app
+  testCompile deps.external.avro
+  testCompile deps.external.testng
+
+  // Only needed by Hadoop test classes
+  testRuntime deps.external.junit
+}
+
+task setupHdfsLib(type: Copy) {
+  from jar, configurations.compile
+  exclude '**/*.pom'
+  into "$rootDir/tony-history-server/out/libs/"
+}
+
+test {
+  workingDir = rootDir
+}
+
+test.dependsOn(setupHdfsLib)
+
+sourceSets {
+  main {
+    proto {
+      // In addition to the default 'src/main/proto'
+      srcDir 'src/main/proto'
+      include '**/*.protodevel'
+    }
+
+    java {
+      srcDirs += ['src/generated/main/java']
+    }
+  }
+}
+
+protobuf {
+  // Configure the protoc executable
+  protoc {
+    // Download from repositories
+    artifact = 'com.google.protobuf:protoc:2.5.0'
+  }
+  generatedFilesBaseDir = "$projectDir/src/generated"
+}
+
+clean {
+  delete protobuf.generatedFilesBaseDir
+  delete "$projectDir/out"
+}
+
+// The `generateProto` task is dynamically generated and is not available at configuration time,
+// so we need to refer to it by a string name here
+ideaModule.dependsOn 'generateProto'
