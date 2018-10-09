@@ -75,14 +75,19 @@ Then you can launch your job:
                 -python_binary_path Python/bin/python \
                 -src_dir src \
                 -shell_env LD_LIBRARY_PATH=/usr/java/latest/jre/lib/amd64/server
-The command line arguments are as follows:
-* `executes` describes the location to the entry point of your training code.
-* `task_params` describe the command line arguments which will be passed to your entry point.
-* `python_venv` describes the name of the zip locally which will invoke your python script.
-* `python_binary_path` describes the relative path in your python virtual environment which contains the python binary, or an absolute path to use a python binary already installed on all worker nodes.
-* `src_dir` specifies the name of the root directory locally which contains all of your python model source code. This directory will be copied to all worker nodes.
-* `shell_env` specifies key-value pairs for environment variables which will be set in your python worker/ps processes.
 
+The command line arguments are as follows:
+
+| Name               | Required? | Example                                           | Meaning                                                                                                                                                                                                           |
+|--------------------|-----------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| executes           | yes       | -executes src/model/mnist.py                      | Location to the entry point of your training code.                                                                                                                                                                |
+| src_dir            | yes       | -src src/                                         | Specifies the name of the root directory locally which contains all of your python model source code. This directory will be copied to all worker node.                                                           |
+| task_param         | no        | --input_dir /hdfs/input --output_dir /hdfs/output | The command line arguments which will be passed to your entry point                                                                                                                                               |
+| python_venv        | no        | --python_venv venv.zip                            | Path to the *zipped* local Python virtual environment                                                                                                                                                             |
+| python_binary_path | no        | --python_binary_path Python/bin/python            | Used together with python_venv, describes the relative path in your python virtual environment which contains the python binary, or an absolute path to use a python binary already installed on all worker nodes |
+| shell_env          | no        | --shel_env LD_LIBRARY_PATH=/usr/local/lib64/      | Specifies key-value pairs for environment variables which will be set in your python worker/ps processes.                                                                                                         |
+| conf_file          | no        | --conf_file tony-local.xml                        | Location of a TonY configuration file.                                                                                                                                                                            |
+| conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line                                             
 #### TonY configurations
 
 There are multiple ways to specify configurations for your TonY job. As above, you can create an XML file called `tony.xml`
