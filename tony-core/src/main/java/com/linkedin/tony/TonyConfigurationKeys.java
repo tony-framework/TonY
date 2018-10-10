@@ -5,6 +5,20 @@
 package com.linkedin.tony;
 
 public class TonyConfigurationKeys {
+  public enum MLFramework {
+    TENSORFLOW("tensorflow"),
+    PYTORCH("pytorch");
+
+    private final String frameworkName;
+    MLFramework(final String frameworkName) {
+      this.frameworkName = frameworkName;
+    }
+
+    @Override
+    public String toString() {
+      return frameworkName;
+    }
+  }
 
   private TonyConfigurationKeys() {
 
@@ -22,6 +36,9 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_NAME = TONY_APPLICATION_PREFIX + "name";
   public static final String DEFAULT_APPLICATION_NAME = "TensorFlowApplication";
+
+  public static final String FRAMEWORK_NAME = TONY_APPLICATION_PREFIX + "framework";
+  public static final String DEFAULT_FRAMEWORK_NAME = "tensorflow";
 
   public static final String APPLICATION_NODE_LABEL = TONY_APPLICATION_PREFIX + "node-label";
 

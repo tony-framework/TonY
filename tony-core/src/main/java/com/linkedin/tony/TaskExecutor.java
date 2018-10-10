@@ -63,6 +63,7 @@ public class TaskExecutor {
   private int hbInterval;
   private final ScheduledExecutorService hbExec = Executors.newScheduledThreadPool(1);
   private int numFailedHBAttempts = 0;
+  private TonyConfigurationKeys.MLFramework framework;
 
   protected TaskExecutor() throws IOException {
     // Reserve a rpcSocket rpcPort.
@@ -72,6 +73,8 @@ public class TaskExecutor {
     this.tbPort = this.tbSocket.getLocalPort();
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
+    framework = TonyConfigurationKeys.MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+                                                                       TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME));
 
     LOG.info("Reserved rpcPort: " + this.rpcPort);
     LOG.info("Reserved tbPort: " + this.tbPort);
@@ -118,15 +121,20 @@ public class TaskExecutor {
         }
 
         // Execute the user command
-        HashMap<String, String> extraEnv = new HashMap<String, String>(executor.shellEnv) {
-          {
-            put(Constants.TB_PORT, String.valueOf(executor.tbPort));
-            put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
-            put(Constants.JOB_NAME, String.valueOf(executor.jobName));
-            put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
-            put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+        HashMap<String, String> extraEnv = new HashMap<>(executor.shellEnv);
+        switch (executor.framework) {
+          case TENSORFLOW: {
+            extraEnv.put(Constants.TB_PORT, String.valueOf(executor.tbPort));
+            extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
+            extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
+            extraEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
+            extraEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
           }
-        };
+          case PYTORCH: {
+            extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
+            extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
+          }
+        }
 
         int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, extraEnv);
         // START - worker skew testing:
