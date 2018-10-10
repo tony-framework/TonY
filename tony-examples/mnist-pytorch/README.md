@@ -8,18 +8,17 @@ To run the examples here, you need to:
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
 
 
-### Building a Python virtual environment with TensorFlow
+### Building a Python virtual environment with PyTorch
 
-TonY requires a Python virtual environment zip with TensorFlow and any needed Python libraries already installed.
+TonY requires a Python virtual environment zip with PyTorch and any needed Python libraries already installed.
 
 ```
 wget https://files.pythonhosted.org/packages/33/bc/fa0b5347139cd9564f0d44ebd2b147ac97c36b2403943dbee8a25fd74012/virtualenv-16.0.0.tar.gz
 tar xf virtualenv-16.0.0.tar.gz
 
-# Make sure to install using Python 3, as TensorFlow only provides Python 3 artifacts
 python virtualenv-16.0.0/virtualenv.py venv
 . venv/bin/activate
-pip install tensorflow==1.9.0
+pip install pytorch==0.4.0
 zip -r venv.zip venv
 ```
 
