@@ -74,6 +74,7 @@ import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 
 
 public class TonyApplicationMaster {
@@ -161,7 +162,7 @@ public class TonyApplicationMaster {
   private boolean jobFailed;
 
   // Handle different machine frameworks
-  private TonyConfigurationKeys.MLFramework framework;
+  private MLFramework framework;
 
   private TonyApplicationMaster() {
     hdfsConf = new Configuration();
@@ -253,7 +254,7 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     maxConsecutiveHBMiss = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
-    framework = TonyConfigurationKeys.MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME));
+    framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME));
     return true;
   }
 
@@ -769,10 +770,10 @@ public class TonyApplicationMaster {
         task.setHostPort(spec);
         registeredTasks.add(taskId);
 
-        // set chief worker as coordinator.
-        if (taskId.equals("0")
-            && framework == TonyConfigurationKeys.MLFramework.PYTORCH) {
-          shellEnv.put(Constants.INIT_METHOD, "tcp://" + spec);
+        // Use chief worker as coordinator.
+        if (taskId.equals(COORDINATOR_ID) && framework == MLFramework.PYTORCH) {
+          // Hard coded to use tcp:// as backend.
+          shellEnv.put(Constants.INIT_METHOD, COMMUNICATION_BACKEND + spec);
         }
 
         // HB Registration should happen only after worker registration..
