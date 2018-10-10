@@ -2,7 +2,7 @@
 
 To run the examples here, you need to:
 
-* build a Python virtual environment with TensorFlow 1.9.0 installed
+* build a Python virtual environment with PyTorch 0.4.* installed
 * install Hadoop 3.1.1+
 
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
@@ -39,6 +39,10 @@ If your Hadoop cluster is not running with security enabled (e.g.: for local tes
     <name>tony.application.security.enabled</name>
     <value>false</value>
   </property>
+  <property>
+    <name>tony.application.framework</name>
+    <value>pytorch</value>
+  </property>
 </configuration>
 ```
 
@@ -54,8 +58,8 @@ gradlew :tony-cli:build
 
 java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all.jar com.linkedin.tony.cli.ClusterSubmitter \
 --python_venv=/path/to/venv.zip \
---src_dir=/path/to/TonY/tony-examples/mnist \
---executes=/path/to/TonY/tony-examples/mnist/mnist_distributed.py \
+--src_dir=/path/to/TonY/tony-examples/mnist-pytorch \
+--executes=/path/to/TonY/tony-examples/mnist-pytorch/mnist_distributed.py \
 --conf_file=/path/to/tony-test.xml \
 --python_binary_path=venv/bin/python
 ```
