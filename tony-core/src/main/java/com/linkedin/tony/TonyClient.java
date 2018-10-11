@@ -6,7 +6,6 @@ package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.UnmodifiableIterator;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import java.io.File;
@@ -24,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -108,7 +106,7 @@ public class TonyClient {
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
-  private static final String ARCHIVE_PATH = "tf_archive.zip";
+  private static final String ARCHIVE_PATH = "tony_archive.zip";
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
   private Path appResourcesPath;
@@ -339,7 +337,7 @@ public class TonyClient {
     FileSystem homeFS = FileSystem.get(hdfsConf);
     appResourcesPath = new Path(homeFS.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.FILE, Constants.TF_ZIP_NAME, localResources);
+    addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
     addLocalResources(homeFS, Constants.TONY_FINAL_XML, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     if (hdfsClasspathDir != null) {
       try {
@@ -511,8 +509,8 @@ public class TonyClient {
 
   private void setAMEnvironment(Map<String, LocalResource> localResources,
                                                FileSystem fs) throws IOException {
-    LocalResource zipResource = localResources.get(Constants.TF_ZIP_NAME);
-    Utils.addEnvironmentForResource(zipResource, fs, Constants.TF_ZIP_PREFIX, containerEnv);
+    LocalResource zipResource = localResources.get(Constants.TONY_ZIP_NAME);
+    Utils.addEnvironmentForResource(zipResource, fs, Constants.TONY_ZIP_PREFIX, containerEnv);
 
     LocalResource tonyConfResource = localResources.get(Constants.TONY_FINAL_XML);
     Utils.addEnvironmentForResource(tonyConfResource, fs, Constants.TONY_CONF_PREFIX, containerEnv);

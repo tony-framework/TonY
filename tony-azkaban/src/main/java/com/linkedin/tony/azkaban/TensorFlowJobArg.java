@@ -16,9 +16,9 @@ public enum TensorFlowJobArg {
 
   TensorFlowJobArg(String azPropName) {
     this.azPropName = azPropName;
-    this.tfParamName = "-" + azPropName;
+    this.tonyParamName = "-" + azPropName;
   }
 
   final String azPropName;
-  final String tfParamName;
+  final String tonyParamName;
 }

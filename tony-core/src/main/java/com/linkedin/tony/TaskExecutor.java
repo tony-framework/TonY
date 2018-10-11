@@ -175,7 +175,7 @@ public class TaskExecutor {
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
     venv = cliParser.getOptionValue("venv");
-    Utils.unzipArchive(Constants.TF_ZIP_NAME, "./");
+    Utils.unzipArchive(Constants.TONY_ZIP_NAME, "./");
     if (System.getenv(Constants.YARN_CONF_PATH) != null) {
       yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
     }

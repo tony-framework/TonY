@@ -12,7 +12,7 @@ import com.linkedin.tony.rpc.ApplicationRpcServer;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TensorFlowSession;
-import com.linkedin.tony.tensorflow.TensorFlowSession.TFTask;
+import com.linkedin.tony.tensorflow.TensorFlowSession.TonyTask;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -104,7 +104,7 @@ public class TonyApplicationMaster {
   // The environment passed from users to the training job. Note this is very different from the above.
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, List<Container>> sessionContainersMap = new ConcurrentHashMap<>();
-  private Map<TFTask, Boolean> containerStatusMap = new HashMap<>(); // ContainerId : if container completed
+  private Map<TonyTask, Boolean> containerStatusMap = new HashMap<>(); // ContainerId : if container completed
 
   // Node manager delegates
   private NMCallbackHandler containerListener;
@@ -120,7 +120,7 @@ public class TonyApplicationMaster {
   private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
 
-  // allocationRequestIds are allocated to TF tasks sequentially. lastAllocationRequestId
+  // allocationRequestIds are allocated to tasks sequentially. lastAllocationRequestId
   // tracks the latest allocationRequestId allocated.
   private long lastAllocationRequestId = 0;
 
@@ -152,7 +152,7 @@ public class TonyApplicationMaster {
   private boolean shouldExit = false;
 
   // HeartBeat monitor
-  private final AbstractLivelinessMonitor<TFTask> hbMonitor;
+  private final AbstractLivelinessMonitor<TonyTask> hbMonitor;
   private int hbInterval;
   private int maxConsecutiveHBMiss;
   private volatile boolean taskHasMissesHB = false;
@@ -168,9 +168,9 @@ public class TonyApplicationMaster {
     hdfsConf = new Configuration();
     yarnConf = new Configuration();
 
-    hbMonitor = new AbstractLivelinessMonitor<TFTask>("TF Task liveliness Monitor") {
+    hbMonitor = new AbstractLivelinessMonitor<TonyTask>("Tony Task liveliness Monitor") {
       @Override
-      protected void expire(TFTask task) {
+      protected void expire(TonyTask task) {
         onTaskDeemedDead(task);
       }
 
@@ -189,9 +189,9 @@ public class TonyApplicationMaster {
    */
   private boolean init(String[] args) {
     try {
-      Utils.unzipArchive(Constants.TF_ZIP_NAME, "./");
+      Utils.unzipArchive(Constants.TONY_ZIP_NAME, "./");
     } catch (IOException e) {
-      LOG.error("Failed to unzip: " + Constants.TF_ZIP_NAME, e);
+      LOG.error("Failed to unzip: " + Constants.TONY_ZIP_NAME, e);
       return false;
     }
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
@@ -528,7 +528,7 @@ public class TonyApplicationMaster {
       LOG.info("Completed worker tasks: " + numCompletedWorkerTasks.get()
                + ", total worker tasks: " + numTotalWorkerTasks);
 
-      Set<TFTask> unregisteredTasks = getUnregisteredTasks();
+      Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
       int numUnregistered = unregisteredTasks.size();
       int secondsElapsed = (int) (System.currentTimeMillis() - start) / 1000;
       if (numUnregistered > 0 && secondsElapsed >= taskRegistrationTimeoutSec) {
@@ -576,13 +576,13 @@ public class TonyApplicationMaster {
   /**
    * Returns the tasks whose containers have launched but not called {@link ApplicationRpc#registerWorkerSpec} yet.
    */
-  private Set<TFTask> getUnregisteredTasks() {
-    return session.getTFTasks().values().stream().flatMap(Arrays::stream)
+  private Set<TonyTask> getUnregisteredTasks() {
+    return session.getTonyTasks().values().stream().flatMap(Arrays::stream)
         .filter(task -> task != null && task.getHost() == null)
         .collect(Collectors.toSet());
   }
 
-  private void rescheduleTasks(Set<TFTask> tasks) {
+  private void rescheduleTasks(Set<TonyTask> tasks) {
     removeAllContainerRequests();
 
     tasks.forEach(task -> {
@@ -597,7 +597,7 @@ public class TonyApplicationMaster {
       amRMClient.releaseAssignedContainer(task.getContainer().getId());
 
       // Null out task in TFTasks map
-      session.getTFTasks().get(task.getJobName())[Integer.valueOf(task.getTaskIndex())] = null;
+      session.getTonyTasks().get(task.getJobName())[Integer.valueOf(task.getTaskIndex())] = null;
 
       // Make new container request
       scheduleTask(session.getContainerRequestForType(task.getJobName()));
@@ -698,7 +698,7 @@ public class TonyApplicationMaster {
 
   private void printTaskUrls() {
     if (session != null) {
-      session.getTFTasks()
+      session.getTonyTasks()
           .values()
           .stream()
           .flatMap(Arrays::stream)
@@ -738,8 +738,8 @@ public class TonyApplicationMaster {
       }
 
       if (!singleNode && session != null && session.allTasksScheduled()) {
-        return session.getTFTasks().values().stream()
-            .flatMap(tasks -> Arrays.stream(tasks).map(TFTask::getTaskUrl))
+        return session.getTonyTasks().values().stream()
+            .flatMap(tasks -> Arrays.stream(tasks).map(TonyTask::getTaskUrl))
             .collect(Collectors.toSet());
       }
 
@@ -754,7 +754,7 @@ public class TonyApplicationMaster {
 
     @Override
     public void taskExecutorHeartbeat(String taskId) {
-      TFTask task = session.getTask(taskId);
+      TonyTask task = session.getTask(taskId);
       if (task != null) {
         LOG.debug("[" + taskId + "] Received HB Ping !!");
         hbMonitor.receivedPing(task);
@@ -765,7 +765,7 @@ public class TonyApplicationMaster {
 
     @Override
     public String registerWorkerSpec(String taskId, String spec) throws IOException {
-      TFTask task = session.getTask(taskId);
+      TonyTask task = session.getTask(taskId);
       if (task.getHost() == null) {
         LOG.info("Received cluster spec registration request from task " + taskId + " with spec: " + spec);
         task.setHostPort(spec);
@@ -791,7 +791,7 @@ public class TonyApplicationMaster {
       } else {
         // Periodically print a list of all tasks we are still awaiting registration from.
         if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
-          Set<TFTask> unregisteredTasks = getUnregisteredTasks();
+          Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
           LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
               registeredTasks.size(), numRequestedContainers.get() - registeredTasks.size()));
           unregisteredTasks.forEach(t -> LOG.info(
@@ -953,7 +953,7 @@ public class TonyApplicationMaster {
         } else {
           LOG.info(diagnostics);
         }
-        TFTask task = session.getTask(containerStatus.getContainerId());
+        TonyTask task = session.getTask(containerStatus.getContainerId());
         if (task != null) {
           // Unregister task after completion..
           // Since in the case of asynchronous exec, containers might
@@ -1034,7 +1034,7 @@ public class TonyApplicationMaster {
       containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
-      TFTask task = session.getMatchingTask(container.getAllocationRequestId());
+      TonyTask task = session.getMatchingTask(container.getAllocationRequestId());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
       task.addContainer(container);
@@ -1092,7 +1092,7 @@ public class TonyApplicationMaster {
     }
   }
 
-  private void onTaskDeemedDead(TFTask task) {
+  private void onTaskDeemedDead(TonyTask task) {
     LOG.info("Task with id [" + task.getId() + "] has missed"
         + " [" + maxConsecutiveHBMiss + "] heartbeats.. Ending application !!");
     // TODO: figure out what is the right thing to do here..

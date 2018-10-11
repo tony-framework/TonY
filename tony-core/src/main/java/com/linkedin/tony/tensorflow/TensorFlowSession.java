@@ -5,7 +5,6 @@
 package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.Utils;
 import com.linkedin.tony.rpc.TaskUrl;
@@ -31,7 +30,6 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
@@ -55,7 +53,7 @@ public class TensorFlowSession {
   public int sessionId = 0;
 
   // A map from task name to an array of TFTasks with that name.
-  private Map<String, TFTask[]> jobTasks = new ConcurrentHashMap<>();
+  private Map<String, TonyTask[]> jobTasks = new ConcurrentHashMap<>();
 
   private FinalApplicationStatus sessionFinalStatus = FinalApplicationStatus.UNDEFINED;
   private String sessionFinalMessage = null;
@@ -91,7 +89,7 @@ public class TensorFlowSession {
     return cmd.toString();
   }
 
-  private Map<ContainerId, TFTask> containerIdMap = new HashMap<>();
+  private Map<ContainerId, TonyTask> containerIdMap = new HashMap<>();
 
   public TensorFlowSession() {
   }
@@ -105,11 +103,11 @@ public class TensorFlowSession {
     this.jvmArgs = builder.jvmArgs;
 
     for (String jobName : containerRequests.keySet()) {
-      jobTasks.put(jobName, new TFTask[containerRequests.get(jobName).getNumInstances()]);
+      jobTasks.put(jobName, new TonyTask[containerRequests.get(jobName).getNumInstances()]);
     }
   }
 
-  public Map<String, TFTask[]> getTFTasks() {
+  public Map<String, TonyTask[]> getTonyTasks() {
     return this.jobTasks;
   }
 
@@ -120,15 +118,15 @@ public class TensorFlowSession {
                            String hdfsClasspathDir) {
 
     Map<String, String> env = System.getenv();
-    String zipPath = env.get(Constants.TF_ZIP_PREFIX + Constants.PATH_SUFFIX);
-    long zipTimestamp = Long.valueOf(env.get(Constants.TF_ZIP_PREFIX + Constants.TIMESTAMP_SUFFIX));
-    long zipLength = Long.valueOf(env.get(Constants.TF_ZIP_PREFIX + Constants.LENGTH_SUFFIX));
+    String zipPath = env.get(Constants.TONY_ZIP_PREFIX + Constants.PATH_SUFFIX);
+    long zipTimestamp = Long.valueOf(env.get(Constants.TONY_ZIP_PREFIX + Constants.TIMESTAMP_SUFFIX));
+    long zipLength = Long.valueOf(env.get(Constants.TONY_ZIP_PREFIX + Constants.LENGTH_SUFFIX));
 
     LocalResource zipResource =
         LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(zipPath)),
             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
             zipLength, zipTimestamp);
-    localResources.put(Constants.TF_ZIP_NAME, zipResource);
+    localResources.put(Constants.TONY_ZIP_NAME, zipResource);
 
     String tonyConfPath = env.get(Constants.TONY_CONF_PREFIX + Constants.PATH_SUFFIX);
     long tonyConfTimestamp = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.TIMESTAMP_SUFFIX));
@@ -170,9 +168,9 @@ public class TensorFlowSession {
 
   public synchronized List<TensorFlowContainerRequest> getContainersRequests() {
     List<TensorFlowContainerRequest> requests = new ArrayList<>();
-    for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
-      TFTask[] tasks = entry.getValue();
-      for (TFTask task : tasks) {
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
+      TonyTask[] tasks = entry.getValue();
+      for (TonyTask task : tasks) {
         if (task == null) {
           requests.add(getContainerRequestForType(entry.getKey()));
         }
@@ -186,8 +184,8 @@ public class TensorFlowSession {
   }
 
   public boolean allTasksScheduled() {
-    for (TFTask[] tasks : jobTasks.values()) {
-      for (TFTask task : tasks) {
+    for (TonyTask[] tasks : jobTasks.values()) {
+      for (TonyTask task : tasks) {
         if (task == null) {
           return false;
         }
@@ -215,16 +213,16 @@ public class TensorFlowSession {
    * @param allocationRequestId the allocationRequestId of the allocated container
    * @return task to be assigned to this allocation
    */
-  public synchronized TFTask getMatchingTask(long allocationRequestId) {
-    for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
+  public synchronized TonyTask getMatchingTask(long allocationRequestId) {
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
       if (!jobTypeToAllocationIds.get(jobName).contains(allocationRequestId)) {
         continue;
       }
-      TFTask[] tasks = entry.getValue();
+      TonyTask[] tasks = entry.getValue();
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
-          tasks[i] = new TFTask(jobName, String.valueOf(i));
+          tasks[i] = new TonyTask(jobName, String.valueOf(i));
           LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
         }
@@ -236,12 +234,12 @@ public class TensorFlowSession {
   public Map<String, List<String>> getClusterSpec() {
     Map<String, List<String>> map = new HashMap<>();
 
-    for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
-      TFTask[] tasks = entry.getValue();
+      TonyTask[] tasks = entry.getValue();
 
       List<String> builder = new ArrayList<>();
-      for (TFTask task : tasks) {
+      for (TonyTask task : tasks) {
         if (task == null) {
           continue;
         }
@@ -259,7 +257,7 @@ public class TensorFlowSession {
    * Refresh task status on each TaskExecutor registers its exit code with AM.
    */
   public void onTaskCompleted(String jobName, String jobIndex, int exitCode) {
-    TFTask task = getTask(jobName, jobIndex);
+    TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
     TaskType taskType = getTaskType(task);
     task.setExitStatus(exitCode);
@@ -282,16 +280,16 @@ public class TensorFlowSession {
    */
   public void updateSessionStatus() {
     int failureCount = 0;
-    for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
-      TFTask[] tasks = entry.getValue();
+      TonyTask[] tasks = entry.getValue();
 
       if (jobName.equals(PS_JOB_NAME)) {
         // ignore PS job
         continue;
       }
 
-      for (TFTask task : tasks) {
+      for (TonyTask task : tasks) {
         if (task == null) {
           String msg = "Job is null, this should not happen.";
           LOG.error(msg);
@@ -336,7 +334,7 @@ public class TensorFlowSession {
     sessionFinalMessage = message;
   }
 
-  private TaskType getTaskType(TFTask task) {
+  private TaskType getTaskType(TonyTask task) {
     TaskType type;
     String jobName = task.getJobName();
     if (jobName.equals(PS_JOB_NAME)) {
@@ -347,10 +345,10 @@ public class TensorFlowSession {
     return type;
   }
 
-  private TFTask getTask(String jobName, String taskIndex) {
-    for (Map.Entry<String, TFTask[]> entry : jobTasks.entrySet()) {
-      TFTask[] tasks = entry.getValue();
-      for (TFTask task : tasks) {
+  private TonyTask getTask(String jobName, String taskIndex) {
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
+      TonyTask[] tasks = entry.getValue();
+      for (TonyTask task : tasks) {
         String job = task.getJobName();
         String index = task.getTaskIndex();
         if (job.equals(jobName) && index.equals(taskIndex)) {
@@ -361,7 +359,7 @@ public class TensorFlowSession {
     return null;
   }
 
-  public TFTask getTask(ContainerId containerId) {
+  public TonyTask getTask(ContainerId containerId) {
     return containerIdMap.get(containerId);
   }
 
@@ -412,9 +410,9 @@ public class TensorFlowSession {
   }
 
   /**
-   * A TFTask represents a task job executed in the workers.
+   * A TonyTask represents a task job executed in the workers.
    */
-  public class TFTask {
+  public class TonyTask {
     private final String jobName;
     private final String taskIndex;
     private String host;
@@ -484,7 +482,7 @@ public class TensorFlowSession {
       return new TaskUrl(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
-    TFTask(String jobName, String taskIndex) {
+    TonyTask(String jobName, String taskIndex) {
       this.jobName = jobName;
       this.taskIndex = taskIndex;
     }
@@ -510,8 +508,8 @@ public class TensorFlowSession {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      TFTask tfTask = (TFTask) o;
-      return Objects.equals(jobName, tfTask.jobName) && Objects.equals(taskIndex, tfTask.taskIndex);
+      TonyTask tonyTask = (TonyTask) o;
+      return Objects.equals(jobName, tonyTask.jobName) && Objects.equals(taskIndex, tonyTask.taskIndex);
     }
 
     @Override
@@ -520,7 +518,7 @@ public class TensorFlowSession {
     }
   }
 
-  public TFTask getTask(String taskId) {
+  public TonyTask getTask(String taskId) {
     try {
       String[] tSplit = taskId.split(":");
       return jobTasks.get(tSplit[0])[Integer.parseInt(tSplit[1])];
