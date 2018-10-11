@@ -1,9 +1,10 @@
 # TonY [![Build Status](https://travis-ci.org/linkedin/TonY.svg?branch=master)](https://travis-ci.org/linkedin/TonY)
 
-TonY is a framework to _natively_ run [TensorFlow](https://github.com/tensorflow/tensorflow) and [PyTorch](https://github.com/pytorch/pytorch)
-on [Apache Hadoop](http://hadoop.apache.org/). TonY enables running either single node or distributed 
+TonY is a framework to _natively_ run deep learning jobs on [Apache Hadoop](http://hadoop.apache.org/)).
+It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow) and [PyTorch](https://github.com/pytorch/pytorch).
+TonY enables running either single node or distributed
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
-TensorFlow jobs reliably and flexibly.
+machine learning jobs reliably and flexibly.
 
 ## Build
 TonY is built using [Gradle](https://github.com/gradle/gradle). To build TonY, run:
