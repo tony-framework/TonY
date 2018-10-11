@@ -75,7 +75,7 @@ public class TaskExecutor {
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
     this.framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
-                                                                       TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME));
+                                                                       TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
     LOG.info("Reserved rpcPort: " + this.rpcPort);
     LOG.info("Reserved tbPort: " + this.tbPort);
