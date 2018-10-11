@@ -10,11 +10,19 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 public class Constants {
 
-  // Environment constants
+  // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
   public static final String TASK_INDEX = "TASK_INDEX";
   public static final String TASK_NUM = "TASK_NUM";
   public static final String CLUSTER_SPEC = "CLUSTER_SPEC";
+
+  // PyTorch constants
+  public static final String COORDINATOR_ID = "0";
+  public static final String COMMUNICATION_BACKEND = "tcp://";
+  public static final String RANK = "RANK";
+  public static final String WORLD = "WORLD";
+  public static final String INIT_METHOD = "INIT_METHOD";
+
   // Distributed TensorFlow job name, e.g. "ps" or "worker",
   // as per https://www.tensorflow.org/deploy/distributed
   public static final String JOB_NAME = "JOB_NAME";

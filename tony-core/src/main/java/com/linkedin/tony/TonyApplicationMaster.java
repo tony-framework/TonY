@@ -74,6 +74,7 @@ import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 
 
 public class TonyApplicationMaster {
@@ -159,6 +160,9 @@ public class TonyApplicationMaster {
 
   // Failure conditions
   private boolean jobFailed;
+
+  // Handle different machine frameworks
+  private MLFramework framework;
 
   private TonyApplicationMaster() {
     hdfsConf = new Configuration();
@@ -250,6 +254,8 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     maxConsecutiveHBMiss = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
+    framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+                                                 TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
     return true;
   }
 
@@ -764,6 +770,13 @@ public class TonyApplicationMaster {
         LOG.info("Received cluster spec registration request from task " + taskId + " with spec: " + spec);
         task.setHostPort(spec);
         registeredTasks.add(taskId);
+
+        // Use chief worker as coordinator.
+        if (taskId.equals(COORDINATOR_ID) && framework == MLFramework.PYTORCH) {
+          // Hard coded to use tcp:// as backend. TODO: support other backend as well later.
+          shellEnv.put(Constants.INIT_METHOD, COMMUNICATION_BACKEND + spec);
+        }
+
         // HB Registration should happen only after worker registration..
         // The Task registration timeout will take care of rescheduling the task
         // on another node..
@@ -1028,9 +1041,17 @@ public class TonyApplicationMaster {
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
       // Add additional environment vars.
-      containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
-      containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
-      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
+      switch (framework) {
+        case TENSORFLOW: {
+          containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
+          containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
+          containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
+        }
+        case PYTORCH: {
+          containerShellEnv.put(Constants.RANK, task.getTaskIndex());
+          containerShellEnv.put(Constants.WORLD, String.valueOf(numTotalWorkerTasks));
+        }
+      }
 
       List<String> commands = new ArrayList<>();
 

@@ -47,6 +47,11 @@
     <value>0</value>
   </property>
 
+  <property>
+    <description>The machine learning framework that will be used for this job - tensorflow or pytorch.</description>
+    <name>tony.application.framework</name>
+    <value>tensorflow</value>
+  </property>
 
   <property>
     <description>
