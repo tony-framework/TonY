@@ -6,18 +6,8 @@ package com.linkedin.tony;
 
 public class TonyConfigurationKeys {
   public enum MLFramework {
-    TENSORFLOW("tensorflow"),
-    PYTORCH("pytorch");
-
-    private final String frameworkName;
-    MLFramework(final String frameworkName) {
-      this.frameworkName = frameworkName;
-    }
-
-    @Override
-    public String toString() {
-      return frameworkName;
-    }
+    TENSORFLOW,
+    PYTORCH
   }
 
   private TonyConfigurationKeys() {

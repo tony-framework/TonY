@@ -205,13 +205,13 @@ def main():
     parser.add_argument(
         '--rank', '-r',
         type=int,
-        defailt=int(os.environ.get('RANK')),
+        default=int(os.environ.get('RANK')),
         help='Rank of the current process.')
     parser.add_argument(
         '--world-size',
         '-s',
         type=int,
-        defailt=int(os.environ.get('WORLD')),
+        default=int(os.environ.get('WORLD')),
         help='Number of processes participating in the job.')
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--no-cuda', action='store_true')

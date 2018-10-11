@@ -254,7 +254,8 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     maxConsecutiveHBMiss = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
-    framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+                                                 TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
     return true;
   }
 
@@ -772,7 +773,7 @@ public class TonyApplicationMaster {
 
         // Use chief worker as coordinator.
         if (taskId.equals(COORDINATOR_ID) && framework == MLFramework.PYTORCH) {
-          // Hard coded to use tcp:// as backend.
+          // Hard coded to use tcp:// as backend. TODO: support other backend as well later.
           shellEnv.put(Constants.INIT_METHOD, COMMUNICATION_BACKEND + spec);
         }
 
