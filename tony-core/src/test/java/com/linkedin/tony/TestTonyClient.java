@@ -29,7 +29,7 @@ public class TestTonyClient {
 
   @Test
   public void testCreateAMContainerSpec() throws Exception {
-    File zipFile = new File(System.getProperty("user.dir") + "/tf_archive.zip");
+    File zipFile = new File(System.getProperty("user.dir") + "/tony_archive.zip");
     zipFile.createNewFile();
     zipFile.deleteOnExit();
     File tonyConfFile = new File(System.getProperty("user.dir")

@@ -132,8 +132,8 @@ Here is a full example of configuring your TonY application:
 CLI configurations have highest priority, so we will get 2 ps instances and 2 worker instances. Then the XML file takes next priority so each worker will get 4g memory and 1 GPU. Finally every other configuration will be default value, e.g. each ps will get 2g memory.
 
 #### TonY Examples
-1. [Distributed mnist with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
-2. [Distributed mnist with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
+1. [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
+2. [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
 
 ## FAQ
 
