@@ -30,6 +30,7 @@ import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.CORE_SITE_CONF;
 import static com.linkedin.tony.Constants.HADOOP_CONF_DIR;
+import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 
 /**
  * Content that we want to run in the containers. TaskExecutor will register itself with AM and fetch cluster spec from
@@ -63,7 +64,7 @@ public class TaskExecutor {
   private int hbInterval;
   private final ScheduledExecutorService hbExec = Executors.newScheduledThreadPool(1);
   private int numFailedHBAttempts = 0;
-  private TonyConfigurationKeys.MLFramework framework;
+  private MLFramework framework;
 
   protected TaskExecutor() throws IOException {
     // Reserve a rpcSocket rpcPort.
@@ -73,7 +74,7 @@ public class TaskExecutor {
     this.tbPort = this.tbSocket.getLocalPort();
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
-    this.framework = TonyConfigurationKeys.MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+    this.framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                                                                        TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME));
 
     LOG.info("Reserved rpcPort: " + this.rpcPort);
