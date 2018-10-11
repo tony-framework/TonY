@@ -1,7 +1,7 @@
 # TonY [![Build Status](https://travis-ci.org/linkedin/TonY.svg?branch=master)](https://travis-ci.org/linkedin/TonY)
 
-TensorFlow on YARN (TonY) is a framework to _natively_ run [TensorFlow](https://github.com/tensorflow/tensorflow) 
-on [Apache Hadoop](http://hadoop.apache.org/). TonY enables running either single node or distributed TensorFlow 
+TonY is a framework to _natively_ run [TensorFlow](https://github.com/tensorflow/tensorflow) and [PyTorch](https://github.com/pytorch/pytorch)
+on [Apache Hadoop](http://hadoop.apache.org/). TonY enables running either single node or distributed 
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
 TensorFlow jobs reliably and flexibly.
 
@@ -87,7 +87,8 @@ The command line arguments are as follows:
 | python_binary_path | no        | --python_binary_path Python/bin/python            | Used together with python_venv, describes the relative path in your python virtual environment which contains the python binary, or an absolute path to use a python binary already installed on all worker nodes |
 | shell_env          | no        | --shel_env LD_LIBRARY_PATH=/usr/local/lib64/      | Specifies key-value pairs for environment variables which will be set in your python worker/ps processes.                                                                                                         |
 | conf_file          | no        | --conf_file tony-local.xml                        | Location of a TonY configuration file.                                                                                                                                                                            |
-| conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line                                             
+| conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line
+
 #### TonY configurations
 
 There are multiple ways to specify configurations for your TonY job. As above, you can create an XML file called `tony.xml`
@@ -128,6 +129,10 @@ Here is a full example of configuring your TonY application:
                 -conf tony.worker.instances=2
 
 CLI configurations have highest priority, so we will get 2 ps instances and 2 worker instances. Then the XML file takes next priority so each worker will get 4g memory and 1 GPU. Finally every other configuration will be default value, e.g. each ps will get 2g memory.
+
+#### TonY Examples
+1. [Distributed mnist with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
+2. [Distributed mnist with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
 
 ## FAQ
 
