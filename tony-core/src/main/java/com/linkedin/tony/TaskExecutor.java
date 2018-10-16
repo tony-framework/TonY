@@ -130,10 +130,12 @@ public class TaskExecutor {
             extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
             extraEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
             extraEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+            break;
           }
           case PYTORCH: {
             extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
             extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
+            break;
           }
         }
 
