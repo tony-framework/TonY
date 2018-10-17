@@ -104,7 +104,6 @@ public class TonyApplicationMaster {
   // The environment passed from users to the training job. Note this is very different from the above.
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, List<Container>> sessionContainersMap = new ConcurrentHashMap<>();
-  private Map<TonyTask, Boolean> containerStatusMap = new HashMap<>(); // ContainerId : if container completed
 
   // Node manager delegates
   private NMCallbackHandler containerListener;
@@ -157,9 +156,6 @@ public class TonyApplicationMaster {
   private int maxConsecutiveHBMiss;
   private volatile boolean taskHasMissesHB = false;
   private Thread mainThread;
-
-  // Failure conditions
-  private boolean jobFailed;
 
   // Handle different machine frameworks
   private MLFramework framework;
@@ -331,8 +327,8 @@ public class TonyApplicationMaster {
         System.exit(-1);
       }
       result = am.monitor();
-      if (result || !am.jobFailed || am.amRetryCount == 0) {
-        LOG.info("Result: " + result + ", job failed: " + am.jobFailed + ", retry count: " + am.amRetryCount);
+      if (result || am.amRetryCount == 0) {
+        LOG.info("Result: " + result + ", retry count: " + am.amRetryCount);
         break;
       }
       // Prepare for retryCount.
@@ -471,7 +467,6 @@ public class TonyApplicationMaster {
 
     numCompletedWorkerTasks.set(0);
     numRequestedContainers.set(0);
-    jobFailed = false;
     rpcServer.reset();
     session.sessionId += 1;
   }
@@ -511,19 +506,6 @@ public class TonyApplicationMaster {
       if (numCompletedWorkerTasks.get() == numTotalWorkerTasks) {
         LOG.info("Completed jobs: " + numCompletedWorkerTasks.get() + " total jobs: " + numTotalWorkerTasks);
         break;
-      }
-      List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
-      if (containers != null) {
-        int completedContainers = containers.stream()
-            .filter(container -> session.getTask(container.getId()).getJobName().contains("worker"))
-            .map(container -> containerStatusMap.containsKey(session.getTask(container.getId()))
-                 && containerStatusMap.get(session.getTask(container.getId())) ? 1 : 0)
-            .reduce(Integer::sum)
-            .orElse(0);
-        if (completedContainers == numTotalWorkerTasks) {
-          LOG.info("All " + numTotalWorkerTasks + " worker tasks have completed.");
-          break;
-        }
       }
       LOG.info("Completed worker tasks: " + numCompletedWorkerTasks.get()
                + ", total worker tasks: " + numTotalWorkerTasks);
@@ -589,9 +571,6 @@ public class TonyApplicationMaster {
       LOG.info("Task " + task.getJobName() + " " + task.getTaskIndex() + " in " + task.getContainer().getId().toString()
           + " has not registered after " + taskRegistrationTimeoutSec + " seconds. Going to release the container and "
           + "request a new one.");
-
-      // Remove container from containerStatusMap
-      containerStatusMap.remove(task);
 
       // Release container
       amRMClient.releaseAssignedContainer(task.getContainer().getId());
@@ -782,6 +761,15 @@ public class TonyApplicationMaster {
         // on another node..
         LOG.info("[" + taskId + "] Received Registration for HB !!");
         hbMonitor.register(task);
+
+        // FOR TESTING
+        // Simulation of chief worker been killed.
+        if (System.getenv(Constants.TEST_WORKER_TERMINATED).equals("true") && taskId.equals(COORDINATOR_ID)) {
+          Container container = sessionContainersMap.get(String.valueOf(session.sessionId)).get(0);
+          LOG.warn("Simulating worker termination: " + container.getNodeHttpAddress());
+          nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+        }
+        // END FOR TESTING
       }
 
       // Return null until all tasks have registered
@@ -806,23 +794,21 @@ public class TonyApplicationMaster {
       }
     }
 
+    /**
+     * This method was used to workaround an issue that the Python script finished while the container failed to
+     * close due to GPU allocation issue, which doesn't exist anymore.
+     *
+     * Discussion: A benefit of decoupling registering execution result from container exit status is that we can decouple
+     * tony from a specific resource manager's callback logic.
+     * However, this easily introduces lots of bugs since we'd have 3 places to handle failures - register call, container
+     * complete callback and heartbeat.
+     * To make things easier, we decide to go back and piggyback on container completion to dictate the execution result
+     * of a task.
+     * Still keep this RPC call here for now.
+     */
     @Override
     public String registerExecutionResult(int exitCode, String jobName, String jobIndex, String sessionId) {
       LOG.info("Received result registration request with exit code " + exitCode + " from " + jobName + " " + jobIndex);
-      // Ignore past sessions.
-      if (!sessionId.equals(String.valueOf(session.sessionId))) {
-        LOG.info("Ignore past sessions.");
-        return "EXPIRED_SESSION";
-      }
-      // Source of truth for task result.
-      session.onTaskCompleted(jobName, jobIndex, exitCode);
-      if (exitCode != 0) {
-        jobFailed = true;
-      }
-
-      if (jobName.equals(Constants.WORKER_JOB_NAME)) {
-        numCompletedWorkerTasks.incrementAndGet();
-      }
       return "RECEIVED";
     }
 
@@ -954,25 +940,23 @@ public class TonyApplicationMaster {
           LOG.info(diagnostics);
         }
         TonyTask task = session.getTask(containerStatus.getContainerId());
+
         if (task != null) {
+          // Ignore tasks from past sessions.
+          if(task.getSessionId() != session.sessionId) {
+            return;
+          }
+          // Update TensorFlowSession on the state of the task.
+          session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), containerStatus.getExitStatus());
+          if (task.getJobName().equals(WORKER_JOB_NAME)) {
+            numCompletedWorkerTasks.incrementAndGet();
+          }
+
           // Unregister task after completion..
           // Since in the case of asynchronous exec, containers might
           // end at different times..
           LOG.info("Unregister task [" + task.getId() + "] from Heartbeat monitor..");
           hbMonitor.unregister(task);
-          if (containerStatusMap.containsKey(task)) {
-            containerStatusMap.put(task, true);
-            if (exitStatus != 0) {
-              LOG.info("Container failed, id = " + containerStatus.getContainerId());
-            } else {
-              LOG.info("Container succeeded, id = " + containerStatus.getContainerId());
-            }
-          } else {
-            LOG.info(
-                "Ignoring completion of container with id " + containerStatus.getContainerId().toString() + " (exit "
-                    + "status = " + exitStatus + ") as it was not present in the container status map. This means the "
-                    + "container was probably released and a new container requested.");
-          }
         } else {
           LOG.warn("No task found for container : [" + containerStatus.getContainerId() + "]!");
         }
@@ -1085,7 +1069,6 @@ public class TonyApplicationMaster {
       sessionContainersMap.computeIfAbsent(sessionId, key ->
           Collections.synchronizedList(new ArrayList<>())
       ).add(container);
-      containerStatusMap.put(session.getTask(container.getId()), false);
 
       Utils.printTaskUrl(task.getTaskUrl(), LOG);
       nmClientAsync.startContainerAsync(container, ctx);
