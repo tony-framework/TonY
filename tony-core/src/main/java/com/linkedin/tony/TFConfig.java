@@ -13,13 +13,16 @@ import java.util.Map;
 public class TFConfig {
 
   private Map<String, List<String>> clusterSpec;
-  private TFTask task;
+  private Task task;
 
-  static class TFTask {
+  static class Task {
     private String type;
     private int index;
 
-    TFTask(String type, int index) {
+    // Jackson needs a default constructor
+    Task() {}
+
+    Task(String type, int index) {
       this.type = type;
       this.index = index;
     }
@@ -29,14 +32,26 @@ public class TFConfig {
       return this.type;
     }
 
+    // Setters required for deserialization
+    public void setType(String type) {
+      this.type = type;
+    }
+
     public int getIndex() {
       return this.index;
     }
+
+    public void setIndex(int index) {
+      this.index = index;
+    }
   }
+
+  // Jackson needs a default constructor
+  TFConfig() {}
 
   public TFConfig(Map<String, List<String>> clusterSpec, String jobName, int taskIndex) {
     this.clusterSpec = clusterSpec;
-    this.task = new TFTask(jobName, taskIndex);
+    this.task = new Task(jobName, taskIndex);
   }
 
   // Getters required for serialization
@@ -44,7 +59,16 @@ public class TFConfig {
     return this.clusterSpec;
   }
 
-  public TFTask getTask() {
+  // Setters required for deserialization
+  public void setCluster(Map<String, List<String>> clusterSpec) {
+    this.clusterSpec = clusterSpec;
+  }
+
+  public Task getTask() {
     return this.task;
+  }
+
+  public void setTask(Task task) {
+    this.task = task;
   }
 }
