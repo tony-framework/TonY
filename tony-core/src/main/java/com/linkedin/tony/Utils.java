@@ -4,11 +4,16 @@
  */
 package com.linkedin.tony;
 
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -323,5 +328,17 @@ public class Utils {
     File oldFile = new File(oldName);
     File newFile = new File(newName);
     return oldFile.renameTo(newFile);
+  }
+
+  public static String constructTFConfig(String clusterSpec, String jobName, int taskIndex) {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      Map<String, List<String>> spec =
+          mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() {});
+      TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
+      return mapper.writeValueAsString(tfConfig);
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
   }
 }

@@ -75,7 +75,7 @@ public class TaskExecutor {
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
     this.framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
-                                                      TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+        TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
     LOG.info("Reserved rpcPort: " + this.rpcPort);
     LOG.info("Reserved tbPort: " + this.tbPort);
@@ -130,6 +130,8 @@ public class TaskExecutor {
             extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
             extraEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
             extraEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+            extraEnv.put(Constants.TF_CONFIG, Utils.constructTFConfig(executor.clusterSpec,
+                executor.jobName, executor.taskIndex));
             break;
           }
           case PYTORCH: {
@@ -201,8 +203,8 @@ public class TaskExecutor {
     LOG.info("Connecting to " + amAddress + " to register worker spec: " + jobName + " " + taskIndex + " "
              + InetAddress.getLocalHost().getHostName() + ":" + rpcPort);
     return Utils.pollTillNonNull(() ->
-      proxy.registerWorkerSpec(jobName + ":" + taskIndex,
-                               InetAddress.getLocalHost().getHostName() + ":" + rpcPort), 3, 120);
+        proxy.registerWorkerSpec(jobName + ":" + taskIndex,
+            InetAddress.getLocalHost().getHostName() + ":" + rpcPort), 3, 120);
   }
 
   private void registerTensorBoardUrl() throws Exception {

@@ -3,6 +3,7 @@
  * See LICENSE in the project root for license information.
  */
 package com.linkedin.tony;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,6 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
@@ -99,5 +102,18 @@ public class TestUtils {
     assertTrue(Files.exists(Paths.get(tempFile.getAbsolutePath() + "bak")));
     assertTrue(result);
     Files.deleteIfExists(Paths.get(tempFile.getAbsolutePath() + "bak"));
+  }
+
+  @Test
+  public void testConstructTFConfig() throws IOException {
+    String spec = "{\"worker\":[\"host0:1234\", \"host1:1234\"], \"ps\":[\"host2:1234\"]}";
+    String tfConfig = Utils.constructTFConfig(spec, "worker", 1);
+    ObjectMapper mapper = new ObjectMapper();
+    TFConfig config = mapper.readValue(tfConfig, new TypeReference<TFConfig>(){});
+    assertEquals("worker", config.getTask().getType());
+    assertEquals(1, config.getTask().getIndex());
+    assertEquals("host0:1234", config.getCluster().get("worker").get(0));
+    assertEquals("host1:1234", config.getCluster().get("worker").get(1));
+    assertEquals("host2:1234", config.getCluster().get("ps").get(0));
   }
 }
