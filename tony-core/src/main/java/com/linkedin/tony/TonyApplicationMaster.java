@@ -1046,10 +1046,12 @@ public class TonyApplicationMaster {
           containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
           containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
           containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
+          break;
         }
         case PYTORCH: {
           containerShellEnv.put(Constants.RANK, task.getTaskIndex());
           containerShellEnv.put(Constants.WORLD, String.valueOf(numTotalWorkerTasks));
+          break;
         }
       }
 
