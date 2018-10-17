@@ -32,13 +32,13 @@ public class TFConfig {
       return this.type;
     }
 
+    public int getIndex() {
+      return this.index;
+    }
+
     // Setters required for deserialization
     public void setType(String type) {
       this.type = type;
-    }
-
-    public int getIndex() {
-      return this.index;
     }
 
     public void setIndex(int index) {
@@ -59,13 +59,13 @@ public class TFConfig {
     return this.clusterSpec;
   }
 
+  public Task getTask() {
+    return this.task;
+  }
+
   // Setters required for deserialization
   public void setCluster(Map<String, List<String>> clusterSpec) {
     this.clusterSpec = clusterSpec;
-  }
-
-  public Task getTask() {
-    return this.task;
   }
 
   public void setTask(Task task) {
