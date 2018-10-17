@@ -255,6 +255,7 @@ public class TensorFlowSession {
    * Refresh task status on each TaskExecutor registers its exit code with AM.
    */
   public void onTaskCompleted(String jobName, String jobIndex, int exitCode) {
+    LOG.info(String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode));
     TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
     TaskType taskType = getTaskType(task);

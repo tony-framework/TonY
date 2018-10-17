@@ -36,10 +36,7 @@ public class TestTonyE2E {
     cluster.start();
     yarnConf = Files.createTempFile("yarn", ".xml").toString();
     hdfsConf = Files.createTempFile("hdfs", ".xml").toString();
-    Configuration yconf = cluster.getYarnConf();
-    yconf.setBoolean("yarn.nodemanager.pmem-check-enabled", true);
-
-    MiniTonyUtils.saveConfigToFile(yconf, yarnConf);
+    MiniTonyUtils.saveConfigToFile(cluster.getYarnConf(), yarnConf);
     MiniTonyUtils.saveConfigToFile(cluster.getHdfsConf(), hdfsConf);
     FileSystem fs = FileSystem.get(cluster.getHdfsConf());
     // This is the path we gonna store required libraries in the local HDFS.
@@ -231,6 +228,9 @@ public class TestTonyE2E {
   /**
    * Test that makes sure if a worker is killed due to OOM, AM should stop the training (or retry).
    * This test might hang if there is a regression in handling the OOM scenario.
+   *
+   * The reason why we use a Constants.TEST_WORKER_TERMINATED flag instead of simply requesting more memory than
+   * allocated is that Physical Memory Enforcement doesn't seem to work under MiniYARN.
    */
   @Test
   public void testAMStopsJobAfterWorkerKilledByOOM() {
@@ -243,7 +243,6 @@ public class TestTonyE2E {
         "--executes", "tony-core/src/test/resources/exit_0.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
-        "--conf", "tony.worker.memory=1g",
         "--container_env", Constants.TEST_WORKER_TERMINATED + "=true"
     }, conf);
     Assert.assertEquals(exitCode, -1);

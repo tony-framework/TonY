@@ -765,9 +765,13 @@ public class TonyApplicationMaster {
         // FOR TESTING
         // Simulation of chief worker been killed.
         if (System.getenv(Constants.TEST_WORKER_TERMINATED).equals("true") && taskId.equals(COORDINATOR_ID)) {
-          Container container = sessionContainersMap.get(String.valueOf(session.sessionId)).get(0);
-          LOG.warn("Simulating worker termination: " + container.getNodeHttpAddress());
-          nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+          List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
+          for (Container container : containers) {
+            if (session.getTask(container.getId()).getJobName().equals(Constants.WORKER_JOB_NAME)) {
+              LOG.warn("Simulating worker termination: " + task.getJobName() + " " + task.getTaskIndex());
+              nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+            }
+          }
         }
         // END FOR TESTING
       }
