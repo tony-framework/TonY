@@ -341,4 +341,8 @@ public class Utils {
       throw new RuntimeException(ioe);
     }
   }
+
+  public static String getClientResourcesPath(String appId, String fileName) {
+    return String.format("%s-%s", appId, fileName);
+  }
 }
