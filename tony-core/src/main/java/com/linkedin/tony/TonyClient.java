@@ -332,6 +332,10 @@ public class TonyClient {
     return true;
   }
 
+  public Configuration getTonyConf() {
+    return this.tonyConf;
+  }
+
   public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory,
                                                       String taskParams, String pythonBinaryPath,
                                                       String pythonVenv, String executes, ByteBuffer tokens,
