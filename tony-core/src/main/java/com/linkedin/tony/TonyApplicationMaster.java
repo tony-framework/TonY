@@ -1083,7 +1083,7 @@ public class TonyApplicationMaster {
 
   private void killChiefWorkerIfTesting(String taskId) {
     // Simulation of chief worker been killed.
-    if (System.getenv(Constants.TEST_WORKER_TERMINATED).equals("true") && taskId.equals(COORDINATOR_ID)) {
+    if (System.getenv(Constants.TEST_WORKER_TERMINATED) != null && taskId.equals(COORDINATOR_ID)) {
       List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
       for (Container container : containers) {
         if (session.getTask(container.getId()).getJobName().equals(Constants.WORKER_JOB_NAME)) {
