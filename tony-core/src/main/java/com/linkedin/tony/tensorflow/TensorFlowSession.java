@@ -57,10 +57,8 @@ public class TensorFlowSession {
 
   private FinalApplicationStatus sessionFinalStatus = FinalApplicationStatus.UNDEFINED;
   private String sessionFinalMessage = null;
-  private TensorFlowContainerRequest psContainerRequest;
   private Map<String, String> shellEnv;
   private String jvmArgs;
-  private TensorFlowContainerRequest workerContainerRequest;
   private Map<String, Set<Long>> jobTypeToAllocationIds = new HashMap<String, Set<Long>>();
 
   public enum TaskType {
@@ -222,7 +220,7 @@ public class TensorFlowSession {
       TonyTask[] tasks = entry.getValue();
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
-          tasks[i] = new TonyTask(jobName, String.valueOf(i));
+          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId);
           LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
         }
@@ -257,6 +255,7 @@ public class TensorFlowSession {
    * Refresh task status on each TaskExecutor registers its exit code with AM.
    */
   public void onTaskCompleted(String jobName, String jobIndex, int exitCode) {
+    LOG.info(String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode));
     TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
     TaskType taskType = getTaskType(task);
@@ -415,6 +414,7 @@ public class TensorFlowSession {
   public class TonyTask {
     private final String jobName;
     private final String taskIndex;
+    private final int sessionId;
     private String host;
     private int port = -1;
 
@@ -432,6 +432,10 @@ public class TensorFlowSession {
 
     public String getJobName() {
       return jobName;
+    }
+
+    public int getSessionId() {
+      return sessionId;
     }
 
     public String getTaskIndex() {
@@ -482,9 +486,10 @@ public class TensorFlowSession {
       return new TaskUrl(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
-    TonyTask(String jobName, String taskIndex) {
+    TonyTask(String jobName, String taskIndex, int sessionId) {
       this.jobName = jobName;
       this.taskIndex = taskIndex;
+      this.sessionId = sessionId;
     }
 
     public void addContainer(Container container) {

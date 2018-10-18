@@ -18,7 +18,7 @@ public class Constants {
   public static final String TF_CONFIG = "TF_CONFIG";
 
   // PyTorch constants
-  public static final String COORDINATOR_ID = "0";
+  public static final String COORDINATOR_ID = "worker:0";
   public static final String COMMUNICATION_BACKEND = "tcp://";
   public static final String RANK = "RANK";
   public static final String WORLD = "WORLD";
@@ -61,6 +61,7 @@ public class Constants {
   public static final String ATTEMPT_NUMBER = "ATTEMPT_NUMBER";
 
   public static final String TEST_AM_CRASH = "TEST_AM_CRASH";
+  public static final String TEST_WORKER_TERMINATED = "TEST_WORKER_TERMINATION";
   public static final String TEST_TASK_EXECUTOR_HANG = "TEST_TASK_EXECUTOR_HANG";
   public static final String TEST_TASK_EXECUTOR_NUM_HB_MISS = "TEST_TASK_EXECUTOR_NUM_HB_MISS";
   // Should be of the form type#id#ms
