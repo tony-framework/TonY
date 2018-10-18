@@ -926,7 +926,7 @@ public class TonyApplicationMaster {
             + ", state = " + containerStatus.getState()
             + ", exitStatus = " + exitStatus);
         String diagnostics = containerStatus.getDiagnostics();
-        if (ContainerExitStatus.SUCCESS != containerStatus.getExitStatus()) {
+        if (ContainerExitStatus.SUCCESS != exitStatus) {
           LOG.error(diagnostics);
         } else {
           LOG.info(diagnostics);
@@ -939,7 +939,7 @@ public class TonyApplicationMaster {
             return;
           }
           // Update TensorFlowSession on the state of the task.
-          session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), containerStatus.getExitStatus());
+          session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
           if (task.getJobName().equals(WORKER_JOB_NAME)) {
             numCompletedWorkerTasks.incrementAndGet();
           }
