@@ -233,7 +233,7 @@ public class TestTonyE2E {
    * allocated is that Physical Memory Enforcement doesn't seem to work under MiniYARN.
    */
   @Test
-  public void testAMStopsJobAfterWorkerKilledByOOM() {
+  public void testAMStopsJobAfterWorker0Killed() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);

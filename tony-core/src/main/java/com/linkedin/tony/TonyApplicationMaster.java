@@ -301,7 +301,7 @@ public class TonyApplicationMaster {
    * @param args the args from user inputs
    */
   public static void main(String[] args) {
-    boolean result = false;
+    boolean succeeded = false;
     TonyApplicationMaster am = new TonyApplicationMaster();
     boolean sanityCheck = am.init(args);
     if (!sanityCheck) {
@@ -326,9 +326,9 @@ public class TonyApplicationMaster {
         LOG.error("Exception when we're starting TonyAM", e);
         System.exit(-1);
       }
-      result = am.monitor();
-      if (result || am.amRetryCount == 0) {
-        LOG.info("Result: " + result + ", retry count: " + am.amRetryCount);
+      succeeded = am.monitor();
+      if (succeeded || am.amRetryCount == 0) {
+        LOG.info("Result: " + succeeded + ", retry count: " + am.amRetryCount);
         break;
       }
       // Prepare for retryCount.
@@ -344,7 +344,7 @@ public class TonyApplicationMaster {
       System.exit(-1);
     }
 
-    if (result) {
+    if (succeeded) {
       LOG.info("Application Master completed successfully. exiting");
       System.exit(0);
     } else {
@@ -761,19 +761,7 @@ public class TonyApplicationMaster {
         // on another node..
         LOG.info("[" + taskId + "] Received Registration for HB !!");
         hbMonitor.register(task);
-
-        // FOR TESTING
-        // Simulation of chief worker been killed.
-        if (System.getenv(Constants.TEST_WORKER_TERMINATED).equals("true") && taskId.equals(COORDINATOR_ID)) {
-          List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
-          for (Container container : containers) {
-            if (session.getTask(container.getId()).getJobName().equals(Constants.WORKER_JOB_NAME)) {
-              LOG.warn("Simulating worker termination: " + task.getJobName() + " " + task.getTaskIndex());
-              nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
-            }
-          }
-        }
-        // END FOR TESTING
+        killChiefWorkerIfTesting(taskId);
       }
 
       // Return null until all tasks have registered
@@ -947,7 +935,7 @@ public class TonyApplicationMaster {
 
         if (task != null) {
           // Ignore tasks from past sessions.
-          if(task.getSessionId() != session.sessionId) {
+          if (task.getSessionId() != session.sessionId) {
             return;
           }
           // Update TensorFlowSession on the state of the task.
@@ -1090,4 +1078,21 @@ public class TonyApplicationMaster {
     taskHasMissesHB = true;
     mainThread.interrupt();
   }
+
+  //region testing
+
+  private void killChiefWorkerIfTesting(String taskId) {
+    // Simulation of chief worker been killed.
+    if (System.getenv(Constants.TEST_WORKER_TERMINATED).equals("true") && taskId.equals(COORDINATOR_ID)) {
+      List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
+      for (Container container : containers) {
+        if (session.getTask(container.getId()).getJobName().equals(Constants.WORKER_JOB_NAME)) {
+          LOG.warn("Simulating worker termination for taskId: " + taskId);
+          nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+        }
+      }
+    }
+  }
+
+  //endregion
 }
