@@ -106,7 +106,9 @@ public class TonyClient {
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
-  private static final String ARCHIVE_PATH = "tony_archive.zip";
+  private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
+  private String archivePath;
+  private String tonyFinalConfPath;
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
   private Path appResourcesPath;
@@ -150,10 +152,18 @@ public class TonyClient {
       amVCores = maxVCores;
     }
 
-    zipArchive();
-
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     ApplicationId appId = appContext.getApplicationId();
+    this.archivePath = Utils.getClientResourcesPath(appId.toString(), ARCHIVE_SUFFIX);
+    zipArchive();
+
+    this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
+    // Write user's overridden conf to an xml to be localized.
+    try (OutputStream os = new FileOutputStream(this.tonyFinalConfPath)) {
+      tonyConf.writeXml(os);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create " + this.tonyFinalConfPath + " conf file. Exiting.", e);
+    }
 
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
@@ -255,12 +265,6 @@ public class TonyClient {
         tonyConf.set(cliConf.getKey(), cliConf.getValue());
       }
     }
-    // Write user's overridden conf to an xml to be localized.
-    try (OutputStream os = new FileOutputStream(Constants.TONY_FINAL_XML)) {
-      tonyConf.writeXml(os);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to create " + Constants.TONY_FINAL_XML + " conf file. Exiting.", e);
-    }
 
     String amMemoryString = tonyConf.get(TonyConfigurationKeys.AM_MEMORY,
         TonyConfigurationKeys.DEFAULT_AM_MEMORY);
@@ -328,6 +332,10 @@ public class TonyClient {
     return true;
   }
 
+  public Configuration getTonyConf() {
+    return this.tonyConf;
+  }
+
   public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory,
                                                       String taskParams, String pythonBinaryPath,
                                                       String pythonVenv, String executes, ByteBuffer tokens,
@@ -337,8 +345,8 @@ public class TonyClient {
     FileSystem homeFS = FileSystem.get(hdfsConf);
     appResourcesPath = new Path(homeFS.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
-    addLocalResources(homeFS, Constants.TONY_FINAL_XML, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
+    addLocalResources(homeFS, archivePath, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
+    addLocalResources(homeFS, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     if (hdfsClasspathDir != null) {
       try {
         FileSystem remoteFS = FileSystem.get(new URI(hdfsClasspathDir), hdfsConf);
@@ -438,13 +446,13 @@ public class TonyClient {
    * Create zip archive required by TonY to distribute python code and virtual environment
    */
   private void zipArchive() throws IOException {
-    FileOutputStream fos = new FileOutputStream(ARCHIVE_PATH);
+    FileOutputStream fos = new FileOutputStream(archivePath);
     ZipOutputStream zos = new ZipOutputStream(fos);
     // Accept archive file as srcDir.
     if (!Utils.isArchive(srcDir)) {
       addDirToZip(zos, srcDir);
     } else {
-      Utils.renameFile(srcDir, ARCHIVE_PATH);
+      Utils.renameFile(srcDir, archivePath);
     }
     if (hdfsConfAddress != null) {
       addFileToZip(zos, hdfsConfAddress);
