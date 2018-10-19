@@ -11,8 +11,8 @@ import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
-import com.linkedin.tony.tensorflow.TensorFlowSession;
-import com.linkedin.tony.tensorflow.TensorFlowSession.TonyTask;
+import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.tensorflow.TonySession.TonyTask;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -123,9 +123,9 @@ public class TonyApplicationMaster {
   // tracks the latest allocationRequestId allocated.
   private long lastAllocationRequestId = 0;
 
-  // TensorFlow session
-  private TensorFlowSession session = new TensorFlowSession(); // Create a dummy session for single node training.
-  private TensorFlowSession.Builder sessionBuilder;
+  // Tony session
+  private TonySession session = new TonySession(); // Create a dummy session for single node training.
+  private TonySession.Builder sessionBuilder;
 
   // Configuration
   private Configuration yarnConf;
@@ -281,7 +281,7 @@ public class TonyApplicationMaster {
     String taskCommand = "'" + baseTaskCommand + "'";
     LOG.info("Final task command: " + taskCommand);
 
-    TensorFlowSession.Builder builder = new TensorFlowSession.Builder()
+    TonySession.Builder builder = new TonySession.Builder()
         .setTaskCmd(taskCommand)
         .setVenv(pythonVenvZip)
         .setAMAddress(amHostPort)
@@ -498,6 +498,7 @@ public class TonyApplicationMaster {
         LOG.info("Preprocess failed with exit code: " + preprocessExitCode);
         return false;
       }
+
       if (singleNode && preprocessFinished) {
         LOG.info("Single node training finished with exit code: " + preprocessExitCode);
         return preprocessExitCode == 0;
@@ -549,7 +550,7 @@ public class TonyApplicationMaster {
     FinalApplicationStatus status = session.getFinalStatus();
     String appMessage = session.getFinalMessage();
     if (status != FinalApplicationStatus.SUCCEEDED) {
-      LOG.info("TensorFlow session failed: " + appMessage);
+      LOG.info("Tony session failed: " + appMessage);
       success = false;
     }
     return success;
@@ -938,7 +939,7 @@ public class TonyApplicationMaster {
           if (task.getSessionId() != session.sessionId) {
             return;
           }
-          // Update TensorFlowSession on the state of the task.
+          // Update TonySession on the state of the task.
           session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
           if (task.getJobName().equals(WORKER_JOB_NAME)) {
             numCompletedWorkerTasks.incrementAndGet();
@@ -1010,7 +1011,7 @@ public class TonyApplicationMaster {
       containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
-      TonyTask task = session.getMatchingTask(container.getAllocationRequestId());
+      TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
       task.addContainer(container);

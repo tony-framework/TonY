@@ -37,10 +37,10 @@ import static com.linkedin.tony.Constants.*;
 
 
 /**
- * Represents a Tensorflow session.
+ * Represents a Tony session.
  */
-public class TensorFlowSession {
-  private static final Log LOG = LogFactory.getLog(TensorFlowSession.class);
+public class TonySession {
+  private static final Log LOG = LogFactory.getLog(TonySession.class);
 
   private String taskCmd;
 
@@ -89,10 +89,10 @@ public class TensorFlowSession {
 
   private Map<ContainerId, TonyTask> containerIdMap = new HashMap<>();
 
-  public TensorFlowSession() {
+  public TonySession() {
   }
 
-  private TensorFlowSession(Builder builder) {
+  private TonySession(Builder builder) {
     this.taskCmd = builder.taskCmd;
     this.venv = builder.venv;
     this.amAddress = builder.amAddress;
@@ -211,7 +211,7 @@ public class TensorFlowSession {
    * @param allocationRequestId the allocationRequestId of the allocated container
    * @return task to be assigned to this allocation
    */
-  public synchronized TonyTask getMatchingTask(long allocationRequestId) {
+  public synchronized TonyTask getAndInitMatchingTask(long allocationRequestId) {
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
       if (!jobTypeToAllocationIds.get(jobName).contains(allocationRequestId)) {
@@ -363,7 +363,7 @@ public class TensorFlowSession {
   }
 
   /**
-   * Builder to compose the TensorFlowSession class.
+   * Builder to compose the TonySession class.
    */
   public static class Builder {
     private String taskCmd;
@@ -373,8 +373,8 @@ public class TensorFlowSession {
     private Map<String, TensorFlowContainerRequest> containerRequests;
     private String jvmArgs;
 
-    public TensorFlowSession build() {
-      return new TensorFlowSession(this);
+    public TonySession build() {
+      return new TonySession(this);
     }
 
     public Builder setTaskCmd(String taskCmd) {
