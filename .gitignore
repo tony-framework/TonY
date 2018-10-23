@@ -11,6 +11,7 @@
 *.swp
 *.vcxproj.user
 *.zip
+*/bin
 .DS_Store
 .classpath
 .gradle/
@@ -18,10 +19,13 @@
 .project
 .settings
 .svn
+.vscode/
 build/
 dependency-reduced-pom.xml
+log/
 out/
 target
 tony-final.xml
+tony-history-server/conf/application.conf
+tony-history-server/logs
 tony.xml
-log/
