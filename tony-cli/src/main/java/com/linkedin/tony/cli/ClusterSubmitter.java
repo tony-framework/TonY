@@ -42,8 +42,9 @@ public class ClusterSubmitter {
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     LOG.info(hdfsConf);
     int exitCode;
+    Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
-      Path cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
+      cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
       fs.mkdirs(cachedLibPath);
       fs.copyFromLocalFile(new Path(jarLocation), cachedLibPath);
@@ -52,12 +53,17 @@ public class ClusterSubmitter {
       updatedArgs[args.length] = "--hdfs_classpath";
       updatedArgs[args.length + 1] = cachedLibPath.toString();
       exitCode = TonyClient.start(updatedArgs);
-      if (fs.exists(cachedLibPath)) {
-        fs.delete(cachedLibPath, true);
-      }
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
       exitCode = -1;
+    } finally {
+      try (FileSystem fs = FileSystem.get(hdfsConf)) {
+        if (cachedLibPath != null && fs.exists(cachedLibPath)) {
+          fs.delete(cachedLibPath, true);
+        }
+      } catch (IOException e) {
+        LOG.error("Failed to clean up HDFS path: " + cachedLibPath);
+      }
     }
     System.exit(exitCode);
   }

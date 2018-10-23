@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -611,26 +612,17 @@ public class TonyClient {
         taskUrls = amRpcClient.getTaskUrls();
         if (!taskUrls.isEmpty()) {
           // Print TaskUrls
-          taskUrls.forEach(task -> Utils.printTaskUrl(task, LOG));
+          new TreeSet<TaskUrl>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
         }
       }
 
-      if (YarnApplicationState.FINISHED == state) {
-        if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
-          LOG.info("Application has completed successfully. "
-                   + " Breaking monitoring loop : ApplicationId:" + appId.getId());
-          return true;
-        } else {
-          LOG.info("Application finished unsuccessfully."
-                   + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-                   + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
-          return false;
-        }
-      } else if (YarnApplicationState.KILLED == state || YarnApplicationState.FAILED == state) {
-        LOG.info("Application did not finish."
-                 + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-                 + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
-        return false;
+      if (YarnApplicationState.FINISHED == state || YarnApplicationState.FAILED == state
+          || YarnApplicationState.KILLED == state) {
+        LOG.info("Application " + appId.getId() + " finished with YarnState=" + state.toString()
+            + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
+        // Set amRpcClient to null so client does not try to connect to it after completion.
+        amRpcClient = null;
+        return FinalApplicationStatus.SUCCEEDED == dsStatus;
       }
 
       if (appTimeout > 0) {
@@ -686,12 +678,17 @@ public class TonyClient {
       if (amRpcClient != null) {
         amRpcClient.finishApplication();
       }
-      FileSystem fs = FileSystem.get(hdfsConf);
-      if (appResourcesPath != null && fs.exists(appResourcesPath)) {
-        fs.delete(appResourcesPath, true);
-      }
     } catch (IOException | YarnException e) {
-      LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
+      LOG.error("Failed to finish application.", e);
+    } finally {
+      try {
+        FileSystem fs = FileSystem.get(hdfsConf);
+        if (appResourcesPath != null && fs.exists(appResourcesPath)) {
+          fs.delete(appResourcesPath, true);
+        }
+      } catch (IOException e) {
+        LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
+      }
     }
   }
 
