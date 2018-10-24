@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -194,17 +193,27 @@ public class TonyClient {
     LOG.info("Submitting YARN application");
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
-    logTrackingAndRMUrls(report);
+    String rmUrl = buildRMUrl(report);
+    LOG.info("URL to track running application (will proxy to TensorBoard once it has started): " +
+        report.getTrackingUrl());
+    LOG.info("ResourceManager web address for application: " + rmUrl);
+    saveAppUrlToConfigXml(rmUrl);
     return monitorApplication(appId);
   }
 
-  private void logTrackingAndRMUrls(ApplicationReport report) {
-    LOG.info("URL to track running application (will proxy to TensorBoard once it has started): "
-             + report.getTrackingUrl());
-    LOG.info("ResourceManager web address for application: "
-        + String.format(RM_APP_URL_TEMPLATE,
+  private String buildRMUrl(ApplicationReport report) {
+    return String.format(RM_APP_URL_TEMPLATE,
         yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS),
-        report.getApplicationId()));
+        report.getApplicationId());
+  }
+
+  private void saveAppUrlToConfigXml(String appUrl) {
+    tonyConf.set(TonyConfigurationKeys.APPLICATION_URL, appUrl);
+    try (OutputStream os = new FileOutputStream(Constants.TONY_FINAL_XML)) {
+      tonyConf.writeXml(os);
+    } catch (IOException e) {
+      return;
+    }
   }
 
   @VisibleForTesting

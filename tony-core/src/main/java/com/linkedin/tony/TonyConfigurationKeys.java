@@ -30,6 +30,8 @@ public class TonyConfigurationKeys {
   public static final String FRAMEWORK_NAME = TONY_APPLICATION_PREFIX + "framework";
   public static final String DEFAULT_FRAMEWORK_NAME = "tensorflow";
 
+  public static final String APPLICATION_URL = TONY_APPLICATION_PREFIX + "url";
+
   public static final String APPLICATION_NODE_LABEL = TONY_APPLICATION_PREFIX + "node-label";
 
   public static final String IS_SINGLE_NODE = TONY_APPLICATION_PREFIX + "single-node";
