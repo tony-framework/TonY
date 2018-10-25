@@ -98,21 +98,19 @@ public class TonyApplicationMaster {
   private Configuration tonyConf = new Configuration();
   private ContainerId containerId;
 
-  // The environment set up for the TaskExecutor
+  /** The environment set up for the TaskExecutor **/
   private Map<String, String> containerEnv = new ConcurrentHashMap<>();
 
-  // The environment passed from users to the training job. Note this is very different from the above.
+  /** The environment passed from users to the training job. Note this is very different from the above. **/
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, List<Container>> sessionContainersMap = new ConcurrentHashMap<>();
 
-  // Node manager delegates
+  /** Node manager delegates **/
   private NMCallbackHandler containerListener;
   private NMClientAsync nmClientAsync;
-
-  // Resource manager
+   /** Resource manager **/
   private AMRMClientAsync<ContainerRequest> amRMClient;
-
-  // Job progress
+   /** Job progress **/
   private AtomicInteger numCompletedWorkerTasks = new AtomicInteger();
   private long numTotalWorkerTasks = 1;
 
@@ -123,41 +121,47 @@ public class TonyApplicationMaster {
   // tracks the latest allocationRequestId allocated.
   private long lastAllocationRequestId = 0;
 
-  // Tony session
+  /** Tony session **/
   private TonySession session = new TonySession(); // Create a dummy session for single node training.
   private TonySession.Builder sessionBuilder;
 
-  // Configuration
+  /** Configuration **/
   private Configuration yarnConf;
   private Configuration hdfsConf;
 
-  // Cluster spec
+  /** Cluster spec **/
   private ApplicationRpcServer rpcServer;
 
-  // Set to false when testing locally / running in insecure cluster
+  /** Set to false when testing locally / running in insecure cluster **/
   private boolean secureMode;
 
-  // Single node training
+  /** Single node training **/
   private boolean singleNode;
   private boolean preprocessFinished = false;
   private int preprocessExitCode = 0;
   private String proxyUrl;
 
-  // Preprocessing job
+  /** Preprocessing job **/
   private boolean enablePreprocessing = false;
 
-  // Lifecycle control
+  /** Lifecycle control **/
   private long appTimeout;
-  private boolean shouldExit = false;
 
-  // HeartBeat monitor
+  // If the chief worker failed[chief or worker 0], short circuit and stop the training. Note that even though other
+  // worker failures will also fail the job but we don't short circuit the training because the training can still
+  // continue, while if chief worker is dead, a TensorFlow training would hang.
+  // Also note that, we only short circuit when the chief worker failed, not finished.
+  private boolean chiefWorkerFailed = false;
+  private boolean clientSignalToStop = false; // client signal to stop
+
+  /** HeartBeat monitor **/
   private final AbstractLivelinessMonitor<TonyTask> hbMonitor;
   private int hbInterval;
   private int maxConsecutiveHBMiss;
   private volatile boolean taskHasMissesHB = false;
   private Thread mainThread;
 
-  // Handle different machine frameworks
+  /** Handle different machine frameworks **/
   private MLFramework framework;
 
   private TonyApplicationMaster() {
@@ -286,9 +290,9 @@ public class TonyApplicationMaster {
         .setVenv(pythonVenvZip)
         .setAMAddress(amHostPort)
         .setShellEnv(shellEnv)
+        .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
-            TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS))
-        .setContainerRequests(Utils.parseContainerRequests(tonyConf));
+            TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS));
     sessionBuilder = builder;
     session = builder.build();
   }
@@ -489,8 +493,13 @@ public class TonyApplicationMaster {
       }
 
       // Check if client signals we should exit.
-      if (shouldExit) {
+      if (clientSignalToStop) {
         LOG.info("Client signals AM to exit.");
+        return true;
+      }
+
+      if (session.isTrainingFinished()) {
+        LOG.info("Training has finished.");
         return true;
       }
 
@@ -604,7 +613,7 @@ public class TonyApplicationMaster {
     amRMClient.waitForServiceToStop(5000);
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
-    boolean result = Utils.poll(() -> shouldExit, 1, 30);
+    boolean result = Utils.poll(() -> clientSignalToStop, 1, 30);
     if (!result) {
       LOG.warn("TonyClient didn't signal Tony AM to stop.");
     }
@@ -814,7 +823,7 @@ public class TonyApplicationMaster {
     @Override
     public void finishApplication() {
       LOG.info("Client signals AM to finish application.");
-      shouldExit = true;
+      clientSignalToStop = true;
     }
   }
 
@@ -939,6 +948,11 @@ public class TonyApplicationMaster {
           if (task.getSessionId() != session.sessionId) {
             return;
           }
+
+          if (task.getTaskIndex().equals("0") && task.getJobName().equals(WORKER_JOB_NAME)) {
+            chiefWorkerFailed = true;
+          }
+
           // Update TonySession on the state of the task.
           session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
           if (task.getJobName().equals(WORKER_JOB_NAME)) {

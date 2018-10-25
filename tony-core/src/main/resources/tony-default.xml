@@ -170,6 +170,19 @@
     <value>1</value>
   </property>
 
+  <!-- Chief configurations -->
+  <property>
+    <description>Job name of the training chief</description>
+    <name>tony.chief.name</name>
+    <value>worker</value>
+  </property>
+
+  <property>
+    <description>Job index of the training chief</description>
+    <name>tony.chief.index</name>
+    <value>0</value>
+  </property>
+
   <!-- Local testing configurations -->
   <property>
     <description>

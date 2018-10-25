@@ -6,6 +6,7 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.Utils;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.net.URI;
@@ -41,6 +42,7 @@ import static com.linkedin.tony.Constants.*;
  */
 public class TonySession {
   private static final Log LOG = LogFactory.getLog(TonySession.class);
+  private Configuration tonyConf;
 
   private String taskCmd;
 
@@ -60,6 +62,10 @@ public class TonySession {
   private Map<String, String> shellEnv;
   private String jvmArgs;
   private Map<String, Set<Long>> jobTypeToAllocationIds = new HashMap<String, Set<Long>>();
+
+  // If the training has finished. This is used to signal AM to stop waiting for other workers to finish and
+  // go straight to the cleaning phase.
+  private boolean trainingFinished = false;
 
   public enum TaskType {
     TASK_TYPE_CHIEF, TASK_TYPE_PARAMETER_SERVER, TASK_TYPE_OTHERS
@@ -96,9 +102,10 @@ public class TonySession {
     this.taskCmd = builder.taskCmd;
     this.venv = builder.venv;
     this.amAddress = builder.amAddress;
-    this.containerRequests = builder.containerRequests;
+    this.containerRequests = Utils.parseContainerRequests(builder.tonyConf);
     this.shellEnv = builder.shellEnv;
     this.jvmArgs = builder.jvmArgs;
+    this.tonyConf = builder.tonyConf;
 
     for (String jobName : containerRequests.keySet()) {
       jobTasks.put(jobName, new TonyTask[containerRequests.get(jobName).getNumInstances()]);
@@ -107,6 +114,11 @@ public class TonySession {
 
   public Map<String, TonyTask[]> getTonyTasks() {
     return this.jobTasks;
+  }
+
+
+  public boolean isTrainingFinished() {
+    return trainingFinished;
   }
 
   public void setResources(Configuration yarnConf,
@@ -264,8 +276,14 @@ public class TonySession {
       case TASK_TYPE_CHIEF:
       case TASK_TYPE_PARAMETER_SERVER:
       case TASK_TYPE_OTHERS:
-        // On worker failure, set job to fail.
+        // If the chief worker failed[chief or worker 0], short circuit and stop the training. Note that even though other
+        // worker failures will also fail the job but we don't short circuit the training because the training can still
+        // continue, while if chief worker is dead, a TensorFlow training would hang.
+        // Also note that, we only short circuit when the chief worker failed, not finished.
         if (exitCode != 0) {
+          if (isChief(jobName, jobIndex)) {
+            trainingFinished = true;
+          }
           setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
         }
         break;
@@ -358,6 +376,12 @@ public class TonySession {
     return null;
   }
 
+  private boolean isChief(String jobName, String jobIndex) {
+    String chiefName = tonyConf.get(TonyConfigurationKeys.CHIEF_NAME, TonyConfigurationKeys.DEFAULT_CHIEF_NAME);
+    String chiefIndex = tonyConf.get(TonyConfigurationKeys.CHIEF_INDEX, TonyConfigurationKeys.DEFAULT_CHIEF_INDEX);
+    return jobName.equals(chiefName) && jobIndex.equals(chiefIndex);
+  }
+
   public TonyTask getTask(ContainerId containerId) {
     return containerIdMap.get(containerId);
   }
@@ -370,8 +394,8 @@ public class TonySession {
     private String venv;
     private Map<String, String> shellEnv;
     private String amAddress;
-    private Map<String, TensorFlowContainerRequest> containerRequests;
     private String jvmArgs;
+    private Configuration tonyConf;
 
     public TonySession build() {
       return new TonySession(this);
@@ -402,10 +426,11 @@ public class TonySession {
       return this;
     }
 
-    public Builder setContainerRequests(Map<String, TensorFlowContainerRequest> requests) {
-      this.containerRequests = requests;
+    public Builder setTonyConf(Configuration tonyConf) {
+      this.tonyConf = tonyConf;
       return this;
     }
+
   }
 
   /**
