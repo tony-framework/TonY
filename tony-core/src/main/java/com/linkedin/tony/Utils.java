@@ -345,4 +345,14 @@ public class Utils {
   public static String getClientResourcesPath(String appId, String fileName) {
     return String.format("%s-%s", appId, fileName);
   }
+
+  public static void cleanupHDFSPath(Configuration hdfsConf, Path path) {
+    try (FileSystem fs = FileSystem.get(hdfsConf)) {
+      if (path != null && fs.exists(path)) {
+        fs.delete(path, true);
+      }
+    } catch (IOException e) {
+      LOG.error("Failed to clean up HDFS path: " + path, e);
+    }
+  }
 }
