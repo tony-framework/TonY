@@ -944,10 +944,6 @@ public class TonyApplicationMaster {
             return;
           }
 
-          if (task.getTaskIndex().equals("0") && task.getJobName().equals(WORKER_JOB_NAME)) {
-            chiefWorkerFailed = true;
-          }
-
           // Update TonySession on the state of the task.
           session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
           if (task.getJobName().equals(WORKER_JOB_NAME)) {
