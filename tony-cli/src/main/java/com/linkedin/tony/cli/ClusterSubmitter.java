@@ -5,12 +5,14 @@
 
 package com.linkedin.tony.cli;
 
-import com.linkedin.tony.TonyClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.UUID;
+
+import com.linkedin.tony.TonyClient;
+import com.linkedin.tony.Utils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -57,13 +59,7 @@ public class ClusterSubmitter {
       LOG.fatal("Failed to create FileSystem: ", e);
       exitCode = -1;
     } finally {
-      try (FileSystem fs = FileSystem.get(hdfsConf)) {
-        if (cachedLibPath != null && fs.exists(cachedLibPath)) {
-          fs.delete(cachedLibPath, true);
-        }
-      } catch (IOException e) {
-        LOG.error("Failed to clean up HDFS path: " + cachedLibPath);
-      }
+      Utils.cleanupHDFSPath(hdfsConf, cachedLibPath);
     }
     System.exit(exitCode);
   }

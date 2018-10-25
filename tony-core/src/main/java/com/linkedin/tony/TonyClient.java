@@ -685,14 +685,7 @@ public class TonyClient {
     } catch (IOException | YarnException e) {
       LOG.error("Failed to finish application.", e);
     } finally {
-      try {
-        FileSystem fs = FileSystem.get(hdfsConf);
-        if (appResourcesPath != null && fs.exists(appResourcesPath)) {
-          fs.delete(appResourcesPath, true);
-        }
-      } catch (IOException e) {
-        LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
-      }
+      Utils.cleanupHDFSPath(hdfsConf, appResourcesPath);
     }
   }
 
