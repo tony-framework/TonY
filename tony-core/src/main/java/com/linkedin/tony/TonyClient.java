@@ -670,6 +670,10 @@ public class TonyClient {
 
   }
 
+  protected ApplicationRpcClient getAMRpcClient() {
+    return this.amRpcClient;
+  }
+
   /**
    * Clean up temporary files.
    */

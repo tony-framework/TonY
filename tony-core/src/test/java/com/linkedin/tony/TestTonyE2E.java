@@ -20,8 +20,9 @@ import org.testng.annotations.Test;
 
 
 /**
- * Before running these tests in your IDE, you should run {@code ligradle :tony:setupHdfsLib} first. If you make any
- * changes to {@code tony-core/src/main/java} code, you'll need to run the above command again.
+ * Before running these tests in your IDE, you should run {@code ./gradlew
+ * :tony-core:setupHdfsLib} first. If you make any changes to {@code 
+ * tony-core/src/main/java} code, you'll need to run the above command again.
  */
 public class TestTonyE2E {
 
@@ -246,5 +247,25 @@ public class TestTonyE2E {
         "--container_env", Constants.TEST_WORKER_TERMINATED + "=true"
     }, conf);
     Assert.assertEquals(exitCode, -1);
+  }
+
+  /**
+   * Test amRpcClient is nulled out after client finishes.
+   */
+  @Test
+  public void testNullAMRpcClient() throws Exception {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
+    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
+    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    String[] args = new String[]{
+        "--src_dir", "tony-core/src/test/resources/",
+        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--hdfs_classpath", "/yarn/libs",
+        "--python_binary_path", "python"
+    };
+    TonyClient client = TonyClient.createClientInstance(args, conf);
+    Assert.assertTrue(client.run());
+    Assert.assertNull(client.getAMRpcClient());
   }
 }
