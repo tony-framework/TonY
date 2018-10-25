@@ -19,7 +19,7 @@ buildscript {
 
 def hadoopVersion = "3.1.1"
 ext.playVersion = "2.6.20"
-ext.scalaVersion = System.getProperty("scala.binary.version", "2.12")
+ext.scalaVersion = System.getProperty("scala.binary.version", "2.11")
 
 ext.deps = [
   azkaban: [
