@@ -36,7 +36,7 @@
 DEPLOY_LOG=deploy.log
 
 echo "Cleaning up old builds..." | tee $DEPLOY_LOG
-gradle clean |& tee -a $DEPLOY_LOG
+gradle clean 2>&1 | tee -a $DEPLOY_LOG
 if [ $? -ne 0 ];
 then
   exit 1
@@ -44,7 +44,7 @@ fi
 echo | tee -a $DEPLOY_LOG
 
 echo "Packaging distribution zip..." | tee -a $DEPLOY_LOG
-gradle dist |& tee -a $DEPLOY_LOG
+gradle dist 2>&1 | tee -a $DEPLOY_LOG
 if [ $? -ne 0 ];
 then
   exit 2
@@ -52,7 +52,7 @@ fi
 echo | tee -a $DEPLOY_LOG
 
 echo "Copying over to $1@$2..." | tee -a $DEPLOY_LOG
-scp build/distributions/playBinary.zip $1@$2:~/. |& tee -a $DEPLOY_LOG
+scp build/distributions/playBinary.zip $1@$2:~/. 2>&1 | tee -a $DEPLOY_LOG
 if [ $? -ne 0 ];
 then
   exit 3
