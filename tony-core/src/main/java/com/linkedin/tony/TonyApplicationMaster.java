@@ -147,11 +147,6 @@ public class TonyApplicationMaster {
   /** Lifecycle control **/
   private long appTimeout;
 
-  // If the chief worker failed[chief or worker 0], short circuit and stop the training. Note that even though other
-  // worker failures will also fail the job but we don't short circuit the training because the training can still
-  // continue, while if chief worker is dead, a TensorFlow training would hang.
-  // Also note that, we only short circuit when the chief worker failed, not finished.
-  private boolean chiefWorkerFailed = false;
   private boolean clientSignalToStop = false; // client signal to stop
 
   /** HeartBeat monitor **/
