@@ -34,3 +34,13 @@ $ gradle testPlayBinary
 ```
 
 For more info about developing with Play using Gradle, click [here](https://docs.gradle.org/current/userguide/play_plugin.html#play_continuous_build).
+
+## Deploy to test cluster
+Before using the script, ensure that you have set execution permission (`chmod +x buildAndDeploy.sh`)
+
+- To bundle the history server app and deploy to another host
+```
+$ ./buildAndDeploy.sh user hostname.test.abc.com
+```
+
+See [script](./buildAndDeploy.sh) for more.
