@@ -110,9 +110,15 @@ public class TonyConfigurationKeys {
 
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
-
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
   public static final int DEFAULT_WORKER_TIMEOUT = 0;
+
+  // Training chief configuration
+  public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
+  public static final String CHIEF_NAME = CHIEF_PREFIX + "name";
+  public static final String DEFAULT_CHIEF_NAME = "worker";
+  public static final String CHIEF_INDEX = CHIEF_PREFIX + "index";
+  public static final String DEFAULT_CHIEF_INDEX = "0";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";
