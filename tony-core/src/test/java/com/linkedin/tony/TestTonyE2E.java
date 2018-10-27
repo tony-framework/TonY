@@ -11,6 +11,8 @@ import java.nio.file.Files;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -18,8 +20,9 @@ import org.testng.annotations.Test;
 
 
 /**
- * Before running these tests in your IDE, you should run {@code ligradle :tony:setupHdfsLib} first. If you make any
- * changes to {@code src/main/java} code, you'll need to run the above command again.
+ * Before running these tests in your IDE, you should run {@code ./gradlew
+ * :tony-core:setupHdfsLib} first. If you make any changes to {@code 
+ * tony-core/src/main/java} code, you'll need to run the above command again.
  */
 public class TestTonyE2E {
 
@@ -221,5 +224,48 @@ public class TestTonyE2E {
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
     }, conf);
     Assert.assertEquals(exitCode, -1);
+  }
+
+  /**
+   * Test that makes sure if a worker is killed due to OOM, AM should stop the training (or retry).
+   * This test might hang if there is a regression in handling the OOM scenario.
+   *
+   * The reason why we use a Constants.TEST_WORKER_TERMINATED flag instead of simply requesting more memory than
+   * allocated is that Physical Memory Enforcement doesn't seem to work under MiniYARN.
+   */
+  @Test
+  public void testAMStopsJobAfterWorker0Killed() {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
+    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
+    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    int exitCode = TonyClient.start(new String[]{
+        "--src_dir", "tony-core/src/test/resources/",
+        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--hdfs_classpath", "/yarn/libs",
+        "--python_binary_path", "python",
+        "--container_env", Constants.TEST_WORKER_TERMINATED + "=true"
+    }, conf);
+    Assert.assertEquals(exitCode, -1);
+  }
+
+  /**
+   * Test amRpcClient is nulled out after client finishes.
+   */
+  @Test
+  public void testNullAMRpcClient() throws Exception {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
+    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
+    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    String[] args = new String[]{
+        "--src_dir", "tony-core/src/test/resources/",
+        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--hdfs_classpath", "/yarn/libs",
+        "--python_binary_path", "python"
+    };
+    TonyClient client = TonyClient.createClientInstance(args, conf);
+    Assert.assertTrue(client.run());
+    Assert.assertNull(client.getAMRpcClient());
   }
 }

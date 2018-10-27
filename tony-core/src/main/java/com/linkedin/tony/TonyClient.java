@@ -6,7 +6,6 @@ package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.UnmodifiableIterator;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import java.io.File;
@@ -108,7 +107,9 @@ public class TonyClient {
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
-  private static final String ARCHIVE_PATH = "tf_archive.zip";
+  private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
+  private String archivePath;
+  private String tonyFinalConfPath;
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
   private Path appResourcesPath;
@@ -152,10 +153,18 @@ public class TonyClient {
       amVCores = maxVCores;
     }
 
-    zipArchive();
-
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     ApplicationId appId = appContext.getApplicationId();
+    this.archivePath = Utils.getClientResourcesPath(appId.toString(), ARCHIVE_SUFFIX);
+    zipArchive();
+
+    this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
+    // Write user's overridden conf to an xml to be localized.
+    try (OutputStream os = new FileOutputStream(this.tonyFinalConfPath)) {
+      tonyConf.writeXml(os);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create " + this.tonyFinalConfPath + " conf file. Exiting.", e);
+    }
 
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
@@ -257,12 +266,6 @@ public class TonyClient {
         tonyConf.set(cliConf.getKey(), cliConf.getValue());
       }
     }
-    // Write user's overridden conf to an xml to be localized.
-    try (OutputStream os = new FileOutputStream(Constants.TONY_FINAL_XML)) {
-      tonyConf.writeXml(os);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to create " + Constants.TONY_FINAL_XML + " conf file. Exiting.", e);
-    }
 
     String amMemoryString = tonyConf.get(TonyConfigurationKeys.AM_MEMORY,
         TonyConfigurationKeys.DEFAULT_AM_MEMORY);
@@ -330,6 +333,10 @@ public class TonyClient {
     return true;
   }
 
+  public Configuration getTonyConf() {
+    return this.tonyConf;
+  }
+
   public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory,
                                                       String taskParams, String pythonBinaryPath,
                                                       String pythonVenv, String executes, ByteBuffer tokens,
@@ -339,8 +346,8 @@ public class TonyClient {
     FileSystem homeFS = FileSystem.get(hdfsConf);
     appResourcesPath = new Path(homeFS.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(homeFS, ARCHIVE_PATH, LocalResourceType.FILE, Constants.TF_ZIP_NAME, localResources);
-    addLocalResources(homeFS, Constants.TONY_FINAL_XML, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
+    addLocalResources(homeFS, archivePath, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
+    addLocalResources(homeFS, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     if (hdfsClasspathDir != null) {
       try {
         FileSystem remoteFS = FileSystem.get(new URI(hdfsClasspathDir), hdfsConf);
@@ -440,13 +447,13 @@ public class TonyClient {
    * Create zip archive required by TonY to distribute python code and virtual environment
    */
   private void zipArchive() throws IOException {
-    FileOutputStream fos = new FileOutputStream(ARCHIVE_PATH);
+    FileOutputStream fos = new FileOutputStream(archivePath);
     ZipOutputStream zos = new ZipOutputStream(fos);
     // Accept archive file as srcDir.
     if (!Utils.isArchive(srcDir)) {
       addDirToZip(zos, srcDir);
     } else {
-      Utils.renameFile(srcDir, ARCHIVE_PATH);
+      Utils.renameFile(srcDir, archivePath);
     }
     if (hdfsConfAddress != null) {
       addFileToZip(zos, hdfsConfAddress);
@@ -511,8 +518,8 @@ public class TonyClient {
 
   private void setAMEnvironment(Map<String, LocalResource> localResources,
                                                FileSystem fs) throws IOException {
-    LocalResource zipResource = localResources.get(Constants.TF_ZIP_NAME);
-    Utils.addEnvironmentForResource(zipResource, fs, Constants.TF_ZIP_PREFIX, containerEnv);
+    LocalResource zipResource = localResources.get(Constants.TONY_ZIP_NAME);
+    Utils.addEnvironmentForResource(zipResource, fs, Constants.TONY_ZIP_PREFIX, containerEnv);
 
     LocalResource tonyConfResource = localResources.get(Constants.TONY_FINAL_XML);
     Utils.addEnvironmentForResource(tonyConfResource, fs, Constants.TONY_CONF_PREFIX, containerEnv);
@@ -605,26 +612,17 @@ public class TonyClient {
         taskUrls = amRpcClient.getTaskUrls();
         if (!taskUrls.isEmpty()) {
           // Print TaskUrls
-          taskUrls.forEach(task -> Utils.printTaskUrl(task, LOG));
+          new TreeSet<TaskUrl>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
         }
       }
 
-      if (YarnApplicationState.FINISHED == state) {
-        if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
-          LOG.info("Application has completed successfully. "
-                   + " Breaking monitoring loop : ApplicationId:" + appId.getId());
-          return true;
-        } else {
-          LOG.info("Application finished unsuccessfully."
-                   + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-                   + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
-          return false;
-        }
-      } else if (YarnApplicationState.KILLED == state || YarnApplicationState.FAILED == state) {
-        LOG.info("Application did not finish."
-                 + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-                 + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
-        return false;
+      if (YarnApplicationState.FINISHED == state || YarnApplicationState.FAILED == state
+          || YarnApplicationState.KILLED == state) {
+        LOG.info("Application " + appId.getId() + " finished with YarnState=" + state.toString()
+            + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
+        // Set amRpcClient to null so client does not try to connect to it after completion.
+        amRpcClient = null;
+        return FinalApplicationStatus.SUCCEEDED == dsStatus;
       }
 
       if (appTimeout > 0) {
@@ -672,6 +670,10 @@ public class TonyClient {
 
   }
 
+  protected ApplicationRpcClient getAMRpcClient() {
+    return this.amRpcClient;
+  }
+
   /**
    * Clean up temporary files.
    */
@@ -680,12 +682,10 @@ public class TonyClient {
       if (amRpcClient != null) {
         amRpcClient.finishApplication();
       }
-      FileSystem fs = FileSystem.get(hdfsConf);
-      if (appResourcesPath != null && fs.exists(appResourcesPath)) {
-        fs.delete(appResourcesPath, true);
-      }
     } catch (IOException | YarnException e) {
-      LOG.error("Failed to clean up temporary files :" + appResourcesPath, e);
+      LOG.error("Failed to finish application.", e);
+    } finally {
+      Utils.cleanupHDFSPath(hdfsConf, appResourcesPath);
     }
   }
 

@@ -10,11 +10,20 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 public class Constants {
 
-  // Environment constants
+  // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
   public static final String TASK_INDEX = "TASK_INDEX";
   public static final String TASK_NUM = "TASK_NUM";
   public static final String CLUSTER_SPEC = "CLUSTER_SPEC";
+  public static final String TF_CONFIG = "TF_CONFIG";
+
+  // PyTorch constants
+  public static final String COORDINATOR_ID = "worker:0";
+  public static final String COMMUNICATION_BACKEND = "tcp://";
+  public static final String RANK = "RANK";
+  public static final String WORLD = "WORLD";
+  public static final String INIT_METHOD = "INIT_METHOD";
+
   // Distributed TensorFlow job name, e.g. "ps" or "worker",
   // as per https://www.tensorflow.org/deploy/distributed
   public static final String JOB_NAME = "JOB_NAME";
@@ -23,14 +32,14 @@ public class Constants {
   public static final String PY4JGATEWAY = "PY4J_GATEWAY_PORT";
 
   // Environment variables for resource localization
-  public static final String TF_ZIP_PREFIX = "TF_ZIP";
+  public static final String TONY_ZIP_PREFIX = "TONY_ZIP";
   public static final String TONY_CONF_PREFIX = "TONY_CONF";
 
   public static final String PATH_SUFFIX = "_PATH";
   public static final String TIMESTAMP_SUFFIX = "_TIMESTAMP";
   public static final String LENGTH_SUFFIX = "_LENGTH";
 
-  public static final String TF_ZIP_NAME = "tf.zip";
+  public static final String TONY_ZIP_NAME = "tony.zip";
 
   public static final String PYTHON_VENV_DIR = "venv";
   public static final String TASK_PARAM_KEY = "MODEL_PARAMS";
@@ -52,6 +61,7 @@ public class Constants {
   public static final String ATTEMPT_NUMBER = "ATTEMPT_NUMBER";
 
   public static final String TEST_AM_CRASH = "TEST_AM_CRASH";
+  public static final String TEST_WORKER_TERMINATED = "TEST_WORKER_TERMINATION";
   public static final String TEST_TASK_EXECUTOR_HANG = "TEST_TASK_EXECUTOR_HANG";
   public static final String TEST_TASK_EXECUTOR_NUM_HB_MISS = "TEST_TASK_EXECUTOR_NUM_HB_MISS";
   // Should be of the form type#id#ms
