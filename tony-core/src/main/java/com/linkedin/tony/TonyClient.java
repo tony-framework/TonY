@@ -343,29 +343,24 @@ public class TonyClient {
                                                       String hdfsClasspathDir) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
-    FileSystem homeFS = FileSystem.get(hdfsConf);
-    appResourcesPath = new Path(homeFS.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
+    FileSystem fs = FileSystem.get(hdfsConf);
+    appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(homeFS, archivePath, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
-    addLocalResources(homeFS, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
+    addLocalResources(fs, archivePath, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
+    addLocalResources(fs, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     if (hdfsClasspathDir != null) {
-      try {
-        FileSystem remoteFS = FileSystem.get(new URI(hdfsClasspathDir), hdfsConf);
-        FileStatus[] ls = remoteFS.listStatus(new Path(hdfsClasspathDir));
-        for (FileStatus jar : ls) {
-          LocalResource resource =
-              LocalResource.newInstance(
-                  ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
-                  LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-                  jar.getLen(), jar.getModificationTime());
+      FileStatus[] ls = fs.listStatus(new Path(hdfsClasspathDir));
+      for (FileStatus jar : ls) {
+        LocalResource resource =
+            LocalResource.newInstance(
+                ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
+                LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
+                jar.getLen(), jar.getModificationTime());
 
-          localResources.put(jar.getPath().getName(), resource);
-        }
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+        localResources.put(jar.getPath().getName(), resource);
       }
     }
-    setAMEnvironment(localResources, homeFS);
+    setAMEnvironment(localResources, fs);
 
     // Update absolute path with relative path
     if (hdfsConfAddress != null) {
