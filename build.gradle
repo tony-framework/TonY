@@ -18,6 +18,8 @@ buildscript {
 }
 
 def hadoopVersion = "3.1.1"
+ext.playVersion = "2.6.20"
+ext.scalaVersion = System.getProperty("scala.binary.version", "2.11")
 
 ext.deps = [
   azkaban: [
@@ -33,6 +35,9 @@ ext.deps = [
     "hdfs_client": "org.apache.hadoop:hadoop-hdfs-client:${hadoopVersion}",
     "hdfs_test": "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}:tests",
     "mapreduce_client_core": "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoopVersion}",
+    "mapreduce_client_hs": "org.apache.hadoop:hadoop-mapreduce-client-hs:${hadoopVersion}",
+    "mapreduce_client_common": "org.apache.hadoop:hadoop-mapreduce-client-common:${hadoopVersion}",
+    "mapreduce_client_app": "org.apache.hadoop:hadoop-mapreduce-client-app:${hadoopVersion}",
     "minicluster": "org.apache.hadoop:hadoop-minicluster:${hadoopVersion}",
     "yarn_api": "org.apache.hadoop:hadoop-yarn-api:${hadoopVersion}",
     "yarn_client": "org.apache.hadoop:hadoop-yarn-client:${hadoopVersion}",
@@ -40,7 +45,9 @@ ext.deps = [
     "yarn_server_test": "org.apache.hadoop:hadoop-yarn-server-tests:${hadoopVersion}:tests"
   ],
   external: [
+    "assertj": "org.assertj:assertj-core:3.6.2",
     "avro": "org.apache.avro:avro:1.8.2",
+    "awaitility": "org.awaitility:awaitility:2.0.0",
     "commons_io": "commons-io:commons-io:2.4",
     "guava": "com.google.guava:guava:16.0.1",
     "guice": "com.google.inject:guice:4.1.0",
@@ -51,6 +58,8 @@ ext.deps = [
     "log4j": "log4j:log4j:1.2.17",
     "metrics": "com.codahale.metrics:metrics-core:3.0.2",
     "objenesis": "org.objenesis:objenesis:2.6",
+    "play_guice": "com.typesafe.play:play-guice_$scalaVersion:$playVersion",
+    "play_logback": "com.typesafe.play:play-logback_$scalaVersion:$playVersion",
     "py4j": "net.sf.py4j:py4j:0.8.2.1",
     "sshd": "org.apache.sshd:sshd-core:1.1.0",
     "testng": "org.testng:testng:6.4",
@@ -166,7 +175,7 @@ subprojects {
     sign publishing.publications.mavenJava
   }
 }
-  
+
 apply plugin: 'distribution'
 
 // Generates a closure which is used to set up the contents

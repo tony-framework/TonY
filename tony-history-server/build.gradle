@@ -1,0 +1,41 @@
+apply plugin: "play"
+apply plugin: "idea"
+
+model {
+  components {
+    play {
+      platform play: playVersion, scala: scalaVersion, java: '1.8'
+      injectedRoutesGenerator = true
+
+      sources {
+        twirlTemplates {
+          defaultImports = TwirlImports.JAVA
+        }
+      }
+    }
+  }
+}
+
+dependencies {
+  play deps.external.play_guice
+  play deps.external.play_logback
+  play deps.hadoop.hdfs_client
+  play deps.hadoop.common
+  play deps.hadoop.yarn_api
+
+  playTest deps.external.assertj
+  playTest deps.external.awaitility
+}
+
+repositories {
+  jcenter()
+  maven {
+    name "lightbend-maven-release"
+    url "https://repo.lightbend.com/lightbend/maven-releases"
+  }
+  ivy {
+    name "lightbend-ivy-release"
+    url "https://repo.lightbend.com/lightbend/ivy-releases"
+    layout "ivy"
+  }
+}
