@@ -25,7 +25,8 @@
   </appender>
 
   <logger name="play" level="INFO" />
-  <logger name="controllers.HomeController" level="DEBUG" />
+  <logger name="controllers.JobsMetadataPageController" level="DEBUG" />
+  <logger name="controllers.JobsConfigPageController" level="DEBUG" />
 
   <root level="INFO">
     <appender-ref ref="ASYNCFILE" />

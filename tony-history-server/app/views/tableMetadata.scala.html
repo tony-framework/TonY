@@ -1,0 +1,22 @@
+@(metricsList: List[JobMetadata])
+
+<table>
+  <tr>
+    <th>App ID</th>
+    <th>Configuration</th>
+    <th>Started</th>
+    <th>Completed</th>
+  </tr>
+  @for(s <- metricsList) {
+    <tr>
+      <td>
+        <a href=@s.getJobLink target="_blank">@s.getId</a>
+      </td>
+      <td>
+        <a href=@s.getConfigLink() target="_blank">tony-final.xml</a>
+      </td>
+      <td>@s.getStarted</td>
+      <td>@s.getCompleted</td>
+    </tr>
+  }
+</table>
