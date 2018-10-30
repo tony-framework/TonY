@@ -102,6 +102,10 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.gpus", jobName);
   }
 
+  public static String getResourcesKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.resources", jobName);
+  }
+
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
