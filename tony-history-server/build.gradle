@@ -49,3 +49,5 @@ repositories {
     layout "ivy"
   }
 }
+
+test.dependsOn('testPlayBinary')
