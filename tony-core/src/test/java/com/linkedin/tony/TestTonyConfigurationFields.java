@@ -25,10 +25,12 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getInstancesKey(Constants.PS_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getMemoryKey(Constants.PS_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getVCoresKey(Constants.PS_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourcesKey(Constants.PS_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getMemoryKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getVCoresKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getGPUsKey(Constants.WORKER_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourcesKey(Constants.WORKER_JOB_NAME));
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.DOCKER_IMAGE);
   }
 
