@@ -17,7 +17,7 @@ public class HomeControllerTest extends WithApplication {
 
   @Override
   protected Application provideApplication() {
-    return new GuiceApplicationBuilder().build();
+    return new GuiceApplicationBuilder().configure("tony.configPath", "/dummy").build();
   }
 
   @Test
