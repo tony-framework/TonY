@@ -1,5 +1,6 @@
 apply plugin: "play"
 apply plugin: "idea"
+apply plugin: "distribution"
 
 model {
   components {
@@ -10,6 +11,15 @@ model {
       sources {
         twirlTemplates {
           defaultImports = TwirlImports.JAVA
+        }
+      }
+    }
+  }
+  distributions {
+    playBinary {
+      contents {
+        from("startTHS") {
+          into "bin"
         }
       }
     }
