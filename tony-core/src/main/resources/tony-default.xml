@@ -47,6 +47,11 @@
     <value>0</value>
   </property>
 
+  <property>
+    <description>The machine learning framework that will be used for this job - tensorflow or pytorch.</description>
+    <name>tony.application.framework</name>
+    <value>tensorflow</value>
+  </property>
 
   <property>
     <description>
@@ -163,6 +168,19 @@
     <description>Number of workers to request.</description>
     <name>tony.worker.instances</name>
     <value>1</value>
+  </property>
+
+  <!-- Chief configurations -->
+  <property>
+    <description>Job name of the training chief</description>
+    <name>tony.chief.name</name>
+    <value>worker</value>
+  </property>
+
+  <property>
+    <description>Job index of the training chief</description>
+    <name>tony.chief.index</name>
+    <value>0</value>
   </property>
 
   <!-- Local testing configurations -->

@@ -34,7 +34,7 @@ public class TestTensorFlowJob {
     // Because SERVICE_PROVIDER is a singleton and it is shared among many tests,
     // need to reset the state to avoid assertion failures.
     SERVICE_PROVIDER.unsetInjector();
-  
+
     SERVICE_PROVIDER.setInjector(injector);
   }
 
@@ -58,9 +58,9 @@ public class TestTensorFlowJob {
     };
     String args = tfJob.getMainArguments();
     Assert.assertTrue(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job/tony.xml").exists());
-    Assert.assertTrue(args.contains(TensorFlowJobArg.HDFS_CLASSPATH.tfParamName + " hdfs://nn:8020"));
-    Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tfParamName + " E2=e2"));
-    Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tfParamName + " E1=e1"));
+    Assert.assertTrue(args.contains(TensorFlowJobArg.HDFS_CLASSPATH.tonyParamName + " hdfs://nn:8020"));
+    Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tonyParamName + " E2=e2"));
+    Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tonyParamName + " E1=e1"));
   }
 
   @Test

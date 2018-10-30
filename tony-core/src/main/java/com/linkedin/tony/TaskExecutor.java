@@ -30,6 +30,7 @@ import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.CORE_SITE_CONF;
 import static com.linkedin.tony.Constants.HADOOP_CONF_DIR;
+import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 
 /**
  * Content that we want to run in the containers. TaskExecutor will register itself with AM and fetch cluster spec from
@@ -63,6 +64,7 @@ public class TaskExecutor {
   private int hbInterval;
   private final ScheduledExecutorService hbExec = Executors.newScheduledThreadPool(1);
   private int numFailedHBAttempts = 0;
+  private MLFramework framework;
 
   protected TaskExecutor() throws IOException {
     // Reserve a rpcSocket rpcPort.
@@ -72,6 +74,8 @@ public class TaskExecutor {
     this.tbPort = this.tbSocket.getLocalPort();
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
+    this.framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+        TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
     LOG.info("Reserved rpcPort: " + this.rpcPort);
     LOG.info("Reserved tbPort: " + this.tbPort);
@@ -118,15 +122,24 @@ public class TaskExecutor {
         }
 
         // Execute the user command
-        HashMap<String, String> extraEnv = new HashMap<String, String>(executor.shellEnv) {
-          {
-            put(Constants.TB_PORT, String.valueOf(executor.tbPort));
-            put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
-            put(Constants.JOB_NAME, String.valueOf(executor.jobName));
-            put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
-            put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+        HashMap<String, String> extraEnv = new HashMap<>(executor.shellEnv);
+        switch (executor.framework) {
+          case TENSORFLOW: {
+            extraEnv.put(Constants.TB_PORT, String.valueOf(executor.tbPort));
+            extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
+            extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
+            extraEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
+            extraEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+            extraEnv.put(Constants.TF_CONFIG, Utils.constructTFConfig(executor.clusterSpec,
+                executor.jobName, executor.taskIndex));
+            break;
           }
-        };
+          case PYTORCH: {
+            extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
+            extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
+            break;
+          }
+        }
 
         int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, extraEnv);
         // START - worker skew testing:
@@ -166,7 +179,7 @@ public class TaskExecutor {
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
     venv = cliParser.getOptionValue("venv");
-    Utils.unzipArchive(Constants.TF_ZIP_NAME, "./");
+    Utils.unzipArchive(Constants.TONY_ZIP_NAME, "./");
     if (System.getenv(Constants.YARN_CONF_PATH) != null) {
       yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
     }
@@ -190,8 +203,8 @@ public class TaskExecutor {
     LOG.info("Connecting to " + amAddress + " to register worker spec: " + jobName + " " + taskIndex + " "
              + InetAddress.getLocalHost().getHostName() + ":" + rpcPort);
     return Utils.pollTillNonNull(() ->
-      proxy.registerWorkerSpec(jobName + ":" + taskIndex,
-                               InetAddress.getLocalHost().getHostName() + ":" + rpcPort), 3, 120);
+        proxy.registerWorkerSpec(jobName + ":" + taskIndex,
+            InetAddress.getLocalHost().getHostName() + ":" + rpcPort), 3, 120);
   }
 
   private void registerTensorBoardUrl() throws Exception {

@@ -89,7 +89,6 @@ subprojects {
   apply plugin: "java"
   apply plugin: "eclipse"
   apply plugin: "idea"
-  apply plugin: "maven"
   apply plugin: "maven-publish"
   apply plugin: "signing"
   repositories {
@@ -228,6 +227,9 @@ distributions {
     baseName = rootProject.name + '-fat'
     contents generateDistContents('runtime')
   }
+}
+if (project.hasProperty('overrideBuildEnvironment')) {
+  apply from: project.overrideBuildEnvironment
 }
 
 build.dependsOn(distZip)
