@@ -29,7 +29,6 @@ public class JobsMetadataPageController extends Controller {
 
   public Result index() {
     FileSystem myFs = getFs();
-    LOG.info("Successfully instantiated file system");
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
     String tonyHistoryFolder = config.getString("tony.historyFolder");
