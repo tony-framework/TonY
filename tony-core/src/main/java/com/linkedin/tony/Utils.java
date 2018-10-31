@@ -11,6 +11,7 @@ import com.linkedin.tony.rpc.TaskUrl;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
 
@@ -374,17 +378,26 @@ public class Utils {
 
   /**
    * Copy a list of resources delimited by comma from hdfs to local directory.
-   * @param resources a list of resources to be copied, delimited by comma.
-   * @param localDir local directory that these resources will be copied to.
+   * @param directory the directory whose contents will be localized.
    * @param hdfsConf the configuration file for HDFS.
    * @throws IOException exception thrown during file copies.
    */
-  public static void localizeResources(String resources, String localDir, Configuration hdfsConf) throws IOException {
-    String[] resourceArray = resources.split(",");
-    for (String resource : resourceArray) {
-      Path re = new Path(resource);
+  public static void addResource(String directory,
+                                 Map<String, LocalResource> resourcesMap,
+                                 Configuration hdfsConf) {
+    try {
       FileSystem fs = FileSystem.get(hdfsConf);
-      fs.copyToLocalFile(re, new Path(localDir));
+      if (directory != null) {
+        FileStatus[] ls = fs.listStatus(new Path(directory));
+        for (FileStatus jar : ls) {
+          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
+                                                             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
+                                                             jar.getLen(), jar.getModificationTime());
+          resourcesMap.put(jar.getPath().getName(), resource);
+        }
+      }
+    } catch (IOException exception) {
+      LOG.error("Failed to add " + directory + " to local resources.", exception);
     }
   }
 }

@@ -153,9 +153,11 @@
   </property>
 
   <property>
-    <description>Resources that will be localized to the container that executes the job. Delimited by comma.</description>
+    <description>Resources that will be localized to the container that executes the job. Delimited by comma.
+      Example: /user/tony/resource1
+    </description>
     <name>tony.worker.resources</name>
-    <value>hdfs://mycluster:9000/user/tony/resource1,hdfs://mycluster:9000/user/tony/resources2</value>
+    <value></value>
   </property>
 
   <property>

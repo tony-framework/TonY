@@ -8,7 +8,9 @@ package com.linkedin.tony.cli;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import com.linkedin.tony.TonyClient;
@@ -51,10 +53,11 @@ public class ClusterSubmitter {
       fs.mkdirs(cachedLibPath);
       fs.copyFromLocalFile(new Path(jarLocation), cachedLibPath);
 
-      String[] updatedArgs = Arrays.copyOf(args, args.length + 2);
-      updatedArgs[args.length] = "--hdfs_classpath";
-      updatedArgs[args.length + 1] = cachedLibPath.toString();
-      exitCode = TonyClient.start(updatedArgs);
+      // Insert --hdfs_classpath at the beginning to avoid confusion when user pass in wrong arguments.
+      List<String> updatedArgs = new ArrayList<>(Arrays.asList(args));
+      updatedArgs.add(0, cachedLibPath.toString());
+      updatedArgs.add(0, "--hdfs_classpath");
+      exitCode = TonyClient.start((String[])updatedArgs.toArray());
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
       exitCode = -1;

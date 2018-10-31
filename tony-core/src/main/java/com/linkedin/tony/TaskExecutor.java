@@ -98,12 +98,6 @@ public class TaskExecutor {
       System.exit(-1);
     }
 
-    // Localize resources to container root directory.
-    String resources = executor.tonyConf.get(TonyConfigurationKeys.getResourcesKey(executor.jobName));
-    if (resources != null) {
-      Utils.localizeResources(resources, "./", executor.hdfsConf);
-    }
-
     if (executor.venv != null) {
       LOG.info("Unpacking Python virtual environment: " + executor.venv);
       Utils.unzipArchive(executor.venv, Constants.PYTHON_VENV_DIR);
@@ -173,9 +167,9 @@ public class TaskExecutor {
     amAddress = cliParser.getOptionValue("am_address", "");
     taskCommand = cliParser.getOptionValue("task_command", "exit 0");
     timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
-                              TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
+        TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
-                                 TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
+        TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     String[] shellEnvs = cliParser.getOptionValues("shell_env");
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
@@ -202,7 +196,7 @@ public class TaskExecutor {
 
     // Start the Heartbeater..
     hbExec.scheduleAtFixedRate(new Heartbeater(),
-                               0, hbInterval, TimeUnit.MILLISECONDS);
+        0, hbInterval, TimeUnit.MILLISECONDS);
 
     LOG.info("Connecting to " + amAddress + " to register worker spec: " + jobName + " " + taskIndex + " "
              + hostName + ":" + rpcPort);
@@ -230,46 +224,46 @@ public class TaskExecutor {
     }
   }
 
-private class Heartbeater implements Runnable {
-  int hbMissCounter = 0;
-  int numHbToMiss;
+  private class Heartbeater implements Runnable {
+    int hbMissCounter = 0;
+    int numHbToMiss;
 
-  private Heartbeater() {
-    String hbMissStr = System.getenv(Constants.TEST_TASK_EXECUTOR_NUM_HB_MISS);
-    try {
-      int numMisses = Integer.parseInt(hbMissStr);
-      if (numMisses > 0) {
-        numHbToMiss = numMisses;
-      }
-    } catch (Exception e) {
-      numHbToMiss = 0;
-    }
-  }
-
-  @Override
-  public void run() {
-    try {
-      if (hbMissCounter == 0) {
-        LOG.debug("[" + taskId + "] Sending Ping !!");
-        proxy.taskExecutorHeartbeat(taskId);
-        numFailedHBAttempts = 0;
-        hbMissCounter = numHbToMiss;
-      } else {
-        LOG.debug("[" + taskId + "] Skipping heartbeat for Testing !!");
-        hbMissCounter--;
-      }
-    } catch (Exception e) {
-      LOG.error("[" + taskId + "] Failed to send Heart Beat.", e);
-      if (++numFailedHBAttempts > MAX_NUM_FAILED_HB_ATTEMPTS) {
-        LOG.error("[" + taskId + "] Exceeded Failed Heart Beat send attempts.. going to die !!");
-        e.printStackTrace();
-        System.exit(-1);
-      } else {
-        LOG.warn("Will retry heartbeat..");
+    private Heartbeater() {
+      String hbMissStr = System.getenv(Constants.TEST_TASK_EXECUTOR_NUM_HB_MISS);
+      try {
+        int numMisses = Integer.parseInt(hbMissStr);
+        if (numMisses > 0) {
+          numHbToMiss = numMisses;
+        }
+      } catch (Exception e) {
+        numHbToMiss = 0;
       }
     }
+
+    @Override
+    public void run() {
+      try {
+        if (hbMissCounter == 0) {
+          LOG.debug("[" + taskId + "] Sending Ping !!");
+          proxy.taskExecutorHeartbeat(taskId);
+          numFailedHBAttempts = 0;
+          hbMissCounter = numHbToMiss;
+        } else {
+          LOG.debug("[" + taskId + "] Skipping heartbeat for Testing !!");
+          hbMissCounter--;
+        }
+      } catch (Exception e) {
+        LOG.error("[" + taskId + "] Failed to send Heart Beat.", e);
+        if (++numFailedHBAttempts > MAX_NUM_FAILED_HB_ATTEMPTS) {
+          LOG.error("[" + taskId + "] Exceeded Failed Heart Beat send attempts.. going to die !!");
+          e.printStackTrace();
+          System.exit(-1);
+        } else {
+          LOG.warn("Will retry heartbeat..");
+        }
+      }
+    }
   }
-}
 
   //region TonyDataFeed
 
@@ -289,7 +283,7 @@ private class Heartbeater implements Runnable {
     hdfsConf.addResource(new Path(
         System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
     return new HdfsAvroFileSplitReader(hdfsConf, readPaths, this.taskIndex,
-                                       this.numTasks, useRandomShuffle);
+        this.numTasks, useRandomShuffle);
   }
 
 
