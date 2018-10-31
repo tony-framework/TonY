@@ -377,19 +377,23 @@ public class Utils {
   }
 
   /**
-   * Copy a list of resources delimited by comma from hdfs to local directory.
-   * @param directory the directory whose contents will be localized.
+   * Add files inside a path to local resources. If the path is a directory, its first level files will be added
+   * to the local resources. Note that we don't add nested files.
+   * @param path the directory whose contents will be localized.
    * @param hdfsConf the configuration file for HDFS.
-   * @throws IOException exception thrown during file copies.
    */
-  public static void addResource(String directory,
+  public static void addResource(String path,
                                  Map<String, LocalResource> resourcesMap,
                                  Configuration hdfsConf) {
     try {
       FileSystem fs = FileSystem.get(hdfsConf);
-      if (directory != null) {
-        FileStatus[] ls = fs.listStatus(new Path(directory));
+      if (path != null) {
+        FileStatus[] ls = fs.listStatus(new Path(path));
         for (FileStatus jar : ls) {
+          // We only add first level files.
+          if (jar.isDirectory()) {
+            continue;
+          }
           LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
                                                              LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
                                                              jar.getLen(), jar.getModificationTime());
@@ -397,7 +401,7 @@ public class Utils {
         }
       }
     } catch (IOException exception) {
-      LOG.error("Failed to add " + directory + " to local resources.", exception);
+      LOG.error("Failed to add " + path + " to local resources.", exception);
     }
   }
 }
