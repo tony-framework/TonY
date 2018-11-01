@@ -60,8 +60,8 @@ public class HdfsUtils {
 
   static List<Path> getValidPaths(FileStatus[] lsJobDir, Predicate<FileStatus> fn) {
     return Arrays.stream(lsJobDir)
-        .filter(fileStatus -> fn.test(fileStatus))
-        .map(fileStatus -> fileStatus.getPath())
+        .filter(fn)
+        .map(FileStatus::getPath)
         .collect(Collectors.toList());
   }
 
@@ -76,10 +76,10 @@ public class HdfsUtils {
     }
 
     LOG.debug("lsHist size: " + lsHist.length);
-    paths = Arrays.stream(lsHist).filter(fileStatus -> fileStatus.isDirectory()).map((item) -> {
+    paths = Arrays.stream(lsHist).filter(FileStatus::isDirectory).map((item) -> {
       try {
         return getValidPaths(fs.listStatus(new Path(item.getPath().toString())),
-            fileStatus -> fileStatus.getPath().toString().contains(fileType));
+            fileStatus -> fileStatus.getPath().toString().endsWith(fileType));
       } catch (Exception e) {
         LOG.error("Failed scanning " + item.getPath().toString(), e);
         return new ArrayList<Path>();
@@ -103,6 +103,6 @@ public class HdfsUtils {
       return paths;
     }
 
-    return getValidPaths(lsJobDir, fileStatus -> fileStatus.getPath().toString().contains(fileType));
+    return getValidPaths(lsJobDir, fileStatus -> fileStatus.getPath().toString().endsWith(fileType));
   }
 }
