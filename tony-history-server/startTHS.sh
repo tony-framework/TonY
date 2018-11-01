@@ -1,6 +1,6 @@
-#!/usr/bin/env sh
+#!/usr/bin/bash
 ###########################################################################################################
-# NAME: startTHS
+# NAME: startTHS.sh
 #
 # DESCRIPTION:
 # This is a modified version of the `playBinary` script that was generated after `gradle dist`.
@@ -30,6 +30,7 @@
 #
 # CHANGELOG:
 # OCT 30 2018 PHAT TRAN
+# OCT 31 2018 PHAT TRAN - Updated APP_NAME constant
 ############################################################################################################
 PRG="$0"
 
@@ -48,7 +49,7 @@ cd "`dirname \"$PRG\"`/.." >/dev/null
 APP_HOME="`pwd -P`"
 cd "$SAVED" >/dev/null
 
-APP_NAME="playBinary"
+APP_NAME="tony-history-server"
 APP_BASE_NAME=`basename "$0"`
 
 # Use the maximum available, or set MAX_FD != -1 to use that value.
