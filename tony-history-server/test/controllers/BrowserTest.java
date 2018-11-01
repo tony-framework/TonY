@@ -1,5 +1,6 @@
 package controllers;
 
+import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 import play.Application;
 import play.test.Helpers;
@@ -13,7 +14,7 @@ import static play.test.Helpers.*;
 public class BrowserTest extends WithBrowser {
 
   protected Application provideApplication() {
-    return fakeApplication(inMemoryDatabase());
+    return fakeApplication(ImmutableMap.of("tony.historyFolder", "/dummy/folder/"));
   }
 
   protected TestBrowser provideBrowser(int port) {
