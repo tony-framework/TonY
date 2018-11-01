@@ -19,7 +19,7 @@
 # NOTES: This script should only be run when it's in the distribution zip/tar.
 # Examples: after `gradle dist` from root, unzip the zip/tar in $root/build/distributions, then run:
 # ```
-# $ $root/build/distributions/startTHS -Dhttp.port=8080 -Dconfig.resource=prod.conf
+# $ <tony-root>/build/distributions/startTHS -Dhttp.port=8080 -Dconfig.resource=prod.conf
 # ```
 # This will set the port to 8080, and Play will use `conf/prod.conf` instead of the default
 # `application.conf`. For more details, please see
