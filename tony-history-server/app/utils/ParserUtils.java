@@ -2,17 +2,12 @@ package utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonSyntaxException;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import models.JobConfig;
 import models.JobMetadata;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -54,7 +49,7 @@ public class ParserUtils {
     jobMetadata.setCompleted(jObj.get("completed").textValue());
     jobMetadata.setStatus(jObj.get("status").textValue());
     jobMetadata.setUser(jObj.get("user").textValue());
-    LOG.info("Successfully parsed metadata");
+    LOG.debug("Successfully parsed metadata");
     return jobMetadata;
   }
 
@@ -88,7 +83,7 @@ public class ParserUtils {
       LOG.error("Couldn't parse config", e);
       return new ArrayList<>();
     }
-    LOG.info("Successfully parsed config");
+    LOG.debug("Successfully parsed config");
     return configs;
   }
 }
