@@ -18,14 +18,13 @@ model {
   distributions {
     playBinary {
       contents {
-        from("startTHS") {
+        from("startTHS.sh") {
           into "bin"
         }
       }
       baseName = project.name
     }
   }
-
 }
 
 dependencies {
