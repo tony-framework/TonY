@@ -1,4 +1,4 @@
-package security;
+package utils;
 
 import com.typesafe.config.Config;
 import org.apache.hadoop.fs.FileSystem;
@@ -15,8 +15,8 @@ import play.Logger;
 /**
  * The class handles authentication when cluster is security enabled
  */
-public class Security {
-  private static final Logger.ALogger LOG = Logger.of(Security.class);
+public class SecurityUtils {
+  private static final Logger.ALogger LOG = Logger.of(SecurityUtils.class);
   private static Config appConf;
   private static FileSystem fs;
 
@@ -24,19 +24,19 @@ public class Security {
   private static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   private static final String HDFS_SITE_CONF = "hdfs-site.xml";
 
-  private static Security instance = null;
+  private static SecurityUtils instance = null;
 
-  public static Security getInstance(Config conf) {
+  public static SecurityUtils getInstance(Config conf) {
     if (instance == null) {
-      instance = new Security(conf);
+      instance = new SecurityUtils(conf);
     }
 
     return instance;
   }
 
-  private Security(Config appConf) {
+  private SecurityUtils(Config appConf) {
     HdfsConfiguration hdfsConf = setUpHdfsConf();
-    Security.appConf = appConf;
+    SecurityUtils.appConf = appConf;
     setUpKeytab(hdfsConf);
     fs = getFileSystem(hdfsConf);
   }
