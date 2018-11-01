@@ -11,10 +11,10 @@ import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
+import utils.SecurityUtils;
 
 import static utils.HdfsUtils.*;
 import static utils.ParserUtils.*;
-import static utils.SecurityUtils.*;
 
 
 public class JobsMetadataPageController extends Controller {
@@ -24,16 +24,28 @@ public class JobsMetadataPageController extends Controller {
   @Inject
   public JobsMetadataPageController(Config config) {
     this.config = config;
-    getInstance(config);
+    SecurityUtils.getInstance(config);
   }
 
   public Result index() {
-    FileSystem myFs = getFs();
+    FileSystem myFs;
+
+    try {
+      myFs = SecurityUtils.getInitializedFs();
+    } catch (Exception e) {
+      return internalServerError("Failed to initialize file system", e.toString());
+    }
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
     String tonyHistoryFolder = config.getString("tony.historyFolder");
+    JobMetadata tmpMetadata;
 
     for (Path f : getFilePathsFromAllJobs(myFs, tonyHistoryFolder, "json")) {
+      tmpMetadata = parseMetadata(myFs, f);
+      if (tmpMetadata == null) {
+        LOG.error("Couldn't parse " + f.toString());
+        continue;
+      }
       listOfMetadata.add(parseMetadata(myFs, f));
     }
 
