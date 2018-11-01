@@ -47,17 +47,6 @@ public class HdfsUtils {
     }
   }
 
-  static String copyFromHdfs(FileSystem fs, Path hdfsFilePath) {
-    String localFileName = "config.xml";
-    try (FSDataInputStream inStrm = fs.open(hdfsFilePath); FileWriter fw = new FileWriter(localFileName)) {
-      IOUtils.copy(new InputStreamReader(inStrm), fw);
-    } catch (IOException e) {
-      LOG.error("Couldn't copy from file from HDFS", e);
-      return "";
-    }
-    return localFileName;
-  }
-
   static List<Path> getValidPaths(FileStatus[] lsJobDir, Predicate<FileStatus> fn) {
     return Arrays.stream(lsJobDir)
         .filter(fn)

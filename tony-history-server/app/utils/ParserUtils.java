@@ -3,12 +3,17 @@ package utils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonSyntaxException;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import models.JobConfig;
 import models.JobMetadata;
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.w3c.dom.Document;
@@ -20,18 +25,19 @@ import play.libs.Json;
 
 import static utils.HdfsUtils.*;
 
+
 /**
  * The class handles parsing different file format
  */
 public class ParserUtils {
   private static final Logger.ALogger LOG = Logger.of(ParserUtils.class);
 
-  public static JobMetadata parseMetadata(FileSystem fs, Path metricsFilePath) {
-    if (!isPathValid(fs, metricsFilePath)) {
+  public static JobMetadata parseMetadata(FileSystem fs, Path metadataFilePath) {
+    if (!isPathValid(fs, metadataFilePath)) {
       return new JobMetadata();
     }
 
-    String fileContent = contentOfHdfsFile(fs, metricsFilePath);
+    String fileContent = contentOfHdfsFile(fs, metadataFilePath);
     JobMetadata jobMetadata = new JobMetadata();
     JsonNode jObj;
     try {
@@ -45,6 +51,9 @@ public class ParserUtils {
     jobMetadata.setConfigLink("/jobs/" + jobMetadata.getId());
     jobMetadata.setStarted(jObj.get("started").textValue());
     jobMetadata.setCompleted(jObj.get("completed").textValue());
+    jobMetadata.setCompleted(jObj.get("completed").textValue());
+    jobMetadata.setStatus(jObj.get("status").textValue());
+    jobMetadata.setUser(jObj.get("user").textValue());
     LOG.info("Successfully parsed metadata");
     return jobMetadata;
   }
@@ -53,14 +62,12 @@ public class ParserUtils {
     if (!isPathValid(fs, configFilePath)) {
       return new ArrayList<>();
     }
-
-    File configFile = new File(copyFromHdfs(fs, configFilePath));
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     List<JobConfig> configs = new ArrayList<>();
 
-    try {
+    try (FSDataInputStream inStrm = fs.open(configFilePath)) {
       DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-      Document doc = dBuilder.parse(configFile);
+      Document doc = dBuilder.parse(inStrm);
       doc.getDocumentElement().normalize();
 
       NodeList properties = doc.getElementsByTagName("property");
@@ -79,8 +86,7 @@ public class ParserUtils {
       }
     } catch (Exception e) {
       LOG.error("Couldn't parse config", e);
-    } finally {
-      configFile.delete();
+      return new ArrayList<>();
     }
     LOG.info("Successfully parsed config");
     return configs;
