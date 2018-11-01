@@ -6,6 +6,8 @@
     <th>Configuration</th>
     <th>Started</th>
     <th>Completed</th>
+    <th>User</th>
+    <th>Status</th>
   </tr>
   @for(s <- metricsList) {
     <tr>
@@ -17,6 +19,8 @@
       </td>
       <td>@s.getStarted</td>
       <td>@s.getCompleted</td>
+      <td>@s.getUser</td>
+      <td>@s.getStatus</td>
     </tr>
   }
 </table>
