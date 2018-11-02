@@ -46,7 +46,7 @@ public class JobsMetadataPageController extends Controller {
         LOG.error("Couldn't parse " + f.toString());
         continue;
       }
-      listOfMetadata.add(parseMetadata(myFs, f));
+      listOfMetadata.add(tmpMetadata);
     }
 
     return ok(views.html.metadata.render(listOfMetadata));
