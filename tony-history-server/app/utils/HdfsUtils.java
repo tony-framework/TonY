@@ -94,4 +94,6 @@ public class HdfsUtils {
 
     return getValidPaths(lsJobDir, fileStatus -> fileStatus.getPath().toString().endsWith(fileType));
   }
+
+  private HdfsUtils() {}
 }

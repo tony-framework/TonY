@@ -82,4 +82,6 @@ public class SecurityUtils {
     }
     return fs;
   }
+
+  private SecurityUtils() {}
 }

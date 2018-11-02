@@ -86,4 +86,6 @@ public class ParserUtils {
     LOG.debug("Successfully parsed config");
     return configs;
   }
+
+  private ParserUtils() {}
 }
