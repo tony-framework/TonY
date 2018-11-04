@@ -2,10 +2,12 @@ package utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonSyntaxException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import models.JobConfig;
 import models.JobMetadata;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -15,6 +17,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 import play.Logger;
 import play.libs.Json;
 
@@ -79,8 +82,14 @@ public class ParserUtils {
           configs.add(jobConf);
         }
       }
-    } catch (Exception e) {
-      LOG.error("Couldn't parse config", e);
+    } catch (SAXException e) {
+      LOG.error("Failed to parse config file", e);
+      return new ArrayList<>();
+    } catch (ParserConfigurationException e) {
+      LOG.error("Failed to init XML parser", e);
+      return new ArrayList<>();
+    } catch (IOException e) {
+      LOG.error("Failed to read config file", e);
       return new ArrayList<>();
     }
     LOG.debug("Successfully parsed config");

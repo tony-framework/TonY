@@ -1,6 +1,7 @@
 package utils;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -59,8 +60,11 @@ public class HdfsUtils {
     FileStatus[] lsHist;
     try {
       lsHist = fs.listStatus(new Path(histFolder));
-    } catch (Exception e) {
-      LOG.error("Failed scanning " + histFolder, e);
+    } catch (FileNotFoundException e) {
+      LOG.error("Failed to locate history folder", e);
+      return paths;
+    } catch (IOException e) {
+      LOG.error("Failed to scan history folder", e);
       return paths;
     }
 
@@ -69,8 +73,11 @@ public class HdfsUtils {
       try {
         return getValidPaths(fs.listStatus(new Path(item.getPath().toString())),
             fileStatus -> fileStatus.getPath().toString().endsWith(fileType));
-      } catch (Exception e) {
-        LOG.error("Failed scanning " + item.getPath().toString(), e);
+      } catch (FileNotFoundException e) {
+        LOG.error("Failed to locate history folder", e);
+        return new ArrayList<Path>();
+      } catch (IOException e) {
+        LOG.error("Failed to scan history folder", e);
         return new ArrayList<Path>();
       }
     }).flatMap(List::stream).collect(Collectors.toList());
@@ -87,8 +94,11 @@ public class HdfsUtils {
 
     try {
       lsJobDir = fs.listStatus(new Path(jobDirSb.toString()));
-    } catch (Exception e) {
-      LOG.error("Failed scanning " + jobDirSb.toString());
+    } catch (FileNotFoundException e) {
+      LOG.error("Failed to locate history folder", e);
+      return paths;
+    } catch (IOException e) {
+      LOG.error("Failed to scan history folder", e);
       return paths;
     }
 
