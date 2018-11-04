@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 import static play.mvc.Http.Status.*;
 
 
-public class JobsConfigPageControllerTest extends WithApplication {
+public class JobConfigPageControllerTest extends WithApplication {
 
   @Override
   protected Application provideApplication() {

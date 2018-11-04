@@ -16,12 +16,12 @@ import static utils.HdfsUtils.*;
 import static utils.ParserUtils.*;
 import utils.SecurityUtils;
 
-public class JobsConfigPageController extends Controller {
-  private static final ALogger LOG = Logger.of(JobsConfigPageController.class);
+public class JobConfigPageController extends Controller {
+  private static final ALogger LOG = Logger.of(JobConfigPageController.class);
   private final Config config;
 
   @Inject
-  public JobsConfigPageController(Config config) {
+  public JobConfigPageController(Config config) {
     this.config = config;
     SecurityUtils.getInstance(config);
   }
