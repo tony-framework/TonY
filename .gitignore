@@ -11,6 +11,7 @@
 *.suo
 *.swp
 *.vcxproj.user
+*.xml
 *.zip
 */bin
 .DS_Store
