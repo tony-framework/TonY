@@ -11,7 +11,7 @@ import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
-import utils.SecurityUtils;
+import security.HadoopSecurity;
 
 import static utils.HdfsUtils.*;
 import static utils.ParserUtils.*;
@@ -20,18 +20,19 @@ import static utils.ParserUtils.*;
 public class JobsMetadataPageController extends Controller {
   private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private final Config config;
+  private HadoopSecurity hadoopSec;
 
   @Inject
   public JobsMetadataPageController(Config config) {
     this.config = config;
-    SecurityUtils.getInstance(config);
+    hadoopSec = HadoopSecurity.getInstance(config);
   }
 
   public Result index() {
     FileSystem myFs;
 
     try {
-      myFs = SecurityUtils.getInitializedFs();
+      myFs = hadoopSec.getInitializedFs();
     } catch (Exception e) {
       return internalServerError("Failed to initialize file system", e.toString());
     }

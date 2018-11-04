@@ -1,4 +1,4 @@
-package utils;
+package security;
 
 import com.typesafe.config.Config;
 import org.apache.hadoop.fs.FileSystem;
@@ -15,8 +15,8 @@ import play.Logger;
 /**
  * The class handles authentication when cluster is security enabled
  */
-public class SecurityUtils {
-  private static final Logger.ALogger LOG = Logger.of(SecurityUtils.class);
+public class HadoopSecurity {
+  private static final Logger.ALogger LOG = Logger.of(HadoopSecurity.class);
   private static Config appConf;
   private static FileSystem fs;
 
@@ -24,19 +24,19 @@ public class SecurityUtils {
   private static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   private static final String HDFS_SITE_CONF = "hdfs-site.xml";
 
-  private static SecurityUtils instance = null;
+  private static HadoopSecurity instance = null;
 
-  public static SecurityUtils getInstance(Config conf) {
+  public static HadoopSecurity getInstance(Config conf) {
     if (instance == null) {
-      instance = new SecurityUtils(conf);
+      instance = new HadoopSecurity(conf);
     }
 
     return instance;
   }
 
-  private SecurityUtils(Config appConf) {
+  private HadoopSecurity(Config appConf) {
     HdfsConfiguration hdfsConf = setUpHdfsConf();
-    SecurityUtils.appConf = appConf;
+    HadoopSecurity.appConf = appConf;
     setUpKeytab(hdfsConf);
     fs = getFileSystem(hdfsConf);
   }
@@ -76,12 +76,10 @@ public class SecurityUtils {
     return null;
   }
 
-  public static FileSystem getInitializedFs() throws Exception {
+  public FileSystem getInitializedFs() throws Exception {
     if (fs == null) {
       throw new Exception("HDFS file system isn't initialized.");
     }
     return fs;
   }
-
-  private SecurityUtils() {}
 }

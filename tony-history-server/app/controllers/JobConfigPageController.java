@@ -14,16 +14,17 @@ import play.mvc.Result;
 
 import static utils.HdfsUtils.*;
 import static utils.ParserUtils.*;
-import utils.SecurityUtils;
+import security.HadoopSecurity;
 
 public class JobConfigPageController extends Controller {
   private static final ALogger LOG = Logger.of(JobConfigPageController.class);
   private final Config config;
+  private HadoopSecurity hadoopSec;
 
   @Inject
   public JobConfigPageController(Config config) {
     this.config = config;
-    SecurityUtils.getInstance(config);
+    hadoopSec = HadoopSecurity.getInstance(config);
   }
 
   public Result index(String jobId) {
@@ -31,7 +32,7 @@ public class JobConfigPageController extends Controller {
     FileSystem myFs;
 
     try {
-      myFs = SecurityUtils.getInitializedFs();
+      myFs = hadoopSec.getInitializedFs();
     } catch (Exception e) {
       return internalServerError("Failed to initialize file system", e.toString());
     }
