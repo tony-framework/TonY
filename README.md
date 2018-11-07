@@ -144,6 +144,7 @@ Then you can launch your job:
                 -python_binary_path Python/bin/python \  # Path to the Python binary inside the my-venv.zip
                 -src_dir src
 
+### TonY arguments
 The command line arguments are as follows:
 
 | Name               | Required? | Example                                           | Meaning                                                                                                                                                                                                           |
@@ -157,7 +158,7 @@ The command line arguments are as follows:
 | conf_file          | no        | --conf_file tony-local.xml                        | Location of a TonY configuration file.                                                                                                                                                                            |
 | conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line
 
-#### TonY configurations
+### TonY configurations
 
 There are multiple ways to specify configurations for your TonY job. As above, you can create an XML file called `tony.xml`
 and add its parent directory to your java classpath.
@@ -169,9 +170,9 @@ If you wish to override configurations from your configuration file via command 
 
 Finally, please check `tony-default.xml` or the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for default values of each TonY configuration.
 
-#### TonY Examples
-1. [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
-2. [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
+### TonY Examples
+- [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
+- [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
 
 ## FAQ
 
