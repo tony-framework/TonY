@@ -50,12 +50,6 @@ public class TonyConfigurationKeys {
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
-  public static final String TASK_REGISTRATION_TIMEOUT_SEC = TONY_TASK_PREFIX + "registration-timeout-sec";
-  public static final int DEFAULT_TASK_REGISTRATION_TIMEOUT_SEC = 300;
-
-  public static final String TASK_REGISTRATION_RETRY_COUNT = TONY_TASK_PREFIX + "registration-retry-count";
-  public static final int DEFAULT_TASK_REGISTRATION_RETRY_COUNT = 0;
-
   public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval";
   public static final int DEFAULT_TASK_HEARTBEAT_INTERVAL_MS = 1000;
 
