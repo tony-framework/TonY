@@ -8,7 +8,7 @@ machine learning jobs reliably and flexibly.
 
 ## Compatibility Notes
 
-It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with Hadoop 2.7 and above. However, if you want to use TonY with docker, you need [Hadoop 2.9.1](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) or higher and if you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
+It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with Hadoop 2.9.1 and above. If you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
 
 ## Build
 
@@ -26,11 +26,11 @@ The jar required to run TonY will be located in `./tony-cli/build/libs/`.
 ## Usage
 
 TonY is a Java library, so it is as simple as running a Java program. There are two ways to launch your deep learning jobs with TonY:
-- Use docker container.
+- Use Docker container.
 - Use a zipped Python Virtual Environment.
 
-### Use a docker container
-Note that this requires you have a properly configured Hadoop 2.9.1 and above cluster with docker support. Check this [documentation](https://hadoop.apache.org/docs/r2.9.1/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) if you are unsure how to set it up. Assuming you have properly set up your Hadoop cluster with Docker container runtime, you should have already built a proper docker image with required Hadoop configurations. The next thing you need is to install your Python dependencies inside your docker image - TensorFlow or PyTorch.
+### Use a Docker container
+Note that this requires you have a properly configured Hadoop cluster with Docker support. Check this [documentation](https://hadoop.apache.org/docs/r2.9.1/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) if you are unsure how to set it up. Assuming you have properly set up your Hadoop cluster with Docker container runtime, you should have already built a proper Docker image with required Hadoop configurations. The next thing you need is to install your Python dependencies inside your Docker image - TensorFlow or PyTorch.
 
 Below is a folder structure of what you need to launch the job:
 
@@ -40,7 +40,7 @@ Below is a folder structure of what you need to launch the job:
       tony.xml
       tony-cli-0.1.5-all.jar
 
-The `src/` folder would contain all your training script. The `tony.xml` is used to config your training job. Specifically for using docker as the container runtime, your configuration should be similar to something below:
+The `src/` folder would contain all your training script. The `tony.xml` is used to config your training job. Specifically for using Docker as the container runtime, your configuration should be similar to something below:
 
     $ cat MyJob/tony.xml
     <configuration>
@@ -83,11 +83,11 @@ Now you're ready to launch your job:
 
 ### Use a zipped Python Virtual Environment
 
-The difference between this approach and the one with docker is
-- You don't need to set up your Hadoop cluster with docker support.
-- There is no requirement on docker image registry.
+The difference between this approach and the one with Docker is
+- You don't need to set up your Hadoop cluster with Docker support.
+- There is no requirement on Docker image registry.
 
-As you know, nothing comes for free. If you don't want to bother setting your cluster with docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the computer which builds the virtual environment.
+As you know, nothing comes for free. If you don't want to bother setting your cluster with Docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the computer which builds the virtual environment.
 
 #### Python virtual environment in a zip
 
@@ -112,7 +112,7 @@ As you know, nothing comes for free. If you don't want to bother setting your cl
       tony-cli-0.1.5-all.jar
       my-venv.zip # The additional file you need.
 
-A similar `tony.xml` but without docker related configurations:
+A similar `tony.xml` but without Docker related configurations:
 
     $ cat tony/tony.xml
     <configuration>
