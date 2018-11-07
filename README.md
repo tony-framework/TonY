@@ -168,7 +168,7 @@ containing your configurations. (As before, the parent directory of this file mu
 
 If you wish to override configurations from your configuration file via command line, you can do so by passing `-conf <tony.conf.key>=<tony.conf.value>` argument pairs on the command line.
 
-Finally, please check `tony-default.xml` or the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for default values of each TonY configuration.
+Finally, please check our [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for default values of each TonY configuration.
 
 ### TonY Examples
 - [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
