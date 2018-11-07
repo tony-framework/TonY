@@ -144,7 +144,7 @@ Then you can launch your job:
                 -python_binary_path Python/bin/python \  # Path to the Python binary inside the my-venv.zip
                 -src_dir src
 
-### TonY arguments
+## TonY arguments
 The command line arguments are as follows:
 
 | Name               | Required? | Example                                           | Meaning                                                                                                                                                                                                           |
@@ -158,7 +158,7 @@ The command line arguments are as follows:
 | conf_file          | no        | --conf_file tony-local.xml                        | Location of a TonY configuration file.                                                                                                                                                                            |
 | conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line
 
-### TonY configurations
+## TonY configurations
 
 There are multiple ways to specify configurations for your TonY job. As above, you can create an XML file called `tony.xml`
 and add its parent directory to your java classpath.
@@ -168,9 +168,11 @@ containing your configurations. (As before, the parent directory of this file mu
 
 If you wish to override configurations from your configuration file via command line, you can do so by passing `-conf <tony.conf.key>=<tony.conf.value>` argument pairs on the command line.
 
-Finally, please check our [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for all TonY configurations and their default values.
+Please check our [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for all TonY configurations and their default values.
 
-### TonY Examples
+## TonY Examples
+
+Below are examples to run distributed deep learning jobs with TonY:
 - [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
 - [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
 
