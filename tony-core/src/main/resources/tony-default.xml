@@ -174,7 +174,7 @@
   <!-- Docker configurations -->
   <property>
     <description>Whether we use docker container to launch the tasks</description>
-    <name>tony.docker.enabled</name>
+    <name>tony.application.docker.enabled</name>
     <value>false</value>
   </property>
 
