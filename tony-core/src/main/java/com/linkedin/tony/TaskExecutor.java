@@ -204,7 +204,7 @@ public class TaskExecutor {
              + InetAddress.getLocalHost().getHostName() + ":" + rpcPort);
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
-            InetAddress.getLocalHost().getHostName() + ":" + rpcPort), 3, 120);
+            InetAddress.getLocalHost().getHostName() + ":" + rpcPort), 3, 0);
   }
 
   private void registerTensorBoardUrl() throws Exception {

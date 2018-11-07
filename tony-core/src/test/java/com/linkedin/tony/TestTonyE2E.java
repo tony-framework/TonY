@@ -179,54 +179,6 @@ public class TestTonyE2E {
   }
 
   /**
-   * The ps and workers should hang on the first attempt, and after 20 seconds, the AM should release the containers and
-   * reschedule them in new containers.
-   */
-  @Test(enabled = false)
-  public void testAMRequestsNewContainersAfterTimeout() {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    conf.setInt(TonyConfigurationKeys.getInstancesKey("ps"), 2);
-    conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
-    conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_TIMEOUT_SEC, 20);
-    conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_RETRY_COUNT, 1);
-    int exitCode = TonyClient.start(new String[]{
-        "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0.py",
-        "--hdfs_classpath", "/yarn/libs",
-        "--python_binary_path", "python",
-        "--container_env", Constants.TEST_TASK_EXECUTOR_HANG + "=true",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
-    }, conf);
-    Assert.assertEquals(exitCode, 0);
-  }
-
-  /**
-   * Tests that the AM will stop the job after a timeout period if the tasks have not registered yet (which suggests
-   * they are stuck).
-   */
-  @Test
-  public void testAMStopsJobAfterTimeout() {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_TIMEOUT_SEC, 5);
-    conf.setInt(TonyConfigurationKeys.TASK_REGISTRATION_RETRY_COUNT, 0);
-    int exitCode = TonyClient.start(new String[]{
-        "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0.py",
-        "--hdfs_classpath", "/yarn/libs",
-        "--python_binary_path", "python",
-        "--container_env", Constants.TEST_TASK_EXECUTOR_HANG + "=true",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
-    }, conf);
-    Assert.assertEquals(exitCode, -1);
-  }
-
-  /**
    * Test that makes sure if a worker is killed due to OOM, AM should stop the training (or retry).
    * This test might hang if there is a regression in handling the OOM scenario.
    *
