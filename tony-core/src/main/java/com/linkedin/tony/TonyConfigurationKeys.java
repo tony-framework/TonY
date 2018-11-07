@@ -114,6 +114,13 @@ public class TonyConfigurationKeys {
   public static final String CHIEF_INDEX = CHIEF_PREFIX + "index";
   public static final String DEFAULT_CHIEF_INDEX = "0";
 
+  // Tony with docker configuration
+  public static final String DOCKER_PREFIX = TONY_APPLICATION_PREFIX + "docker.";
+  public static final String DOCKER_ENABLED = DOCKER_PREFIX + "enabled";
+  public static final boolean DEFAULT_DOCKER_ENABLED = false;
+
+  public static final String DOCKER_IMAGE = DOCKER_PREFIX + "image";
+
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";
   public static final boolean DEFAULT_SECURITY_ENABLED = true;
