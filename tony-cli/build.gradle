@@ -9,7 +9,9 @@ dependencies {
 shadowJar {
   mergeServiceFiles()
   dependencies {
-    exclude(dependency('org.apache.hadoop::.*'))
+    exclude(dependency('com.sun.jersey:'))
+    exclude(dependency('com.sun.jersey.contribs:'))
+    exclude(dependency('org.apache.hadoop:'))
   }
 }
 
