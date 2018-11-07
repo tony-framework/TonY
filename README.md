@@ -6,37 +6,113 @@ TonY enables running either single node or distributed
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
 machine learning jobs reliably and flexibly.
 
+## Compatibility Notes
+
+It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with Hadoop 2.7 and above. However, if you want to use TonY with docker, you need [Hadoop 2.9.1](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) or higher and if you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
+
 ## Build
+
+### How to build
 TonY is built using [Gradle](https://github.com/gradle/gradle). To build TonY, run:
 
     ./gradlew build
 
+This will automatically run tests, if want to build without running tests, run:
+
+    ./gradlew build -x test
+
 The jar required to run TonY will be located in `./tony-cli/build/libs/`.
 
 ## Usage
-TonY is a library, so it is as simple as running a java program. First, copy your artifacts to the machine with Hadoop installed, where you plan on running TonY from. This includes:
+
+TonY is a Java library, so it is as simple as running a Java program. There are two ways to launch your deep learning jobs with TonY:
+- Use docker container.
+- Use a zipped Python Virtual Environment.
+
+### Use a docker container
+Note that this requires you have a properly configured Hadoop 2.9.1+ cluster with docker support. Check this [documentation](https://hadoop.apache.org/docs/r2.9.1/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) if you are unsure how to set it up. Assuming you have properly set up your Hadoop cluster with Docker container runtime, you should have already built a proper docker image with required Hadoop configurations. The next thing you need is to install your Python dependencies inside your docker image - TensorFlow or PyTorch.
+
+This would be a sample of folder structure:
+
+    MyJob/
+      > src/
+        mnist_distributed.py
+      tony.xml
+      tony-cli-0.1.5-all.jar
+
+The `src/` folder would contain all your training script. The `tony.xml` is used to config your training job. Specifically for using docker as the container runtime, your configuration should be similar to something below:
+
+    $ cat MyJob/tony.xml
+    <configuration>
+      <property>
+        <name>tony.worker.instances</name>
+        <value>4</value>
+      </property>
+      <property>
+        <name>tony.worker.memory</name>
+        <value>4g</value>
+      </property>
+      <property>
+        <name>tony.worker.gpus</name>
+        <value>1</value>
+      </property>
+      <property>
+        <name>tony.ps.memory</name>
+        <value>3g</value>
+      </property>
+      <property>
+        <name>tony.application.docker.enabled</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>tony.application.docker.image</name>
+        <value>YOUR_DOCKER_IMAGE_NAME</value>
+      </property>
+    </configuration>
+
+For a full list of configurations, please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations).
+
+Now you're ready to launch your job:
+
+    $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob/" \
+            com.linkedin.tony.cli.ClusterSubmitter \
+            -executes src/models/mnist_distributed.py \
+            -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output' \
+            -src_dir src \
+            -python_binary_path /home/user_name/python_virtual_env/bin/python
+
+### Use a zipped Python Virtual Environment
+
+The difference between this approach and the one with docker is
+- You don't need to set up your Hadoop cluster with docker support.
+- There is no requirement on docker image registry.
+
+As you know, nothing comes for free. If you don't want to bother setting your cluster with docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the desktop which builds the virtual environment.
 
 #### Python virtual environment in a zip
 
     $ unzip -Z1 my-venv.zip | head -n 10
-    Python/
-    Python/bin/
-    Python/bin/rst2xml.py
-    Python/bin/wheel
-    Python/bin/rst2html5.py
-    Python/bin/rst2odt.py
-    Python/bin/rst2s5.py
-    Python/bin/pip2.7
-    Python/bin/saved_model_cli
-    Python/bin/rst2pseudoxml.pyc
+      Python/
+      Python/bin/
+      Python/bin/rst2xml.py
+      Python/bin/wheel
+      Python/bin/rst2html5.py
+      Python/bin/rst2odt.py
+      Python/bin/rst2s5.py
+      Python/bin/pip2.7
+      Python/bin/saved_model_cli
+      Python/bin/rst2pseudoxml.pyc
 
 #### TonY jar and tony.xml
 
-    $ ls tony/
-      tony-cli-0.1.0-SNAPSHOT-all.jar  tony.xml
+    MyJob/
+      > src/
+        mnist_distributed.py
+      tony.xml
+      tony-cli-0.1.5-all.jar
+      my-venv.zip # The additional file you need.
 
-In the `tony` directory there’s also a `tony.xml` which contains all of your TonY job configurations.
-For example:
+A similar `tony.xml` but without docker related configurations:
 
     $ cat tony/tony.xml
     <configuration>
@@ -58,24 +134,15 @@ For example:
       </property>
     </configuration>
 
-For a full list of configurations, please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations).
-
-#### Model code
-
-    $ ls src/models/ | grep mnist_distributed
-      mnist_distributed.py
-
-
 Then you can launch your job:
 
-    $ java -cp "`hadoop classpath --glob`:tony/*:tony" \
+    $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob" \
                 com.linkedin.tony.cli.ClusterSubmitter \
                 -executes src/models/mnist_distributed.py \
-                -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output --steps 2500 --batch_size 64' \
+                -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output \
                 -python_venv my-venv.zip \
-                -python_binary_path Python/bin/python \
-                -src_dir src \
-                -shell_env LD_LIBRARY_PATH=/usr/java/latest/jre/lib/amd64/server
+                -python_binary_path Python/bin/python \  # Path to the Python binary inside the my-venv.zip
+                -src_dir src
 
 The command line arguments are as follows:
 
@@ -101,35 +168,6 @@ containing your configurations. (As before, the parent directory of this file mu
 If you wish to override configurations from your configuration file via command line, you can do so by passing `-conf <tony.conf.key>=<tony.conf.value>` argument pairs on the command line.
 
 Finally, please check `tony-default.xml` or the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations) for default values of each TonY configuration.
-
-Here is a full example of configuring your TonY application:
-
-    $ cat tony/tony.xml
-    <configuration>
-      <property>
-        <name>tony.worker.instances</name>
-        <value>4</value>
-      </property>
-      <property>
-        <name>tony.worker.memory</name>
-        <value>4g</value>
-      </property>
-      <property>
-        <name>tony.worker.gpus</name>
-        <value>1</value>
-      </property>
-    </configuration>
-
-    $ java -cp "`hadoop classpath --glob`:tony/*:tony" com.linkedin.tony.cli.ClusterSubmitter \
-                -task_params '--data_dir hdfs://default/data/mnist --working_dir hdfs://default/mnist/working_dir --steps 2500 --batch_size 64' \
-                -python_binary_path Python/bin/python \
-                -python_venv my-venv.zip \
-                -executes src/mnist_distributed.py \
-                -shell_env LD_LIBRARY_PATH=/usr/java/latest/jre/lib/amd64/server \
-                -conf tony.ps.instances=2 \
-                -conf tony.worker.instances=2
-
-CLI configurations have highest priority, so we will get 2 ps instances and 2 worker instances. Then the XML file takes next priority so each worker will get 4g memory and 1 GPU. Finally every other configuration will be default value, e.g. each ps will get 2g memory.
 
 #### TonY Examples
 1. [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
