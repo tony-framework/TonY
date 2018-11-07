@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -24,6 +25,12 @@ import play.Logger;
 public class HdfsUtils {
   private static final Logger.ALogger LOG = Logger.of(HdfsUtils.class);
 
+  /**
+   * Check to see if a HDFS path is valid.
+   * @param fs FileSystem object.
+   * @param filePath path of file to validate.
+   * @return true if path is valid, false otherwise.
+   */
   static boolean isPathValid(FileSystem fs, Path filePath) {
     try {
       return fs.exists(filePath);
@@ -33,6 +40,12 @@ public class HdfsUtils {
     }
   }
 
+  /**
+   * Retrieve the content of the file on HDFS.
+   * @param fs FileSystem object.
+   * @param filePath path of file to read from.
+   * @return the content of the file, or empty string if errors occur during read.
+   */
   static String contentOfHdfsFile(FileSystem fs, Path filePath) {
     StringBuilder fileContent = new StringBuilder();
     try (FSDataInputStream inStrm = fs.open(filePath);
@@ -48,6 +61,12 @@ public class HdfsUtils {
     }
   }
 
+  /**
+   * Return all paths that satisfy the <code>fn</code> predicate.
+   * @param lsJobDir array of FileStatus objects.
+   * @param fn a predicate (lambda) that is used to filter <code>lsJobDir</code>
+   * @return A list of Path objects that satisfy the <code>fn</code> condition.
+   */
   static List<Path> getValidPaths(FileStatus[] lsJobDir, Predicate<FileStatus> fn) {
     return Arrays.stream(lsJobDir)
         .filter(fn)
@@ -55,6 +74,13 @@ public class HdfsUtils {
         .collect(Collectors.toList());
   }
 
+  /**
+   * List all file paths with a specific file type from all jobs directories.
+   * @param fs FileSystem object.
+   * @param histFolder full path of the history folder.
+   * @param fileType file extension (json, jhist, xml, etc.).
+   * @return A list of Path objects that has the same <code>fileType</code> in all job directories.
+   */
   public static List<Path> getFilePathsFromAllJobs(FileSystem fs, String histFolder, String fileType) {
     List<Path> paths = new ArrayList<>();
     FileStatus[] lsHist;
@@ -105,5 +131,6 @@ public class HdfsUtils {
     return getValidPaths(lsJobDir, fileStatus -> fileStatus.getPath().toString().endsWith(fileType));
   }
 
-  private HdfsUtils() {}
+  private HdfsUtils() {
+  }
 }
