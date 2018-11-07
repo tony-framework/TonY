@@ -30,9 +30,9 @@ TonY is a Java library, so it is as simple as running a Java program. There are 
 - Use a zipped Python Virtual Environment.
 
 ### Use a docker container
-Note that this requires you have a properly configured Hadoop 2.9.1+ cluster with docker support. Check this [documentation](https://hadoop.apache.org/docs/r2.9.1/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) if you are unsure how to set it up. Assuming you have properly set up your Hadoop cluster with Docker container runtime, you should have already built a proper docker image with required Hadoop configurations. The next thing you need is to install your Python dependencies inside your docker image - TensorFlow or PyTorch.
+Note that this requires you have a properly configured Hadoop 2.9.1 and above cluster with docker support. Check this [documentation](https://hadoop.apache.org/docs/r2.9.1/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) if you are unsure how to set it up. Assuming you have properly set up your Hadoop cluster with Docker container runtime, you should have already built a proper docker image with required Hadoop configurations. The next thing you need is to install your Python dependencies inside your docker image - TensorFlow or PyTorch.
 
-This would be a sample of folder structure:
+Below is a folder structure of what you need to launch the job:
 
     MyJob/
       > src/
@@ -87,7 +87,7 @@ The difference between this approach and the one with docker is
 - You don't need to set up your Hadoop cluster with docker support.
 - There is no requirement on docker image registry.
 
-As you know, nothing comes for free. If you don't want to bother setting your cluster with docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the desktop which builds the virtual environment.
+As you know, nothing comes for free. If you don't want to bother setting your cluster with docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the computer which builds the virtual environment.
 
 #### Python virtual environment in a zip
 
