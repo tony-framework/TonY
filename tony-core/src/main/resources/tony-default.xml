@@ -72,18 +72,6 @@
   </property>
 
   <property>
-    <description>Timeout, in seconds, for AM to resubmit unregistered tasks (or fail if no retries configured).</description>
-    <name>tony.task.registration-timeout-sec</name>
-    <value>300</value>
-  </property>
-
-  <property>
-    <description>How many times we should resubmit unregistered tasks after the timeout interval.</description>
-    <name>tony.task.registration-retry-count</name>
-    <value>0</value>
-  </property>
-
-  <property>
     <description>Frequency, in milliseconds, for which TaskExecutors should heartbeat with AM.</description>
     <name>tony.task.heartbeat-interval</name>
     <value>1000</value>
