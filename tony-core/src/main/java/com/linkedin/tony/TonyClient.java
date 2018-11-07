@@ -330,7 +330,7 @@ public class TonyClient {
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
       String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
       if (imagePath == null) {
-        LOG.error("Docker is enabled but the docker image path is not set.");
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
         return false;
       } else {
         containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
