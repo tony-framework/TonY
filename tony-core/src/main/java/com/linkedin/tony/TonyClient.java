@@ -65,6 +65,8 @@ import org.apache.hadoop.yarn.client.util.YarnClientUtils;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
@@ -323,6 +325,17 @@ public class TonyClient {
     if (cliParser.hasOption("shell_env")) {
       String[] envs = cliParser.getOptionValues("shell_env");
       shellEnv.putAll(Utils.parseKeyValue(envs));
+    }
+
+    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
+      String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
+      if (imagePath == null) {
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
+        return false;
+      } else {
+        containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
+        containerEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
+      }
     }
 
     if (cliParser.hasOption("container_env")) {

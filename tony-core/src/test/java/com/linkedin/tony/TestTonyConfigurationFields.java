@@ -29,6 +29,7 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getMemoryKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getVCoresKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getGPUsKey(Constants.WORKER_JOB_NAME));
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.DOCKER_IMAGE);
   }
 
   @BeforeTest
