@@ -153,14 +153,6 @@
   </property>
 
   <property>
-    <description>Resources that will be localized to the container that executes the job. Delimited by comma.
-      Example: /user/tony/resource1
-    </description>
-    <name>tony.worker.resources</name>
-    <value></value>
-  </property>
-
-  <property>
     <description>Number of workers to request.</description>
     <name>tony.worker.instances</name>
     <value>1</value>
