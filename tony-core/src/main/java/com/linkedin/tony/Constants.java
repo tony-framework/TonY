@@ -53,6 +53,7 @@ public class Constants {
   public static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
 
+  public static final String AM_NAME = "am";
   public static final String WORKER_JOB_NAME = "worker";
   public static final String PS_JOB_NAME = "ps";
   public static final String NOTEBOOK_JOB_NAME = "notebook";

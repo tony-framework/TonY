@@ -968,6 +968,14 @@ public class TonyApplicationMaster {
       TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
+
+      Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
+      String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
+      if (null != resources) {
+        for (String dir : resources) {
+          Utils.addResource(dir, containerResources, hdfsConf);
+        }
+      }
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
@@ -1011,8 +1019,8 @@ public class TonyApplicationMaster {
       if (secureMode) {
         tokens = allTokens.duplicate();
       }
-      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(new ConcurrentHashMap<>(localResources),
-                                                                      containerShellEnv, commands, null, tokens, acls);
+      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerShellEnv,
+                                                                      commands, null, tokens, acls);
 
       String sessionId = String.valueOf(session.sessionId);
       sessionContainersMap.computeIfAbsent(sessionId, key ->

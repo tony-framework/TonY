@@ -4,15 +4,14 @@
  */
 package com.linkedin.tony;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
 
@@ -282,7 +284,7 @@ public class Utils {
    */
   public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-        .map(key -> getTaskType(key))
+        .map(Utils::getTaskType)
         .collect(Collectors.toSet());
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
@@ -371,6 +373,35 @@ public class Utils {
       }
     } catch (IOException e) {
       LOG.error("Failed to clean up HDFS path: " + path, e);
+    }
+  }
+
+  /**
+   * Add files inside a path to local resources. If the path is a directory, its first level files will be added
+   * to the local resources. Note that we don't add nested files.
+   * @param path the directory whose contents will be localized.
+   * @param hdfsConf the configuration file for HDFS.
+   */
+  public static void addResource(String path,
+                                 Map<String, LocalResource> resourcesMap,
+                                 Configuration hdfsConf) {
+    try {
+      FileSystem fs = FileSystem.get(hdfsConf);
+      if (path != null) {
+        FileStatus[] ls = fs.listStatus(new Path(path));
+        for (FileStatus jar : ls) {
+          // We only add first level files.
+          if (jar.isDirectory()) {
+            continue;
+          }
+          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
+                                                             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
+                                                             jar.getLen(), jar.getModificationTime());
+          resourcesMap.put(jar.getPath().getName(), resource);
+        }
+      }
+    } catch (IOException exception) {
+      LOG.error("Failed to add " + path + " to local resources.", exception);
     }
   }
 }
