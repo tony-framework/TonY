@@ -26,7 +26,7 @@ public class HdfsUtils {
   private static final Logger.ALogger LOG = Logger.of(HdfsUtils.class);
 
   /**
-   * Check to see if a HDFS path is valid.
+   * Check to see if HDFS path is valid.
    * @param fs FileSystem object.
    * @param filePath path of file to validate.
    * @return true if path is valid, false otherwise.
@@ -41,7 +41,7 @@ public class HdfsUtils {
   }
 
   /**
-   * Retrieve the content of the file on HDFS.
+   * Return a string which contains the content of file on HDFS.
    * @param fs FileSystem object.
    * @param filePath path of file to read from.
    * @return the content of the file, or empty string if errors occur during read.
@@ -86,11 +86,8 @@ public class HdfsUtils {
     FileStatus[] lsHist;
     try {
       lsHist = fs.listStatus(new Path(histFolder));
-    } catch (FileNotFoundException e) {
-      LOG.error("Failed to locate history folder", e);
-      return paths;
     } catch (IOException e) {
-      LOG.error("Failed to scan history folder", e);
+      LOG.error("Failed to locate history folder", e);
       return paths;
     }
 
