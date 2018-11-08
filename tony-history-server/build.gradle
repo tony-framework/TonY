@@ -36,6 +36,7 @@ dependencies {
 
   playTest deps.external.assertj
   playTest deps.external.awaitility
+  playTest deps.external.mockito
 }
 
 repositories {
