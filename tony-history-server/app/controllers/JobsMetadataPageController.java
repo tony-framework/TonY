@@ -1,17 +1,20 @@
 package controllers;
 
 import com.typesafe.config.Config;
+import hadoop.Configuration;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import models.JobMetadata;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.HdfsConfiguration;
 import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
-import security.HadoopSecurity;
+import hadoop.Security;
+import utils.HdfsUtils;
 
 import static utils.HdfsUtils.*;
 import static utils.ParserUtils.*;
@@ -20,21 +23,18 @@ import static utils.ParserUtils.*;
 public class JobsMetadataPageController extends Controller {
   private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private final Config config;
-  private HadoopSecurity hadoopSec;
 
   @Inject
   public JobsMetadataPageController(Config config) {
     this.config = config;
-    hadoopSec = HadoopSecurity.getInstance(config);
   }
 
   public Result index() {
-    FileSystem myFs;
+    HdfsConfiguration conf = Configuration.getHdfsConf();
+    FileSystem myFs = HdfsUtils.getFileSystem(conf);
 
-    try {
-      myFs = hadoopSec.getInitializedFs();
-    } catch (Exception e) {
-      return internalServerError("Failed to initialize file system", e.toString());
+    if (myFs == null) {
+      return internalServerError("Failed to initialize file system");
     }
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();

@@ -16,6 +16,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.HdfsConfiguration;
 import play.Logger;
 
 
@@ -62,19 +63,6 @@ public class HdfsUtils {
   }
 
   /**
-   * Return all paths that satisfy the <code>fn</code> predicate.
-   * @param lsJobDir array of FileStatus objects.
-   * @param fn a predicate (lambda) that is used to filter <code>lsJobDir</code>
-   * @return A list of Path objects that satisfy the <code>fn</code> condition.
-   */
-  static List<Path> getValidPaths(FileStatus[] lsJobDir, Predicate<FileStatus> fn) {
-    return Arrays.stream(lsJobDir)
-        .filter(fn)
-        .map(FileStatus::getPath)
-        .collect(Collectors.toList());
-  }
-
-  /**
    * List all metadata file paths in {@code histFolder}.
    * @param fs FileSystem object.
    * @param histFolder full path of the history folder.
@@ -96,6 +84,15 @@ public class HdfsUtils {
       }
     }
     return paths;
+  }
+
+  public static FileSystem getFileSystem(HdfsConfiguration hdfsConf) {
+    try {
+      return FileSystem.get(hdfsConf);
+    } catch (IOException e) {
+      LOG.error("Failed to instantiate HDFS FileSystem object", e);
+    }
+    return null;
   }
 
   private HdfsUtils() {
