@@ -1,6 +1,3 @@
-/*
- * Copyright (C) 2009-2017 Lightbend Inc. <https://www.lightbend.com>
- */
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, font, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td {
   margin: 0;
   padding: 0;
@@ -611,14 +608,6 @@ header nav a.download:active {
   padding: 3px 0;
 }
 
-#news ul {
-  box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  background: url(/assets/images/news.png) 10px center no-repeat;
-  padding: 19px 0 19px 60px;
-}
-
 #content {
   padding: 15px 0;
 }
@@ -720,12 +709,6 @@ header nav a.download:active {
   left: 50%;
   margin-left: 210px;
   width: 250px;
-}
-
-#top .follow:before {
-  vertical-align: middle;
-  content: url(/assets/images/twitter.png);
-  margin-right: 10px;
 }
 
 #top input {
@@ -1006,14 +989,8 @@ dd.error {
   color: #c00;
 }
 
-aside a[href^="http"]:after, .doc a[href^="http"]:after {
-  content: url(/assets/images/external.png);
-  vertical-align: middle;
-  margin-left: 5px;
-}
-
 img.resize {
   width: 44.8px;
-  height74 .18px;
+  height: 74.18px;
   float: left;
 }
