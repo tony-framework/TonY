@@ -1,5 +1,6 @@
 apply plugin: "play"
 apply plugin: "idea"
+apply plugin: "distribution"
 
 model {
   components {
@@ -14,6 +15,16 @@ model {
       }
     }
   }
+  distributions {
+    playBinary {
+      contents {
+        from("startTHS.sh") {
+          into "bin"
+        }
+      }
+      baseName = project.name
+    }
+  }
 }
 
 dependencies {
@@ -25,6 +36,7 @@ dependencies {
 
   playTest deps.external.assertj
   playTest deps.external.awaitility
+  playTest deps.external.mockito
 }
 
 repositories {

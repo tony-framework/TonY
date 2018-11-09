@@ -14,7 +14,7 @@ import static play.test.Helpers.*;
 public class BrowserTest extends WithBrowser {
 
   protected Application provideApplication() {
-    return fakeApplication(ImmutableMap.of("tony.configPath", "/dummy"));
+    return fakeApplication(ImmutableMap.of("tony.historyFolder", "/dummy/"));
   }
 
   protected TestBrowser provideBrowser(int port) {

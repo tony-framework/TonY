@@ -43,4 +43,13 @@ Before using the script, ensure that you have set execution permission (`chmod +
 $ ./buildAndDeploy.sh user hostname.test.abc.com
 ```
 
-See [script](./buildAndDeploy.sh) for more.
+See [script](./buildAndDeploy.sh) for more details.
+
+- To start the server after bundling with `gradle dist`:
+1. `unzip $root/build/distributions/tony-history-server.zip`
+2. `$root/build/distributions/tony-history-server/bin/startTHS $JAVA_OPTS`
+
+For instance, if you want to set app's port, you can pass it in as arguments:
+`$root/build/distributions/tony-history-server/bin/startTHS -Dhttp.port=8080`
+
+See [script](./startTHS) for more details.

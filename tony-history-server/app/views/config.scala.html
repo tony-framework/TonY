@@ -1,0 +1,12 @@
+@(configsList: List[JobConfig])
+
+  @main("Configuration") {
+
+    <section id="content">
+      <div class="wrapper doc">
+        <article>
+        @tableConfig(configsList)
+        </article>
+      </div>
+    </section>
+  }

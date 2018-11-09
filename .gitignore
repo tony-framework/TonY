@@ -11,8 +11,10 @@
 *.suo
 *.swp
 *.vcxproj.user
+*.xml
 *.zip
 */bin
+*/classes
 .DS_Store
 .classpath
 .gradle/
@@ -27,6 +29,8 @@ log/
 out/
 target
 tony-final.xml
+tony-history-server/conf/*.jks
 tony-history-server/conf/application.conf
+tony-history-server/conf/prod.conf
 tony-history-server/logs
 tony.xml

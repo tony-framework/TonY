@@ -57,6 +57,7 @@ ext.deps = [
     "junit": "junit:junit:4.12",
     "log4j": "log4j:log4j:1.2.17",
     "metrics": "com.codahale.metrics:metrics-core:3.0.2",
+    "mockito": "org.mockito:mockito-core:2.23.0",
     "objenesis": "org.objenesis:objenesis:2.6",
     "play_guice": "com.typesafe.play:play-guice_$scalaVersion:$playVersion",
     "play_logback": "com.typesafe.play:play-logback_$scalaVersion:$playVersion",

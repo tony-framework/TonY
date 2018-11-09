@@ -13,11 +13,11 @@ import static play.test.Helpers.GET;
 import static play.test.Helpers.route;
 
 
-public class HomeControllerTest extends WithApplication {
+public class JobsMetadataPageControllerTest extends WithApplication {
 
   @Override
   protected Application provideApplication() {
-    return new GuiceApplicationBuilder().configure("tony.configPath", "/dummy").build();
+    return new GuiceApplicationBuilder().configure("tony.historyFolder", "/dummy/").build();
   }
 
   @Test
