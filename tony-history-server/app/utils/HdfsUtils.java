@@ -66,7 +66,7 @@ public class HdfsUtils {
    * List all metadata file paths in {@code histFolder}.
    * @param fs FileSystem object.
    * @param histFolder full path of the history folder.
-   * @return A list of Path objects that has the same <code>fileType</code> in all job directories.
+   * @return A list of metadata Path objects.
    */
   public static List<Path> getMetadataFilePaths(FileSystem fs, String histFolder) {
     List<Path> paths = new ArrayList<>();
