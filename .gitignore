@@ -14,6 +14,8 @@
 *.xml
 *.zip
 */bin
+*/classes
+*/test
 .DS_Store
 .classpath
 .gradle/
