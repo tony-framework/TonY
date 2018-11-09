@@ -65,6 +65,8 @@ import org.apache.hadoop.yarn.client.util.YarnClientUtils;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
@@ -76,38 +78,41 @@ public class TonyClient {
   private static final Log LOG = LogFactory.getLog(TonyClient.class);
 
   private static final String APP_TYPE = "TENSORFLOW";
-  private static final String RM_APP_URL_TEMPLATE = "http://%s/cluster/app/%s";
-  private static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
+  private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
   private static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
+  private static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
   private static final String HDFS_SITE_CONF = "hdfs-site.xml";
+  private static final String RM_APP_URL_TEMPLATE = "http://%s/cluster/app/%s";
 
+  // Configurations
   private YarnClient yarnClient;
   private HdfsConfiguration hdfsConf = new HdfsConfiguration();
   private YarnConfiguration yarnConf = new YarnConfiguration();
   private Options opts;
 
+  // RPC
   private String amHost;
   private int amRpcPort;
   private boolean amRpcServerInitialized = false;
   private ApplicationRpcClient amRpcClient;
 
+  // Containers set up.
   private String hdfsConfAddress = null;
   private String yarnConfAddress = null;
   private long amMemory;
   private int amVCores;
   private int amGpus;
-  private String hdfsClasspath = null;
   private String taskParams = null;
   private String pythonBinaryPath = null;
   private String pythonVenv = "";
   private String executes;
+  private String hdfsClasspath;
+  private String srcDir;
   private long appTimeout;
   private boolean secureMode;
-  private String srcDir;
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
-  private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
   private String archivePath;
   private String tonyFinalConfPath;
   private Configuration tonyConf;
@@ -183,10 +188,8 @@ public class TonyClient {
 
     // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(appId,
-                              this.amMemory, this.taskParams,
-                              this.pythonBinaryPath, this.pythonVenv, this.executes, getTokens(),
-                              this.hdfsClasspath);
+        createAMContainerSpec(appId, this.amMemory, this.taskParams, this.pythonBinaryPath,
+                              this.pythonVenv, this.executes, getTokens());
     appContext.setAMContainerSpec(amSpec);
     String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
     if (nodeLabel != null) {
@@ -290,7 +293,10 @@ public class TonyClient {
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
     executes = cliParser.getOptionValue("executes");
-    srcDir = cliParser.getOptionValue("src_dir", "src");
+
+    // src_dir & hdfs_classpath flags are for compatibility.
+    srcDir = cliParser.getOptionValue("src_dir");
+    hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -300,8 +306,6 @@ public class TonyClient {
       throw new IllegalArgumentException("Invalid virtual cores specified for application master, exiting."
                                          + " Specified virtual cores=" + amVCores);
     }
-
-    hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
 
     int numWorkers = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME),
         TonyConfigurationKeys.getDefaultInstances(Constants.WORKER_JOB_NAME));
@@ -325,6 +329,17 @@ public class TonyClient {
       shellEnv.putAll(Utils.parseKeyValue(envs));
     }
 
+    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
+      String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
+      if (imagePath == null) {
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
+        return false;
+      } else {
+        containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
+        containerEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
+      }
+    }
+
     if (cliParser.hasOption("container_env")) {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
@@ -337,10 +352,9 @@ public class TonyClient {
     return this.tonyConf;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory,
-                                                      String taskParams, String pythonBinaryPath,
-                                                      String pythonVenv, String executes, ByteBuffer tokens,
-                                                      String hdfsClasspathDir) throws IOException {
+  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory, String taskParams,
+                                                      String pythonBinaryPath, String pythonVenv, String executes,
+                                                      ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
     FileSystem fs = FileSystem.get(hdfsConf);
@@ -348,18 +362,13 @@ public class TonyClient {
     Map<String, LocalResource> localResources = new HashMap<>();
     addLocalResources(fs, archivePath, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
     addLocalResources(fs, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
-    if (hdfsClasspathDir != null) {
-      FileStatus[] ls = fs.listStatus(new Path(hdfsClasspathDir));
-      for (FileStatus jar : ls) {
-        LocalResource resource =
-            LocalResource.newInstance(
-                ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
-                LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-                jar.getLen(), jar.getModificationTime());
-
-        localResources.put(jar.getPath().getName(), resource);
+    String[] amResources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(Constants.AM_NAME));
+    if (null != amResources) {
+      for (String dir : amResources) {
+        Utils.addResource(dir, localResources, hdfsConf);
       }
     }
+    Utils.addResource(hdfsClasspath, localResources, hdfsConf);
     setAMEnvironment(localResources, fs);
 
     // Update absolute path with relative path
@@ -425,7 +434,7 @@ public class TonyClient {
       command.append(str).append(" ");
     }
 
-    LOG.info("Completed setting up app master command " + command.toString());
+    LOG.info("Completed setting up Application Master command " + command.toString());
     List<String> commands = new ArrayList<>();
     commands.add(command.toString());
     amContainer.setCommands(commands);
@@ -607,7 +616,7 @@ public class TonyClient {
         taskUrls = amRpcClient.getTaskUrls();
         if (!taskUrls.isEmpty()) {
           // Print TaskUrls
-          new TreeSet<TaskUrl>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
+          new TreeSet<>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
         }
       }
 

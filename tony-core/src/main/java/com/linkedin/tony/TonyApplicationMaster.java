@@ -85,8 +85,6 @@ public class TonyApplicationMaster {
   private String amHostPort;
 
   // Container info
-  private int taskRegistrationRetryCount;
-  private int taskRegistrationTimeoutSec;
   private int amRetryCount;
   private long workerTimeout;
   private String hdfsClasspath;
@@ -231,10 +229,6 @@ public class TonyApplicationMaster {
     workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
-    taskRegistrationRetryCount = tonyConf.getInt(TonyConfigurationKeys.TASK_REGISTRATION_RETRY_COUNT,
-        TonyConfigurationKeys.DEFAULT_TASK_REGISTRATION_RETRY_COUNT);
-    taskRegistrationTimeoutSec = tonyConf.getInt(TonyConfigurationKeys.TASK_REGISTRATION_TIMEOUT_SEC,
-        TonyConfigurationKeys.DEFAULT_TASK_REGISTRATION_TIMEOUT_SEC);
     amRetryCount = tonyConf.getInt(TonyConfigurationKeys.AM_RETRY_COUNT,
         TonyConfigurationKeys.DEFAULT_AM_RETRY_COUNT);
     singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
@@ -475,8 +469,6 @@ public class TonyApplicationMaster {
    * @return if the tensorflow job finishes successfully.
    */
   private boolean monitor() {
-    long start = System.currentTimeMillis();
-
     int attempt = 0;
     containerEnv.put(Constants.ATTEMPT_NUMBER, String.valueOf(attempt));
     long expireTime = appTimeout == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + appTimeout;
@@ -515,23 +507,6 @@ public class TonyApplicationMaster {
       LOG.info("Completed worker tasks: " + numCompletedWorkerTasks.get()
                + ", total worker tasks: " + numTotalWorkerTasks);
 
-      Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
-      int numUnregistered = unregisteredTasks.size();
-      int secondsElapsed = (int) (System.currentTimeMillis() - start) / 1000;
-      if (numUnregistered > 0 && secondsElapsed >= taskRegistrationTimeoutSec) {
-        if (attempt < taskRegistrationRetryCount) {
-          attempt++;
-          containerEnv.put(Constants.ATTEMPT_NUMBER, String.valueOf(attempt));
-          LOG.info(numUnregistered + " tasks still unregistered after " + secondsElapsed + " seconds. Going to "
-              + "reschedule them. Starting retry attempt " + attempt);
-          rescheduleTasks(unregisteredTasks);
-          start = System.currentTimeMillis();
-        } else {
-          LOG.error(numUnregistered + " out of " + numRequestedContainers.get() + " tasks have not registered after "
-              + (attempt + 1) + " attempts. Failing this job.");
-          break;
-        }
-      }
       if (this.taskHasMissesHB) {
         break;
       }
@@ -567,33 +542,6 @@ public class TonyApplicationMaster {
     return session.getTonyTasks().values().stream().flatMap(Arrays::stream)
         .filter(task -> task != null && task.getHost() == null)
         .collect(Collectors.toSet());
-  }
-
-  private void rescheduleTasks(Set<TonyTask> tasks) {
-    removeAllContainerRequests();
-
-    tasks.forEach(task -> {
-      LOG.info("Task " + task.getJobName() + " " + task.getTaskIndex() + " in " + task.getContainer().getId().toString()
-          + " has not registered after " + taskRegistrationTimeoutSec + " seconds. Going to release the container and "
-          + "request a new one.");
-
-      // Release container
-      amRMClient.releaseAssignedContainer(task.getContainer().getId());
-
-      // Null out task in TFTasks map
-      session.getTonyTasks().get(task.getJobName())[Integer.valueOf(task.getTaskIndex())] = null;
-
-      // Make new container request
-      scheduleTask(session.getContainerRequestForType(task.getJobName()));
-    });
-  }
-
-  private void removeAllContainerRequests() {
-    for (String jobType : jobTypeToContainerRequestsMap.keySet()) {
-      List<ContainerRequest> containerRequests = jobTypeToContainerRequestsMap.get(jobType);
-      containerRequests.forEach(request -> amRMClient.removeContainerRequest(request));
-      jobTypeToContainerRequestsMap.put(jobType, new ArrayList<>());
-    }
   }
 
   private void stop() {
@@ -644,10 +592,10 @@ public class TonyApplicationMaster {
 
     extraEnv.put(Constants.PREPROCESSING_JOB, "true");
 
-    /**
-     YARN sets $HOME to /user/yarn which users don't have access to write there.
-     Unfortunately, some services like Jupyter Notebook wants to write stuff there,
-     set it to user.dir (root of this container's address).
+    /*
+     * YARN sets $HOME to /user/yarn which users don't have access to write there.
+     * Unfortunately, some services like Jupyter Notebook wants to write stuff there,
+     * set it to user.dir (root of this container's address).
      */
     extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
@@ -827,6 +775,7 @@ public class TonyApplicationMaster {
       try {
         // Post YARN-7974 or Hadoop 3.1.2 release
         // amRMClient.updateTrackingUrl(spec);
+        @SuppressWarnings("JavaReflectionMemberAccess")
         Method method = AMRMClientAsync.class.getMethod("updateTrackingUrl", String.class);
         method.invoke(amRMClient, spec);
       } catch (NoSuchMethodException nsme) {
@@ -1019,6 +968,14 @@ public class TonyApplicationMaster {
       TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
+
+      Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
+      String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
+      if (null != resources) {
+        for (String dir : resources) {
+          Utils.addResource(dir, containerResources, hdfsConf);
+        }
+      }
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
@@ -1062,8 +1019,8 @@ public class TonyApplicationMaster {
       if (secureMode) {
         tokens = allTokens.duplicate();
       }
-      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(new ConcurrentHashMap<>(localResources),
-                                                                      containerShellEnv, commands, null, tokens, acls);
+      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerShellEnv,
+                                                                      commands, null, tokens, acls);
 
       String sessionId = String.valueOf(session.sessionId);
       sessionContainersMap.computeIfAbsent(sessionId, key ->

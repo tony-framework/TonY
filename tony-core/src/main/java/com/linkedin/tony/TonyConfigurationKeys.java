@@ -50,12 +50,6 @@ public class TonyConfigurationKeys {
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
-  public static final String TASK_REGISTRATION_TIMEOUT_SEC = TONY_TASK_PREFIX + "registration-timeout-sec";
-  public static final int DEFAULT_TASK_REGISTRATION_TIMEOUT_SEC = 300;
-
-  public static final String TASK_REGISTRATION_RETRY_COUNT = TONY_TASK_PREFIX + "registration-retry-count";
-  public static final int DEFAULT_TASK_REGISTRATION_RETRY_COUNT = 0;
-
   public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval";
   public static final int DEFAULT_TASK_HEARTBEAT_INTERVAL_MS = 1000;
 
@@ -108,6 +102,10 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.gpus", jobName);
   }
 
+  public static String getResourcesKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.resources", jobName);
+  }
+
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
@@ -119,6 +117,13 @@ public class TonyConfigurationKeys {
   public static final String DEFAULT_CHIEF_NAME = "worker";
   public static final String CHIEF_INDEX = CHIEF_PREFIX + "index";
   public static final String DEFAULT_CHIEF_INDEX = "0";
+
+  // Tony with docker configuration
+  public static final String DOCKER_PREFIX = TONY_APPLICATION_PREFIX + "docker.";
+  public static final String DOCKER_ENABLED = DOCKER_PREFIX + "enabled";
+  public static final boolean DEFAULT_DOCKER_ENABLED = false;
+
+  public static final String DOCKER_IMAGE = DOCKER_PREFIX + "image";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";

@@ -4,14 +4,14 @@
  */
 package com.linkedin.tony;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +38,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
 
@@ -54,46 +57,63 @@ public class Utils {
    * Poll a callable till it returns true or time out
    * @param func a function that returns a boolean
    * @param interval the interval we poll (in seconds).
-   * @param timeOut the timeout we will stop polling (in seconds).
+   * @param timeout the timeout we will stop polling (in seconds).
    * @return if the func returned true before timing out.
+   * @throws IllegalArgumentException if {@code interval} or {@code timeout} is negative
    */
-  public static boolean poll(Callable<Boolean> func, int interval, int timeOut) {
-    int remainingTime = timeOut;
-    assert remainingTime > 0;
+  public static boolean poll(Callable<Boolean> func, int interval, int timeout) {
+    Preconditions.checkArgument(interval >= 0, "Interval must be non-negative.");
+    Preconditions.checkArgument(timeout >= 0, "Timeout must be non-negative.");
+
+    int remainingTime = timeout;
     try {
-      while (remainingTime >= 0) {
+      while (timeout == 0 || remainingTime >= 0) {
         if (func.call()) {
-          LOG.info("Poll function finished within " + timeOut + " seconds");
+          LOG.info("Poll function finished within " + timeout + " seconds");
           return true;
         }
         Thread.sleep(interval * 1000);
         remainingTime -= interval;
       }
     } catch (Exception e) {
-      LOG.error("Polled function throws exception.", e);
+      LOG.error("Polled function threw exception.", e);
     }
-    LOG.warn("Function didn't return true within " + timeOut + " seconds.");
+    LOG.warn("Function didn't return true within " + timeout + " seconds.");
     return false;
   }
 
+  /**
+   * Polls the function {@code func} every {@code interval} seconds until the function returns non-null or until
+   * {@code timeout} seconds is reached, and which point this function returns null. If {@code timeout} is 0, the
+   * function will be polled forever until it returns non-null.
+   *
+   * @param func  the function to poll
+   * @param interval  the interval, in seconds, at which to poll the function
+   * @param timeout  the maximum time to poll for until giving up and returning null
+   * @param <T>  the type of the object returned by the function
+   * @return  the non-null object returned by the function or null if {@code timeout} is reached
+   * @throws IllegalArgumentException  if {@code interval} or {@code timeout} is negative
+   */
   public static <T> T pollTillNonNull(Callable<T> func, int interval, int timeout) {
+    Preconditions.checkArgument(interval >= 0, "Interval must be non-negative.");
+    Preconditions.checkArgument(timeout >= 0, "Timeout must be non-negative.");
+
     int remainingTime = timeout;
     T ret;
-    assert remainingTime > 0;
     try {
-      while (remainingTime >= 0) {
+      while (timeout == 0 || remainingTime >= 0) {
         ret = func.call();
         if (ret != null) {
-          LOG.info("Poll function finished within " + timeout + " seconds");
+          LOG.info("pollTillNonNull function finished within " + timeout + " seconds");
           return ret;
         }
         Thread.sleep(interval * 1000);
         remainingTime -= interval;
       }
     } catch (Exception e) {
-      LOG.error("Polled function throws exception", e);
+      LOG.error("pollTillNonNull function threw exception", e);
     }
-    LOG.warn("Function didn't return true within " + timeout + " seconds.");
+    LOG.warn("Function didn't return non-null within " + timeout + " seconds.");
     return null;
   }
 
@@ -264,7 +284,7 @@ public class Utils {
    */
   public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-        .map(key -> getTaskType(key))
+        .map(Utils::getTaskType)
         .collect(Collectors.toSet());
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
@@ -353,6 +373,35 @@ public class Utils {
       }
     } catch (IOException e) {
       LOG.error("Failed to clean up HDFS path: " + path, e);
+    }
+  }
+
+  /**
+   * Add files inside a path to local resources. If the path is a directory, its first level files will be added
+   * to the local resources. Note that we don't add nested files.
+   * @param path the directory whose contents will be localized.
+   * @param hdfsConf the configuration file for HDFS.
+   */
+  public static void addResource(String path,
+                                 Map<String, LocalResource> resourcesMap,
+                                 Configuration hdfsConf) {
+    try {
+      FileSystem fs = FileSystem.get(hdfsConf);
+      if (path != null) {
+        FileStatus[] ls = fs.listStatus(new Path(path));
+        for (FileStatus jar : ls) {
+          // We only add first level files.
+          if (jar.isDirectory()) {
+            continue;
+          }
+          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
+                                                             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
+                                                             jar.getLen(), jar.getModificationTime());
+          resourcesMap.put(jar.getPath().getName(), resource);
+        }
+      }
+    } catch (IOException exception) {
+      LOG.error("Failed to add " + path + " to local resources.", exception);
     }
   }
 }
