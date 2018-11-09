@@ -41,7 +41,7 @@ public class JobsMetadataPageController extends Controller {
     String tonyHistoryFolder = config.getString("tony.historyFolder");
     JobMetadata tmpMetadata;
 
-    for (Path f : getFilePathsFromAllJobs(myFs, tonyHistoryFolder, "json")) {
+    for (Path f : getMetadataFilePaths(myFs, tonyHistoryFolder)) {
       tmpMetadata = parseMetadata(myFs, f);
       if (tmpMetadata == null) {
         LOG.error("Couldn't parse " + f.toString());

@@ -31,7 +31,7 @@ public class ParserUtils {
   private static final Logger.ALogger LOG = Logger.of(ParserUtils.class);
 
   public static JobMetadata parseMetadata(FileSystem fs, Path metadataFilePath) {
-    if (!isPathValid(fs, metadataFilePath)) {
+    if (!pathExists(fs, metadataFilePath)) {
       return new JobMetadata();
     }
 
@@ -57,7 +57,7 @@ public class ParserUtils {
   }
 
   public static List<JobConfig> parseConfig(FileSystem fs, Path configFilePath) {
-    if (!isPathValid(fs, configFilePath)) {
+    if (!pathExists(fs, configFilePath)) {
       return new ArrayList<>();
     }
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
