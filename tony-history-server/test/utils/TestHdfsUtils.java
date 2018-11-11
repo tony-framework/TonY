@@ -86,14 +86,13 @@ public class TestHdfsUtils {
   public void testGetMetadataFilePaths_typicalHistoryFolder() {
     String histFolder = "./test/resources/typicalHistFolder";
     List<Path> expectedRes = new ArrayList<>();
-    StringBuilder sb = new StringBuilder();
 
     for (int i = 1; i < 6; ++i) {
+      StringBuilder sb = new StringBuilder();
       sb.append("file:").append(System.getProperty("user.dir"));
       sb.append("/test/resources/typicalHistFolder/job").append(i);
       sb.append("/metadata.json");
       expectedRes.add(new Path(sb.toString()));
-      sb = new StringBuilder();
     }
     List<Path> actualRes = HdfsUtils.getMetadataFilePaths(fs, histFolder);
     Collections.sort(actualRes);

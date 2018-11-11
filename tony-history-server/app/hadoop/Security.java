@@ -21,11 +21,13 @@ import play.Logger;
 @Singleton
 public class Security {
   private static final Logger.ALogger LOG = Logger.of(Security.class);
-  private Config appConf;
+  private static String keytabUser;
+  private static String keytabLocation;
 
   @Inject
   public Security(Config appConf) {
-    this.appConf = appConf;
+    keytabUser = appConf.getString("keytab.user");
+    keytabLocation = appConf.getString("keytab.location");
     setUpKeytab(Configuration.getHdfsConf());
   }
 
@@ -34,8 +36,7 @@ public class Security {
     if (isSecurityEnabled) {
       try {
         UserGroupInformation.setConfiguration(hdfsConf);
-        UserGroupInformation.loginUserFromKeytab(appConf.getString("keytab.user"),
-            appConf.getString("keytab.location"));
+        UserGroupInformation.loginUserFromKeytab(keytabUser, keytabLocation);
       } catch (IOException e) {
         LOG.error("Failed to set up keytab", e);
       }
