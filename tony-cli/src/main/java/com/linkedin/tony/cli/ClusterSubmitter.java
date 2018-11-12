@@ -57,7 +57,7 @@ public class ClusterSubmitter {
       List<String> updatedArgs = new LinkedList<>(Arrays.asList(args));
       updatedArgs.add(0, cachedLibPath.toString());
       updatedArgs.add(0, "--hdfs_classpath");
-      exitCode = TonyClient.start((String[])updatedArgs.toArray());
+      exitCode = TonyClient.start(updatedArgs.toArray(new String[0]));
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
       exitCode = -1;
