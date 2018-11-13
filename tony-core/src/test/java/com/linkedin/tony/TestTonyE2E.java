@@ -12,12 +12,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeTest;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 
@@ -35,7 +33,7 @@ public class TestTonyE2E {
   private TonyClient client;
 
   @BeforeClass
-  public void setup() throws Exception {
+  public void doBeforeClass() throws Exception {
     // Set up mini cluster.
     cluster = new MiniCluster(3);
     cluster.start();
@@ -56,12 +54,12 @@ public class TestTonyE2E {
   }
 
   @AfterClass
-  public void tearDown() {
+  public void doAfterClass() {
     cluster.stop();
   }
 
-  @BeforeTest
-  public void doBeforeTest() {
+  @BeforeMethod
+  public void doBeforeMethod() {
     conf = new Configuration();
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
