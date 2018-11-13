@@ -30,7 +30,8 @@ public class TestTonyE2E {
   private MiniCluster cluster;
   private String yarnConf;
   private String hdfsConf;
-  TonyClient client;
+  private Configuration conf = new Configuration();
+  private TonyClient client;
 
   @BeforeClass
   public void setup() throws Exception {
@@ -50,7 +51,10 @@ public class TestTonyE2E {
     fs.mkdirs(cachedLibPath);
     HDFSUtils.copyDirectoryFilesToFolder(fs, "tony-core/out/libs", "/yarn/libs");
     HDFSUtils.copyDirectoryFilesToFolder(fs, "tony-core/src/test/resources/log4j.properties", "/yarn/libs");
-    client = new TonyClient();
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
+    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
+    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    client = new TonyClient(conf);
   }
 
   @AfterClass
@@ -60,11 +64,8 @@ public class TestTonyE2E {
 
   @Test
   public void testSingleNodeTrainingShouldPass() throws ParseException {
-    Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    client = new TonyClient(conf);
     client.init(new String[] {
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
@@ -79,11 +80,9 @@ public class TestTonyE2E {
 
   @Test
   public void testPSWorkerTrainingShouldFailMissedHeartbeat() throws ParseException {
-    Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.setInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS, 2);
+    client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
@@ -98,11 +97,8 @@ public class TestTonyE2E {
 
   @Test
   public void testPSSkewedWorkerTrainingShouldPass() throws ParseException {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
+    client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
@@ -118,10 +114,6 @@ public class TestTonyE2E {
 
   @Test
   public void testPSWorkerTrainingShouldPass() throws ParseException {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
@@ -136,10 +128,6 @@ public class TestTonyE2E {
 
   @Test
   public void testPSWorkerTrainingShouldFail() throws ParseException {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_1.py",
@@ -153,11 +141,8 @@ public class TestTonyE2E {
 
   @Test
   public void testSingleNodeTrainingShouldFail() throws ParseException {
-    Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_1.py",
@@ -171,11 +156,8 @@ public class TestTonyE2E {
 
   @Test
   public void testAMCrashTonyShouldFail() throws ParseException {
-    Configuration conf = new Configuration(false);
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0.py",
@@ -197,10 +179,6 @@ public class TestTonyE2E {
    */
   @Test
   public void testAMStopsJobAfterWorker0Killed() throws ParseException {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "tony-core/src/test/resources/exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
         Constants.TEST_WORKER_TERMINATED + "=true"});
     int exitCode = client.start();
@@ -212,10 +190,6 @@ public class TestTonyE2E {
    */
   @Test
   public void testNullAMRpcClient() throws Exception {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     String[] args = new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0.py",
