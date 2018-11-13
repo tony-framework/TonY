@@ -47,7 +47,6 @@ public class ClusterSubmitter extends TonySubmitter {
 
   public int submit(String[] args) throws ParseException, URISyntaxException {
     LOG.info("Starting ClusterSubmitter..");
-    client.init(args);
     String jarLocation = new File(ClusterSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Configuration hdfsConf = new Configuration();
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
@@ -65,6 +64,7 @@ public class ClusterSubmitter extends TonySubmitter {
       List<String> updatedArgs = new LinkedList<>(Arrays.asList(args));
       updatedArgs.add(0, cachedLibPath.toString());
       updatedArgs.add(0, "--hdfs_classpath");
+      client.init(updatedArgs.toArray(new String[0]));
       exitCode = client.start();
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
