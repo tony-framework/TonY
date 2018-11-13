@@ -17,6 +17,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 
@@ -51,15 +52,21 @@ public class TestTonyE2E {
     fs.mkdirs(cachedLibPath);
     HDFSUtils.copyDirectoryFilesToFolder(fs, "tony-core/out/libs", "/yarn/libs");
     HDFSUtils.copyDirectoryFilesToFolder(fs, "tony-core/src/test/resources/log4j.properties", "/yarn/libs");
-    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
-    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
-    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    client = new TonyClient(conf);
+
   }
 
   @AfterClass
   public void tearDown() {
     cluster.stop();
+  }
+
+  @BeforeTest
+  public void doBeforeTest() {
+    conf = new Configuration();
+    conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
+    conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
+    conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    client = new TonyClient(conf);
   }
 
   @Test
