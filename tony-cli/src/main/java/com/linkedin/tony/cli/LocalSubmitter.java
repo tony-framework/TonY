@@ -62,7 +62,9 @@ public class LocalSubmitter {
     String[] updatedArgs = Arrays.copyOf(args, args.length + 2);
     updatedArgs[args.length] = "--hdfs_classpath";
     updatedArgs[args.length + 1] = cachedLibPath.toString();
-    exitCode = TonyClient.start(updatedArgs, conf);
+    TonyClient client = new TonyClient(conf);
+    client.init(updatedArgs);
+    exitCode = client.start();
     cluster.stop();
     System.exit(exitCode);
   }

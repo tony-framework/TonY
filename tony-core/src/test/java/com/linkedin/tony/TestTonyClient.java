@@ -14,7 +14,8 @@ public class TestTonyClient {
   @Test
   public void testTonyClientInit() throws Exception {
     String[] args = { "-conf", TonyConfigurationKeys.AM_GPUS + "=1" };
-    TonyClient client = TonyClient.createClientInstance(args, new Configuration());
+    TonyClient client = new TonyClient();
+    client.init(args);
     assertEquals(1, client.getTonyConf().getInt(TonyConfigurationKeys.AM_GPUS, TonyConfigurationKeys.DEFAULT_AM_GPUS));
   }
 }

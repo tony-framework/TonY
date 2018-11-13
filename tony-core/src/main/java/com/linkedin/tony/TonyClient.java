@@ -74,7 +74,7 @@ import org.apache.hadoop.yarn.util.Records;
 /**
  * User entry point to submit tensorflow job.
  */
-public class TonyClient {
+public class TonyClient implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TonyClient.class);
 
   private static final String APP_TYPE = "TENSORFLOW";
@@ -137,7 +137,7 @@ public class TonyClient {
     return ImmutableSet.copyOf(taskUrls);
   }
 
-  public boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
+  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
     LOG.info("Starting client..");
     yarnClient.start();
 
@@ -246,7 +246,7 @@ public class TonyClient {
     new HelpFormatter().printHelp("TonyClient", opts);
   }
 
-  private boolean init(String[] args) throws ParseException {
+  public boolean init(String[] args) throws ParseException {
     CommandLine cliParser = new GnuParser().parse(opts, args, true);
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
@@ -678,53 +678,21 @@ public class TonyClient {
     return this.amRpcClient;
   }
 
-  /**
-   * Clean up temporary files.
-   */
-  private void cleanUp() {
-    try {
-      if (amRpcClient != null) {
-        amRpcClient.finishApplication();
-      }
-    } catch (IOException | YarnException e) {
-      LOG.error("Failed to finish application.", e);
-    } finally {
-      Utils.cleanupHDFSPath(hdfsConf, appResourcesPath);
+  @Override
+  public void close() throws IOException, YarnException {
+    if (amRpcClient != null) {
+      amRpcClient.finishApplication();
     }
-  }
-
-  public static TonyClient createClientInstance(String[] args, Configuration conf) throws ParseException {
-    TonyClient client;
-    client = new TonyClient(conf);
-    boolean sanityCheck = client.init(args);
-    if (!sanityCheck) {
-      LOG.fatal("Failed to init client.");
-      return null;
-    }
-    return client;
-  }
-
-  public static int start(String[] args) {
-    return start(args, new Configuration(false));
+    Utils.cleanupHDFSPath(hdfsConf, appResourcesPath);
   }
 
   @VisibleForTesting
-  public static int start(String[] args, Configuration conf) {
-    boolean result = false;
-    TonyClient client = null;
+  public int start() {
+    boolean result = true;
     try {
-      client = createClientInstance(args, conf);
-      if (client == null) {
-        LOG.fatal("Failed to init client.");
-        System.exit(-1);
-      }
-      result = client.run();
-    } catch (Exception e) {
+      result = run();
+    } catch (IOException | InterruptedException | URISyntaxException | YarnException e) {
       LOG.fatal("Failed to run TonyClient", e);
-    } finally {
-      if (client != null) {
-        client.cleanUp();
-      }
     }
     if (result) {
       LOG.info("Application completed successfully");
@@ -735,7 +703,18 @@ public class TonyClient {
   }
 
   public static void main(String[] args) {
-    int exitCode = start(args);
+    int exitCode = 0;
+    try (TonyClient client = new TonyClient(new Configuration())) {
+      boolean sanityCheck = client.init(args);
+      if (!sanityCheck) {
+        LOG.fatal("Failed to parse arguments.");
+      }
+      exitCode = client.start();
+    } catch (ParseException | IOException | YarnException e) {
+      LOG.fatal("Failed to init client.", e);
+      System.exit(-1);
+    }
     System.exit(exitCode);
   }
+
 }

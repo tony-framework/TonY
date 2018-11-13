@@ -4,6 +4,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 dependencies {
   compile project(':tony-core')
   compile project(':tony-proxy')
+  testCompile deps.external.mokito
 }
 
 shadowJar {
