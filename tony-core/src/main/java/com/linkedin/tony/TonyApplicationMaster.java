@@ -39,7 +39,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
@@ -74,15 +77,39 @@ import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.*;
-import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
+import static com.linkedin.tony.TonyConfigurationKeys.*;
+import static com.linkedin.tony.Utils.*;
 
 
 public class TonyApplicationMaster {
   private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
 
+  /**
+   * Metadata of jobs
+   */
   private ApplicationAttemptId appAttemptID = null;
-  private String appIdString;
+  private static String appIdString;
   private String amHostPort;
+  private static FileSystem fs;
+  private static String tonyHistoryFolder;
+  private static Path jobDir;
+
+  public static class Metadata {
+    public String id;
+    public String url;
+    public long started;
+    public long completed;
+    public String status;
+    public String user;
+    public Metadata(String id, String url, long started, long completed, String status, String user) {
+      this.id = id;
+      this.url = url;
+      this.started = started;
+      this.completed = completed;
+      this.status = status;
+      this.user = user;
+    }
+  }
 
   // Container info
   private int amRetryCount;
@@ -124,7 +151,7 @@ public class TonyApplicationMaster {
   private TonySession.Builder sessionBuilder;
 
   /** Configuration **/
-  private Configuration yarnConf;
+  private static Configuration yarnConf;
   private Configuration hdfsConf;
 
   /** Cluster spec **/
@@ -201,6 +228,14 @@ public class TonyApplicationMaster {
       yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
       containerEnv.put(Constants.YARN_CONF_PATH, System.getenv(Constants.YARN_CONF_PATH));
     }
+
+    try {
+      fs = FileSystem.get(hdfsConf);
+    } catch (IOException e) {
+      LOG.error("Failed to create FileSystem object", e);
+      return false;
+    }
+
     hbMonitor.init(tonyConf);
 
     Options opts = Utils.getCommonOptions();
@@ -245,6 +280,8 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
     framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                                                  TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    tonyHistoryFolder = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION,
+                                     TonyConfigurationKeys.DEFAULT_TONY_HISTORY_LOCATION);
     return true;
   }
 
@@ -295,6 +332,8 @@ public class TonyApplicationMaster {
    */
   public static void main(String[] args) {
     boolean succeeded = false;
+    long started;
+    long completed;
     TonyApplicationMaster am = new TonyApplicationMaster();
     boolean sanityCheck = am.init(args);
     if (!sanityCheck) {
@@ -305,6 +344,7 @@ public class TonyApplicationMaster {
     }
     am.mainThread = Thread.currentThread();
     boolean exitOnError = false;
+    started = System.currentTimeMillis();
     do {
       // Crash AM on purpose during AM crash tests.
       String shouldCrash = System.getenv(Constants.TEST_AM_CRASH);
@@ -331,11 +371,15 @@ public class TonyApplicationMaster {
     } while (!am.singleNode); // We don't retry on single node training.
     // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
     am.stop();
+    completed = System.currentTimeMillis();
     am.printTaskUrls();
     if (exitOnError) {
       LOG.fatal("Error running TonyApplicationMaster !!");
       System.exit(-1);
     }
+
+    // By this time jobDir should have been set
+    createHistoryFile(fs, createMetadataObj(started, completed, succeeded), jobDir);
 
     if (succeeded) {
       LOG.info("Application Master completed successfully. exiting");
@@ -343,6 +387,29 @@ public class TonyApplicationMaster {
     } else {
       LOG.info("Application Master failed. exiting");
       System.exit(-1);
+    }
+  }
+
+  private static Metadata createMetadataObj(long started, long completed, boolean status) {
+    String jobStatus = status ? "SUCCEEDED" : "FAILED";
+    String url = "http://" + yarnConf.get("yarn.resourcemanager.webapp.address") + "/cluster/app/" + appIdString;
+    String user;
+    try {
+      user = UserGroupInformation.getCurrentUser().getShortUserName();
+    } catch (IOException e) {
+      LOG.error("User not found. Set user to null", e);
+      user = null;
+    }
+    return new Metadata(appIdString, url, started, completed, jobStatus, user);
+  }
+
+
+  private static void createHistoryFile(FileSystem fs, Metadata metaObj, Path jobDir) {
+    Path historyFile = new Path(jobDir, generateFileName(metaObj));
+    try {
+      fs.create(historyFile);
+    } catch (IOException e) {
+        LOG.error("Failed to create history file", e);
     }
   }
 
@@ -386,6 +453,28 @@ public class TonyApplicationMaster {
       LOG.error("Exception while preparing AM", e);
       return false;
     }
+
+    // Write config file to HDFS
+    jobDir = new Path(tonyHistoryFolder + appIdString + "/");
+    try {
+      if (!fs.exists(jobDir)) {
+        fs.mkdirs(jobDir);
+        fs.setPermission(jobDir, new FsPermission((short) 0770));
+      }
+    } catch (IOException e) {
+      LOG.error("Failed to create " + jobDir.toString(), e);
+      return false;
+    }
+
+    Path configFile = new Path(jobDir,"config.xml");
+
+    try (FSDataOutputStream out = fs.create(configFile)) {
+      tonyConf.writeXml(out);
+    } catch (IOException e) {
+      LOG.error("Failed to write config to XML", e);
+      return false;
+    }
+
     rpcServer.start();
     hbMonitor.start();
     return true;

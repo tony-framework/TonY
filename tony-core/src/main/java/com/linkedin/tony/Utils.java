@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -21,10 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
-import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -403,5 +402,9 @@ public class Utils {
     } catch (IOException exception) {
       LOG.error("Failed to add " + path + " to local resources.", exception);
     }
+  }
+
+  public static String generateFileName(TonyApplicationMaster.Metadata obj) {
+    return obj.id + "-" + obj.started + "-" + obj.completed + "-" + obj.user + "-" + obj.status + ".jhist";
   }
 }
