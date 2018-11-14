@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.Utils;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -33,12 +34,18 @@ import static com.linkedin.tony.Constants.*;
  * --executes /Users/xxx/hadoop/li-tony_trunk/tony/src/test/resources/exit_0_check_env.py \
  * --python_binary_path python
  */
-public class ClusterSubmitter {
+public class ClusterSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(ClusterSubmitter.class);
+  private TonyClient client;
 
-  private ClusterSubmitter() { }
+  private ClusterSubmitter() {
+    this.client = new TonyClient(new Configuration());
+  }
+  public ClusterSubmitter(TonyClient client) {
+    this.client = client;
+  }
 
-  public static void main(String[] args) throws URISyntaxException {
+  public int submit(String[] args) throws ParseException, URISyntaxException {
     LOG.info("Starting ClusterSubmitter..");
     String jarLocation = new File(ClusterSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Configuration hdfsConf = new Configuration();
@@ -57,13 +64,25 @@ public class ClusterSubmitter {
       List<String> updatedArgs = new LinkedList<>(Arrays.asList(args));
       updatedArgs.add(0, cachedLibPath.toString());
       updatedArgs.add(0, "--hdfs_classpath");
-      exitCode = TonyClient.start(updatedArgs.toArray(new String[0]));
+      boolean sanityCheck = client.init(updatedArgs.toArray(new String[0]));
+      if (!sanityCheck) {
+        LOG.error("Arguments failed to pass sanity check");
+        return -1;
+      }
+      exitCode = client.start();
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
       exitCode = -1;
     } finally {
       Utils.cleanupHDFSPath(hdfsConf, cachedLibPath);
     }
+    return exitCode;
+  }
+
+  public static void main(String[] args) throws ParseException, URISyntaxException {
+    int exitCode;
+    ClusterSubmitter submitter = new ClusterSubmitter();
+    exitCode = submitter.submit(args);
     System.exit(exitCode);
   }
 }
