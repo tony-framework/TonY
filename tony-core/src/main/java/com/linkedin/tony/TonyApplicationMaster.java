@@ -392,7 +392,7 @@ public class TonyApplicationMaster {
 
   private static Metadata createMetadataObj(long started, long completed, boolean status) {
     String jobStatus = status ? "SUCCEEDED" : "FAILED";
-    String url = "http://" + yarnConf.get("yarn.resourcemanager.webapp.address") + "/cluster/app/" + appIdString;
+    String url = "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appIdString;
     String user;
     try {
       user = UserGroupInformation.getCurrentUser().getShortUserName();
