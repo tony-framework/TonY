@@ -4,6 +4,8 @@ import com.typesafe.config.Config;
 import hadoop.Configuration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import models.JobMetadata;
 import org.apache.hadoop.fs.FileSystem;
@@ -13,7 +15,6 @@ import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
-import hadoop.Security;
 import utils.HdfsUtils;
 
 import static utils.HdfsUtils.*;
@@ -38,13 +39,14 @@ public class JobsMetadataPageController extends Controller {
     }
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
-    String tonyHistoryFolder = config.getString("tony.historyFolder");
+    Path tonyHistoryFolder = new Path(config.getString("tony.historyFolder"));
+    String jobFolderRegex = "^application_\\d+_\\d+$";
     JobMetadata tmpMetadata;
 
-    for (Path f : getMetadataFilePaths(myFs, tonyHistoryFolder)) {
-      tmpMetadata = parseMetadata(myFs, f);
+    for (Path f : getJobFolders(myFs, tonyHistoryFolder, jobFolderRegex)) {
+      tmpMetadata = parseMetadata(myFs, f, jobFolderRegex);
       if (tmpMetadata == null) {
-        LOG.error("Couldn't parse " + f.toString());
+        LOG.error("Couldn't parse " + f);
         continue;
       }
       listOfMetadata.add(tmpMetadata);

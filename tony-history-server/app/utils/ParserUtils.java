@@ -1,10 +1,16 @@
 package utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -30,28 +36,52 @@ import static utils.HdfsUtils.*;
 public class ParserUtils {
   private static final Logger.ALogger LOG = Logger.of(ParserUtils.class);
 
-  public static JobMetadata parseMetadata(FileSystem fs, Path metadataFilePath) {
-    if (!pathExists(fs, metadataFilePath)) {
-      return new JobMetadata();
+  @VisibleForTesting
+  static boolean isValidMetadata(String[] metadata, String jobIdRegex) {
+    if (metadata.length != 5) {
+      LOG.error("Missing fields in metadata");
+      return false;
     }
+    return metadata[0].matches(jobIdRegex) && metadata[1].matches("\\d+") && metadata[2].matches("\\d+")
+        && metadata[3].matches(metadata[3].toLowerCase()) && metadata[4].equals(metadata[4].toUpperCase());
+  }
 
-    String fileContent = contentOfHdfsFile(fs, metadataFilePath);
+  public static JobMetadata parseMetadata(FileSystem fs, Path jobFolderPath, String jobIdRegex) {
     JobMetadata jobMetadata = new JobMetadata();
-    JsonNode jObj;
-    try {
-      jObj = Json.parse(fileContent);
-    } catch (JsonSyntaxException e) {
-      LOG.error("Couldn't parse metadata", e);
+    DateFormat simple = new SimpleDateFormat("dd MMM yyyy HH:mm:ss:SSS Z");
+    String[] metadata;
+
+    if (!pathExists(fs, jobFolderPath)) {
       return jobMetadata;
     }
-    jobMetadata.setId(jObj.get("id").textValue());
-    jobMetadata.setJobLink(jObj.get("url").textValue());
-    jobMetadata.setConfigLink("/jobs/" + jobMetadata.getId());
-    jobMetadata.setStarted(jObj.get("started").textValue());
-    jobMetadata.setCompleted(jObj.get("completed").textValue());
-    jobMetadata.setCompleted(jObj.get("completed").textValue());
-    jobMetadata.setStatus(jObj.get("status").textValue());
-    jobMetadata.setUser(jObj.get("user").textValue());
+
+    try {
+      metadata = Arrays.stream(fs.listStatus(jobFolderPath))
+          .filter(f -> f.getPath().toString().contains("jhist")) // ignore config.xml
+          .map(histFilePath -> HdfsUtils.getJobId(histFilePath.toString()))
+          .map(histFile -> histFile.substring(0, histFile.lastIndexOf('.'))) // remove .jhist
+          .map(histFileNoExt -> histFileNoExt.split("-"))
+          .flatMap(Arrays::stream)
+          .toArray(String[]::new);
+    } catch (IOException e) {
+      LOG.error("Failed to scan " + jobFolderPath.toString(), e);
+      return jobMetadata;
+    }
+
+    if (!isValidMetadata(metadata, jobIdRegex)) {
+      // this should never happen unless user rename the history file
+      LOG.error("Metadata isn't valid");
+      return jobMetadata;
+    }
+
+    jobMetadata.setId(metadata[0]);
+    jobMetadata.setJobLink("/jobs/" + jobMetadata.getId());
+    jobMetadata.setConfigLink("/config/" + jobMetadata.getId());
+    jobMetadata.setStarted(simple.format(new Date(Long.parseLong(metadata[1]))));
+    jobMetadata.setCompleted(simple.format(new Date(Long.parseLong(metadata[2]))));
+    jobMetadata.setUser(metadata[3]);
+    jobMetadata.setStatus(metadata[4]);
+
     LOG.debug("Successfully parsed metadata");
     return jobMetadata;
   }
