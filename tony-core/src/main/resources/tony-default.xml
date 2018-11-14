@@ -208,7 +208,7 @@
       Location for Tony AM to write config and events on HDFS
     </description>
     <name>tony.history.location</name>
-    <value>/system/tony-history/</value>
+    <value>/system/tony-history</value>
   </property>
 
 </configuration>
