@@ -64,7 +64,11 @@ public class ClusterSubmitter extends TonySubmitter {
       List<String> updatedArgs = new LinkedList<>(Arrays.asList(args));
       updatedArgs.add(0, cachedLibPath.toString());
       updatedArgs.add(0, "--hdfs_classpath");
-      client.init(updatedArgs.toArray(new String[0]));
+      boolean sanityCheck = client.init(updatedArgs.toArray(new String[0]));
+      if (!sanityCheck) {
+        LOG.error("Arguments failed to pass sanity check");
+        return -1;
+      }
       exitCode = client.start();
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);

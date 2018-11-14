@@ -211,8 +211,7 @@ public class TonyClient implements AutoCloseable {
         report.getApplicationId()));
   }
 
-  @VisibleForTesting
-  void createYarnClient() {
+  private void createYarnClient() {
     if (this.yarnConfAddress != null) {
       this.yarnConf.addResource(new Path(this.yarnConfAddress));
     }
@@ -679,10 +678,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @Override
-  public void close() throws IOException, YarnException {
-    if (amRpcClient != null) {
-      amRpcClient.finishApplication();
-    }
+  public void close() {
     Utils.cleanupHDFSPath(hdfsConf, appResourcesPath);
   }
 
@@ -710,6 +706,9 @@ public class TonyClient implements AutoCloseable {
         LOG.fatal("Failed to parse arguments.");
       }
       exitCode = client.start();
+      if (client.amRpcClient != null) {
+        client.amRpcClient.finishApplication();
+      }
     } catch (ParseException | IOException | YarnException e) {
       LOG.fatal("Failed to init client.", e);
       System.exit(-1);

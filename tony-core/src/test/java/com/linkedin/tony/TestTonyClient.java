@@ -4,7 +4,6 @@
  */
 package com.linkedin.tony;
 
-import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
