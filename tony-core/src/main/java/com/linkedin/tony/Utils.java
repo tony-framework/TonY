@@ -427,17 +427,17 @@ public class Utils {
     }
   }
 
-  private static String generateFileName(TonyJobMetadata obj) {
+  private static String generateFileName(TonyJobMetadata metadataObj) {
     StringBuilder sb = new StringBuilder();
-    sb.append(obj.getId());
+    sb.append(metadataObj.getId());
     sb.append("-");
-    sb.append(obj.getStarted());
+    sb.append(metadataObj.getStarted());
     sb.append("-");
-    sb.append(obj.getCompleted());
+    sb.append(metadataObj.getCompleted());
     sb.append("-");
-    sb.append(obj.getUser());
+    sb.append(metadataObj.getUser());
     sb.append("-");
-    sb.append(obj.getStatus());
+    sb.append(metadataObj.getStatus());
     sb.append(".jhist");
     return sb.toString();
   }
