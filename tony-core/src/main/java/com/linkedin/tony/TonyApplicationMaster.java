@@ -393,12 +393,11 @@ public class TonyApplicationMaster {
   private static Metadata createMetadataObj(long started, long completed, boolean status) {
     String jobStatus = status ? "SUCCEEDED" : "FAILED";
     String url = "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appIdString;
-    String user;
+    String user = null;
     try {
       user = UserGroupInformation.getCurrentUser().getShortUserName();
     } catch (IOException e) {
       LOG.error("Failed reading from disk. Set user to null", e);
-      user = null;
     }
     return new Metadata(appIdString, url, started, completed, jobStatus, user);
   }
