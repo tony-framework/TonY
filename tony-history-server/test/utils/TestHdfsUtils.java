@@ -3,6 +3,7 @@ package utils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -76,25 +77,64 @@ public class TestHdfsUtils {
   }
 
   @Test
-  public void testGetMetadataFilePaths_emptyHistoryFolder() {
-    String histFolder = "./test/resources/emptyHistFolder";
+  public void testGetJobId_typicalCase() {
+    Path filePath1 = new Path("./test/resources/job1");
+    Path filePath2 = new Path("./test/resources/app2/");
 
-    assertEquals(new ArrayList<Path>(), HdfsUtils.getMetadataFilePaths(fs, histFolder));
+    assertEquals("job1", HdfsUtils.getJobId(filePath1.toString()));
+    assertEquals("app2", HdfsUtils.getJobId(filePath2.toString()));
   }
 
   @Test
-  public void testGetMetadataFilePaths_typicalHistoryFolder() {
-    String histFolder = "./test/resources/typicalHistFolder";
+  public void testGetJobId_emptyPath() {
+    Path filePath = mock(Path.class);
+    when(filePath.toString()).thenReturn("");
+
+    assertEquals("", HdfsUtils.getJobId(filePath.toString()));
+  }
+
+  @Test
+  public void testIsJobFolder_match() {
+    Path filePath1 = new Path("/abc/def/application_1541469337545_0024");
+    Path filePath2 = new Path("/abc/def/job2");
+    String regex1 = "^application_.*";
+    String regex2 = "^job.*";
+
+    assertTrue(HdfsUtils.isJobFolder(filePath1, regex1));
+    assertTrue(HdfsUtils.isJobFolder(filePath2, regex2));
+  }
+
+  @Test
+  public void testIsJobFolder_notMatch() {
+    Path filePath1 = new Path("./test/job/application_1541469337545_0024");
+    Path filePath2 = new Path("./test/resources/application2/");
+    String regex1 = ".*job.*";
+    String regex2 = "application_.*";
+
+    assertFalse(HdfsUtils.isJobFolder(filePath1, regex1));
+    assertFalse(HdfsUtils.isJobFolder(filePath2, regex2));
+  }
+
+  @Test
+  public void testGetJobFolders_emptyHistoryFolder() {
+    Path histFolder = new Path("./test/resources/emptyHistFolder");
+
+    assertEquals(new ArrayList<Path>(), HdfsUtils.getJobFolders(fs, histFolder, "job*"));
+  }
+
+  @Test
+  public void testGetJobFolders_typicalHistoryFolder() {
+    Path histFolder = new Path("./test/resources/typicalHistFolder");
+    String regex = "^job.*";
     List<Path> expectedRes = new ArrayList<>();
 
     for (int i = 1; i < 6; ++i) {
       StringBuilder sb = new StringBuilder();
       sb.append("file:").append(System.getProperty("user.dir"));
       sb.append("/test/resources/typicalHistFolder/job").append(i);
-      sb.append("/metadata.json");
       expectedRes.add(new Path(sb.toString()));
     }
-    List<Path> actualRes = HdfsUtils.getMetadataFilePaths(fs, histFolder);
+    List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
     Collections.sort(actualRes);
 
     assertEquals(expectedRes, actualRes);
@@ -102,12 +142,41 @@ public class TestHdfsUtils {
   }
 
   @Test
-  public void testGetMetadataFilePaths_throwsException() throws IOException {
-    String histFolder = "./test/resources/typicalHistFolder";
-    FileSystem mockFs = mock(FileSystem.class);
+  public void testGetJobFolders_nestedHistFolder() {
+    Path histFolder = new Path("./test/resources/nestedHistFolder");
+    String regex = "^job.*";
+    List<Path> expectedRes = new ArrayList<>();
+    StringBuilder sb = new StringBuilder();
+    sb.append("file:").append(System.getProperty("user.dir"));
+    sb.append("/test/resources/nestedHistFolder/");
+    String baseDir = sb.toString();
 
-    when(mockFs.listStatus(new Path(histFolder))).thenThrow(new IOException("IO Excpt"));
-    List<Path> actualRes = HdfsUtils.getMetadataFilePaths(mockFs, histFolder);
+    expectedRes.add(new Path(baseDir, "2018/01/02/job0"));
+    expectedRes.add(new Path(baseDir,"2018/01/01/job1"));
+    expectedRes.add(new Path(baseDir,"2018/12/31/job2"));
+    expectedRes.add(new Path(baseDir,"2017/07/job3"));
+    expectedRes.add(new Path(baseDir,"2017/07/job4"));
+    expectedRes.add(new Path(baseDir,"2017/07/job5"));
+
+    List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
+    Collections.sort(actualRes, (o1, o2) -> {
+      String job1 = HdfsUtils.getJobId(o1.toString());
+      String job2 = HdfsUtils.getJobId(o2.toString());
+      return job1.charAt(job1.length()-1) - job2.charAt(job2.length()-1);
+    });
+
+    assertEquals(expectedRes, actualRes);
+    assertEquals(expectedRes.size(), actualRes.size());
+  }
+
+  @Test
+  public void testGetJobFolders_throwsException() throws IOException {
+    Path histFolder = new Path("./test/resources/typicalHistFolder");
+    FileSystem mockFs = mock(FileSystem.class);
+    String regex = "job*";
+
+    when(mockFs.listStatus(histFolder)).thenThrow(new IOException("IO Excpt"));
+    List<Path> actualRes = HdfsUtils.getJobFolders(mockFs, histFolder, regex);
 
     assertEquals(new ArrayList<Path>(), actualRes);
     assertEquals(0, actualRes.size());
