@@ -397,7 +397,7 @@ public class TonyApplicationMaster {
     try {
       user = UserGroupInformation.getCurrentUser().getShortUserName();
     } catch (IOException e) {
-      LOG.error("User not found. Set user to null", e);
+      LOG.error("Failed reading from disk. Set user to null", e);
       user = null;
     }
     return new Metadata(appIdString, url, started, completed, jobStatus, user);
@@ -453,9 +453,15 @@ public class TonyApplicationMaster {
       LOG.error("Exception while preparing AM", e);
       return false;
     }
-    if (!isJobDirSetup(fs, tonyHistoryFolder, appIdString) || !configFileExists(fs, jobDir)) {
+
+    try {
+      setupJobDir(fs, tonyHistoryFolder, appIdString);
+      writeConfigFile(fs, jobDir);
+    } catch (IOException e) {
+      LOG.error(e);
       return false;
     }
+
     rpcServer.start();
     hbMonitor.start();
     return true;
@@ -463,14 +469,12 @@ public class TonyApplicationMaster {
 
   /**
    * Create job directory under history folder.
-   * Side effects: {@code jobDir} global variable will be set if function finished successfully.
-   * Otherwise, it will just be an invalid Path object.
    * @param fs FileSystem object.
    * @param histFolder History folder location string.
    * @param appId Application ID string.
-   * @return true if the job directory is successfully set up. False otherwise.
+   * @throws IOException when failed to create job directory on HDFS
    */
-  public boolean isJobDirSetup(FileSystem fs, String histFolder, String appId) {
+  private void setupJobDir(FileSystem fs, String histFolder, String appId) throws IOException{
     jobDir = new Path(histFolder + "/" + appId + "/");
     try {
       if (!fs.exists(jobDir)) {
@@ -478,27 +482,23 @@ public class TonyApplicationMaster {
         fs.setPermission(jobDir, new FsPermission((short) 0770));
       }
     } catch (IOException e) {
-      LOG.error("Failed to create " + jobDir.toString(), e);
-      return false;
+      throw new IOException("Failed to create " + jobDir.toString(), e);
     }
-    return true;
   }
 
   /**
    * Generate config file in {@code jobDir} folder.
    * @param fs FileSystem object.
    * @param jobDir Path object of job directory (store all the files related to the job).
-   * @return true if config file is successfully written to {@code jobDir}. False otherwise.
+   * @throws IOException when failed to write config.xml to {@code jobDir}
    */
-  private boolean configFileExists(FileSystem fs, Path jobDir) {
+  private void writeConfigFile(FileSystem fs, Path jobDir) throws IOException {
     Path configFile = new Path(jobDir,"config.xml");
     try (FSDataOutputStream out = fs.create(configFile)) {
       tonyConf.writeXml(out);
     } catch (IOException e) {
-      LOG.error("Failed to write config to XML", e);
-      return false;
+      throw new IOException("Failed to write config to XML", e);
     }
-    return true;
   }
 
   /**
