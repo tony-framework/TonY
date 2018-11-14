@@ -409,7 +409,7 @@ public class TonyApplicationMaster {
     try {
       fs.create(historyFile);
     } catch (IOException e) {
-        LOG.error("Failed to create history file", e);
+      LOG.error("Failed to create history file", e);
     }
   }
 
@@ -453,9 +453,25 @@ public class TonyApplicationMaster {
       LOG.error("Exception while preparing AM", e);
       return false;
     }
+    if (!isJobDirSetup(fs, tonyHistoryFolder, appIdString) || !configFileExists(fs, jobDir)) {
+      return false;
+    }
+    rpcServer.start();
+    hbMonitor.start();
+    return true;
+  }
 
-    // Write config file to HDFS
-    jobDir = new Path(tonyHistoryFolder + appIdString + "/");
+  /**
+   * Create job directory under history folder.
+   * Side effects: {@code jobDir} global variable will be set if function finished successfully.
+   * Otherwise, it will just be an invalid Path object.
+   * @param fs FileSystem object.
+   * @param histFolder History folder location string.
+   * @param appId Application ID string.
+   * @return true if the job directory is successfully set up. False otherwise.
+   */
+  public boolean isJobDirSetup(FileSystem fs, String histFolder, String appId) {
+    jobDir = new Path(histFolder + "/" + appId + "/");
     try {
       if (!fs.exists(jobDir)) {
         fs.mkdirs(jobDir);
@@ -465,18 +481,23 @@ public class TonyApplicationMaster {
       LOG.error("Failed to create " + jobDir.toString(), e);
       return false;
     }
+    return true;
+  }
 
+  /**
+   * Generate config file in {@code jobDir} folder.
+   * @param fs FileSystem object.
+   * @param jobDir Path object of job directory (store all the files related to the job).
+   * @return true if config file is successfully written to {@code jobDir}. False otherwise.
+   */
+  private boolean configFileExists(FileSystem fs, Path jobDir) {
     Path configFile = new Path(jobDir,"config.xml");
-
     try (FSDataOutputStream out = fs.create(configFile)) {
       tonyConf.writeXml(out);
     } catch (IOException e) {
       LOG.error("Failed to write config to XML", e);
       return false;
     }
-
-    rpcServer.start();
-    hbMonitor.start();
     return true;
   }
 
