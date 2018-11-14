@@ -78,14 +78,13 @@ import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.*;
 import static com.linkedin.tony.TonyConfigurationKeys.*;
-import static com.linkedin.tony.Utils.*;
 
 
 public class TonyApplicationMaster {
   private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
 
   /**
-   * Metadata of jobs
+   * Metadata + History Server related variables
    */
   private ApplicationAttemptId appAttemptID = null;
   private static String appIdString;
@@ -93,23 +92,6 @@ public class TonyApplicationMaster {
   private static FileSystem fs;
   private static String tonyHistoryFolder;
   private static Path jobDir;
-
-  public static class Metadata {
-    public String id;
-    public String url;
-    public long started;
-    public long completed;
-    public String status;
-    public String user;
-    public Metadata(String id, String url, long started, long completed, String status, String user) {
-      this.id = id;
-      this.url = url;
-      this.started = started;
-      this.completed = completed;
-      this.status = status;
-      this.user = user;
-    }
-  }
 
   // Container info
   private int amRetryCount;
@@ -379,7 +361,7 @@ public class TonyApplicationMaster {
     }
 
     // By this time jobDir should have been set
-    createHistoryFile(fs, createMetadataObj(started, completed, succeeded), jobDir);
+    Utils.createHistoryFile(fs, Utils.createMetadataObj(yarnConf, appIdString, started, completed, succeeded), jobDir);
 
     if (succeeded) {
       LOG.info("Application Master completed successfully. exiting");
@@ -387,28 +369,6 @@ public class TonyApplicationMaster {
     } else {
       LOG.info("Application Master failed. exiting");
       System.exit(-1);
-    }
-  }
-
-  private static Metadata createMetadataObj(long started, long completed, boolean status) {
-    String jobStatus = status ? "SUCCEEDED" : "FAILED";
-    String url = "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appIdString;
-    String user = null;
-    try {
-      user = UserGroupInformation.getCurrentUser().getShortUserName();
-    } catch (IOException e) {
-      LOG.error("Failed reading from disk. Set user to null", e);
-    }
-    return new Metadata(appIdString, url, started, completed, jobStatus, user);
-  }
-
-
-  private static void createHistoryFile(FileSystem fs, Metadata metaObj, Path jobDir) {
-    Path historyFile = new Path(jobDir, generateFileName(metaObj));
-    try {
-      fs.create(historyFile);
-    } catch (IOException e) {
-      LOG.error("Failed to create history file", e);
     }
   }
 

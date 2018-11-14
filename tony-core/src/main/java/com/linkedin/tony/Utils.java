@@ -40,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
@@ -404,7 +405,40 @@ public class Utils {
     }
   }
 
-  public static String generateFileName(TonyApplicationMaster.Metadata obj) {
-    return obj.id + "-" + obj.started + "-" + obj.completed + "-" + obj.user + "-" + obj.status + ".jhist";
+  // History File operations
+  static TonyJobMetadata createMetadataObj(Configuration yarnConf, String appId, long started, long completed, boolean status) {
+    String jobStatus = status ? "SUCCEEDED" : "FAILED";
+    String url = "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
+    String user = null;
+    try {
+      user = UserGroupInformation.getCurrentUser().getShortUserName();
+    } catch (IOException e) {
+      LOG.error("Failed reading from disk. Set user to null", e);
+    }
+    return new TonyJobMetadata(appId, url, started, completed, jobStatus, user);
+  }
+
+  static void createHistoryFile(FileSystem fs, TonyJobMetadata metaObj, Path jobDir) {
+    Path historyFile = new Path(jobDir, generateFileName(metaObj));
+    try {
+      fs.create(historyFile);
+    } catch (IOException e) {
+      LOG.error("Failed to create history file", e);
+    }
+  }
+
+  private static String generateFileName(TonyJobMetadata obj) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(obj.getId());
+    sb.append("-");
+    sb.append(obj.getStarted());
+    sb.append("-");
+    sb.append(obj.getCompleted());
+    sb.append("-");
+    sb.append(obj.getUser());
+    sb.append("-");
+    sb.append(obj.getStatus());
+    sb.append(".jhist");
+    return sb.toString();
   }
 }
