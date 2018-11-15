@@ -1,5 +1,7 @@
 package controllers;
 
+import cache.CacheWrapper;
+import com.google.common.cache.Cache;
 import com.typesafe.config.Config;
 import hadoop.Configuration;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   public Result index() {
     HdfsConfiguration conf = Configuration.getHdfsConf();
     FileSystem myFs = HdfsUtils.getFileSystem(conf);
+    Cache<String, JobMetadata> cache = CacheWrapper.getMetadataCache();
 
     if (myFs == null) {
       return internalServerError("Failed to initialize file system");
