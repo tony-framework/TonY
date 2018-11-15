@@ -9,10 +9,6 @@ import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsRespon
 
 
 public class ProtoUtils {
-  private ProtoUtils() {
-    // to prevent instantiation
-  }
-
   public static TaskUrl taskUrlProtoToTaskUrl(TaskUrlProto taskUrlProto) {
     return new TaskUrl(taskUrlProto.getName(), taskUrlProto.getIndex(), taskUrlProto.getUrl());
   }
@@ -21,4 +17,6 @@ public class ProtoUtils {
     return TaskUrlProto.newBuilder().setName(taskUrl.getName()).setIndex(taskUrl.getIndex())
         .setUrl(taskUrl.getUrl()).build();
   }
+
+  private ProtoUtils() { }
 }

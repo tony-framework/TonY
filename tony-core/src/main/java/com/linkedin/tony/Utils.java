@@ -40,7 +40,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
@@ -50,8 +49,6 @@ public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
 
   private static final String WORKER_LOG_URL_TEMPLATE = "http://%s/node/containerlogs/%s/%s";
-
-  protected Utils() { }
 
   /**
    * Poll a callable till it returns true or time out
@@ -405,40 +402,5 @@ public class Utils {
     }
   }
 
-  // History File operations
-  static TonyJobMetadata createMetadataObj(Configuration yarnConf, String appId, long started, long completed, boolean status) {
-    String jobStatus = status ? "SUCCEEDED" : "FAILED";
-    String url = "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
-    String user = null;
-    try {
-      user = UserGroupInformation.getCurrentUser().getShortUserName();
-    } catch (IOException e) {
-      LOG.error("Failed reading from disk. Set user to null", e);
-    }
-    return new TonyJobMetadata(appId, url, started, completed, jobStatus, user);
-  }
-
-  static void createHistoryFile(FileSystem fs, TonyJobMetadata metaObj, Path jobDir) {
-    Path historyFile = new Path(jobDir, generateFileName(metaObj));
-    try {
-      fs.create(historyFile);
-    } catch (IOException e) {
-      LOG.error("Failed to create history file", e);
-    }
-  }
-
-  private static String generateFileName(TonyJobMetadata metadataObj) {
-    StringBuilder sb = new StringBuilder();
-    sb.append(metadataObj.getId());
-    sb.append("-");
-    sb.append(metadataObj.getStarted());
-    sb.append("-");
-    sb.append(metadataObj.getCompleted());
-    sb.append("-");
-    sb.append(metadataObj.getUser());
-    sb.append("-");
-    sb.append(metadataObj.getStatus());
-    sb.append(".jhist");
-    return sb.toString();
-  }
+  private Utils() { }
 }
