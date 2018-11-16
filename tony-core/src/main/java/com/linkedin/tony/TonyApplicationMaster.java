@@ -557,7 +557,7 @@ public class TonyApplicationMaster {
 
       if (session.isTrainingFinished()) {
         LOG.info("Training has finished.");
-        return true;
+        return session.getFinalStatus() == FinalApplicationStatus.SUCCEEDED;
       }
 
       if (preprocessExitCode != 0) {
