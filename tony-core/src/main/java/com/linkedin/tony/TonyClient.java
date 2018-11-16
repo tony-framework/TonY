@@ -82,7 +82,6 @@ public class TonyClient {
   private static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   private static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
   private static final String HDFS_SITE_CONF = "hdfs-site.xml";
-  private static final String RM_APP_URL_TEMPLATE = "http://%s/cluster/app/%s";
 
   // Configurations
   private YarnClient yarnClient;
@@ -206,9 +205,7 @@ public class TonyClient {
     LOG.info("URL to track running application (will proxy to TensorBoard once it has started): "
              + report.getTrackingUrl());
     LOG.info("ResourceManager web address for application: "
-        + String.format(RM_APP_URL_TEMPLATE,
-        yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS),
-        report.getApplicationId()));
+        + Utils.buildRMUrl(yarnConf, report.getApplicationId().toString()));
   }
 
   @VisibleForTesting
