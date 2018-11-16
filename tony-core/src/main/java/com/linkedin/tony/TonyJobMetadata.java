@@ -4,8 +4,15 @@
  */
 package com.linkedin.tony;
 
-public class TonyJobMetadata {
+import java.io.IOException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 
+
+public class TonyJobMetadata {
+  private static final Log LOG = LogFactory.getLog(TonyJobMetadata.class);
   private String id;
   private String url;
   private long started;
@@ -20,6 +27,18 @@ public class TonyJobMetadata {
     this.completed = completed;
     this.status = status;
     this.user = user;
+  }
+
+  public static TonyJobMetadata newInstance(Configuration yarnConf, String appId, long started, long completed,
+      boolean status) {
+    String jobStatus = status ? "SUCCEEDED" : "FAILED";
+    String user = null;
+    try {
+      user = UserGroupInformation.getCurrentUser().getShortUserName();
+    } catch (IOException e) {
+      LOG.error("Failed reading from disk. Set user to null", e);
+    }
+    return new TonyJobMetadata(appId, Utils.buildRMUrl(yarnConf, appId), started, completed, jobStatus, user);
   }
 
   public String getId() {

@@ -7,31 +7,15 @@ package com.linkedin.tony;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 
 public class HistoryFileUtils {
   private static final Log LOG = LogFactory.getLog(HistoryFileUtils.class);
 
-  public static TonyJobMetadata createMetadataObj(Configuration yarnConf, String appId, long started, long completed,
-      boolean status) {
-    String jobStatus = status ? "SUCCEEDED" : "FAILED";
-    String url = "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
-    String user = null;
-    try {
-      user = UserGroupInformation.getCurrentUser().getShortUserName();
-    } catch (IOException e) {
-      LOG.error("Failed reading from disk. Set user to null", e);
-    }
-    return new TonyJobMetadata(appId, url, started, completed, jobStatus, user);
-  }
-
-  public static void createHistoryFile(FileSystem fs, TonyJobMetadata metaObj, Path jobDir) {
-    Path historyFile = new Path(jobDir, generateFileName(metaObj));
+  public static void createHistoryFile(FileSystem fs, TonyJobMetadata metadata, Path jobDir) {
+    Path historyFile = new Path(jobDir, generateFileName(metadata));
     try {
       fs.create(historyFile);
     } catch (IOException e) {
@@ -39,17 +23,17 @@ public class HistoryFileUtils {
     }
   }
 
-  private static String generateFileName(TonyJobMetadata metadataObj) {
+  private static String generateFileName(TonyJobMetadata metadata) {
     StringBuilder sb = new StringBuilder();
-    sb.append(metadataObj.getId());
+    sb.append(metadata.getId());
     sb.append("-");
-    sb.append(metadataObj.getStarted());
+    sb.append(metadata.getStarted());
     sb.append("-");
-    sb.append(metadataObj.getCompleted());
+    sb.append(metadata.getCompleted());
     sb.append("-");
-    sb.append(metadataObj.getUser());
+    sb.append(metadata.getUser());
     sb.append("-");
-    sb.append(metadataObj.getStatus());
+    sb.append(metadata.getStatus());
     sb.append(".jhist");
     return sb.toString();
   }

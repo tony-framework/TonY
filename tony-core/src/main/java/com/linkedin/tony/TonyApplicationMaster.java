@@ -361,7 +361,8 @@ public class TonyApplicationMaster {
     }
 
     // By this time jobDir should have been set
-    HistoryFileUtils.createHistoryFile(fs, HistoryFileUtils.createMetadataObj(yarnConf, appIdString, started, completed, succeeded), jobDir);
+    HistoryFileUtils.createHistoryFile(fs,
+        TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded), jobDir);
 
     if (succeeded) {
       LOG.info("Application Master completed successfully. exiting");
