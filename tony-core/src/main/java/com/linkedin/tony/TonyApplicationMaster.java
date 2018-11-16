@@ -727,8 +727,6 @@ public class TonyApplicationMaster {
 
     @Override
     public Set<TaskUrl> getTaskUrls() {
-      LOG.info("Client requesting TaskUrls!");
-
       // Special handling for NotebookSubmitter.
       if (singleNode && proxyUrl != null) {
         HashSet<TaskUrl> additionalTasks = new HashSet<>();

@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -47,12 +48,19 @@ import static com.linkedin.tony.Constants.*;
  * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
  * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
  */
-public class NotebookSubmitter {
+public class NotebookSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
-  private NotebookSubmitter() { }
+  private TonyClient client;
 
-  public static void main(String[] args) throws  Exception {
+  private NotebookSubmitter() {
+    this.client = new TonyClient(new Configuration());
+  }
+  public NotebookSubmitter(TonyClient client) {
+    this.client = client;
+  }
+
+  public int submit(String[] args) throws ParseException, URISyntaxException, IOException, InterruptedException {
     LOG.info("Starting NotebookSubmitter..");
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Options opts = Utils.getCommonOptions();
@@ -82,17 +90,12 @@ public class NotebookSubmitter {
     updatedArgs[args.length + 2] = "--conf";
     updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + String.valueOf(24 * 60 * 60 * 1000);
 
-    TonyClient client = TonyClient.createClientInstance(updatedArgs, new Configuration());
+    client.init(updatedArgs);
+    client.start();
     if (client == null) {
       System.exit(-1);
     }
-    Thread clientThread = new Thread(() -> {
-      try {
-        client.run();
-      } catch (IOException | URISyntaxException | YarnException | InterruptedException e) {
-        LOG.error(e);
-      }
-    });
+    Thread clientThread = new Thread(client::start);
     clientThread.start();
     while (clientThread.isAlive()) {
       if (client.getTaskUrls() != null) {
@@ -117,6 +120,14 @@ public class NotebookSubmitter {
       Thread.sleep(1000);
     }
     clientThread.join();
+    return exitCode;
+
+  }
+
+  public static void main(String[] args) throws  Exception {
+    int exitCode;
+    NotebookSubmitter submitter = new NotebookSubmitter();
+    exitCode = submitter.submit(args);
     System.exit(exitCode);
 
   }
