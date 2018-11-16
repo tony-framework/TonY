@@ -39,7 +39,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
@@ -74,15 +77,21 @@ import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.*;
-import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
+import static com.linkedin.tony.TonyConfigurationKeys.*;
 
 
 public class TonyApplicationMaster {
   private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
 
+  /**
+   * Metadata + History Server related variables
+   */
   private ApplicationAttemptId appAttemptID = null;
-  private String appIdString;
+  private static String appIdString;
   private String amHostPort;
+  private static FileSystem fs;
+  private static String tonyHistoryFolder;
+  private static Path jobDir;
 
   // Container info
   private int amRetryCount;
@@ -124,7 +133,7 @@ public class TonyApplicationMaster {
   private TonySession.Builder sessionBuilder;
 
   /** Configuration **/
-  private Configuration yarnConf;
+  private static Configuration yarnConf;
   private Configuration hdfsConf;
 
   /** Cluster spec **/
@@ -201,6 +210,14 @@ public class TonyApplicationMaster {
       yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
       containerEnv.put(Constants.YARN_CONF_PATH, System.getenv(Constants.YARN_CONF_PATH));
     }
+
+    try {
+      fs = FileSystem.get(hdfsConf);
+    } catch (IOException e) {
+      LOG.error("Failed to create FileSystem object", e);
+      return false;
+    }
+
     hbMonitor.init(tonyConf);
 
     Options opts = Utils.getCommonOptions();
@@ -245,6 +262,8 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
     framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                                                  TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    tonyHistoryFolder = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION,
+                                     TonyConfigurationKeys.DEFAULT_TONY_HISTORY_LOCATION);
     return true;
   }
 
@@ -295,6 +314,8 @@ public class TonyApplicationMaster {
    */
   public static void main(String[] args) {
     boolean succeeded = false;
+    long started;
+    long completed;
     TonyApplicationMaster am = new TonyApplicationMaster();
     boolean sanityCheck = am.init(args);
     if (!sanityCheck) {
@@ -305,6 +326,7 @@ public class TonyApplicationMaster {
     }
     am.mainThread = Thread.currentThread();
     boolean exitOnError = false;
+    started = System.currentTimeMillis();
     do {
       // Crash AM on purpose during AM crash tests.
       String shouldCrash = System.getenv(Constants.TEST_AM_CRASH);
@@ -331,11 +353,16 @@ public class TonyApplicationMaster {
     } while (!am.singleNode); // We don't retry on single node training.
     // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
     am.stop();
+    completed = System.currentTimeMillis();
     am.printTaskUrls();
     if (exitOnError) {
       LOG.fatal("Error running TonyApplicationMaster !!");
       System.exit(-1);
     }
+
+    // By this time jobDir should have been set
+    HistoryFileUtils.createHistoryFile(fs,
+        TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded), jobDir);
 
     if (succeeded) {
       LOG.info("Application Master completed successfully. exiting");
@@ -386,9 +413,52 @@ public class TonyApplicationMaster {
       LOG.error("Exception while preparing AM", e);
       return false;
     }
+
+    try {
+      setupJobDir(fs, tonyHistoryFolder, appIdString);
+      writeConfigFile(fs, jobDir);
+    } catch (IOException e) {
+      LOG.error(e);
+      return false;
+    }
+
     rpcServer.start();
     hbMonitor.start();
     return true;
+  }
+
+  /**
+   * Create job directory under history folder.
+   * @param fs FileSystem object.
+   * @param histFolder History folder location string.
+   * @param appId Application ID string.
+   * @throws IOException when failed to create job directory on HDFS
+   */
+  private void setupJobDir(FileSystem fs, String histFolder, String appId) throws IOException{
+    jobDir = new Path(histFolder + "/" + appId + "/");
+    try {
+      if (!fs.exists(jobDir)) {
+        fs.mkdirs(jobDir);
+        fs.setPermission(jobDir, new FsPermission((short) 0770));
+      }
+    } catch (IOException e) {
+      throw new IOException("Failed to create " + jobDir.toString(), e);
+    }
+  }
+
+  /**
+   * Generate config file in {@code jobDir} folder.
+   * @param fs FileSystem object.
+   * @param jobDir Path object of job directory (store all the files related to the job).
+   * @throws IOException when failed to write config.xml to {@code jobDir}
+   */
+  private void writeConfigFile(FileSystem fs, Path jobDir) throws IOException {
+    Path configFile = new Path(jobDir,"config.xml");
+    try (FSDataOutputStream out = fs.create(configFile)) {
+      tonyConf.writeXml(out);
+    } catch (IOException e) {
+      throw new IOException("Failed to write config to XML", e);
+    }
   }
 
   /**

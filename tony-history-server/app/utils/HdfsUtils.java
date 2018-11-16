@@ -95,6 +95,5 @@ public class HdfsUtils {
     return null;
   }
 
-  private HdfsUtils() {
-  }
+  private HdfsUtils() { }
 }

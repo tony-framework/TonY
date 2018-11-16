@@ -202,4 +202,13 @@
     <name>tony.application.yarn-conf-path</name>
   </property>
 
+  <!-- History folder configurations -->
+  <property>
+    <description>
+      Location for Tony AM to write config and events on HDFS
+    </description>
+    <name>tony.history.location</name>
+    <value>/system/tony-history</value>
+  </property>
+
 </configuration>

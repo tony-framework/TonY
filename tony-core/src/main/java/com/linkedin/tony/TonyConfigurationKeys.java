@@ -18,6 +18,10 @@ public class TonyConfigurationKeys {
 
   public static final String OTHER_NAMENODES_TO_ACCESS = TONY_PREFIX + "other.namenodes";
 
+  // History folder configuration
+  public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
+  public static final String DEFAULT_TONY_HISTORY_LOCATION = "/system/tony-history/";
+
   // Application configurations
   public static final String YARN_QUEUE_NAME = TONY_PREFIX + "yarn.queue";
   public static final String DEFAULT_YARN_QUEUE_NAME = "default";
@@ -132,5 +136,4 @@ public class TonyConfigurationKeys {
   public static final String HDFS_CONF_LOCATION = TONY_APPLICATION_PREFIX + "hdfs-conf-path";
 
   public static final String YARN_CONF_LOCATION = TONY_APPLICATION_PREFIX + "yarn-conf-path";
-
 }

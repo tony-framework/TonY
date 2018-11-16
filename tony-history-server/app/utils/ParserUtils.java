@@ -96,5 +96,5 @@ public class ParserUtils {
     return configs;
   }
 
-  private ParserUtils() {}
+  private ParserUtils() { }
 }

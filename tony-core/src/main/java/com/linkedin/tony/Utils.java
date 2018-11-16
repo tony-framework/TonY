@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -21,10 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
-import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -41,6 +40,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
@@ -50,8 +50,6 @@ public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
 
   private static final String WORKER_LOG_URL_TEMPLATE = "http://%s/node/containerlogs/%s/%s";
-
-  protected Utils() { }
 
   /**
    * Poll a callable till it returns true or time out
@@ -404,4 +402,10 @@ public class Utils {
       LOG.error("Failed to add " + path + " to local resources.", exception);
     }
   }
+
+  public static String buildRMUrl(Configuration yarnConf, String appId) {
+    return "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
+  }
+
+  private Utils() { }
 }
