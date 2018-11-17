@@ -7,8 +7,8 @@ package com.linkedin.tony;
 import com.linkedin.tony.cli.ClusterSubmitter;
 import org.testng.annotations.Test;
 
-import static junit.framework.Assert.*;
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 
 public class TestClusterSubmitter {
