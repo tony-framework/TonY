@@ -4,8 +4,6 @@ import com.typesafe.config.Config;
 import hadoop.Configuration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import models.JobMetadata;
 import org.apache.hadoop.fs.FileSystem;
@@ -22,8 +20,9 @@ import static utils.ParserUtils.*;
 
 
 public class JobsMetadataPageController extends Controller {
-  private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
+private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private final Config config;
+  private static final String JOB_FOLDER_REGEX = "^application_\\d+_\\d+$";
 
   @Inject
   public JobsMetadataPageController(Config config) {
@@ -40,11 +39,10 @@ public class JobsMetadataPageController extends Controller {
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
     Path tonyHistoryFolder = new Path(config.getString("tony.historyFolder"));
-    String jobFolderRegex = "^application_\\d+_\\d+$";
     JobMetadata tmpMetadata;
 
-    for (Path f : getJobFolders(myFs, tonyHistoryFolder, jobFolderRegex)) {
-      tmpMetadata = parseMetadata(myFs, f, jobFolderRegex);
+    for (Path f : getJobFolders(myFs, tonyHistoryFolder, JOB_FOLDER_REGEX)) {
+      tmpMetadata = parseMetadata(myFs, f, JOB_FOLDER_REGEX);
       if (tmpMetadata == null) {
         LOG.error("Couldn't parse " + f);
         continue;

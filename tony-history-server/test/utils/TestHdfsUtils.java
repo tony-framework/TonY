@@ -3,7 +3,6 @@ package utils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -152,11 +151,11 @@ public class TestHdfsUtils {
     String baseDir = sb.toString();
 
     expectedRes.add(new Path(baseDir, "2018/01/02/job0"));
-    expectedRes.add(new Path(baseDir,"2018/01/01/job1"));
-    expectedRes.add(new Path(baseDir,"2018/12/31/job2"));
-    expectedRes.add(new Path(baseDir,"2017/07/job3"));
-    expectedRes.add(new Path(baseDir,"2017/07/job4"));
-    expectedRes.add(new Path(baseDir,"2017/07/job5"));
+    expectedRes.add(new Path(baseDir, "2018/01/01/job1"));
+    expectedRes.add(new Path(baseDir, "2018/12/31/job2"));
+    expectedRes.add(new Path(baseDir, "2017/07/job3"));
+    expectedRes.add(new Path(baseDir, "2017/07/job4"));
+    expectedRes.add(new Path(baseDir, "2017/07/job5"));
 
     List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
     Collections.sort(actualRes, (o1, o2) -> {
@@ -178,7 +177,6 @@ public class TestHdfsUtils {
     when(mockFs.listStatus(histFolder)).thenThrow(new IOException("IO Excpt"));
     List<Path> actualRes = HdfsUtils.getJobFolders(mockFs, histFolder, regex);
 
-    assertEquals(new ArrayList<Path>(), actualRes);
     assertEquals(0, actualRes.size());
   }
 }
