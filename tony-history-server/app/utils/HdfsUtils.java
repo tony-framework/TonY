@@ -103,7 +103,7 @@ public class HdfsUtils {
           .flatMap(List::stream)
           .collect(Collectors.toList());
     } catch (IOException e) {
-      LOG.error("Failed to traverse down history folder");
+      LOG.error("Failed to traverse down history folder", e);
     }
     return intermediateFolders;
   }
