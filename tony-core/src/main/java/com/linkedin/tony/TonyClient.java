@@ -546,22 +546,30 @@ public class TonyClient implements AutoCloseable {
     if (!this.secureMode) {
       return null;
     }
+    LOG.info("Running in secure cluster mode. Fetching delegation token..");
     Credentials cred = new Credentials();
     String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
     if (fileLocation != null) {
       cred = Credentials.readTokenStorageFile(new File(fileLocation), hdfsConf);
     } else {
       // Tokens have not been pre-written. We need to grab the tokens ourselves.
+      LOG.info("Fetching RM delegation token..");
       String tokenRenewer = YarnClientUtils.getRmPrincipal(yarnConf);
+      if (tokenRenewer == null) {
+        throw new RuntimeException("Failed to get RM principal.");
+      }
       final Token<?> rmToken = ConverterUtils.convertFromYarn(yarnClient.getRMDelegationToken(new Text(tokenRenewer)),
                                                      yarnConf.getSocketAddr(YarnConfiguration.RM_ADDRESS,
                                                                             YarnConfiguration.DEFAULT_RM_ADDRESS,
                                                                             YarnConfiguration.DEFAULT_RM_PORT));
+      LOG.info("RM delegation token fetched.");
+      LOG.info("Fetching HDFS delegation token..");
       FileSystem fs = FileSystem.get(hdfsConf);
       final Token<?> fsToken = fs.getDelegationToken(tokenRenewer);
       if (fsToken == null) {
         throw new RuntimeException("Failed to get FS delegation token for default FS.");
       }
+      LOG.info("HDFS delegation token fetched.");
       cred.addToken(rmToken.getService(), rmToken);
       cred.addToken(fsToken.getService(), fsToken);
       String[] otherNamenodes = tonyConf.getStrings(TonyConfigurationKeys.OTHER_NAMENODES_TO_ACCESS);
@@ -575,6 +583,7 @@ public class TonyClient implements AutoCloseable {
                 + "other namenode: " + namenodeUri);
           }
           cred.addToken(otherFSToken.getService(), otherFSToken);
+          LOG.info("Fetched HDFS token for " + nnUri);
         }
       }
     }
