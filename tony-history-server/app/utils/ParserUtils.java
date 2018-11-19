@@ -1,6 +1,7 @@
 package utils;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,44 +30,68 @@ import static utils.HdfsUtils.*;
 public class ParserUtils {
   private static final Logger.ALogger LOG = Logger.of(ParserUtils.class);
 
+  /**
+   * Checks if {@code fileName} string contains valid metadata.
+   * Ex: If {@code jobIdRegex} is "^application_\\d+_\\d+$",
+   * metadata = "application_1541469337545_0031-1542325695566-1542325733637-user1-FAILED" -> true
+   * metadata = "application_1541469337545_0031-1542325695566-1542325733637-user2-succeeded" -> false
+   * because status should be upper-cased.
+   * metadata = "job_01_01-1542325695566-1542325733637-user3-SUCCEEDED" -> false
+   * because the job ID portion doesn't match {@code jobIdRegex}.
+   * If a metadata component doesn't satisfy its corresponding condition, {@code fileName} is invalid.
+   * @param fileName A string with metadata components.
+   * @param jobIdRegex Regular expression string to validate metadata.
+   * @return true if {@code fileName} are in proper format, false otherwise.
+   */
   @VisibleForTesting
-  static boolean isValidMetadata(String[] metadata, String jobIdRegex) {
-    if (metadata.length != 5) {
+  static boolean isValidHistFileName(String fileName, String jobIdRegex) {
+    String histFileNoExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    String[] metadataArr = histFileNoExt.split("-");
+    if (metadataArr.length != 5) {
       LOG.error("Missing fields in metadata");
       return false;
     }
-    return metadata[0].matches(jobIdRegex) && metadata[1].matches("\\d+") && metadata[2].matches("\\d+")
-        && metadata[3].matches(metadata[3].toLowerCase()) && metadata[4].equals(metadata[4].toUpperCase());
+    return metadataArr[0].matches(jobIdRegex)
+        && metadataArr[1].matches("\\d+")
+        && metadataArr[2].matches("\\d+")
+        && metadataArr[3].matches(metadataArr[3].toLowerCase())
+        && metadataArr[4].equals(metadataArr[4].toUpperCase());
   }
 
+  /**
+   * Assuming that there's only 1 jhist file in {@code jobFolderPath},
+   * this function parses metadata and return a {@code JobMetadata} object.
+   * @param fs FileSystem object.
+   * @param jobFolderPath Path object of job directory.
+   * @param jobIdRegex Regular expression string to validate metadata.
+   * @return a {@code JobMetadata} object.
+   */
   public static JobMetadata parseMetadata(FileSystem fs, Path jobFolderPath, String jobIdRegex) {
-    String[] metadata;
-    JobMetadata jobMetadata = null;
+    String[] jobFilesArr;
     if (!pathExists(fs, jobFolderPath)) {
       return null;
     }
 
     try {
-      metadata = Arrays.stream(fs.listStatus(jobFolderPath))
-          .filter(f -> f.getPath().toString().contains("jhist")) // ignore config.xml
-          .map(histFilePath -> HdfsUtils.getJobId(histFilePath.toString()))
-          .map(histFile -> histFile.substring(0, histFile.lastIndexOf('.'))) // remove .jhist
-          .map(histFileNoExt -> histFileNoExt.split("-"))
-          .flatMap(Arrays::stream)
+      jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
+          .filter(f -> f.getPath().toString().contains("jhist"))
+          .map(f -> f.getPath().toString())
           .toArray(String[]::new);
+      Preconditions.checkArgument(jobFilesArr.length == 1);
     } catch (IOException e) {
       LOG.error("Failed to scan " + jobFolderPath.toString(), e);
       return null;
     }
 
-    if (!isValidMetadata(metadata, jobIdRegex)) {
+    String histFileName = HdfsUtils.getJobId(jobFilesArr[0]);
+    if (!isValidHistFileName(histFileName, jobIdRegex)) {
       // this should never happen unless user rename the history file
       LOG.error("Metadata isn't valid");
       return null;
     }
 
     LOG.debug("Successfully parsed metadata");
-    return JobMetadata.newInstance(metadata);
+    return JobMetadata.newInstance(histFileName);
   }
 
   public static List<JobConfig> parseConfig(FileSystem fs, Path configFilePath) {
