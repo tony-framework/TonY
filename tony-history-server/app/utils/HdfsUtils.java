@@ -64,7 +64,9 @@ public class HdfsUtils {
    * @return job id
    */
   public static String getJobId(String path) {
-    if (path.length() == 0) return "";
+    if (path == null) {
+      return "";
+    }
     String[] folderLayers = path.split("/");
     return folderLayers[folderLayers.length - 1];
   }
