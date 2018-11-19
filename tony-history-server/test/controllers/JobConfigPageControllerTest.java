@@ -1,11 +1,11 @@
 package controllers;
 
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.test.WithApplication;
 
+import static org.testng.Assert.*;
 import static play.mvc.Http.Status.*;
 
 
@@ -19,6 +19,6 @@ public class JobConfigPageControllerTest extends WithApplication {
   @Test
   public void testIndex() {
     // TODO: Write tests
-    Assert.assertEquals(OK, OK);
+    assertEquals(OK, OK);
   }
 }

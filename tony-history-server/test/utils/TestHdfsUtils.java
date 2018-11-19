@@ -7,11 +7,11 @@ import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
-import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 
 public class TestHdfsUtils {
@@ -23,7 +23,7 @@ public class TestHdfsUtils {
     try {
       fs = FileSystem.get(conf);
     } catch (Exception e) {
-      Assert.fail("Failed setting up FileSystem object");
+      fail("Failed setting up FileSystem object");
     }
   }
 
@@ -31,14 +31,14 @@ public class TestHdfsUtils {
   public void testPathExists_true() {
     Path exists = new Path("./test/resources/file.txt");
 
-    Assert.assertTrue(HdfsUtils.pathExists(fs, exists));
+    assertTrue(HdfsUtils.pathExists(fs, exists));
   }
 
   @Test
   public void testPathExists_false() {
     Path invalidPath = new Path("/invalid/path");
 
-    Assert.assertFalse(HdfsUtils.pathExists(fs, invalidPath));
+    assertFalse(HdfsUtils.pathExists(fs, invalidPath));
   }
 
   @Test
@@ -48,21 +48,21 @@ public class TestHdfsUtils {
 
     when(mockFs.exists(invalidPath)).thenThrow(new IOException("IO Excpt"));
 
-    Assert.assertFalse(HdfsUtils.pathExists(mockFs, invalidPath));
+    assertFalse(HdfsUtils.pathExists(mockFs, invalidPath));
   }
 
   @Test
   public void testContentOfHdfsFile_withContent() {
     Path filePath = new Path("./test/resources/file.txt");
 
-    Assert.assertEquals("someContent", HdfsUtils.contentOfHdfsFile(fs, filePath));
+    assertEquals("someContent", HdfsUtils.contentOfHdfsFile(fs, filePath));
   }
 
   @Test
   public void testContentOfHdfsFile_noContent() {
     Path filePath = new Path("./test/resources/empty.txt");
 
-    Assert.assertEquals("", HdfsUtils.contentOfHdfsFile(fs, filePath));
+    assertEquals("", HdfsUtils.contentOfHdfsFile(fs, filePath));
   }
 
   @Test
@@ -72,7 +72,7 @@ public class TestHdfsUtils {
 
     when(mockFs.exists(filePath)).thenThrow(new IOException("IO Excpt"));
 
-    Assert.assertEquals("", HdfsUtils.contentOfHdfsFile(fs, filePath));
+    assertEquals("", HdfsUtils.contentOfHdfsFile(fs, filePath));
   }
 
   @Test
@@ -80,8 +80,8 @@ public class TestHdfsUtils {
     Path filePath1 = new Path("./test/resources/job1");
     Path filePath2 = new Path("./test/resources/app2/");
 
-
-    Assert.assertEquals(new ArrayList<Path>(), HdfsUtils.getMetadataFilePaths(fs, histFolder));
+    assertEquals("job1", HdfsUtils.getJobId(filePath1.toString()));
+    assertEquals("app2", HdfsUtils.getJobId(filePath2.toString()));
   }
 
   @Test
@@ -136,8 +136,8 @@ public class TestHdfsUtils {
     List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
     Collections.sort(actualRes);
 
-    Assert.assertEquals(expectedRes, actualRes);
-    Assert.assertEquals(expectedRes.size(), actualRes.size());
+    assertEquals(expectedRes, actualRes);
+    assertEquals(expectedRes.size(), actualRes.size());
   }
 
   @Test
@@ -177,7 +177,6 @@ public class TestHdfsUtils {
     when(mockFs.listStatus(histFolder)).thenThrow(new IOException("IO Excpt"));
     List<Path> actualRes = HdfsUtils.getJobFolders(mockFs, histFolder, regex);
 
-    Assert.assertEquals(new ArrayList<Path>(), actualRes);
-    Assert.assertEquals(0, actualRes.size());
+    assertEquals(0, actualRes.size());
   }
 }
