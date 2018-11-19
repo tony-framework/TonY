@@ -1,13 +1,13 @@
 package controllers;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 import play.Application;
 import play.test.Helpers;
 import play.test.TestBrowser;
 import play.test.WithBrowser;
 
-import static org.junit.Assert.assertTrue;
 import static play.test.Helpers.*;
 
 
@@ -24,6 +24,6 @@ public class BrowserTest extends WithBrowser {
   @Test
   public void test() {
     browser.goTo("http://localhost:" + play.api.test.Helpers.testServerPort());
-    assertTrue(browser.pageSource().contains("Tony History Server"));
+    Assert.assertTrue(browser.pageSource().contains("Tony History Server"));
   }
 }
