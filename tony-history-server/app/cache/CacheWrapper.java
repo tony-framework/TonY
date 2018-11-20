@@ -6,12 +6,9 @@ import java.util.List;
 import javax.inject.Singleton;
 import models.JobConfig;
 import models.JobMetadata;
-import org.apache.hadoop.fs.Path;
-import play.Logger;
 
 @Singleton
 public class CacheWrapper {
-  private static final Logger.ALogger LOG = Logger.of(CacheWrapper.class);
   private static Cache<String, JobMetadata> metadataCache;
   private static Cache<String, List<JobConfig>> configCache;
 
