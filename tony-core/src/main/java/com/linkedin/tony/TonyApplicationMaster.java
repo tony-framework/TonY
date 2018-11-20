@@ -313,7 +313,8 @@ public class TonyApplicationMaster {
    * @param args the args from user inputs
    */
   public static void main(String[] args) {
-    boolean succeeded = runTonyAM(args);
+    TonyApplicationMaster am = new TonyApplicationMaster();
+    boolean succeeded = am.run(args);
     if (succeeded) {
       LOG.info("Application Master completed successfully. Exiting");
       System.exit(0);
@@ -323,20 +324,17 @@ public class TonyApplicationMaster {
     }
   }
 
-
-  @VisibleForTesting
-  static boolean runTonyAM(String[] args) {
+  private boolean run(String[] args) {
     long started = System.currentTimeMillis();
-    TonyApplicationMaster am = new TonyApplicationMaster();
-    if (!am.init(args)) {
+    if (!init(args)) {
       return false;
     }
 
-    if (!am.prepare()) {
+    if (!prepare()) {
       return false;
     }
 
-    am.mainThread = Thread.currentThread();
+    mainThread = Thread.currentThread();
     boolean succeeded;
     do {
       // Crash AM on purpose during AM crash tests.
@@ -347,27 +345,27 @@ public class TonyApplicationMaster {
       }
 
       try {
-        am.start();
+        start();
       } catch (Exception e) {
         LOG.error("Exception when we're starting TonyAM", e);
         return false;
       }
 
-      succeeded = am.monitor();
-      if (succeeded || am.amRetryCount == 0) {
-        LOG.info("Result: " + succeeded + ", retry count: " + am.amRetryCount);
+      succeeded = monitor();
+      if (succeeded || amRetryCount == 0) {
+        LOG.info("Result: " + succeeded + ", retry count: " + amRetryCount);
         break;
       }
 
       // Prepare for retryCount.
-      am.reset();
-      LOG.info("Retrying, remaining retry count" + am.amRetryCount);
-      am.amRetryCount -= 1;
-    } while (!am.singleNode); // We don't retry on single node training.
+      reset();
+      LOG.info("Retrying, remaining retry count" + amRetryCount);
+      amRetryCount -= 1;
+    } while (!singleNode); // We don't retry on single node training.
     // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
-    am.stop();
+    stop();
     long completed = System.currentTimeMillis();
-    am.printTaskUrls();
+    printTaskUrls();
     // By this time jobDir should have been set
     HistoryFileUtils.createHistoryFile(fs,
         TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded), jobDir);

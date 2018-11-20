@@ -4,19 +4,20 @@
  */
 package com.linkedin.tony;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.Test;
 
+import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
 
@@ -115,5 +116,13 @@ public class TestUtils {
     assertEquals("host0:1234", config.getCluster().get("worker").get(0));
     assertEquals("host1:1234", config.getCluster().get("worker").get(1));
     assertEquals("host2:1234", config.getCluster().get("ps").get(0));
+  }
+
+  @Test
+  public void testBuildRMUrl() {
+    Configuration yarnConf = mock(Configuration.class);
+    when(yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS)).thenReturn("testrmaddress");
+    String expected = "http://testrmaddress/cluster/app/1";
+    assertEquals(Utils.buildRMUrl(yarnConf, "1"), expected);
   }
 }
