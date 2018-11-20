@@ -16,6 +16,7 @@ dependencies {
 
   testCompile deps.external.avro
   testCompile deps.external.testng
+  testCompile deps.external.mockito
 
   // Only needed by Hadoop test classes
   testRuntime deps.external.junit

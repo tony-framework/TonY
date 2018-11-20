@@ -297,6 +297,9 @@ public class TonySession {
    */
   public void updateSessionStatus() {
     int failureCount = 0;
+    if (getFinalStatus() == FinalApplicationStatus.FAILED) {
+      return;
+    }
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
       TonyTask[] tasks = entry.getValue();
