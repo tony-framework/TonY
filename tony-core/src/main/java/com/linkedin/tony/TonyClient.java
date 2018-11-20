@@ -5,6 +5,7 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
@@ -396,9 +397,7 @@ public class TonyClient implements AutoCloseable {
         executes, hdfsClasspath, shellEnv, containerEnv);
 
     LOG.info("Completed setting up Application Master command " + command);
-    List<String> commands = new ArrayList<>();
-    commands.add(command);
-    amContainer.setCommands(commands);
+    amContainer.setCommands(ImmutableList.of(command));
     if (tokens != null) {
       amContainer.setTokens(tokens);
     }
@@ -408,9 +407,8 @@ public class TonyClient implements AutoCloseable {
     return amContainer;
   }
 
-  @SuppressWarnings("WeakerAccess")
   @VisibleForTesting
-  public static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath, String pythonVenv,
+  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath, String pythonVenv,
       String executes, String hdfsClasspath, Map<String, String> shellEnv, Map<String, String> containerEnv) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
