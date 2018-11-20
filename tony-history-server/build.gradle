@@ -1,6 +1,5 @@
 apply plugin: "play"
 apply plugin: "idea"
-apply plugin: "distribution"
 
 model {
   components {
@@ -22,7 +21,7 @@ model {
           into "bin"
         }
       }
-      baseName = project.name
+      baseName = "${project.name}-${project.version}"
     }
   }
 }
@@ -54,3 +53,8 @@ repositories {
 }
 
 test.dependsOn('testPlayBinary')
+
+def ivyForArchives = tasks.findByPath('ivyForArchives')
+if (ivyForArchives) {
+  ivyForArchives.dependsOn('dist')
+}
