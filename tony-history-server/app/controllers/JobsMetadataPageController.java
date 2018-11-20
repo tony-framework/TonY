@@ -13,7 +13,6 @@ import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
-import hadoop.Security;
 import utils.HdfsUtils;
 
 import static utils.HdfsUtils.*;
@@ -21,8 +20,9 @@ import static utils.ParserUtils.*;
 
 
 public class JobsMetadataPageController extends Controller {
-  private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
+private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private final Config config;
+  private static final String JOB_FOLDER_REGEX = "^application_\\d+_\\d+$";
 
   @Inject
   public JobsMetadataPageController(Config config) {
@@ -38,13 +38,13 @@ public class JobsMetadataPageController extends Controller {
     }
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
-    String tonyHistoryFolder = config.getString("tony.historyFolder");
+    Path tonyHistoryFolder = new Path(config.getString("tony.historyFolder"));
     JobMetadata tmpMetadata;
 
-    for (Path f : getMetadataFilePaths(myFs, tonyHistoryFolder)) {
-      tmpMetadata = parseMetadata(myFs, f);
+    for (Path f : getJobFolders(myFs, tonyHistoryFolder, JOB_FOLDER_REGEX)) {
+      tmpMetadata = parseMetadata(myFs, f, JOB_FOLDER_REGEX);
       if (tmpMetadata == null) {
-        LOG.error("Couldn't parse " + f.toString());
+        LOG.error("Couldn't parse " + f);
         continue;
       }
       listOfMetadata.add(tmpMetadata);
