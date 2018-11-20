@@ -694,11 +694,12 @@ public class TonyClient implements AutoCloseable {
 
   @VisibleForTesting
   public int start() {
-    boolean result = true;
+    boolean result;
     try {
       result = run();
     } catch (IOException | InterruptedException | URISyntaxException | YarnException e) {
       LOG.fatal("Failed to run TonyClient", e);
+      result = false;
     }
     if (result) {
       LOG.info("Application completed successfully");

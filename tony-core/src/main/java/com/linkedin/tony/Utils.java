@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -405,6 +406,14 @@ public class Utils {
 
   public static String buildRMUrl(Configuration yarnConf, String appId) {
     return "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
+  }
+
+  public static void printWorkerTasksCompleted(AtomicInteger completedWTasks, long totalWTasks) {
+    if (completedWTasks.get() == totalWTasks) {
+      LOG.info("Completed all " + totalWTasks + " worker tasks.");
+      return;
+    }
+    LOG.info("Completed worker tasks: " + completedWTasks.get() + " out of " + totalWTasks + " worker tasks." );
   }
 
   private Utils() { }
