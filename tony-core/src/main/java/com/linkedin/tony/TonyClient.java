@@ -5,6 +5,7 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
@@ -32,6 +33,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -392,13 +394,30 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
+    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath, pythonVenv,
+        executes, hdfsClasspath, shellEnv, containerEnv);
+
+    LOG.info("Completed setting up Application Master command " + command);
+    amContainer.setCommands(ImmutableList.of(command));
+    if (tokens != null) {
+      amContainer.setTokens(tokens);
+    }
+    amContainer.setEnvironment(containerEnv);
+    amContainer.setLocalResources(localResources);
+
+    return amContainer;
+  }
+
+  @VisibleForTesting
+  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath, String pythonVenv,
+      String executes, String hdfsClasspath, Map<String, String> shellEnv, Map<String, String> containerEnv) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
     arguments.add("-Xmx" + (int) (amMemory * 0.8f) + "m");
     // Add configuration for log dir to retrieve log output from python subprocess in AM
     arguments.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
-              + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     // Set class name
     arguments.add("com.linkedin.tony.TonyApplicationMaster");
 
@@ -409,7 +428,7 @@ public class TonyClient implements AutoCloseable {
       arguments.add("--python_binary_path " + String.valueOf(pythonBinaryPath));
     }
     if (pythonVenv != null) {
-      arguments.add("--python_venv " + String.valueOf(pythonVenv));
+      arguments.add("--python_venv " + FilenameUtils.getName(String.valueOf(pythonVenv)));
     }
     if (executes != null) {
       arguments.add("--executes " + String.valueOf(executes));
@@ -425,23 +444,7 @@ public class TonyClient implements AutoCloseable {
     }
     arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDOUT_FILENAME);
     arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDERR_FILENAME);
-
-    StringBuilder command = new StringBuilder();
-    for (CharSequence str : arguments) {
-      command.append(str).append(" ");
-    }
-
-    LOG.info("Completed setting up Application Master command " + command.toString());
-    List<String> commands = new ArrayList<>();
-    commands.add(command.toString());
-    amContainer.setCommands(commands);
-    if (tokens != null) {
-      amContainer.setTokens(tokens);
-    }
-    amContainer.setEnvironment(containerEnv);
-    amContainer.setLocalResources(localResources);
-
-    return amContainer;
+    return String.join(" ", arguments);
   }
 
   /**
