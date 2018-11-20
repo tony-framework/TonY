@@ -40,17 +40,15 @@ public class JobConfigPageController extends Controller {
     List<JobConfig> listOfConfigs;
     String tonyHistoryFolder = config.getString("tony.historyFolder");
     Path xmlPath = new Path(tonyHistoryFolder + "/" + jobId + "/config.xml");
-    if (cache.asMap().containsKey(jobId)) {
-      listOfConfigs = cache.getIfPresent(jobId);
-      return ok(views.html.config.render(listOfConfigs));
+    listOfConfigs = cache.getIfPresent(jobId);
+    if (listOfConfigs == null) {
+      listOfConfigs = parseConfig(myFs, xmlPath);
+      if (listOfConfigs.size() == 0) {
+        LOG.error("Failed to fetch list of configs");
+        return internalServerError("Failed to fetch configuration");
+      }
+      cache.put(jobId, listOfConfigs);
     }
-    listOfConfigs = parseConfig(myFs, xmlPath);
-    cache.put(jobId, listOfConfigs);
-    if (listOfConfigs.size() == 0) {
-      LOG.error("Failed to fetch list of configs");
-      return internalServerError("Failed to fetch configuration");
-    }
-
     return ok(views.html.config.render(listOfConfigs));
   }
 }
