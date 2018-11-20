@@ -1,13 +1,13 @@
 package controllers;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Test;
+import org.testng.annotations.Test;
 import play.Application;
 import play.test.Helpers;
 import play.test.TestBrowser;
 import play.test.WithBrowser;
 
-import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.*;
 import static play.test.Helpers.*;
 
 

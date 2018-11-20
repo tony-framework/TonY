@@ -37,6 +37,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -549,28 +550,39 @@ public class TonyClient implements AutoCloseable {
     if (!this.secureMode) {
       return null;
     }
+    LOG.info("Running with secure cluster mode. Fetching delegation tokens..");
     Credentials cred = new Credentials();
     String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
     if (fileLocation != null) {
       cred = Credentials.readTokenStorageFile(new File(fileLocation), hdfsConf);
     } else {
       // Tokens have not been pre-written. We need to grab the tokens ourselves.
+      LOG.info("Fetching RM delegation token..");
       String tokenRenewer = YarnClientUtils.getRmPrincipal(yarnConf);
+      if (tokenRenewer == null) {
+        throw new RuntimeException("Failed to get RM principal.");
+      }
       final Token<?> rmToken = ConverterUtils.convertFromYarn(yarnClient.getRMDelegationToken(new Text(tokenRenewer)),
                                                      yarnConf.getSocketAddr(YarnConfiguration.RM_ADDRESS,
                                                                             YarnConfiguration.DEFAULT_RM_ADDRESS,
                                                                             YarnConfiguration.DEFAULT_RM_PORT));
+      LOG.info("RM delegation token fetched.");
+      String defaultFS = hdfsConf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
+          CommonConfigurationKeysPublic.FS_DEFAULT_NAME_DEFAULT);
+      LOG.info("Fetching HDFS delegation token for default namenode: " + defaultFS);
       FileSystem fs = FileSystem.get(hdfsConf);
       final Token<?> fsToken = fs.getDelegationToken(tokenRenewer);
       if (fsToken == null) {
         throw new RuntimeException("Failed to get FS delegation token for default FS.");
       }
+      LOG.info("Default HDFS delegation token fetched.");
       cred.addToken(rmToken.getService(), rmToken);
       cred.addToken(fsToken.getService(), fsToken);
       String[] otherNamenodes = tonyConf.getStrings(TonyConfigurationKeys.OTHER_NAMENODES_TO_ACCESS);
       if (otherNamenodes != null) {
         for (String nnUri : otherNamenodes) {
           String namenodeUri = nnUri.trim();
+          LOG.info("Fetching HDFS delegation token for " + nnUri);
           FileSystem otherFS = FileSystem.get(new URI(namenodeUri), hdfsConf);
           final Token<?> otherFSToken = otherFS.getDelegationToken(tokenRenewer);
           if (otherFSToken == null) {
@@ -578,6 +590,7 @@ public class TonyClient implements AutoCloseable {
                 + "other namenode: " + namenodeUri);
           }
           cred.addToken(otherFSToken.getService(), otherFSToken);
+          LOG.info("Fetched HDFS token for " + nnUri);
         }
       }
     }
@@ -684,11 +697,12 @@ public class TonyClient implements AutoCloseable {
 
   @VisibleForTesting
   public int start() {
-    boolean result = true;
+    boolean result;
     try {
       result = run();
     } catch (IOException | InterruptedException | URISyntaxException | YarnException e) {
       LOG.fatal("Failed to run TonyClient", e);
+      result = false;
     }
     if (result) {
       LOG.info("Application completed successfully");

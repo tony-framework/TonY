@@ -313,64 +313,63 @@ public class TonyApplicationMaster {
    * @param args the args from user inputs
    */
   public static void main(String[] args) {
-    boolean succeeded = false;
-    long started;
-    long completed;
     TonyApplicationMaster am = new TonyApplicationMaster();
-    boolean sanityCheck = am.init(args);
-    if (!sanityCheck) {
+    boolean succeeded = am.run(args);
+    if (succeeded) {
+      LOG.info("Application Master completed successfully. Exiting");
+      System.exit(0);
+    } else {
+      LOG.info("Application Master failed. Exiting");
       System.exit(-1);
     }
-    if (!am.prepare()) {
-      System.exit(-1);
+  }
+
+  private boolean run(String[] args) {
+    long started = System.currentTimeMillis();
+    if (!init(args)) {
+      return false;
     }
-    am.mainThread = Thread.currentThread();
-    boolean exitOnError = false;
-    started = System.currentTimeMillis();
+
+    if (!prepare()) {
+      return false;
+    }
+
+    mainThread = Thread.currentThread();
+    boolean succeeded;
     do {
       // Crash AM on purpose during AM crash tests.
       String shouldCrash = System.getenv(Constants.TEST_AM_CRASH);
       if (shouldCrash != null && shouldCrash.equals("true")) {
-        exitOnError = true;
-        break;
+        LOG.fatal("Error running TonyApplicationMaster !!");
+        return false;
       }
 
       try {
-        am.start();
+        start();
       } catch (Exception e) {
         LOG.error("Exception when we're starting TonyAM", e);
-        System.exit(-1);
+        return false;
       }
-      succeeded = am.monitor();
-      if (succeeded || am.amRetryCount == 0) {
-        LOG.info("Result: " + succeeded + ", retry count: " + am.amRetryCount);
+
+      succeeded = monitor();
+      if (succeeded || amRetryCount == 0) {
+        LOG.info("Result: " + succeeded + ", retry count: " + amRetryCount);
         break;
       }
-      // Prepare for retryCount.
-      am.reset();
-      LOG.info("Retrying, remaining retry count" + am.amRetryCount);
-      am.amRetryCount -= 1;
-    } while (!am.singleNode); // We don't retry on single node training.
-    // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
-    am.stop();
-    completed = System.currentTimeMillis();
-    am.printTaskUrls();
-    if (exitOnError) {
-      LOG.fatal("Error running TonyApplicationMaster !!");
-      System.exit(-1);
-    }
 
+      // Prepare for retryCount.
+      reset();
+      LOG.info("Retrying, remaining retry count" + amRetryCount);
+      amRetryCount -= 1;
+    } while (!singleNode); // We don't retry on single node training.
+    // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
+    stop();
+    long completed = System.currentTimeMillis();
+    printTaskUrls();
     // By this time jobDir should have been set
     HistoryFileUtils.createHistoryFile(fs,
         TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded), jobDir);
-
-    if (succeeded) {
-      LOG.info("Application Master completed successfully. exiting");
-      System.exit(0);
-    } else {
-      LOG.info("Application Master failed. exiting");
-      System.exit(-1);
-    }
+    return succeeded;
   }
 
   /**
@@ -546,63 +545,60 @@ public class TonyApplicationMaster {
       // Checking timeout
       if (System.currentTimeMillis() > expireTime) {
         LOG.error("Application times out.");
-        return false;
+        break;
       }
 
       // Check if client signals we should exit.
       if (clientSignalToStop) {
         LOG.info("Client signals AM to exit.");
-        return true;
+        break;
       }
 
       if (session.isTrainingFinished()) {
         LOG.info("Training has finished.");
-        return true;
+        break;
       }
 
       if (preprocessExitCode != 0) {
         LOG.info("Preprocess failed with exit code: " + preprocessExitCode);
-        return false;
+        break;
       }
 
       if (singleNode && preprocessFinished) {
         LOG.info("Single node training finished with exit code: " + preprocessExitCode);
-        return preprocessExitCode == 0;
+        break;
+      }
+
+      if (this.taskHasMissesHB) {
+        LOG.info("Application failed due to missed heartbeats");
+        break;
       }
 
       if (numCompletedWorkerTasks.get() == numTotalWorkerTasks) {
-        LOG.info("Completed jobs: " + numCompletedWorkerTasks.get() + " total jobs: " + numTotalWorkerTasks);
+        Utils.printWorkerTasksCompleted(numCompletedWorkerTasks, numTotalWorkerTasks);
         break;
       }
-      LOG.info("Completed worker tasks: " + numCompletedWorkerTasks.get()
-               + ", total worker tasks: " + numTotalWorkerTasks);
 
-      if (this.taskHasMissesHB) {
-        break;
-      }
+      Utils.printWorkerTasksCompleted(numCompletedWorkerTasks, numTotalWorkerTasks);
+
+      // Pause before refresh job status
       try {
         Thread.sleep(5000);
       } catch (InterruptedException e) {
         LOG.error("Thread interrupted", e);
       }
     }
-    if (this.taskHasMissesHB) {
-      session.setFinalStatus(FinalApplicationStatus.FAILED,
-          "Application failed due to missed heartbeats");
-    } else {
-      session.updateSessionStatus();
-    }
 
-    LOG.info("Total completed worker tasks: " + numCompletedWorkerTasks.get()
-        + ", total worker tasks: " + numTotalWorkerTasks);
-    boolean success = true;
+    session.updateSessionStatus();
+
+    Utils.printWorkerTasksCompleted(numCompletedWorkerTasks, numTotalWorkerTasks);
+
     FinalApplicationStatus status = session.getFinalStatus();
     String appMessage = session.getFinalMessage();
     if (status != FinalApplicationStatus.SUCCEEDED) {
       LOG.info("Tony session failed: " + appMessage);
-      success = false;
     }
-    return success;
+    return status == FinalApplicationStatus.SUCCEEDED;
   }
 
   /**
@@ -1105,8 +1101,10 @@ public class TonyApplicationMaster {
         + " [" + maxConsecutiveHBMiss + "] heartbeats.. Ending application !!");
     // TODO: figure out what is the right thing to do here..
     // TODO: For the time being, we just kill the job..
-    LOG.error("Task with id [" + task.getId() + "] deemed dead!!");
+    String msg = "Task with id [" + task.getId() + "] deemed dead!!";
+    LOG.error(msg);
     taskHasMissesHB = true;
+    session.setFinalStatus(FinalApplicationStatus.FAILED, msg);
     mainThread.interrupt();
   }
 

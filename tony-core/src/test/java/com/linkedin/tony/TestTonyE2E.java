@@ -50,7 +50,6 @@ public class TestTonyE2E {
     fs.mkdirs(cachedLibPath);
     HDFSUtils.copyDirectoryFilesToFolder(fs, "tony-core/out/libs", "/yarn/libs");
     HDFSUtils.copyDirectoryFilesToFolder(fs, "tony-core/src/test/resources/log4j.properties", "/yarn/libs");
-
   }
 
   @AfterClass
@@ -204,5 +203,20 @@ public class TestTonyE2E {
     client.init(args);
     Assert.assertTrue(client.start() == 0);
     Assert.assertNull(client.getAMRpcClient());
+  }
+
+  @Test
+  public void testNonChiefWorkerFail() throws ParseException {
+    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
+    client = new TonyClient(conf);
+    client.init(new String[]{
+        "--src_dir", "tony-core/src/test/resources/",
+        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--hdfs_classpath", "/yarn/libs",
+        "--python_binary_path", "python",
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
   }
 }
