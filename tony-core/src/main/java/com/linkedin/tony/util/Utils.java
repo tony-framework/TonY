@@ -436,7 +436,6 @@ public class Utils {
       return null;
     }
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
-
   }
 
   public static void createDir(FileSystem fs, Path dir, FsPermission permission) {
