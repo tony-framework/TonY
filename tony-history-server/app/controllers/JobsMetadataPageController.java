@@ -2,6 +2,7 @@ package controllers;
 
 import cache.CacheWrapper;
 import com.google.common.cache.Cache;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.typesafe.config.Config;
 import hadoop.Configuration;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class JobsMetadataPageController extends Controller {
   }
 
   public Result index() {
+
     HdfsConfiguration conf = Configuration.getHdfsConf();
     FileSystem myFs = HdfsUtils.getFileSystem(conf);
     Cache<String, JobMetadata> cache = CacheWrapper.getMetadataCache();
@@ -41,7 +43,7 @@ public class JobsMetadataPageController extends Controller {
     }
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
-    Path tonyHistoryFolder = new Path(config.getString("tony.history.location"));
+    Path tonyHistoryFolder = new Path(config.getString(TonyConfigurationKeys.TONY_HISTORY_LOCATION));
     JobMetadata tmpMetadata;
     String jobId;
 

@@ -3,6 +3,7 @@ apply plugin: "idea"
 apply plugin: "distribution"
 
 model {
+
   components {
     play {
       platform play: playVersion, scala: scalaVersion, java: '1.8'
@@ -31,6 +32,7 @@ model {
 }
 
 dependencies {
+  play project(':tony-core')
   play deps.external.play_guice
   play deps.external.play_logback
   play deps.hadoop.hdfs_client
@@ -57,6 +59,7 @@ repositories {
 }
 
 test.dependsOn('testPlayBinary')
+
 
 def ivyForArchives = tasks.findByPath('ivyForArchives')
 if (ivyForArchives) {

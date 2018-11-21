@@ -52,6 +52,8 @@ public class Constants {
   public static final String HDFS_SITE_CONF = "hdfs-site.xml";
   public static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
+  public static final String TONY_SITE_CONF = "tony-site.xml";
+  public static final String TONY_CONF_DIR = "TONY_CONF_DIR";
 
   public static final String AM_NAME = "am";
   public static final String WORKER_JOB_NAME = "worker";
@@ -75,7 +77,6 @@ public class Constants {
   public static final String TONY_FOLDER = ".tony";
 
   // Configuration related constants
-
   // Name of the file containing all configuration keys and their default values
   public static final String TONY_DEFAULT_XML = "tony-default.xml";
   // Default file name of user-provided configuration file

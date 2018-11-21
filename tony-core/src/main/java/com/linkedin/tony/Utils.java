@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
+import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -44,6 +45,10 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
+import static com.linkedin.tony.Constants.TONY_CONF_DIR;
+import static com.linkedin.tony.Constants.TONY_SITE_CONF;
+import static com.linkedin.tony.Constants.TONY_DEFAULT_XML;
+import static com.linkedin.tony.Constants.TONY_XML;
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
 
 

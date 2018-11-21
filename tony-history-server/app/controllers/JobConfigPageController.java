@@ -2,6 +2,7 @@ package controllers;
 
 import cache.CacheWrapper;
 import com.google.common.cache.Cache;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.typesafe.config.Config;
 import hadoop.Configuration;
 import java.util.List;
@@ -37,7 +38,7 @@ public class JobConfigPageController extends Controller {
     }
 
     List<JobConfig> listOfConfigs;
-    String tonyHistoryFolder = config.getString("tony.history.location");
+    String tonyHistoryFolder = config.getString(TonyConfigurationKeys.TONY_HISTORY_LOCATION);
     Path xmlPath = new Path(tonyHistoryFolder + "/" + jobId + "/config.xml");
     listOfConfigs = cache.getIfPresent(jobId);
     if (listOfConfigs == null) {
