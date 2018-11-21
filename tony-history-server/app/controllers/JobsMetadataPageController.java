@@ -22,7 +22,7 @@ import static utils.ParserUtils.*;
 
 
 public class JobsMetadataPageController extends Controller {
-private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
+  private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private final Config config;
   private static final String JOB_FOLDER_REGEX = "^application_\\d+_\\d+$";
 

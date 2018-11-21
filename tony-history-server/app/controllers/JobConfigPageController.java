@@ -18,7 +18,6 @@ import utils.HdfsUtils;
 
 import static utils.ParserUtils.*;
 
-
 public class JobConfigPageController extends Controller {
   private static final ALogger LOG = Logger.of(JobConfigPageController.class);
   private final Config config;
