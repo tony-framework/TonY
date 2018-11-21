@@ -1,8 +1,9 @@
 package controllers;
 
+import cache.CacheWrapper;
+import com.google.common.cache.Cache;
 import com.typesafe.config.Config;
 import hadoop.Configuration;
-import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import models.JobConfig;
@@ -13,11 +14,9 @@ import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
+import utils.HdfsUtils;
 
 import static utils.ParserUtils.*;
-
-import hadoop.Security;
-import utils.HdfsUtils;
 
 
 public class JobConfigPageController extends Controller {
@@ -32,21 +31,24 @@ public class JobConfigPageController extends Controller {
   public Result index(String jobId) {
     HdfsConfiguration conf = Configuration.getHdfsConf();
     FileSystem myFs = HdfsUtils.getFileSystem(conf);
+    Cache<String, List<JobConfig>> cache = CacheWrapper.getConfigCache();
 
     if (myFs == null) {
       return internalServerError("Failed to initialize file system");
     }
 
-    List<JobConfig> listOfConfigs = new ArrayList<>();
+    List<JobConfig> listOfConfigs;
     String tonyHistoryFolder = config.getString("tony.historyFolder");
-    Path xmlPath = new Path(tonyHistoryFolder + jobId + "/config.xml");
-
-    listOfConfigs = parseConfig(myFs, xmlPath);
-    if (listOfConfigs.size() == 0) {
-      LOG.error("Failed to fetch list of configs");
-      return internalServerError("Failed to fetch configuration");
+    Path xmlPath = new Path(tonyHistoryFolder + "/" + jobId + "/config.xml");
+    listOfConfigs = cache.getIfPresent(jobId);
+    if (listOfConfigs == null) {
+      listOfConfigs = parseConfig(myFs, xmlPath);
+      if (listOfConfigs.size() == 0) {
+        LOG.error("Failed to fetch list of configs");
+        return internalServerError("Failed to fetch configuration");
+      }
+      cache.put(jobId, listOfConfigs);
     }
-
     return ok(views.html.config.render(listOfConfigs));
   }
 }

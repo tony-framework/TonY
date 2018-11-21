@@ -1,5 +1,7 @@
 package controllers;
 
+import cache.CacheWrapper;
+import com.google.common.cache.Cache;
 import com.typesafe.config.Config;
 import hadoop.Configuration;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   public Result index() {
     HdfsConfiguration conf = Configuration.getHdfsConf();
     FileSystem myFs = HdfsUtils.getFileSystem(conf);
+    Cache<String, JobMetadata> cache = CacheWrapper.getMetadataCache();
 
     if (myFs == null) {
       return internalServerError("Failed to initialize file system");
@@ -40,16 +43,22 @@ private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
     List<JobMetadata> listOfMetadata = new ArrayList<>();
     Path tonyHistoryFolder = new Path(config.getString("tony.historyFolder"));
     JobMetadata tmpMetadata;
+    String jobId;
 
     for (Path f : getJobFolders(myFs, tonyHistoryFolder, JOB_FOLDER_REGEX)) {
-      tmpMetadata = parseMetadata(myFs, f, JOB_FOLDER_REGEX);
+      jobId = getJobId(f.toString());
+      tmpMetadata = cache.getIfPresent(jobId);
       if (tmpMetadata == null) {
-        LOG.error("Couldn't parse " + f);
-        continue;
+        try {
+          tmpMetadata = parseMetadata(myFs, f, JOB_FOLDER_REGEX);
+          cache.put(jobId, tmpMetadata);
+        } catch (Exception e) {
+          LOG.error("Couldn't parse " + f, e);
+          continue;
+        }
       }
       listOfMetadata.add(tmpMetadata);
     }
-
     return ok(views.html.metadata.render(listOfMetadata));
   }
 }
