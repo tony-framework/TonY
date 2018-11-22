@@ -84,14 +84,9 @@ public class HdfsUtils {
   }
 
   /**
-<<<<<<< HEAD
    * Find all job folders recursively under {@code curr} that
    * matches {@code regex} pattern and return a list of
    * corresponding Path objects.
-=======
-   * Find all job folders under {@code curr} that matches {@code regex} pattern
-   * and return a list of corresponding Path objects.
->>>>>>> New feature: Added support for traversing nested folders
    * @param fs FileSystem object.
    * @param curr folder location Path object.
    * @param regex regular expression string.
