@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
-import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -37,6 +36,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -48,10 +48,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
-import static com.linkedin.tony.Constants.TONY_CONF_DIR;
-import static com.linkedin.tony.Constants.TONY_SITE_CONF;
-import static com.linkedin.tony.Constants.TONY_DEFAULT_XML;
-import static com.linkedin.tony.Constants.TONY_XML;
 import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
 
 
@@ -436,6 +432,22 @@ public class Utils {
     }
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
 
+  }
+
+  public static void createDir(FileSystem fs, Path dir, FsPermission permission) {
+    String warningMsg;
+    try {
+      if (!fs.exists(dir)) {
+        fs.mkdirs(dir);
+        fs.setPermission(dir, permission);
+        return;
+      }
+      warningMsg = "Directory " + dir + " already exists!";
+      LOG.info(warningMsg);
+    } catch (IOException e) {
+      warningMsg = "Failed to create " + dir + e.toString();
+      LOG.error(warningMsg);
+    }
   }
 
   private Utils() { }
