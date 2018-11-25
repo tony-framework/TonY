@@ -41,8 +41,8 @@ dependencies {
 
   playTest deps.external.assertj
   playTest deps.external.awaitility
+  playTest deps.external.junit
   playTest deps.external.mockito
-  playTest deps.external.testng
 }
 
 repositories {

@@ -1,13 +1,13 @@
 package controllers;
 
-import org.testng.annotations.Test;
+import org.junit.Test;
 import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.mvc.Http;
 import play.mvc.Result;
 import play.test.WithApplication;
 
-import static org.testng.Assert.*;
+import static org.junit.Assert.*;
 import static play.mvc.Http.Status.OK;
 import static play.test.Helpers.GET;
 import static play.test.Helpers.route;
@@ -17,7 +17,7 @@ public class JobsMetadataPageControllerTest extends WithApplication {
 
   @Override
   protected Application provideApplication() {
-    return new GuiceApplicationBuilder().configure("tony.historyFolder", "/dummy/").build();
+    return new GuiceApplicationBuilder().configure("tony.history.location", "/dummy/").build();
   }
 
   @Test

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+  <property>
+    <name>name</name>
+    <value>value</value>
+    <final>true</final>
+    <source>source</source>
+  </property>
+</configuration>
