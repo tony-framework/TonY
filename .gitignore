@@ -1,6 +1,7 @@
 **/*.log
 **/.keep
 **/generated/
+**/version-info.properties
 *.avro
 *.iml
 *.ipr

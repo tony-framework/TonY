@@ -46,7 +46,7 @@ public class JobsMetadataPageController extends Controller {
     finished = Requirements.getFinishedDir();
   }
 
-  private void moveIntermToFinished(FileSystem fs, HdfsConfiguration conf, Map<String, Date> jobsAccessTime,
+  private void moveIntermToFinished(FileSystem fs, Map<String, Date> jobsAccessTime,
       Map<String, Path> jobFolders) {
     jobsAccessTime.forEach((id, date) -> {
       StringBuilder path = new StringBuilder(finished.toString());
@@ -92,7 +92,7 @@ public class JobsMetadataPageController extends Controller {
       Map<String, Date> jobsAccessTime = new HashMap<>();
       Map<String, Path> jobsFiles = new HashMap<>();
       storeJobData(jobsAccessTime, jobsFiles, jobDirs);
-      moveIntermToFinished(myFs, conf, jobsAccessTime, jobsFiles);
+      moveIntermToFinished(myFs, jobsAccessTime, jobsFiles);
     }
 
     for (Path f : getJobFolders(myFs, finished, JOB_FOLDER_REGEX)) {
