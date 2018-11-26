@@ -341,4 +341,12 @@
     <name>tony.init.module</name>
     <value>Startup</value>
   </property>
+
+  <property>
+    <description>
+      Number of times the AM tries append the event to buffer (Avro's DataWriter).
+    </description>
+    <name>tony.history.maxAppends</name>
+    <value>3</value>
+  </property>
 </configuration>

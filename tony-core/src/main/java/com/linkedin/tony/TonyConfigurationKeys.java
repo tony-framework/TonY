@@ -73,6 +73,9 @@ public class TonyConfigurationKeys {
   public static final String TONY_INIT_MODULE = TONY_PREFIX + "init.module";
   public static final String DEFAULT_TONY_INIT_MODULE = "Startup";
 
+  public static final String TONY_HISTORY_MAX_APPEND = TONY_PREFIX + "history.maxAppends";
+  public static final int DEFAULT_TONY_HISTORY_MAX_APPEND = 3;
+
   // Application configurations
   public static final String YARN_QUEUE_NAME = TONY_PREFIX + "yarn.queue";
   public static final String DEFAULT_YARN_QUEUE_NAME = "default";
