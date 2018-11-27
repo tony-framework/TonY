@@ -6,9 +6,6 @@
 # This is a modified version of the `playBinary` script that was generated after `gradle dist`.
 #
 #
-# INPUT: JVM options (-Dhttp.port, -Dhttp.address, -Dconfig.resource, etc.)
-#
-#
 # OUTPUT: Logs of play.core.server.ProdServerStart
 #
 #
@@ -19,10 +16,8 @@
 # NOTES: This script should only be run when it's in the distribution zip/tar.
 # Examples: after `gradle dist` from root, unzip the zip/tar in $root/build/distributions, then run:
 # ```
-# $ <tony-root>/build/distributions/startTHS -Dhttp.port=8080 -Dconfig.resource=prod.conf
+# $ <tony-root>/build/distributions/startTHS.sh
 # ```
-# This will set the port to 8080, and Play will use `conf/prod.conf` instead of the default
-# `application.conf`. For more details, please see
 #
 #
 # EXIT CODE: Same as default playBinary script
@@ -31,6 +26,7 @@
 # CHANGELOG:
 # OCT 30 2018 PHAT TRAN
 # OCT 31 2018 PHAT TRAN - Updated APP_NAME constant
+# NOV 22 2018 PHAT TRAN - Fetched Play + Hadoop config from tony-site.xml
 ############################################################################################################
 PRG="$0"
 
@@ -181,10 +177,25 @@ save () {
     for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
     echo " "
 }
-JAVA_OPTS=$(save "$@")
+
+# Set up TONY_CONF_DIR if not exist
+if [[ -z "${TONY_CONF_DIR}" ]]; then
+  echo "TONY_CONF_DIR not set. Default to /export/apps/tony"
+  TONY_CONF_DIR="/export/apps/tony"
+else
+  TONY_CONF_DIR="${TONY_CONF_DIR}"
+fi
+
+if [ ! -f $TONY_CONF_DIR/tony-site.xml ]; then
+    echo "Error: tony-site.xml doesn't exist in $TONY_CONF_DIR."
+    echo "You can make your own using the sample in $APP_HOME/conf/tony-site.sample.xml"
+    exit 1
+fi
+
+OPTS=`python $APP_HOME/bin/xml_to_play_opts.py $TONY_CONF_DIR/tony-site.xml`
 
 # Collect all arguments for the java command, following the shell quoting and substitution rules
-eval set -- ${JAVA_OPTS} -classpath "\"${CLASSPATH}\"" play.core.server.ProdServerStart
+eval set -- ${OPTS} -classpath "\"${CLASSPATH}\"" play.core.server.ProdServerStart
 
 # by default we should be in the correct project dir, but when run from Finder on Mac, the cwd is wrong
 if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then

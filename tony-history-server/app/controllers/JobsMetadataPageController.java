@@ -41,7 +41,7 @@ public class JobsMetadataPageController extends Controller {
     }
 
     List<JobMetadata> listOfMetadata = new ArrayList<>();
-    Path tonyHistoryFolder = new Path(config.getString("tony.historyFolder"));
+    Path tonyHistoryFolder = new Path(config.getString("tony.history.location"));
     JobMetadata tmpMetadata;
     String jobId;
 

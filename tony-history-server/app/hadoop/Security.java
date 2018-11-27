@@ -1,17 +1,11 @@
 package hadoop;
 
 import com.typesafe.config.Config;
+import java.io.IOException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.security.UserGroupInformation;
-
-import java.io.File;
-import java.io.IOException;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import play.Logger;
 
 
@@ -26,8 +20,8 @@ public class Security {
 
   @Inject
   public Security(Config appConf) {
-    keytabUser = appConf.getString("keytab.user");
-    keytabLocation = appConf.getString("keytab.location");
+    keytabUser = appConf.getString("tony.keytab.user");
+    keytabLocation = appConf.getString("tony.keytab.location");
     setUpKeytab(Configuration.getHdfsConf());
   }
 

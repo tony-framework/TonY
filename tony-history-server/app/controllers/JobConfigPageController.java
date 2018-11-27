@@ -37,7 +37,7 @@ public class JobConfigPageController extends Controller {
     }
 
     List<JobConfig> listOfConfigs;
-    String tonyHistoryFolder = config.getString("tony.historyFolder");
+    String tonyHistoryFolder = config.getString("tony.history.location");
     Path xmlPath = new Path(tonyHistoryFolder + "/" + jobId + "/config.xml");
     listOfConfigs = cache.getIfPresent(jobId);
     if (listOfConfigs == null) {
