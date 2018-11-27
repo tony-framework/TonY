@@ -4,10 +4,8 @@
  */
 package com.linkedin.tony.azkaban;
 
-import azkaban.flow.CommonJobProperties;
 import azkaban.jobtype.HadoopJavaJob;
 import azkaban.jobtype.HadoopJobUtils;
-import azkaban.security.commons.HadoopSecurityManager;
 import azkaban.utils.Props;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,8 +15,6 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
-import static org.apache.hadoop.security.UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION;
-
 
 /**
  * The Azkaban jobtype for running a TensorFlow job.
@@ -26,35 +22,15 @@ import static org.apache.hadoop.security.UserGroupInformation.HADOOP_TOKEN_FILE_
  * env and jvm properties.
  */
 public class TensorFlowJob extends HadoopJavaJob {
-  private boolean shouldProxy = false;
-  private boolean obtainTokens = false;
-  private File tokenFile = null;
   public static final String HADOOP_OPTS = ENV_PREFIX + "HADOOP_OPTS";
   public static final String HADOOP_GLOBAL_OPTS = "hadoop.global.opts";
   public static final String WORKER_ENV_PREFIX = "worker_env.";
   private static final String TONY_CONF_PREFIX = "tony.";
-  private HadoopSecurityManager hadoopSecurityManager;
   private String tonyXml;
   private File tonyConfFile;
 
   public TensorFlowJob(String jobid, Props sysProps, Props jobProps, Logger log) {
     super(jobid, sysProps, jobProps, log);
-    shouldProxy = getSysProps().getBoolean(HadoopSecurityManager.ENABLE_PROXYING, false);
-
-    getJobProps().put(CommonJobProperties.JOB_ID, jobid);
-    shouldProxy = getSysProps().getBoolean(HadoopSecurityManager.ENABLE_PROXYING, false);
-    getJobProps().put(HadoopSecurityManager.ENABLE_PROXYING, Boolean.toString(shouldProxy));
-    obtainTokens = getSysProps().getBoolean(HadoopSecurityManager.OBTAIN_BINARY_TOKEN, false);
-
-    if (shouldProxy) {
-      getLog().info("Initiating hadoop security manager.");
-      try {
-        hadoopSecurityManager = HadoopJobUtils.loadHadoopSecurityManager(getSysProps(), log);
-      } catch (RuntimeException e) {
-        e.printStackTrace();
-        throw new RuntimeException("Failed to get hadoop security manager!" + e.getCause());
-      }
-    }
 
     tonyXml = String.format("_tony-conf-%s/tony.xml", jobid);
     tonyConfFile = new File(getWorkingDirectory(), tonyXml);
@@ -71,15 +47,6 @@ public class TensorFlowJob extends HadoopJavaJob {
   public void run() throws Exception {
     getLog().info("Hello world from TensorFlow!");
     setupHadoopOpts(getJobProps());
-    if (shouldProxy && obtainTokens) {
-      getLog().info("Need to proxy. Getting tokens.");
-      Props props = new Props();
-      props.putAll(getJobProps());
-      props.putAll(getSysProps());
-
-      tokenFile = HadoopJobUtils.getHadoopTokens(hadoopSecurityManager, props, getLog());
-      getJobProps().put("env." + HADOOP_TOKEN_FILE_LOCATION, tokenFile.getAbsolutePath());
-    }
     super.run();
   }
 
@@ -104,30 +71,13 @@ public class TensorFlowJob extends HadoopJavaJob {
   protected String getJVMArguments() {
     String args = super.getJVMArguments();
 
-    String typeUserGlobalJVMArgs = getJobProps().getString(HadoopJobUtils.JOBTYPE_GLOBAL_JVM_ARGS, null);
-    if (typeUserGlobalJVMArgs != null) {
-      args += " " + typeUserGlobalJVMArgs;
+    String userJVMArgs = getJobProps().getString(HadoopJobUtils.JVM_ARGS, null);
+    if (userJVMArgs != null) {
+      args += " " + userJVMArgs;
     }
-    String typeSysGlobalJVMArgs = getSysProps().getString(HadoopJobUtils.JOBTYPE_GLOBAL_JVM_ARGS, null);
-    if (typeSysGlobalJVMArgs != null) {
-      args += " " + typeSysGlobalJVMArgs;
-    }
-    String typeUserJVMArgs = getJobProps().getString(HadoopJobUtils.JOBTYPE_JVM_ARGS, null);
-    if (typeUserJVMArgs != null) {
-      args += " " + typeUserJVMArgs;
-    }
-    String typeSysJVMArgs = getSysProps().getString(HadoopJobUtils.JOBTYPE_JVM_ARGS, null);
-    if (typeSysJVMArgs != null) {
-      args += " " + typeSysJVMArgs;
-    }
-
-    String typeUserJVMArgs2 = getJobProps().getString(HadoopJobUtils.JVM_ARGS, null);
-    if (typeUserJVMArgs != null) {
-      args += " " + typeUserJVMArgs2;
-    }
-    String typeSysJVMArgs2 = getSysProps().getString(HadoopJobUtils.JVM_ARGS, null);
-    if (typeSysJVMArgs != null) {
-      args += " " + typeSysJVMArgs2;
+    String sysJVMArgs = getSysProps().getString(HadoopJobUtils.JVM_ARGS, null);
+    if (sysJVMArgs != null) {
+      args += " " + sysJVMArgs;
     }
     return args;
   }
