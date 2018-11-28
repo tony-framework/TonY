@@ -28,15 +28,24 @@ zip -r venv.zip venv
 TonY only requires YARN, not HDFS. Please see the [open-source documentation](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SingleCluster.html) on how to set YARN up.
 
 
-### Disabling security
+### Config TonY job for PyTorch
 
-If your Hadoop cluster is not running with security enabled (e.g.: for local testing), you can disable security by creating a config file as follows:
+You don't need parameter servers for distributed PyTorch training and if your Hadoop cluster is not running with security enabled (e.g.: for local testing), you
+need to disable the security check. Here is a sample of the config:
 
 ```
 <configuration>
   <property>
     <name>tony.application.security.enabled</name>
     <value>false</value>
+  </property>
+  <property>
+    <name>tony.ps.instances</name>
+    <value>0</value>
+  </property>
+  <property>
+    <name>tony.worker.instances</name>
+    <value>2</value>
   </property>
   <property>
     <name>tony.application.framework</name>

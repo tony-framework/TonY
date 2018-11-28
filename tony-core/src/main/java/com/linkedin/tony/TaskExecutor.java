@@ -127,7 +127,7 @@ public class TaskExecutor {
     HashMap<String, String> extraEnv = new HashMap<>(executor.shellEnv);
     switch (executor.framework) {
       case TENSORFLOW: {
-        LOG.info("Setting TensorFlow jobs..");
+        LOG.info("Setting up TensorFlow jobs..");
         extraEnv.put(Constants.TB_PORT, String.valueOf(executor.tbPort));
         extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
         extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
@@ -137,12 +137,12 @@ public class TaskExecutor {
         break;
       }
       case PYTORCH: {
-        LOG.info("Setting PyTorch jobs..");
+        LOG.info("Setting up PyTorch jobs..");
         String initMethod = Utils.parseClusterSpecForPytorch(executor.clusterSpec);
         if (initMethod == null) {
           System.exit(-1);
         }
-        LOG.info("Set coordinator address: " + initMethod);
+        LOG.info("Init method is: " + initMethod);
         extraEnv.put(Constants.INIT_METHOD, String.valueOf(initMethod));
         extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
         extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));

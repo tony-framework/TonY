@@ -138,7 +138,9 @@ public class TestTonyE2E {
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
-        "--conf","tony.application.framework=pytorch",
+        "--conf", "tony.application.framework=pytorch",
+        "--conf", "tony.ps.instances=0",
+        "--conf", "tony.worker.instances=2",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
     });
     int exitCode = client.start();
