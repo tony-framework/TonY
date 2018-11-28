@@ -16,9 +16,14 @@ ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 log_root.addHandler(ch)
 
-if os.environ.get('RANK') is not None and os.environ.get('WORLD') is not None:
-    logging.info('Found RANK and WORLD environment variable.')
-    exit(0)
-else:
-    logging.error('Failed to find RANK or WORLD environment variable')
+if os.environ.get('RANK') is None:
+    logging.error('Failed to find RANK environment variable')
     exit(1)
+if os.environ.get('WORLD') is None:
+    logging.error('Failed to find WORLD environment variable')
+    exit(1)
+if os.environ.get('INIT_METHOD') is None:
+    logging.error('Failed to find INIT_METHOD environment variable')
+    exit(1)
+
+exit(0)

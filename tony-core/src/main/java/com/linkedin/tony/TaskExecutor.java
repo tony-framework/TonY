@@ -75,8 +75,6 @@ public class TaskExecutor {
     this.tbPort = this.tbSocket.getLocalPort();
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
-    this.framework = MLFramework.valueOf(
-        tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
     LOG.info("Reserved rpcPort: " + this.rpcPort);
     LOG.info("Reserved tbPort: " + this.tbPort);
@@ -129,6 +127,7 @@ public class TaskExecutor {
     HashMap<String, String> extraEnv = new HashMap<>(executor.shellEnv);
     switch (executor.framework) {
       case TENSORFLOW: {
+        LOG.info("Setting TensorFlow jobs..");
         extraEnv.put(Constants.TB_PORT, String.valueOf(executor.tbPort));
         extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
         extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
@@ -138,6 +137,7 @@ public class TaskExecutor {
         break;
       }
       case PYTORCH: {
+        LOG.info("Setting PyTorch jobs..");
         extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
         extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
@@ -172,6 +172,9 @@ public class TaskExecutor {
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
     venv = cliParser.getOptionValue("venv");
+    framework = MLFramework.valueOf(
+        tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+
     Utils.unzipArchive(Constants.TONY_ZIP_NAME, "./");
     if (System.getenv(Constants.YARN_CONF_PATH) != null) {
       yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
