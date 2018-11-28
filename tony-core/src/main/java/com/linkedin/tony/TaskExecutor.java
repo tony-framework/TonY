@@ -138,6 +138,12 @@ public class TaskExecutor {
       }
       case PYTORCH: {
         LOG.info("Setting PyTorch jobs..");
+        String initMethod = Utils.parseClusterSpecForPytorch(executor.clusterSpec);
+        if (initMethod == null) {
+          System.exit(-1);
+        }
+        LOG.info("Set coordinator address: " + initMethod);
+        extraEnv.put(Constants.INIT_METHOD, String.valueOf(initMethod));
         extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
         extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
@@ -187,7 +193,7 @@ public class TaskExecutor {
     return true;
   }
 
-  private String registerAndGetClusterSpec(String amAddress) throws UnknownHostException {
+  private String registerAndGetClusterSpec(String amAddress) {
     LOG.info("Application Master address : " + amAddress);
     ContainerId containerId = ContainerId.fromString(System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name()));
     String hostName = Utils.getCurrentHostName();

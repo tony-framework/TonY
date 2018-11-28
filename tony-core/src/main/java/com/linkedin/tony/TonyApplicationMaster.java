@@ -767,12 +767,6 @@ public class TonyApplicationMaster {
         task.setHostPort(spec);
         registeredTasks.add(taskId);
 
-        // Use chief worker as coordinator.
-        if (taskId.equals(COORDINATOR_ID) && framework == MLFramework.PYTORCH) {
-          // Hard coded to use tcp:// as backend. TODO: support other backend as well later.
-          shellEnv.put(Constants.INIT_METHOD, COMMUNICATION_BACKEND + spec);
-        }
-
         // HB Registration should happen only after worker registration..
         // The Task registration timeout will take care of rescheduling the task
         // on another node..

@@ -297,10 +297,11 @@ public class Utils {
           TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
           TonyConfigurationKeys.DEFAULT_GPUS);
-      // The priority of different task types MUST be different.
-      // Otherwise the requests will overwrite each other on the RM
-      // scheduling side. See YARN-7631 for details.
-      // For now we set the priorities of different task types arbitrarily.
+      /* The priority of different task types MUST be different.
+       * Otherwise the requests will overwrite each other on the RM
+       * scheduling side. See YARN-7631 for details.
+       * For now we set the priorities of different task types arbitrarily.
+       */
       if (numInstances > 0) {
         containerRequests.put(jobName, new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority++));
       }
@@ -414,6 +415,19 @@ public class Utils {
       return;
     }
     LOG.info("Completed worker tasks: " + completedWTasks.get() + " out of " + totalWTasks + " worker tasks." );
+  }
+
+  public static String parseClusterSpecForPytorch(String clusterSpec) throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    Map<String, List<String>> clusterSpecMap =
+        objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>(){});
+    String chiefWorkerAddress = clusterSpecMap.get(Constants.WORKER_JOB_NAME).get(0);
+    if (chiefWorkerAddress == null) {
+      LOG.error("Failed to get chief worker address from cluster spec.");
+      return null;
+    }
+    return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
+
   }
 
   private Utils() { }
