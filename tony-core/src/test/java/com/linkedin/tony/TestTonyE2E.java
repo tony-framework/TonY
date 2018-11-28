@@ -134,7 +134,7 @@ public class TestTonyE2E {
   public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env_pytorchenv.py",
+        "--executes", "tony-core/src/test/resources/exit_0_check_pytorchenv.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
