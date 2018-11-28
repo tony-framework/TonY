@@ -131,6 +131,23 @@ public class TestTonyE2E {
   }
 
   @Test
+  public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException {
+    client.init(new String[]{
+        "--src_dir", "tony-core/src/test/resources/",
+        "--executes", "tony-core/src/test/resources/exit_0_check_pytorchenv.py",
+        "--hdfs_classpath", "/yarn/libs",
+        "--python_binary_path", "python",
+        "--shell_env", "ENV_CHECK=ENV_CHECK",
+        "--conf", "tony.application.framework=pytorch",
+        "--conf", "tony.ps.instances=0",
+        "--conf", "tony.worker.instances=2",
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+  @Test
   public void testPSWorkerTrainingShouldFail() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
