@@ -1043,21 +1043,14 @@ public class TonyApplicationMaster {
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
-      // Add additional environment vars.
-      switch (framework) {
-        case TENSORFLOW: {
-          containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
-          containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
-          containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
-          break;
-        }
-        case PYTORCH: {
-          containerShellEnv.put(Constants.RANK, task.getTaskIndex());
-          containerShellEnv.put(Constants.WORLD, String.valueOf(numTotalWorkerTasks));
-          break;
-        }
-      }
-
+      /*
+       * Add additional environment vars. We always set job_name task_index & task_num and
+       * task_num and TaskExecutor is responsible for setting up the actual shell environment
+       * for different deep learning frameworks.
+       */
+      containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
+      containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
+      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
       List<String> commands = new ArrayList<>();
 
       List<CharSequence> arguments = new ArrayList<>(5);
