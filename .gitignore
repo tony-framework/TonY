@@ -23,7 +23,6 @@
 .settings
 .svn
 .vscode/
-/test/
 build/
 dependency-reduced-pom.xml
 log/

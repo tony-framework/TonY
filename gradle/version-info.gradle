@@ -1,3 +1,8 @@
+/*
+ * This file writes out a version-info.properties file during the processResources task, which gets added to the
+ * built jar file. This version-info.properties file is used by VersionInfo.java to return build information at runtime.
+ */
+
 import java.security.MessageDigest
 
 ext.writeVersionInfo = { file ->
