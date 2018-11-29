@@ -5,7 +5,7 @@
 package com.linkedin.tony.io;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.Utils;
+import com.linkedin.tony.util.Utils;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;

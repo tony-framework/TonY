@@ -93,6 +93,9 @@ subprojects {
   apply plugin: "idea"
   apply plugin: "maven-publish"
   apply plugin: "signing"
+
+  apply from: "$rootDir/gradle/version-info.gradle"
+
   repositories {
     mavenCentral()
   }

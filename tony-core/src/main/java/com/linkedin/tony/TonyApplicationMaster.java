@@ -13,6 +13,8 @@ import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
+import com.linkedin.tony.util.HistoryFileUtils;
+import com.linkedin.tony.util.Utils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;

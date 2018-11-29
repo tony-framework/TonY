@@ -7,7 +7,7 @@ package com.linkedin.tony.tensorflow;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.Utils;
+import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.net.URI;
 import java.util.ArrayList;
