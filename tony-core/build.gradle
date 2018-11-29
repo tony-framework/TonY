@@ -4,15 +4,17 @@ apply plugin: 'com.google.protobuf'
 dependencies {
   compile project(':tony-mini')
 
+  compile deps.azkaban.az_core
+  compile deps.azkaban.az_hadoop_jobtype_plugin
   compile deps.external.jackson_databind
   compile deps.external.py4j
   compile deps.external.text
+  compile deps.external.zip4j
   compile deps.hadoop.common
   compile deps.hadoop.hdfs
   compile deps.hadoop.yarn_api
   compile deps.hadoop.yarn_client
   compile deps.hadoop.yarn_common
-  compile deps.external.zip4j
 
   testCompile deps.external.avro
   testCompile deps.external.testng

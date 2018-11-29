@@ -4,6 +4,8 @@
  */
 package com.linkedin.tony;
 
+import azkaban.jobtype.HadoopConfigurationInjector;
+import azkaban.utils.Props;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -728,18 +730,25 @@ public class TonyClient implements AutoCloseable {
 
   public static void main(String[] args) {
     int exitCode = 0;
+
+    // Adds hadoop-inject.xml as a default resource so Azkaban metadata will be present in the new Configuration created
+    HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
     try (TonyClient client = new TonyClient(new Configuration())) {
       boolean sanityCheck = client.init(args);
       if (!sanityCheck) {
-        LOG.fatal("Failed to parse arguments.");
+        LOG.fatal("Failed to init client.");
+        exitCode = -1;
       }
-      exitCode = client.start();
-      if (client.amRpcClient != null) {
-        client.amRpcClient.finishApplication();
+
+      if (exitCode == 0) {
+        exitCode = client.start();
+        if (client.amRpcClient != null) {
+          client.amRpcClient.finishApplication();
+        }
       }
     } catch (ParseException | IOException | YarnException e) {
-      LOG.fatal("Failed to init client.", e);
-      System.exit(-1);
+      LOG.fatal("Encountered exception while initializing client or finishing application.", e);
+      exitCode = -1;
     }
     System.exit(exitCode);
   }

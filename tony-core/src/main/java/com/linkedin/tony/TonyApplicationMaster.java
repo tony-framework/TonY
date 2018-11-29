@@ -767,12 +767,6 @@ public class TonyApplicationMaster {
         task.setHostPort(spec);
         registeredTasks.add(taskId);
 
-        // Use chief worker as coordinator.
-        if (taskId.equals(COORDINATOR_ID) && framework == MLFramework.PYTORCH) {
-          // Hard coded to use tcp:// as backend. TODO: support other backend as well later.
-          shellEnv.put(Constants.INIT_METHOD, COMMUNICATION_BACKEND + spec);
-        }
-
         // HB Registration should happen only after worker registration..
         // The Task registration timeout will take care of rescheduling the task
         // on another node..
@@ -1043,21 +1037,14 @@ public class TonyApplicationMaster {
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
-      // Add additional environment vars.
-      switch (framework) {
-        case TENSORFLOW: {
-          containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
-          containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
-          containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
-          break;
-        }
-        case PYTORCH: {
-          containerShellEnv.put(Constants.RANK, task.getTaskIndex());
-          containerShellEnv.put(Constants.WORLD, String.valueOf(numTotalWorkerTasks));
-          break;
-        }
-      }
-
+      /*
+       * Add additional environment vars. We always set job_name task_index & task_num and
+       * task_num and TaskExecutor is responsible for setting up the actual shell environment
+       * for different deep learning frameworks.
+       */
+      containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
+      containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
+      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
       List<String> commands = new ArrayList<>();
 
       List<CharSequence> arguments = new ArrayList<>(5);
