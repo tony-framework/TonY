@@ -75,6 +75,8 @@ import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.Contai
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
+import static com.linkedin.tony.Constants.*;
+
 
 /**
  * User entry point to submit tensorflow job.
@@ -84,9 +86,10 @@ public class TonyClient implements AutoCloseable {
 
   private static final String APP_TYPE = "TENSORFLOW";
   private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
-  private static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
-  private static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
-  private static final String HDFS_SITE_CONF = "hdfs-site.xml";
+  private static final String TONY_CONF_DIR = Constants.TONY_CONF_DIR;
+  private static final String TONY_SITE_CONF = Constants.TONY_SITE_CONF;
+  private static final String TONY_DEFAULT_XML = Constants.TONY_DEFAULT_XML;
+  private static final String TONY_XML = Constants.TONY_XML;
 
   // Configurations
   private YarnClient yarnClient;
@@ -144,7 +147,6 @@ public class TonyClient implements AutoCloseable {
   private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
     LOG.info("Starting client..");
     yarnClient.start();
-
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
 
@@ -226,10 +228,10 @@ public class TonyClient implements AutoCloseable {
         YarnConfiguration.DEFAULT_RESOURCEMANAGER_CONNECT_RETRY_INTERVAL_MS) * numRMConnectRetries;
     yarnConf.setLong(YarnConfiguration.RESOURCEMANAGER_CONNECT_MAX_WAIT_MS, rmMaxWaitMS);
 
-    if (System.getenv("HADOOP_CONF_DIR") != null) {
-      hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
-      yarnConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
-      hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
+    if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
+      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
     }
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(yarnConf);
@@ -258,18 +260,7 @@ public class TonyClient implements AutoCloseable {
       return false;
     }
 
-    tonyConf.addResource(Constants.TONY_DEFAULT_XML);
-    if (cliParser.hasOption("conf_file")) {
-      tonyConf.addResource(new Path(cliParser.getOptionValue("conf_file")));
-    } else {
-      tonyConf.addResource(Constants.TONY_XML);
-    }
-    if (cliParser.hasOption("conf")) {
-      String[] confs = cliParser.getOptionValues("conf");
-      for (Map.Entry<String, String> cliConf : Utils.parseKeyValue(confs).entrySet()) {
-        tonyConf.set(cliConf.getKey(), cliConf.getValue());
-      }
-    }
+    initTonyConf(tonyConf, cliParser);
 
     String amMemoryString = tonyConf.get(TonyConfigurationKeys.AM_MEMORY,
         TonyConfigurationKeys.DEFAULT_AM_MEMORY);
@@ -347,6 +338,29 @@ public class TonyClient implements AutoCloseable {
     }
     createYarnClient();
     return true;
+  }
+
+  /**
+   * Add resource if exist to {@code tonyConf}
+   * @param tonyConf Configuration object.
+   * @param cliParser CommandLine object that has all the command line arguments.
+   */
+  public static void initTonyConf(Configuration tonyConf, CommandLine cliParser) {
+    if (System.getenv(Constants.TONY_CONF_DIR) != null) {
+      tonyConf.addResource(new Path(System.getenv(Constants.TONY_CONF_DIR) + File.separatorChar + Constants.TONY_SITE_CONF));
+    }
+    tonyConf.addResource(Constants.TONY_DEFAULT_XML);
+    if (cliParser.hasOption("conf_file")) {
+      tonyConf.addResource(new Path(cliParser.getOptionValue("conf_file")));
+    } else {
+      tonyConf.addResource(Constants.TONY_XML);
+    }
+    if (cliParser.hasOption("conf")) {
+      String[] confs = cliParser.getOptionValues("conf");
+      for (Map.Entry<String, String> cliConf : Utils.parseKeyValue(confs).entrySet()) {
+        tonyConf.set(cliConf.getKey(), cliConf.getValue());
+      }
+    }
   }
 
   public Configuration getTonyConf() {

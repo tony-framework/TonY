@@ -20,7 +20,37 @@ public class TonyConfigurationKeys {
 
   // History folder configuration
   public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
-  public static final String DEFAULT_TONY_HISTORY_LOCATION = "/system/tony-history/";
+  public static final String DEFAULT_TONY_HISTORY_LOCATION = "/system/tony-history";
+
+  public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
+  public static final String DEFAULT_TONY_KEYTAB_USER = "tony/ltx1-unojh01.grid.linkedin.com@GRID.LINKEDIN.COM";
+
+  public static final String TONY_KEYTAB_LOCATION = TONY_PREFIX + "keytab.location";
+  public static final String DEFAULT_TONY_KEYTAB_LOCATION = "/export/apps/hadoop/keytabs/tony.keytab";
+
+  public static final String TONY_HTTPS_PORT = TONY_PREFIX + "https.port";
+  public static final String DEFAULT_TONY_HTTPS_PORT = "19886";
+
+  public static final String TONY_HTTPS_KEYSTORE_PATH = TONY_PREFIX + "https.keystore.path";
+  public static final String DEFAULT_TONY_HTTPS_KEYSTORE_PATH = "/export/apps/tony/ltx1-unojh01.grid.linkedin.com.jks";
+
+  public static final String TONY_HTTPS_KEYSTORE_TYPE = TONY_PREFIX + "https.keystore.type";
+  public static final String DEFAULT_TONY_HTTPS_KEYSTORE_TYPE = "JKS";
+
+  public static final String TONY_HTTPS_KEYSTORE_PASSWORD = TONY_PREFIX + "https.keystore.password";
+  public static final String DEFAULT_TONY_HTTPS_KEYSTORE_PASSWORD = "password";
+
+  public static final String TONY_HTTPS_KEYSTORE_ALGORITHM = TONY_PREFIX + "https.keystore.algorithm";
+  public static final String DEFAULT_TONY_HTTPS_KEYSTORE_ALGORITHM = "SunX509";
+
+  public static final String TONY_HTTP_PORT = TONY_PREFIX + "http.port";
+  public static final String DEFAULT_TONY_HTTP_PORT = "disabled";
+
+  public static final String TONY_SECRET_KEY = TONY_PREFIX + "secret.key";
+  public static final String DEFAULT_TONY_SECRET_KEY = "Prod";
+
+  public static final String TONY_INIT_MODULE = TONY_PREFIX + "init.module";
+  public static final String DEFAULT_TONY_INIT_MODULE = "Startup";
 
   // Application configurations
   public static final String YARN_QUEUE_NAME = TONY_PREFIX + "yarn.queue";

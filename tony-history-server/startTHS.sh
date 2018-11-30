@@ -182,8 +182,6 @@ save () {
 if [[ -z "${TONY_CONF_DIR}" ]]; then
   echo "TONY_CONF_DIR not set. Default to /export/apps/tony"
   TONY_CONF_DIR="/export/apps/tony"
-else
-  TONY_CONF_DIR="${TONY_CONF_DIR}"
 fi
 
 if [ ! -f $TONY_CONF_DIR/tony-site.xml ]; then

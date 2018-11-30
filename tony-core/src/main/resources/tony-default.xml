@@ -202,7 +202,7 @@
     <name>tony.application.yarn-conf-path</name>
   </property>
 
-  <!-- History folder configurations -->
+  <!--History Server configurations-->
   <property>
     <description>
       Location for Tony AM to write config and events on HDFS
@@ -211,4 +211,77 @@
     <value>/system/tony-history</value>
   </property>
 
+  <property>
+    <description>
+      Tony keytab principal
+    </description>
+    <name>tony.keytab.user</name>
+    <value>user1</value>
+  </property>
+
+  <property>
+    <description>
+      Location of Tony keytab file
+    </description>
+    <name>tony.keytab.location</name>
+    <value>/location/to/tony.keytab</value>
+  </property>
+
+  <property>
+    <name>tony.https.port</name>
+    <value>19886</value>
+  </property>
+
+  <property>
+    <description>
+      Location of keystore file. Usually as JKS.
+      For more info: https://www.playframework.com/documentation/2.6.x/ConfiguringHttps
+    </description>
+    <name>tony.https.keystore.path</name>
+    <value>/location/to/tony.jks</value>
+  </property>
+
+  <property>
+    <name>tony.https.keystore.type</name>
+    <value>JKS</value>
+  </property>
+
+  <property>
+    <name>tony.https.keystore.password</name>
+    <value>password</value>
+  </property>
+
+  <property>
+    <name>tony.https.keystore.algorithm</name>
+    <value>SunX509</value>
+  </property>
+
+  <property>
+    <description>
+      Whether or not http port is open for Tony history server.
+      In development, this should be set to enabled.
+      In production, this should always be disabled.
+    </description>
+    <name>tony.http.port</name>
+    <value>disabled</value>
+  </property>
+
+  <property>
+    <description>
+      Secret key for Play framework.
+      In development, this is optional.
+      In production, this is mandatory.
+    </description>
+    <name>tony.secret.key</name>
+    <value>Prod</value>
+  </property>
+
+  <property>
+    <description>
+      Name of module that binds other Singletons that
+      need to be run once before starting history server.
+    </description>
+    <name>tony.init.module</name>
+    <value>Startup</value>
+  </property>
 </configuration>
