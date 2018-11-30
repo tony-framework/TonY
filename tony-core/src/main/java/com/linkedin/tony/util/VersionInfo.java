@@ -22,20 +22,20 @@ import static com.linkedin.tony.TonyConfigurationKeys.*;
 public class VersionInfo {
   private static final Log LOG = LogFactory.getLog(VersionInfo.class);
 
+  private static final String VERSION_INFO_FILE = "version-info.properties";
+
   private Properties versionInfo;
 
   private VersionInfo() {
     versionInfo = new Properties();
-    String versionInfoFile = "version-info.properties";
-    try {
-      InputStream is = Thread.currentThread().getContextClassLoader()
-          .getResourceAsStream(versionInfoFile);
+    try (InputStream is = Thread.currentThread().getContextClassLoader()
+        .getResourceAsStream(VERSION_INFO_FILE)) {
       if (is == null) {
-        throw new IOException("Resource not found");
+        LOG.warn("Could not open input stream to " + VERSION_INFO_FILE);
       }
       versionInfo.load(is);
     } catch (IOException ex) {
-      LOG.warn("Could not read '" + versionInfoFile + "', " + ex.toString(), ex);
+      LOG.warn("Could not read '" + VERSION_INFO_FILE + "', " + ex.toString(), ex);
     }
   }
 
