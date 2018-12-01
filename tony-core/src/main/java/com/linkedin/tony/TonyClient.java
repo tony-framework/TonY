@@ -470,10 +470,14 @@ public class TonyClient implements AutoCloseable {
     FileOutputStream fos = new FileOutputStream(archivePath);
     ZipOutputStream zos = new ZipOutputStream(fos);
     // Accept archive file as srcDir.
-    if (!Utils.isArchive(srcDir)) {
-      addDirToZip(zos, srcDir);
+    if (srcDir != null) {
+      if (!Utils.isArchive(srcDir)) {
+        addDirToZip(zos, srcDir);
+      } else {
+        Utils.renameFile(srcDir, archivePath);
+      }
     } else {
-      Utils.renameFile(srcDir, archivePath);
+      LOG.warn("--src_dir flag is not passed in.");
     }
     if (hdfsConfAddress != null) {
       addFileToZip(zos, hdfsConfAddress);
