@@ -1,9 +1,11 @@
+plugins {
+  id "com.commercehub.gradle.plugin.avro" version "0.9.0"
+}
 apply plugin: "play"
 apply plugin: "idea"
 apply plugin: "distribution"
 
 model {
-
   components {
     play {
       platform play: playVersion, scala: scalaVersion, java: '1.8'
@@ -33,6 +35,7 @@ model {
 
 dependencies {
   play project(':tony-core')
+  play deps.external.avro
   play deps.external.play_guice
   play deps.external.play_logback
   play deps.hadoop.hdfs_client
@@ -40,6 +43,7 @@ dependencies {
   play deps.hadoop.yarn_api
 
   playTest deps.external.assertj
+  playTest deps.external.avro
   playTest deps.external.awaitility
   playTest deps.external.mockito
   playTest deps.external.testng
@@ -56,6 +60,18 @@ repositories {
     url "https://repo.lightbend.com/lightbend/ivy-releases"
     layout "ivy"
   }
+}
+
+task generateAvro(type: com.commercehub.gradle.plugin.avro.GenerateAvroJavaTask) {
+  source("avro")
+  outputDir = file("build/generated-main-avro-java")
+  dependencies {
+    compile deps.external.avro
+  }
+}
+
+compileJava {
+  source generateAvro.outputs
 }
 
 test.dependsOn('testPlayBinary')
