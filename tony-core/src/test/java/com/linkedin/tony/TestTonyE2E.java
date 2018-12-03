@@ -236,4 +236,19 @@ public class TestTonyE2E {
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
   }
+
+  @Test
+  public void testTonyResourcesFlag() throws ParseException {
+    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
+    client = new TonyClient(conf);
+    client.init(new String[]{
+        "--executes", "'/bin/cat log4j.properties'",
+        "--hdfs_classpath", "/yarn/libs",
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.worker.resources=/yarn/libs",
+        "--conf", "tony.ps.instances=0",
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
 }

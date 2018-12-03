@@ -48,7 +48,7 @@ tf.flags.DEFINE_string('working_dir', '/tmp/tensorflow/mnist/working_dir',
                            'Directory under which events and output will be stored (in separate subdirectories).')
 
 # Training parameters
-tf.flags.DEFINE_integer("steps", 2500, "The number of training steps to execute.")
+tf.flags.DEFINE_integer("steps", 1500, "The number of training steps to execute.")
 tf.flags.DEFINE_integer("batch_size", 64, "The batch size per step.")
 
 FLAGS = tf.flags.FLAGS
@@ -216,10 +216,15 @@ def main(_):
         # The StopAtStepHook handles stopping after running given steps.
         hooks = [tf.train.StopAtStepHook(num_steps=FLAGS.steps)]
 
+        # Filter all connections except that between ps and this worker to avoid hanging issues when
+        # one worker finishes. We are using asynchronous training so there is no need for the workers to communicate.
+        config_proto = tf.ConfigProto(device_filters = ['/job:ps', '/job:worker/task:%d' % task_index])
+
         with tf.train.MonitoredTrainingSession(master=server.target,
                                                is_chief=(task_index == 0),
                                                checkpoint_dir=FLAGS.working_dir,
-                                               hooks=hooks) as sess:
+                                               hooks=hooks,
+                                               config=config_proto) as sess:
             # Import data
             logging.info('Extracting and loading input data...')
             mnist = input_data.read_data_sets(FLAGS.data_dir)
