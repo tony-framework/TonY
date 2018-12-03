@@ -32,6 +32,13 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getGPUsKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourcesKey(Constants.WORKER_JOB_NAME));
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.DOCKER_IMAGE);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_VERSION);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_REVISION);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_BRANCH);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_USER);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_DATE);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_URL);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_CHECKSUM);
   }
 
   @BeforeTest

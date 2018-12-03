@@ -16,6 +16,16 @@ public class TonyConfigurationKeys {
 
   public static final String TONY_PREFIX = "tony.";
 
+  // Version info configuration
+  public static final String TONY_VERSION_INFO_PREFIX = TONY_PREFIX + "version-info.";
+  public static final String TONY_VERSION_INFO_VERSION= TONY_VERSION_INFO_PREFIX + "version";
+  public static final String TONY_VERSION_INFO_REVISION = TONY_VERSION_INFO_PREFIX + "revision";
+  public static final String TONY_VERSION_INFO_BRANCH = TONY_VERSION_INFO_PREFIX + "branch";
+  public static final String TONY_VERSION_INFO_USER = TONY_VERSION_INFO_PREFIX + "user";
+  public static final String TONY_VERSION_INFO_DATE = TONY_VERSION_INFO_PREFIX + "date";
+  public static final String TONY_VERSION_INFO_URL = TONY_VERSION_INFO_PREFIX + "url";
+  public static final String TONY_VERSION_INFO_CHECKSUM = TONY_VERSION_INFO_PREFIX + "checksum";
+
   public static final String OTHER_NAMENODES_TO_ACCESS = TONY_PREFIX + "other.namenodes";
 
   // History folder configuration

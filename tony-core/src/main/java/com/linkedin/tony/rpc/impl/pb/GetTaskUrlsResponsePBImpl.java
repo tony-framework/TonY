@@ -4,7 +4,7 @@
  */
 package com.linkedin.tony.rpc.impl.pb;
 
-import com.linkedin.tony.ProtoUtils;
+import com.linkedin.tony.util.ProtoUtils;
 import com.linkedin.tony.rpc.GetTaskUrlsResponse;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsResponseProto;

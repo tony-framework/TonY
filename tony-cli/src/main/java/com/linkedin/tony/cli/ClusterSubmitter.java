@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.linkedin.tony.TonyClient;
-import com.linkedin.tony.Utils;
+import com.linkedin.tony.util.Utils;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
