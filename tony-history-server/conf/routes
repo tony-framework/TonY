@@ -1,3 +1,4 @@
 GET     /                           controllers.JobsMetadataPageController.index()
 GET     /config/:jobId              controllers.JobConfigPageController.index(jobId)
+GET     /jobs/:jobId                controllers.JobEventPageController.index(jobId)
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

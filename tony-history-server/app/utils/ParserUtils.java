@@ -2,7 +2,9 @@ package utils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.linkedin.tony.events.Event;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,7 +13,11 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import models.JobConfig;
+import models.JobEvent;
 import models.JobMetadata;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -60,6 +66,28 @@ public class ParserUtils {
   }
 
   /**
+   * Get the name of the jhist file
+   * @param fs FileSystem object.
+   * @param jobFolderPath Path object of job directory.
+   * @return the name of the jhist file or empty string if error occurs.
+   */
+  @VisibleForTesting
+  static String getJhistFileName(FileSystem fs, Path jobFolderPath) {
+    String[] jobFilesArr;
+    try {
+      jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
+          .filter(f -> f.getPath().toString().endsWith("jhist"))
+          .map(f -> f.getPath().toString())
+          .toArray(String[]::new);
+      Preconditions.checkArgument(jobFilesArr.length == 1);
+    } catch (IOException e) {
+      LOG.error("Failed to scan " + jobFolderPath, e);
+      return "";
+    }
+    return jobFilesArr[0];
+  }
+
+  /**
    * Assuming that there's only 1 jhist file in {@code jobFolderPath},
    * this function parses metadata and return a {@code JobMetadata} object.
    * @param fs FileSystem object.
@@ -68,23 +96,11 @@ public class ParserUtils {
    * @return a {@code JobMetadata} object.
    */
   public static JobMetadata parseMetadata(FileSystem fs, Path jobFolderPath, String jobIdRegex) {
-    String[] jobFilesArr;
     if (!pathExists(fs, jobFolderPath)) {
       return null;
     }
 
-    try {
-      jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
-          .filter(f -> f.getPath().toString().endsWith("jhist"))
-          .map(f -> f.getPath().toString())
-          .toArray(String[]::new);
-      Preconditions.checkArgument(jobFilesArr.length == 1);
-    } catch (IOException e) {
-      LOG.error("Failed to scan " + jobFolderPath.toString(), e);
-      return null;
-    }
-
-    String histFileName = HdfsUtils.getJobId(jobFilesArr[0]);
+    String histFileName = HdfsUtils.getJobId(getJhistFileName(fs, jobFolderPath));
     if (!isValidHistFileName(histFileName, jobIdRegex)) {
       // this should never happen unless user rename the history file
       LOG.error("Metadata isn't valid");
@@ -142,6 +158,46 @@ public class ParserUtils {
     }
     LOG.debug("Successfully parsed config");
     return configs;
+  }
+
+  /**
+   * Assuming that there's only 1 jhist file in {@code jobFolderPath},
+   * this function parses the jhist and return a list of {@code JobEvent} objects.
+   * @param fs FileSystem object.
+   * @param jobFolderPath Path object of job directory.
+   * @return a list of {@code JobEvent} objects.
+   */
+  public static List<JobEvent> parseEvents(FileSystem fs, Path jobFolderPath) {
+    if (!pathExists(fs, jobFolderPath)) {
+      return Collections.emptyList();
+    }
+
+    String jhistFile = getJhistFileName(fs, jobFolderPath);
+    if (jhistFile.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    Path historyFile = new Path(jhistFile);
+    List<JobEvent> events = new ArrayList<>();
+    try (InputStream in = fs.open(historyFile)) {
+      DatumReader<Event> datumReader = new SpecificDatumReader<>(Event.class);
+      try (DataFileStream<Event> avroFileStream = new DataFileStream<>(in, datumReader)) {
+        Event record = null;
+        while (avroFileStream.hasNext()) {
+          record = avroFileStream.next(record);
+          JobEvent wrapper = new JobEvent();
+          wrapper.setType(record.getType());
+          wrapper.setEvent(record.getEvent());
+          wrapper.setTimestamp(record.getTimestamp());
+          events.add(wrapper);
+        }
+      } catch (IOException e) {
+        LOG.error("Failed to read events from " + historyFile);
+      }
+    } catch (IOException e) {
+      LOG.error("Failed to open history file", e);
+    }
+    return events;
   }
 
   private ParserUtils() { }

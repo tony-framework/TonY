@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import java.util.List;
 import javax.inject.Singleton;
 import models.JobConfig;
+import models.JobEvent;
 import models.JobMetadata;
 
 @Singleton
@@ -24,9 +25,18 @@ public class CacheWrapper {
    */
   private static Cache<String, List<JobConfig>> configCache;
 
+  /**
+   * eventCache
+   * - key: job ID (application_[0-9]+_[0-9]+)
+   * - value: List of JobEvent objects. Each JobEvent object
+   * represents an Event in job's jhist
+   */
+  private static Cache<String, List<JobEvent>> eventCache;
+
   public CacheWrapper() {
     metadataCache = CacheBuilder.newBuilder().build();
     configCache = CacheBuilder.newBuilder().build();
+    eventCache = CacheBuilder.newBuilder().build();
   }
 
   public static Cache<String, JobMetadata> getMetadataCache() {
@@ -35,5 +45,9 @@ public class CacheWrapper {
 
   public static Cache<String, List<JobConfig>> getConfigCache() {
     return configCache;
+  }
+
+  public static Cache<String, List<JobEvent>> getEventCache() {
+    return eventCache;
   }
 }
