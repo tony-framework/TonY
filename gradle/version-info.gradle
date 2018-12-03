@@ -1,0 +1,83 @@
+/*
+ * This file writes out a version-info.properties file during the processResources task, which gets added to the
+ * built jar file. This version-info.properties file is used by VersionInfo.java to return build information at runtime.
+ */
+
+import java.security.MessageDigest
+
+ext.writeVersionInfo = { file ->
+  ant.propertyfile(file: file) {
+    entry(key: "version", value: getVersion())
+    entry(key: "revision", value: getRevision())
+    entry(key: "branch", value: getBranch())
+    entry(key: "user", value: getUser())
+    entry(key: "date", value: getDate())
+    entry(key: "url", value: getUrl())
+    entry(key: "srcChecksum", value: getSrcChecksum())
+  }
+}
+
+def getVersion() {
+  return project.version
+}
+
+def getRevision() {
+  return execCommand(["git", "log", "-1"]).split("\\s+")[1]
+}
+
+def getBranch() {
+  def gitBranchOutput = execCommand(["git", "branch"])
+  def lines = gitBranchOutput.split("\n")
+  for (line in lines) {
+    if (line.startsWith("*")) {
+      return line.split("\\s+")[1]
+    }
+  }
+  throw new GradleException("Could not determine git branch.")
+}
+
+def getUser() {
+  return System.getProperty("user.name")
+}
+
+def getDate() {
+  return new Date().toString()
+}
+
+def getUrl() {
+  def gitRemoteOutput = execCommand(["git", "remote", "-v"])
+  def lines = gitRemoteOutput.split("\n")
+  for (line in lines) {
+    if (line.startsWith("origin") && line.endsWith("(fetch)")) {
+      return line.split("\\s+")[1]
+    }
+  }
+  throw new GradleException("Could not determine git URI.")
+}
+
+def getSrcChecksum() {
+  MessageDigest digest = MessageDigest.getInstance("MD5")
+
+  sourceSets.main.java.each { file ->
+    digest.update(file.bytes)
+  }
+
+  sourceSets.main.resources.each { file ->
+    digest.update(file.bytes)
+  }
+
+  return new BigInteger(1, digest.digest()).toString(16).padLeft(32, "0")
+}
+
+def execCommand(commandList) {
+  def stdout = new ByteArrayOutputStream()
+  exec {
+    commandLine commandList
+    standardOutput = stdout
+  }
+  return stdout.toString()
+}
+
+processResources << {
+  writeVersionInfo(new File(sourceSets.main.output.resourcesDir, "version-info.properties"))
+}

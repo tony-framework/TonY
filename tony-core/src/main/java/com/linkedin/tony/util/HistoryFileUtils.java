@@ -2,8 +2,9 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony;
+package com.linkedin.tony.util;
 
+import com.linkedin.tony.TonyJobMetadata;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

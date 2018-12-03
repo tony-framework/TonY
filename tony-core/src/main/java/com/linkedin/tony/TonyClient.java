@@ -11,6 +11,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.util.Utils;
+import com.linkedin.tony.util.VersionInfo;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -138,6 +140,7 @@ public class TonyClient implements AutoCloseable {
   public TonyClient(Configuration conf) {
     initOptions();
     tonyConf = conf;
+    VersionInfo.injectVersionInfo(tonyConf);
   }
 
   public ImmutableSet<TaskUrl> getTaskUrls() {
