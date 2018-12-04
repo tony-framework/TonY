@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
@@ -25,6 +26,36 @@ public class TestHdfsUtils {
     } catch (Exception e) {
       fail("Failed setting up FileSystem object");
     }
+  }
+
+  @Test
+  public void testScanDir_emptyDir() {
+    Path histFolder = new Path("./test/resources/emptyHistFolder");
+
+    assertEquals(0, HdfsUtils.scanDir(fs, histFolder).length);
+  }
+
+  @Test
+  public void testScanDir_typical() {
+    Path histFolder = new Path("./test/resources/typicalHistFolder");
+    FileStatus[] res = HdfsUtils.scanDir(fs, histFolder);
+    assertEquals(5, res.length);
+  }
+
+  @Test
+  public void testScanDir_nullDir() {
+    assertEquals(0, HdfsUtils.scanDir(fs, null).length);
+  }
+
+  @Test
+  public void testScanDir_throwsException() throws IOException {
+    FileSystem mockFs = mock(FileSystem.class);
+    Path invalidPath = new Path("/invalid/path");
+
+    when(mockFs.listStatus(invalidPath)).thenThrow(new IOException("IO Excpt"));
+
+    assertEquals(0, HdfsUtils.scanDir(mockFs, invalidPath).length);
+    verify(mockFs).listStatus(invalidPath);
   }
 
   @Test

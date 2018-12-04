@@ -270,7 +270,6 @@ public class TonyApplicationMaster {
     } catch (IOException e) {
       LOG.error("Failed to fetch users", e);
     }
-
     return true;
   }
 
