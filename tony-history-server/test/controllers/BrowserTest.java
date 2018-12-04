@@ -1,20 +1,20 @@
 package controllers;
 
 import com.google.common.collect.ImmutableMap;
-import org.testng.annotations.Test;
+import org.junit.Test;
 import play.Application;
 import play.test.Helpers;
 import play.test.TestBrowser;
 import play.test.WithBrowser;
 
-import static org.testng.Assert.*;
+import static org.junit.Assert.*;
 import static play.test.Helpers.*;
 
 
 public class BrowserTest extends WithBrowser {
 
   protected Application provideApplication() {
-    return fakeApplication(ImmutableMap.of("tony.historyFolder", "/dummy/"));
+    return fakeApplication(ImmutableMap.of("tony.history.location", "/dummy/"));
   }
 
   protected TestBrowser provideBrowser(int port) {

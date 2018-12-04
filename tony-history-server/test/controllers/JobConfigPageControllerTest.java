@@ -1,11 +1,11 @@
 package controllers;
 
-import org.testng.annotations.Test;
+import org.junit.Test;
 import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.test.WithApplication;
 
-import static org.testng.Assert.*;
+import static org.junit.Assert.*;
 import static play.mvc.Http.Status.*;
 
 

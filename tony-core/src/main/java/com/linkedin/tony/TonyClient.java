@@ -88,10 +88,6 @@ public class TonyClient implements AutoCloseable {
 
   private static final String APP_TYPE = "TENSORFLOW";
   private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
-  private static final String TONY_CONF_DIR = Constants.TONY_CONF_DIR;
-  private static final String TONY_SITE_CONF = Constants.TONY_SITE_CONF;
-  private static final String TONY_DEFAULT_XML = Constants.TONY_DEFAULT_XML;
-  private static final String TONY_XML = Constants.TONY_XML;
 
   // Configurations
   private YarnClient yarnClient;

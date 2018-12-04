@@ -4,11 +4,14 @@
  */
 package com.linkedin.tony;
 
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 
 public class Constants {
+  // File Permission
+  public static final FsPermission perm770 = new FsPermission((short) 0770);
 
   // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
