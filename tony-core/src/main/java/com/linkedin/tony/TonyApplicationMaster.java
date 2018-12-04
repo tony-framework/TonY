@@ -451,8 +451,8 @@ public class TonyApplicationMaster {
     }
 
     jobDir = new Path(interm, appId);
-    // set to `tony` group so THS can move files to finished,
-    // and other users can't delete this job directory
+    // set to `tony` group by default
+    // due to inherited permission from parent folder
     Utils.createDir(fs, jobDir, Constants.PERM770);
   }
 
