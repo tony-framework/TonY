@@ -1,5 +1,6 @@
 package hadoop;
 
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.typesafe.config.Config;
 import java.io.IOException;
 import javax.inject.Inject;
@@ -7,6 +8,7 @@ import javax.inject.Singleton;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.security.UserGroupInformation;
 import play.Logger;
+import utils.ConfigUtils;
 
 
 /**
@@ -20,8 +22,10 @@ public class Security {
 
   @Inject
   public Security(Config appConf) {
-    keytabUser = appConf.getString("tony.keytab.user");
-    keytabLocation = appConf.getString("tony.keytab.location");
+    keytabUser = ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_KEYTAB_USER,
+        TonyConfigurationKeys.DEFAULT_TONY_KEYTAB_USER);
+    keytabLocation = ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_KEYTAB_LOCATION,
+        TonyConfigurationKeys.DEFAULT_TONY_KEYTAB_LOCATION);
     setUpKeytab(Configuration.getHdfsConf());
   }
 

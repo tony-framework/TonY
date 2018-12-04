@@ -1,6 +1,7 @@
 package hadoop;
 
 import java.io.File;
+import java.io.IOException;
 import javax.inject.Singleton;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;

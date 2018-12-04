@@ -16,6 +16,9 @@ public class HistoryFileUtils {
   private static final Log LOG = LogFactory.getLog(HistoryFileUtils.class);
 
   public static void createHistoryFile(FileSystem fs, TonyJobMetadata metadata, Path jobDir) {
+    if (jobDir == null) {
+      return;
+    }
     Path historyFile = new Path(jobDir, generateFileName(metadata));
     try {
       fs.create(historyFile);

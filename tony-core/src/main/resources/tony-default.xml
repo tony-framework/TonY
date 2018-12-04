@@ -213,6 +213,22 @@
 
   <property>
     <description>
+      Location of intermediate folder
+    </description>
+    <name>tony.history.intermediate</name>
+    <value>/system/tony-history/intermediate</value>
+  </property>
+
+  <property>
+    <description>
+      Location of finished folder
+    </description>
+    <name>tony.history.finished</name>
+    <value>/system/tony-history/finished</value>
+  </property>
+
+  <property>
+    <description>
       Tony keytab principal
     </description>
     <name>tony.keytab.user</name>

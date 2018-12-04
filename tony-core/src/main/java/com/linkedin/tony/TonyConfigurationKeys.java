@@ -32,6 +32,12 @@ public class TonyConfigurationKeys {
   public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
   public static final String DEFAULT_TONY_HISTORY_LOCATION = "/system/tony-history";
 
+  public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
+  public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = DEFAULT_TONY_HISTORY_LOCATION + "/intermediate";
+
+  public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
+  public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
+
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
   public static final String DEFAULT_TONY_KEYTAB_USER = "tony/ltx1-unojh01.grid.linkedin.com@GRID.LINKEDIN.COM";
 

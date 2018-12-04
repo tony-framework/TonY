@@ -24,7 +24,6 @@ import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,11 +87,12 @@ public class TonyApplicationMaster {
    * Metadata + History Server related variables
    */
   private ApplicationAttemptId appAttemptID = null;
-  private static String appIdString;
+  private String appIdString;
   private String amHostPort;
-  private static FileSystem fs;
-  private static String tonyHistoryFolder;
-  private static Path jobDir;
+  private FileSystem fs;
+  private String tonyHistoryFolder;
+  private Path jobDir;
+  private String user = null;
 
   // Container info
   private int amRetryCount;
@@ -265,6 +265,12 @@ public class TonyApplicationMaster {
                                                  TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
     tonyHistoryFolder = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION,
                                      TonyConfigurationKeys.DEFAULT_TONY_HISTORY_LOCATION);
+    try {
+      user = UserGroupInformation.getCurrentUser().getShortUserName();
+    } catch (IOException e) {
+      LOG.error("Failed to fetch users");
+    }
+
     return true;
   }
 
@@ -400,7 +406,7 @@ public class TonyApplicationMaster {
       LOG.info("RPC server running at: " + amHostPort);
       if (secureMode) {
         ClientToAMTokenIdentifier identifier =
-            new ClientToAMTokenIdentifier(appAttemptID, UserGroupInformation.getCurrentUser().getShortUserName());
+            new ClientToAMTokenIdentifier(appAttemptID, user);
         byte[] secret = response.getClientToAMTokenMasterKey().array();
         ClientToAMTokenSecretManager secretManager = new ClientToAMTokenSecretManager(appAttemptID, secret);
         Token<? extends TokenIdentifier> token = new Token<>(identifier, secretManager);
@@ -428,29 +434,27 @@ public class TonyApplicationMaster {
   }
 
   /**
-   * Create job directory under specific date folder that job is carried out.
+   * Create job directory under intermediate folder.
    * @param fs FileSystem object.
    * @param histFolder History folder location string.
    * @param appId Application ID string.
    */
   private void setupJobDir(FileSystem fs, String histFolder, String appId) {
-    Calendar cal = Calendar.getInstance();
-    String[] directories =
-        {Integer.toString(Calendar.YEAR), Integer.toString(Calendar.MONTH), Integer.toString(Calendar.DATE), appId};
-    StringBuilder path = new StringBuilder(histFolder);
-
-    for (String dir : directories) {
-      if (dir.equals(appId)) {
-        path.append("/").append(appId);
-        jobDir = new Path(path.toString());
-        Utils.createDir(fs, jobDir, Constants.perm770);
-        break; // last path component
+    Path interm = new Path(histFolder, "intermediate");
+    try {
+      if (!fs.exists(interm)) {
+        LOG.error("Intermediate directory doesn't exist");
+        return;
       }
-      int calField = Integer.parseInt(dir);
-      int pathComp = calField == Calendar.MONTH ? cal.get(calField) + 1 : cal.get(calField);
-      path.append("/").append(Integer.toString(pathComp));
-      Utils.createDir(fs, new Path(path.toString()), Constants.perm770);
+    } catch (IOException e) {
+      LOG.error("Failed to check intermediate directory existence");
+      return;
     }
+
+    jobDir = new Path(interm, appId);
+    // set to `tony` group so THS can move files to finished,
+    // and other users can't delete this job directory
+    Utils.createDir(fs, jobDir, Constants.perm770);
   }
 
   /**
@@ -460,6 +464,9 @@ public class TonyApplicationMaster {
    * @throws IOException when failed to write config.xml to {@code jobDir}
    */
   private void writeConfigFile(FileSystem fs, Path jobDir) throws IOException {
+    if (jobDir == null) {
+      return;
+    }
     Path configFile = new Path(jobDir,"config.xml");
     try (FSDataOutputStream out = fs.create(configFile)) {
       tonyConf.writeXml(out);
