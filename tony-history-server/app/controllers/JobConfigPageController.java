@@ -1,6 +1,7 @@
 package controllers;
 
 import cache.CacheWrapper;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.typesafe.config.Config;
@@ -17,6 +18,7 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import utils.HdfsUtils;
 
+import static utils.HdfsUtils.*;
 import static utils.ParserUtils.*;
 
 public class JobConfigPageController extends Controller {
@@ -38,17 +40,20 @@ public class JobConfigPageController extends Controller {
     }
 
     List<JobConfig> listOfConfigs;
-    String tonyHistoryFolder = config.getString(TonyConfigurationKeys.TONY_HISTORY_LOCATION);
-    Path xmlPath = new Path(tonyHistoryFolder + "/" + jobId + "/config.xml");
+    Path tonyHistoryFolder = new Path(config.getString(TonyConfigurationKeys.TONY_HISTORY_LOCATION));
     listOfConfigs = cache.getIfPresent(jobId);
-    if (listOfConfigs == null) {
-      listOfConfigs = parseConfig(myFs, xmlPath);
-      if (listOfConfigs.size() == 0) {
-        LOG.error("Failed to fetch list of configs");
-        return internalServerError("Failed to fetch configuration");
-      }
-      cache.put(jobId, listOfConfigs);
+    if (listOfConfigs != null) {
+      return ok(views.html.config.render(listOfConfigs));
     }
+    List<Path> jobFolder = getJobFolders(myFs, tonyHistoryFolder, jobId);
+    // There should only be 1 folder since jobId is unique
+    Preconditions.checkArgument(jobFolder.size() == 1);
+    listOfConfigs = parseConfig(myFs, jobFolder.get(0));
+    if (listOfConfigs.size() == 0) {
+      LOG.error("Failed to fetch list of configs");
+      return internalServerError("Failed to fetch configuration");
+    }
+    cache.put(jobId, listOfConfigs);
     return ok(views.html.config.render(listOfConfigs));
   }
 }

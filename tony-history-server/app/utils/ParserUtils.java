@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -74,7 +75,7 @@ public class ParserUtils {
 
     try {
       jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
-          .filter(f -> f.getPath().toString().contains("jhist"))
+          .filter(f -> f.getPath().toString().endsWith("jhist"))
           .map(f -> f.getPath().toString())
           .toArray(String[]::new);
       Preconditions.checkArgument(jobFilesArr.length == 1);
@@ -94,10 +95,19 @@ public class ParserUtils {
     return JobMetadata.newInstance(histFileName);
   }
 
-  public static List<JobConfig> parseConfig(FileSystem fs, Path configFilePath) {
-    if (!pathExists(fs, configFilePath)) {
-      return new ArrayList<>();
+  /**
+   * Assuming that there's only 1 config.xml file in {@code jobFolderPath},
+   * this function parses config.xml and return a list of {@code JobConfig} objects.
+   * @param fs FileSystem object.
+   * @param jobFolderPath Path object of job directory.
+   * @return a list of {@code JobConfig} objects.
+   */
+  public static List<JobConfig> parseConfig(FileSystem fs, Path jobFolderPath) {
+    if (!pathExists(fs, jobFolderPath)) {
+      return Collections.emptyList();
     }
+
+    Path configFilePath = new Path(jobFolderPath, "config.xml");
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     List<JobConfig> configs = new ArrayList<>();
 
@@ -122,13 +132,13 @@ public class ParserUtils {
       }
     } catch (SAXException e) {
       LOG.error("Failed to parse config file", e);
-      return new ArrayList<>();
+      return Collections.emptyList();
     } catch (ParserConfigurationException e) {
       LOG.error("Failed to init XML parser", e);
-      return new ArrayList<>();
+      return Collections.emptyList();
     } catch (IOException e) {
       LOG.error("Failed to read config file", e);
-      return new ArrayList<>();
+      return Collections.emptyList();
     }
     LOG.debug("Successfully parsed config");
     return configs;

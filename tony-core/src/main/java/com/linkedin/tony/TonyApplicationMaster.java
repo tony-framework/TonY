@@ -24,6 +24,7 @@ import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +45,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
@@ -78,7 +78,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
-import static com.linkedin.tony.Constants.*;
 import static com.linkedin.tony.TonyConfigurationKeys.*;
 
 
@@ -199,10 +198,10 @@ public class TonyApplicationMaster {
       return false;
     }
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
-    if (System.getenv(HDFS_SITE_CONF) != null) {
-      hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
-      yarnConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
-      hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
+    if (System.getenv(Constants.HDFS_SITE_CONF) != null) {
+      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
     }
     if (System.getenv(Constants.HDFS_CONF_PATH) != null) {
       hdfsConf.addResource(new Path(System.getenv(Constants.HDFS_CONF_PATH)));
@@ -429,21 +428,28 @@ public class TonyApplicationMaster {
   }
 
   /**
-   * Create job directory under history folder.
+   * Create job directory under specific date folder that job is carried out.
    * @param fs FileSystem object.
    * @param histFolder History folder location string.
    * @param appId Application ID string.
-   * @throws IOException when failed to create job directory on HDFS
    */
-  private void setupJobDir(FileSystem fs, String histFolder, String appId) throws IOException{
-    jobDir = new Path(histFolder + "/" + appId + "/");
-    try {
-      if (!fs.exists(jobDir)) {
-        fs.mkdirs(jobDir);
-        fs.setPermission(jobDir, new FsPermission((short) 0770));
+  private void setupJobDir(FileSystem fs, String histFolder, String appId) {
+    Calendar cal = Calendar.getInstance();
+    String[] directories =
+        {Integer.toString(Calendar.YEAR), Integer.toString(Calendar.MONTH), Integer.toString(Calendar.DATE), appId};
+    StringBuilder path = new StringBuilder(histFolder);
+
+    for (String dir : directories) {
+      if (dir.equals(appId)) {
+        path.append("/").append(appId);
+        jobDir = new Path(path.toString());
+        Utils.createDir(fs, jobDir, Constants.perm770);
+        break; // last path component
       }
-    } catch (IOException e) {
-      throw new IOException("Failed to create " + jobDir.toString(), e);
+      int calField = Integer.parseInt(dir);
+      int pathComp = calField == Calendar.MONTH ? cal.get(calField) + 1 : cal.get(calField);
+      path.append("/").append(Integer.toString(pathComp));
+      Utils.createDir(fs, new Path(path.toString()), Constants.perm770);
     }
   }
 
@@ -955,7 +961,7 @@ public class TonyApplicationMaster {
 
           // Update TonySession on the state of the task.
           session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
-          if (task.getJobName().equals(WORKER_JOB_NAME)) {
+          if (task.getJobName().equals(Constants.WORKER_JOB_NAME)) {
             numCompletedWorkerTasks.incrementAndGet();
           }
 
@@ -1101,7 +1107,7 @@ public class TonyApplicationMaster {
 
   private void killChiefWorkerIfTesting(String taskId) {
     // Simulation of chief worker been killed.
-    if (System.getenv(Constants.TEST_WORKER_TERMINATED) != null && taskId.equals(COORDINATOR_ID)) {
+    if (System.getenv(Constants.TEST_WORKER_TERMINATED) != null && taskId.equals(Constants.COORDINATOR_ID)) {
       List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
       for (Container container : containers) {
         if (session.getTask(container.getId()).getJobName().equals(Constants.WORKER_JOB_NAME)) {
