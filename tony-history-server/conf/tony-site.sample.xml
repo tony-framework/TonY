@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+    <property>
+        <name>tony.history.location</name>
+        <value>/system/tony-history</value>
+    </property>
+    <property>
+        <name>tony.keytab.user</name>
+        <value>user1</value>
+    </property>
+    <property>
+        <name>tony.keytab.location</name>
+        <value>/location/to/tony.keytab</value>
+    </property>
+    <property>
+        <name>tony.https.port</name>
+        <value>19886</value>
+    </property>
+    <property>
+        <name>tony.https.keystore.path</name>
+        <value>/location/to/tony.jks</value>
+    </property>
+    <property>
+        <name>tony.https.keystore.type</name>
+        <value>JKS</value>
+    </property>
+    <property>
+        <name>tony.https.keystore.password</name>
+        <value>password</value>
+    </property>
+    <property>
+        <name>tony.https.keystore.algorithm</name>
+        <value>SunX509</value>
+    </property>
+    <property>
+        <name>tony.http.port</name>
+        <value>disabled</value>
+    </property>
+    <property>
+        <name>tony.secret.key</name>
+        <value>Prod</value>
+    </property>
+    <property>
+        <name>tony.init.module</name>
+        <value>Startup</value>
+    </property>
+</configuration>
