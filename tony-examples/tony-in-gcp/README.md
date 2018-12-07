@@ -361,6 +361,8 @@ gsutil cp src/mnist_distributed.py gs://tony-staging/tensorflow/
 
 Update DataProc workers
 
+![img](https://i.imgur.com/2gLXjLa.png)
+
 Connect via SSH to each of the DataProc workers. Access VM instances via SSH
 
 In each of the workers create the following directory structure. 
@@ -418,13 +420,21 @@ gcloud dataproc jobs submit hadoop --cluster tony-staging \
 
 Access Hadoop UI
 
+![img](https://i.imgur.com/3XgZI5Z.png)
+
 Logging via web to DataProc master node via web: http://<Node_IP>:8088 and track Job status. If you don’t have access to UI, please jump into the Create a Firewall rule section.
 
 You can also track Job status from DataProc Jobs tab: Cloud Console -> Big Data -> DataProc -> Jobs
 
+![img](https://i.imgur.com/OJL5Ook.png)
+
 Create a Firewall rule
 
+![img](https://i.imgur.com/BzisM4V.png)
+
 VPC network -> Create Firewall Rule
+
+![img](https://i.imgur.com/DMBBtBs.png)
 
 ```
 Targets: All instances in the network
@@ -450,7 +460,11 @@ Since DataProc servers were allocated a Public IP address, we will be able to ac
 
 Check Job status in DataProc
 
+![img](https://i.imgur.com/vj4Gaeo.png)
+
 Check Job status in Hadoop UI
+
+![img](https://i.imgur.com/sTDWjRa.png)
 
 Collect logs
 
