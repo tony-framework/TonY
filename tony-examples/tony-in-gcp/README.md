@@ -158,7 +158,7 @@ tony-staging-w-0.c.dpe-cloud-mle.internal:39349         RUNNING tony-staging-w-0
 tony-staging-w-1.c.dpe-cloud-mle.internal:44617         RUNNING tony-staging-w-1.c.dpe-cloud-mle.internal:8042                             0
 ```
 
-Connect to Cloud Shell
+**Connect to Cloud Shell**
 
 Open cloud shell via Pantheon UI
 
@@ -253,7 +253,7 @@ cd /usr/local/src/deps
 sudo virtualenv -p python3 tf19
 ```
 
-*TensorFlow requires  Python 3.4, 3.5 or 3.6
+*TensorFlow requires Python 3.4, 3.5 or 3.6
 
 **Install TensorFlow**
 
@@ -350,7 +350,7 @@ Copy TensorFlow environment and `mnist_distributed.py` to your GCS bucket.
 
 We need to distribute these files to all workers in Cluster.
 
-Create a folder called tensorflow (In gsutil just pass tensorflow reference, no need to create directory)
+Create a folder called `tensorflow` (In `gsutil` just pass `tensorflow` reference, no need to create directory)
 
 ```
 cd /usr/local/src/jobs/TFJob/
@@ -430,6 +430,8 @@ You can also track Job status from DataProc Jobs tab: Cloud Console -> Big Data 
 
 Create a Firewall rule
 
+Create a rule to be able to access Hadoop UI
+
 ![img](https://i.imgur.com/BzisM4V.png)
 
 VPC network -> Create Firewall Rule
@@ -454,11 +456,10 @@ Since DataProc servers were allocated a Public IP address, we will be able to ac
  - Dataproc only supports 2.X. Hadoop version 3 implements GPU isolations.
  - Workaround: Install Hadoop from scratch with Hadoop 3.X, (Not recommended)
 
-#### Appendix
 
-**Troubleshooting**
+####Troubleshooting
 
-Check Job status in DataProc
+**Check Job status in DataProc**
 
 ![img](https://i.imgur.com/vj4Gaeo.png)
 
@@ -466,7 +467,7 @@ Check Job status in Hadoop UI
 
 ![img](https://i.imgur.com/sTDWjRa.png)
 
-Collect logs
+**Collect logs**
 
 Click on the Application running
 
