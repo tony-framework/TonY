@@ -128,7 +128,7 @@ openjdk version "1.8.0_171"OpenJDK Runtime Environment (build 1.8.0_171-8u171-b1
 OpenJDK 64-Bit Server VM (build 25.171-b11, mixed mode))
 ```
 
-Verify JAVA jdk:
+**Verify JAVA JDK**
 
 ```
 echo $JAVA_HOME
@@ -140,7 +140,7 @@ Verify both are matching JAVA 1.8, by default $JAVA_HOME is set to version 1.8, 
 sudo update-alternatives --config java
 ```
 
-Verify YARN nodes are active
+**Verify YARN nodes are active**
 
 ```
 yarn node -list
@@ -218,7 +218,7 @@ drwxr-sr-x 10 root staff 4.0K Nov 19 01:05 ..
 -rw-r--r--  1 root staff 9.6K Nov 19 01:05 tony-cli-0.1.5.jar
 ```
 
-**Edit yarn-site.xml**
+**Edit `yarn-site.xml`**
 
 There is a bug in DataProc installation which adds an extra ‘ which causes TonY TensorFlow jobs to fail.
 
@@ -241,7 +241,7 @@ sudo vim /etc/hadoop/conf.empty/yarn-site.xml
 </property>
 ```
 
-#### Running a TensorFlow distributed job
+### Running a TensorFlow distributed job
 
 **Create a virtual environment**
 
@@ -387,7 +387,7 @@ chmod 777 /tmp/data
 chmod 777 /tmp/output
 ```
 
-Launch training job
+**Launch training job**
 
 ```
 gcloud dataproc jobs submit hadoop --cluster tony-staging \
@@ -402,7 +402,7 @@ gcloud dataproc jobs submit hadoop --cluster tony-staging \
 
 ```
 
-Launch training job using GCS paths
+**Launch training job using GCS paths**
 
 ```
 gcloud dataproc jobs submit hadoop --cluster tony-staging \
@@ -457,7 +457,7 @@ Since DataProc servers were allocated a Public IP address, we will be able to ac
  - Workaround: Install Hadoop from scratch with Hadoop 3.X, (Not recommended)
 
 
-####Troubleshooting
+#### Troubleshooting
 
 **Check Job status in DataProc**
 
