@@ -1,3 +1,5 @@
+![img](https://i.imgur.com/7vEjSTC.png=100x100)
+
 ## Introduction
 
 Cloud [Dataproc](https://cloud.google.com/dataproc/) is a managed Spark and Hadoop service that lets you take advantage of open source data tools for batch
@@ -6,7 +8,7 @@ manage them easily, and save money by turning clusters off when you don't need t
 administration, you can focus on your jobs and your data.
 
 The goal of this document is to provide the instructions required to install a Hadoop cluster for LinkedIn Open source 
-project [TonY](https://github.com/linkedin/TonY/) (TensorFlow on YARN). This tutorial will launch a distributed TensorFlow job. 
+project [TonY](https://github.com/linkedin/TonY/) (TensorFlow on YARN). This tutorial will launch a distributed [TensorFlow](https://www.tensorflow.org/) job. 
 
 ### What is Apache Hadoop?
 
@@ -22,7 +24,7 @@ together with other TonY features, aims to run machine learning jobs reliably an
 
 ## Installation
 
-*Setup a Google Cloud Platform project*
+**Setup a Google Cloud Platform project**
 
 Get started into GCP by generating a new Project. Start [here](https://cloud.google.com/resource-manager/docs/creating-managing-projects).
 
@@ -32,7 +34,7 @@ Create a GCS bucket. Reference [here](https://cloud.google.com/storage/docs/crea
 gsutil mb gs://tony-staging
 ```
 
-Create a Hadoop cluster in GCP via DataProc
+**Create a Hadoop cluster in GCP via DataProc**
 
 You can create Hadoop cluster directly from Google Cloud Console or via gcloud command:
 
@@ -58,9 +60,11 @@ If you want to increase the number of workers after initial installation, you ca
 gcloud dataproc clusters update tony-staging --num-workers 4
 ```
 
-### Connect via SSH
+#### Connect via SSH
 
 Go to  Cloud Console -> DataProc -> Big Data -> Clusters 
+
+![img](https://i.imgur.com/7NdNYja.png)
 
 **Connect SSH to DataProc master server:**
 
@@ -120,7 +124,8 @@ java -version
 Example:
 
 ```
-openjdk version "1.8.0_171"OpenJDK Runtime Environment (build 1.8.0_171-8u171-b11-1~bpo8+1-b11)OpenJDK 64-Bit Server VM (build 25.171-b11, mixed mode))
+openjdk version "1.8.0_171"OpenJDK Runtime Environment (build 1.8.0_171-8u171-b11-1~bpo8+1-b11)
+OpenJDK 64-Bit Server VM (build 25.171-b11, mixed mode))
 ```
 
 Verify JAVA jdk:
@@ -152,6 +157,12 @@ Total Nodes:2         Node-Id             Node-State Node-Http-Address       Num
 tony-staging-w-0.c.dpe-cloud-mle.internal:39349         RUNNING tony-staging-w-0.c.dpe-cloud-mle.internal:8042                             0
 tony-staging-w-1.c.dpe-cloud-mle.internal:44617         RUNNING tony-staging-w-1.c.dpe-cloud-mle.internal:8042                             0
 ```
+
+Connect to Cloud Shell
+
+Open cloud shell via Pantheon UI
+
+![img](https://i.imgur.com/3FIIk5Y.png)
 
 **Verify PySpark**
 
@@ -415,11 +426,15 @@ Create a Firewall rule
 
 VPC network -> Create Firewall Rule
 
+```
 Targets: All instances in the network
 Source IP ranges: Your IP address/network
 Protocols and ports: TCP 8042 , TCP 8088
+```
 
+```
 gcloud compute --project=<Your Project> firewall-rules create yarn --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:8042,tcp:8088 --source-ranges=<Your IP Address/Subnet>
+```
 
 Since DataProc servers were allocated a Public IP address, we will be able to access Master Node and workers Hadoop web page to verify job executed successfully.
 
