@@ -2,13 +2,14 @@
 
 ## Introduction
 
-Cloud [Dataproc](https://cloud.google.com/dataproc/) is a managed Spark and Hadoop service that lets you take advantage of open source data tools for batch
-processing, querying, streaming, and machine learning. Cloud Dataproc automation helps you create clusters quickly, 
-manage them easily, and save money by turning clusters off when you don't need them. With less time and money spent on 
-administration, you can focus on your jobs and your data.
+Cloud [Dataproc](https://cloud.google.com/dataproc/) is a managed Spark and Hadoop service that lets you take advantage of open source data tools for batch processing, querying, streaming, and machine learning. Cloud Dataproc automation helps you create clusters quickly, manage them easily, and save money by turning clusters off when you don't need them. With less time and money spent on administration, you can focus on your jobs and your data.
 
-The goal of this document is to provide the instructions required to install a Hadoop cluster for LinkedIn Open source 
-project [TonY](https://github.com/linkedin/TonY/) (TensorFlow on YARN). This tutorial will launch a distributed [TensorFlow](https://www.tensorflow.org/) job. 
+The documentation will provide the instructions to install a Hadoop cluster for LinkedIn Open source 
+project [TonY](https://github.com/linkedin/TonY/) (TensorFlow on YARN) and launch a distributed [TensorFlow](https://www.tensorflow.org/) job.
+
+### What is Google Cloud Platform?
+
+Google Cloud Platform, offered by Google, is a suite of cloud computing services that runs on the same infrastructure that Google uses internally for its end-user products, such as Google Search and YouTube. Alongside a set of management tools, it provides a series of modular cloud services including computing, data storage, data analytics and machine learning. More information [here](https://cloud.google.com/docs/overview/)
 
 ### What is Apache Hadoop?
 
@@ -52,7 +53,7 @@ Once Cluster is created. You can verify it under Cloud Console -> Big Data -> Da
 Waiting on operation [projects/dpe-cloud-mle/regions/global/operations/43ef2536-0e73-37a2-9470-20d4a4fb9883].Waiting for cluster creation operation...done.Created [https://dataproc.googleapis.com/v1/projects/dpe-cloud-mle/regions/global/clusters/tony-staging] Cluster placed in zone [us-west1-a].
 ```
 
-Scaling cluster (Optional)
+**Scaling cluster (Optional)**
 
 If you want to increase the number of workers after initial installation, you can run:
 
@@ -164,18 +165,9 @@ Open cloud shell via Pantheon UI
 
 ![img](https://i.imgur.com/3FIIk5Y.png)
 
-**Verify PySpark**
-
-Submit a PySpark to verify installation.
-
-```
-gcloud dataproc jobs submit pyspark --cluster tony-staging --region global \
-gs://dataproc-examples-2f10d78d114f6aaec76462e3c310f31f/src/pyspark/hello-world/hello-world.py
-```
-
 **Verify MapReduce job (Optional)**
 
-Instructions [here](https://github.com/GoogleCloudPlatform/cloud-bigtable-examples/tree/master/java/dataproc-wordcount)
+This is an optional step to verify if your cluster deployment was successful. Instructions [here](https://github.com/GoogleCloudPlatform/cloud-bigtable-examples/tree/master/java/dataproc-wordcount)
 
 #### Connect SSH to DataProc master server
 
@@ -240,6 +232,8 @@ sudo vim /etc/hadoop/conf.empty/yarn-site.xml
       $HADOOP_YARN_HOME/*,$HADOOP_YARN_HOME/lib/*'</value>
 </property>
 ```
+
+Check release notes [here](https://cloud.google.com/dataproc/docs/release-notes)
 
 ### Running a TensorFlow distributed job
 
