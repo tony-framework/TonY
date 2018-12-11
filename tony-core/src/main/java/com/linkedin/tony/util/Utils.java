@@ -173,9 +173,9 @@ public class Utils {
     log.info(String.format("Logs for %s %s at: %s", taskUrl.getName(), taskUrl.getIndex(), taskUrl.getUrl()));
   }
 
-  public static void printTHSUrl(String appId, Log log) {
+  public static void printTHSUrl(String thsHost, String appId, Log log) {
     log.info(
-        String.format("Link for %s's events/metrics: http://%s/%s/%s", appId, Constants.JH_HOST, Constants.JOBS_SUFFIX, appId));
+        String.format("Link for %s's events/metrics: http://%s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
   }
 
   /**
