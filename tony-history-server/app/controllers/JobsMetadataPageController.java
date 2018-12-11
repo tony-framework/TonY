@@ -49,43 +49,33 @@ public class JobsMetadataPageController extends Controller {
   }
 
   private void moveIntermToFinished(FileSystem fs, HdfsConfiguration conf, Map<String, Date> jobsAccessTime,
-      Map<String, String[]> jobFiles) {
+      Map<String, Path> jobFolders) {
     jobsAccessTime.forEach((id, date) -> {
       StringBuilder path = new StringBuilder(finished.toString());
       LocalDate ldate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
       String[] directories = {Integer.toString(ldate.getYear()), Integer.toString(ldate.getMonthValue()),
-          Integer.toString(ldate.getDayOfMonth()), id};
+          Integer.toString(ldate.getDayOfMonth())};
       for (String dir : directories) {
         path.append("/").append(dir);
         Utils.createDir(fs, new Path(path.toString()), Constants.perm770);
       }
 
+      Path source = jobFolders.get(id);
       Path dest = new Path(path.toString());
-      for (String f : jobFiles.get(id)) {
-        Path jobFile = new Path(f);
-        try {
-          FileUtil.copy(fs, jobFile, fs, dest, true, conf);
-        } catch (IOException e) {
-          LOG.error("Failed to move files from intermediate to finished");
-        }
+      try {
+        FileUtil.copy(fs, source, fs, dest, true, conf);
+      } catch (IOException e) {
+        LOG.error("Failed to move files from intermediate to finished", e);
       }
     });
   }
 
-  private void storeJobData(FileSystem fs, Map<String, Date> jobsAccessTime, Map<String, String[]> jobsFiles,
+  private void storeJobData(Map<String, Date> jobsAccessTime, Map<String, Path> jobsFiles,
       FileStatus[] jobDirs) {
     for (FileStatus dir : jobDirs) {
       Path jobFolderPath = dir.getPath();
       String jid = HdfsUtils.getJobId(jobFolderPath.toString());
-      String[] files = new String[]{};
-      try {
-        files = Arrays.stream(fs.listStatus(jobFolderPath))
-            .map(f -> f.getPath().toString())
-            .toArray(String[]::new);
-      } catch (IOException e) {
-        LOG.error("Failed to retrieve files from job " + jid);
-      }
-      jobsFiles.putIfAbsent(jid, files);
+      jobsFiles.putIfAbsent(jid, jobFolderPath);
       jobsAccessTime.putIfAbsent(jid, new Date(dir.getAccessTime()));
     }
   }
@@ -102,10 +92,9 @@ public class JobsMetadataPageController extends Controller {
     FileStatus[] jobDirs = HdfsUtils.scanDir(myFs, interm);
     if (jobDirs.length > 0) {
       Map<String, Date> jobsAccessTime = new HashMap<>();
-      Map<String, String[]> jobsFiles = new HashMap<>();
-      storeJobData(myFs, jobsAccessTime, jobsFiles, jobDirs);
+      Map<String, Path> jobsFiles = new HashMap<>();
+      storeJobData(jobsAccessTime, jobsFiles, jobDirs);
       moveIntermToFinished(myFs, conf, jobsAccessTime, jobsFiles);
-      HdfsUtils.deleteMultiDir(myFs, jobDirs);
     }
 
     for (Path f : getJobFolders(myFs, finished, JOB_FOLDER_REGEX)) {

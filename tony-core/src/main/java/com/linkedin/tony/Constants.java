@@ -12,6 +12,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 public class Constants {
   // File Permission
   public static final FsPermission perm770 = new FsPermission((short) 0770);
+  public static final FsPermission perm777 = new FsPermission((short) 0777);
 
   // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
@@ -78,6 +79,8 @@ public class Constants {
   public static final String SKIP_HADOOP_PATH = "SKIP_HADOOP_PATH";
 
   public static final String TONY_FOLDER = ".tony";
+
+  public static final String TONY_HISTORY_INTERMEDIATE = "intermediate";
 
   // Configuration related constants
   // Name of the file containing all configuration keys and their default values

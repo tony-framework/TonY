@@ -268,7 +268,7 @@ public class TonyApplicationMaster {
     try {
       user = UserGroupInformation.getCurrentUser().getShortUserName();
     } catch (IOException e) {
-      LOG.error("Failed to fetch users");
+      LOG.error("Failed to fetch users", e);
     }
 
     return true;
@@ -440,14 +440,14 @@ public class TonyApplicationMaster {
    * @param appId Application ID string.
    */
   private void setupJobDir(FileSystem fs, String histFolder, String appId) {
-    Path interm = new Path(histFolder, "intermediate");
+    Path interm = new Path(histFolder, Constants.TONY_HISTORY_INTERMEDIATE);
     try {
       if (!fs.exists(interm)) {
         LOG.error("Intermediate directory doesn't exist");
         return;
       }
     } catch (IOException e) {
-      LOG.error("Failed to check intermediate directory existence");
+      LOG.error("Failed to check intermediate directory existence", e);
       return;
     }
 

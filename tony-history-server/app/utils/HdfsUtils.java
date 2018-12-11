@@ -25,21 +25,6 @@ public class HdfsUtils {
   private static final FileStatus[] NO_FILES = {};
 
   /**
-   * Delete all job directories in {@code jobDirs} array.
-   * @param fs FileSystem object.
-   * @param jobDirs An array of job directories.
-   */
-  public static void deleteMultiDir(FileSystem fs, FileStatus[] jobDirs) {
-    for (FileStatus d : jobDirs) {
-      try {
-        fs.delete(d.getPath(), true);
-      } catch (IOException e) {
-        LOG.error("Failed to clean up " + d);
-      }
-    }
-  }
-
-  /**
    * Scan {@code dir} and return a list of files/directories.
    * @param fs FileSystem object.
    * @param dir Path of the directory.
@@ -55,7 +40,7 @@ public class HdfsUtils {
       return fs.listStatus(dir);
     } catch (IOException e) {
       errorMsg = "Failed to list files in " + dir;
-      LOG.error(errorMsg);
+      LOG.error(errorMsg, e);
     }
     return NO_FILES;
   }
