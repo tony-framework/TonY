@@ -22,6 +22,9 @@ model {
         from("startTHS.sh") {
           into "bin"
         }
+        from("stopTHS.sh") {
+          into "bin"
+        }
         from("xml_to_play_opts.py") {
           into "bin"
         }

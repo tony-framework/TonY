@@ -191,6 +191,10 @@ if [ ! -f $TONY_CONF_DIR/tony-site.xml ]; then
 fi
 
 OPTS=`python $APP_HOME/bin/xml_to_play_opts.py $TONY_CONF_DIR/tony-site.xml`
+if [[ $OPTS == Invalid* ]]; then
+    echo "Invalid configuration in $TONY_CONF_DIR/tony-site.xml"
+    exit 1
+fi
 
 # Collect all arguments for the java command, following the shell quoting and substitution rules
 eval set -- ${OPTS} -classpath "\"${CLASSPATH}\"" play.core.server.ProdServerStart
@@ -200,4 +204,4 @@ if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
   cd "$(dirname "$0")"
 fi
 
-exec ${JAVACMD} $@
+nohup ${JAVACMD} $@ & # run THS in the background
