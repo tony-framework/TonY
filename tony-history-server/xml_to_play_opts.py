@@ -16,6 +16,8 @@ root = tree.getroot()
 options = ""
 for elem in root:
     if elem[0].text == "tony.history.location" \
+            or elem[0].text == "tony.history.intermediate" \
+            or elem[0].text == "tony.history.finished" \
             or elem[0].text == "tony.keytab.user" \
             or elem[0].text == "tony.keytab.location":
         options += "-D" + elem[0].text + "=" + elem[1].text + " "
