@@ -13,6 +13,11 @@ public class Constants {
   // File Permission
   public static final FsPermission perm770 = new FsPermission((short) 0770);
 
+  // History Server related constants
+  public static final String JH_HOST= "ltx1-mlearn-alpha-jh01.grid.linkedin.com";
+  public static final String JOBS_SUFFIX = "jobs";
+  public static final String CONFIG_SUFFIX = "config";
+
   // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
   public static final String TASK_INDEX = "TASK_INDEX";

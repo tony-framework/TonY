@@ -1,5 +1,6 @@
 package models;
 
+import com.linkedin.tony.Constants;
 import java.util.Date;
 
 public class JobMetadata {
@@ -25,8 +26,8 @@ public class JobMetadata {
     String histFileNoExt = histFileName.substring(0, histFileName.lastIndexOf('.'));
     String[] metadata = histFileNoExt.split("-");
     String id = metadata[0];
-    String jobLink = "/jobs/" + id;
-    String configLink = "/config/" + id;
+    String jobLink = "/" + Constants.JOBS_SUFFIX + "/" + id;
+    String configLink = "/" + Constants.CONFIG_SUFFIX + "/" + id;
     long started = Long.parseLong(metadata[1]);
     long completed = Long.parseLong(metadata[2]);
     String user = metadata[3];

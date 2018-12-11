@@ -657,6 +657,7 @@ public class TonyClient implements AutoCloseable {
             + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
         // Set amRpcClient to null so client does not try to connect to it after completion.
         amRpcClient = null;
+        Utils.printTHSUrl(appId.toString(), LOG);
         return FinalApplicationStatus.SUCCEEDED == dsStatus;
       }
 
