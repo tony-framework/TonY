@@ -35,14 +35,6 @@ public class TonyConfigurationKeys {
   public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
   public static final String DEFAULT_TONY_HISTORY_LOCATION = "/path/to/tony-history";
 
-  // All these variables are here to pass TestTonyConfigurationFields.
-  // Do not remove unless it is also removed in tony-default.xml.
-  public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
-  public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = DEFAULT_TONY_HISTORY_LOCATION + "/intermediate";
-
-  public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
-  public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
-
   public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
   public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = DEFAULT_TONY_HISTORY_LOCATION + "/intermediate";
 
@@ -55,6 +47,8 @@ public class TonyConfigurationKeys {
   public static final String TONY_KEYTAB_LOCATION = TONY_PREFIX + "keytab.location";
   public static final String DEFAULT_TONY_KEYTAB_LOCATION = "/path/to/tony.keytab";
 
+  // All these variables are here to pass TestTonyConfigurationFields.
+  // Do not remove unless it is also removed in tony-default.xml.
   public static final String TONY_HTTPS_PORT = TONY_PREFIX + "https.port";
   public static final String DEFAULT_TONY_HTTPS_PORT = "19886";
 
