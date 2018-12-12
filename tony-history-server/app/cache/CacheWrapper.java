@@ -2,11 +2,16 @@ package cache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.linkedin.tony.TonyConfigurationKeys;
+import com.typesafe.config.Config;
 import java.util.List;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import models.JobConfig;
 import models.JobEvent;
 import models.JobMetadata;
+import utils.ConfigUtils;
+
 
 @Singleton
 public class CacheWrapper {
@@ -33,10 +38,14 @@ public class CacheWrapper {
    */
   private static Cache<String, List<JobEvent>> eventCache;
 
-  public CacheWrapper() {
-    metadataCache = CacheBuilder.newBuilder().build();
-    configCache = CacheBuilder.newBuilder().build();
-    eventCache = CacheBuilder.newBuilder().build();
+  @Inject
+  public CacheWrapper(Config appConf) {
+    int maxCacheSz = Integer.parseInt(
+        ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_HISTORY_CACHE_MAX_ENTRIES,
+            TonyConfigurationKeys.DEFAULT_TONY_HISTORY_CACHE_MAX_ENTRIES));
+    metadataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
+    configCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
+    eventCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
   }
 
   public static Cache<String, JobMetadata> getMetadataCache() {

@@ -41,6 +41,9 @@ public class TonyConfigurationKeys {
   public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
   public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
 
+  public static final String TONY_HISTORY_CACHE_MAX_ENTRIES = TONY_PREFIX + "history.cache.max-entries";
+  public static final String DEFAULT_TONY_HISTORY_CACHE_MAX_ENTRIES = "1000";
+
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
   public static final String DEFAULT_TONY_KEYTAB_USER = "user";
 

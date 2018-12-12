@@ -238,34 +238,11 @@
 
   <property>
     <description>
-      Location of intermediate folder
+      Maximum (approximate) number of cache entries THS
+      will store for each cache (config, metadata, event)
     </description>
-    <name>tony.history.intermediate</name>
-    <value>/system/tony-history/intermediate</value>
-  </property>
-
-  <property>
-    <description>
-      Location of finished folder
-    </description>
-    <name>tony.history.finished</name>
-    <value>/system/tony-history/finished</value>
-  </property>
-
-  <property>
-    <description>
-      Location of intermediate folder
-    </description>
-    <name>tony.history.intermediate</name>
-    <value>/system/tony-history/intermediate</value>
-  </property>
-
-  <property>
-    <description>
-      Location of finished folder
-    </description>
-    <name>tony.history.finished</name>
-    <value>/system/tony-history/finished</value>
+    <name>tony.history.cache.max-entries</name>
+    <value>1000</value>
   </property>
 
   <property>
