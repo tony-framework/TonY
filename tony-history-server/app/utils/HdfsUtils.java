@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -21,6 +22,28 @@ import play.Logger;
  */
 public class HdfsUtils {
   private static final Logger.ALogger LOG = Logger.of(HdfsUtils.class);
+  private static final FileStatus[] NO_FILES = {};
+
+  /**
+   * Scan {@code dir} and return a list of files/directories.
+   * @param fs FileSystem object.
+   * @param dir Path of the directory.
+   * @return an array of FileStatus objects representing files/directories in {@code dir}.
+   * Note: result could be an empty array if there {@code dir} is empty.
+   */
+  public static FileStatus[] scanDir(FileSystem fs, Path dir) {
+    String errorMsg;
+    if (dir == null) {
+      return NO_FILES;
+    }
+    try {
+      return fs.listStatus(dir);
+    } catch (IOException e) {
+      errorMsg = "Failed to list files in " + dir;
+      LOG.error(errorMsg, e);
+    }
+    return NO_FILES;
+  }
 
   /**
    * Check to see if HDFS path exists.
@@ -80,7 +103,7 @@ public class HdfsUtils {
    */
   @VisibleForTesting
   static boolean isJobFolder(Path p, String regex) {
-    return getJobId(p.toString()).matches(regex);
+    return p != null && getJobId(p.toString()).matches(regex);
   }
 
   /**
@@ -94,6 +117,9 @@ public class HdfsUtils {
    */
   public static List<Path> getJobFolders(FileSystem fs, Path curr, String regex) {
     List<Path> intermediateFolders = new ArrayList<>();
+    if (curr == null) {
+      return Collections.emptyList();
+    }
     if (isJobFolder(curr, regex)) {
       intermediateFolders.add(curr);
       return intermediateFolders;

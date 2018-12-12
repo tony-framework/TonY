@@ -1,5 +1,6 @@
 package controllers;
 
+import com.linkedin.tony.TonyConfigurationKeys;
 import org.junit.Test;
 import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
@@ -17,7 +18,12 @@ public class JobsMetadataPageControllerTest extends WithApplication {
 
   @Override
   protected Application provideApplication() {
-    return new GuiceApplicationBuilder().configure("tony.history.location", "/dummy/").build();
+    Application fakeApp =
+        new GuiceApplicationBuilder().configure(TonyConfigurationKeys.TONY_HISTORY_LOCATION, "/dummy/")
+            .configure(TonyConfigurationKeys.TONY_HISTORY_INTERMEDIATE, "/dummy/intermediate")
+            .configure(TonyConfigurationKeys.TONY_HISTORY_FINISHED, "/dummy/finished")
+            .build();
+    return fakeApp;
   }
 
   @Test
