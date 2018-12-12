@@ -29,20 +29,31 @@ public class TonyConfigurationKeys {
   public static final String OTHER_NAMENODES_TO_ACCESS = TONY_PREFIX + "other.namenodes";
 
   // History folder configuration
+  public static final String TONY_HISTORY_HOST = TONY_PREFIX + "history.host";
+  public static final String DEFAULT_TONY_HISTORY_HOST = "historyhost.com";
+
   public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
-  public static final String DEFAULT_TONY_HISTORY_LOCATION = "/system/tony-history";
+  public static final String DEFAULT_TONY_HISTORY_LOCATION = "/path/to/tony-history";
+
+  // All these variables are here to pass TestTonyConfigurationFields.
+  // Do not remove unless it is also removed in tony-default.xml.
+  public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
+  public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = "/path/to/tony-history/intermediate";
+
+  public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
+  public static final String DEFAULT_TONY_HISTORY_FINISHED = "/path/to/tony-history/finished";
 
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
-  public static final String DEFAULT_TONY_KEYTAB_USER = "tony/ltx1-unojh01.grid.linkedin.com@GRID.LINKEDIN.COM";
+  public static final String DEFAULT_TONY_KEYTAB_USER = "user";
 
   public static final String TONY_KEYTAB_LOCATION = TONY_PREFIX + "keytab.location";
-  public static final String DEFAULT_TONY_KEYTAB_LOCATION = "/export/apps/hadoop/keytabs/tony.keytab";
+  public static final String DEFAULT_TONY_KEYTAB_LOCATION = "/path/to/tony.keytab";
 
   public static final String TONY_HTTPS_PORT = TONY_PREFIX + "https.port";
   public static final String DEFAULT_TONY_HTTPS_PORT = "19886";
 
   public static final String TONY_HTTPS_KEYSTORE_PATH = TONY_PREFIX + "https.keystore.path";
-  public static final String DEFAULT_TONY_HTTPS_KEYSTORE_PATH = "/export/apps/tony/ltx1-unojh01.grid.linkedin.com.jks";
+  public static final String DEFAULT_TONY_HTTPS_KEYSTORE_PATH = "/path/to/keystore.jks";
 
   public static final String TONY_HTTPS_KEYSTORE_TYPE = TONY_PREFIX + "https.keystore.type";
   public static final String DEFAULT_TONY_HTTPS_KEYSTORE_TYPE = "JKS";
@@ -57,7 +68,7 @@ public class TonyConfigurationKeys {
   public static final String DEFAULT_TONY_HTTP_PORT = "disabled";
 
   public static final String TONY_SECRET_KEY = TONY_PREFIX + "secret.key";
-  public static final String DEFAULT_TONY_SECRET_KEY = "Prod";
+  public static final String DEFAULT_TONY_SECRET_KEY = "changeme";
 
   public static final String TONY_INIT_MODULE = TONY_PREFIX + "init.module";
   public static final String DEFAULT_TONY_INIT_MODULE = "Startup";
