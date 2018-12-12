@@ -31,7 +31,7 @@ public class Requirements {
     try {
       if (!myFs.exists(dir)) {
         errorMsg = dir + " doesn't exist";
-        LOG.error(errorMsg);
+        LOG.warn(errorMsg);
         LOG.info("Creating " + dir);
         Utils.createDir(myFs, dir, perm);
       }
@@ -57,9 +57,9 @@ public class Requirements {
     finished = new Path(ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_HISTORY_FINISHED,
         TonyConfigurationKeys.DEFAULT_TONY_HISTORY_FINISHED));
 
-    createDirIfNotExists(myFs, histFolder, Constants.perm777);
-    createDirIfNotExists(myFs, interm, Constants.perm777);
-    createDirIfNotExists(myFs, finished, Constants.perm770);
+    createDirIfNotExists(myFs, histFolder, Constants.PERM777);
+    createDirIfNotExists(myFs, interm, Constants.PERM777);
+    createDirIfNotExists(myFs, finished, Constants.PERM770);
   }
 
   public static Path getFinishedDir() {

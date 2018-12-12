@@ -38,12 +38,6 @@ public class TonyConfigurationKeys {
   // All these variables are here to pass TestTonyConfigurationFields.
   // Do not remove unless it is also removed in tony-default.xml.
   public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
-  public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = "/path/to/tony-history/intermediate";
-
-  public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
-  public static final String DEFAULT_TONY_HISTORY_FINISHED = "/path/to/tony-history/finished";
-
-  public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
   public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = DEFAULT_TONY_HISTORY_LOCATION + "/intermediate";
 
   public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";

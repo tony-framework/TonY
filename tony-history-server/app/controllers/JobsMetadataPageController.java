@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.Map;
 import models.JobMetadata;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import play.Logger;
@@ -57,13 +55,13 @@ public class JobsMetadataPageController extends Controller {
           Integer.toString(ldate.getDayOfMonth())};
       for (String dir : directories) {
         path.append("/").append(dir);
-        Utils.createDir(fs, new Path(path.toString()), Constants.perm770);
+        Utils.createDir(fs, new Path(path.toString()), Constants.PERM770);
       }
 
       Path source = jobFolders.get(id);
       Path dest = new Path(path.toString());
       try {
-        FileUtil.copy(fs, source, fs, dest, true, conf);
+        fs.rename(source, dest);
       } catch (IOException e) {
         LOG.error("Failed to move files from intermediate to finished", e);
       }

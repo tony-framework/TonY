@@ -11,8 +11,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 public class Constants {
   // File Permission
-  public static final FsPermission perm770 = new FsPermission((short) 0770);
-  public static final FsPermission perm777 = new FsPermission((short) 0777);
+  public static final FsPermission PERM770 = new FsPermission((short) 0770);
+  public static final FsPermission PERM777 = new FsPermission((short) 0777);
 
   // History Server related constants
   public static final String JOBS_SUFFIX = "jobs";

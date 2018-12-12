@@ -454,7 +454,7 @@ public class TonyApplicationMaster {
     jobDir = new Path(interm, appId);
     // set to `tony` group so THS can move files to finished,
     // and other users can't delete this job directory
-    Utils.createDir(fs, jobDir, Constants.perm770);
+    Utils.createDir(fs, jobDir, Constants.PERM770);
   }
 
   /**
