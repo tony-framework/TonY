@@ -1,0 +1,16 @@
+@(events: List[JobEvent])
+
+<table>
+  <tr>
+    <th>Type</th>
+    <th>Event</th>
+    <th>Timestamp</th>
+  </tr>
+  @for(e <- events) {
+    <tr>
+      <td>@e.getType.toString</td>
+      <td>@e.getEvent.toString</td>
+      <td>@e.getTimestamp.format("dd MMM yyyy HH:mm:ss:SSS Z")</td>
+    </tr>
+  }
+</table>

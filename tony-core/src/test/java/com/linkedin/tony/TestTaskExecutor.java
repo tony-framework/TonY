@@ -4,18 +4,16 @@
  */
 package com.linkedin.tony;
 
-import org.apache.hadoop.conf.Configuration;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import org.apache.hadoop.conf.Configuration;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.*;
 
 
 public class TestTaskExecutor {

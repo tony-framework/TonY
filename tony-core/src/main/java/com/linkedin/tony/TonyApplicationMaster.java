@@ -7,13 +7,18 @@ package com.linkedin.tony;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.linkedin.tony.events.ApplicationFinished;
+import com.linkedin.tony.events.ApplicationInited;
+import com.linkedin.tony.events.Event;
+import com.linkedin.tony.events.EventHandler;
+import com.linkedin.tony.events.EventType;
+import com.linkedin.tony.events.Metric;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
-import com.linkedin.tony.util.HistoryFileUtils;
 import com.linkedin.tony.util.Utils;
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,7 +36,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
@@ -91,8 +98,9 @@ public class TonyApplicationMaster {
   private String amHostPort;
   private FileSystem fs;
   private String tonyHistoryFolder;
-  private Path jobDir;
+  private Path jobDir = null;
   private String user = null;
+  private BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<>();
 
   // Container info
   private int amRetryCount;
@@ -341,6 +349,9 @@ public class TonyApplicationMaster {
     }
 
     mainThread = Thread.currentThread();
+    EventHandler eventHandler = new EventHandler(fs, eventQueue);
+    Thread eventHandlerThread = new Thread(eventHandler);
+    eventHandlerThread.start();
     boolean succeeded;
     do {
       // Crash AM on purpose during AM crash tests.
@@ -351,6 +362,7 @@ public class TonyApplicationMaster {
       }
 
       try {
+        eventHandler.emitEvent(constructEvent("APPLICATION_INITED"));
         start();
       } catch (Exception e) {
         LOG.error("Exception when we're starting TonyAM", e);
@@ -372,10 +384,34 @@ public class TonyApplicationMaster {
     stop();
     long completed = System.currentTimeMillis();
     printTaskUrls();
-    // By this time jobDir should have been set
-    HistoryFileUtils.createHistoryFile(fs,
-        TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded), jobDir);
+    eventHandler.emitEvent(constructEvent("APPLICATION_FINISHED"));
+    eventHandler.stop(jobDir, TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded, user));
+    // Wait for eventHandlerThread to wrap up before exiting
+    try {
+      eventHandlerThread.join();
+    } catch (InterruptedException e) {
+      LOG.error("Failed to dump leftover events", e);
+    }
     return succeeded;
+  }
+
+  private Event constructEvent(String type) {
+    Event event = new Event();
+    event.setTimestamp(System.currentTimeMillis());
+    switch (type) {
+      case "APPLICATION_INITED":
+        event.setType(EventType.APPLICATION_INITED);
+        event.setEvent(new ApplicationInited(appIdString, (int) numTotalWorkerTasks, Utils.getCurrentHostName()));
+        return event;
+      case "APPLICATION_FINISHED":
+        event.setType(EventType.APPLICATION_FINISHED);
+        List<Metric> metrics = new ArrayList<>();
+        int numFailedTasks = (int) numTotalWorkerTasks - numCompletedWorkerTasks.get();
+        event.setEvent(new ApplicationFinished(appIdString, (int) numTotalWorkerTasks, numFailedTasks, metrics));
+        return event;
+      default:
+        return null;
+    }
   }
 
   /**
@@ -451,8 +487,8 @@ public class TonyApplicationMaster {
     }
 
     jobDir = new Path(interm, appId);
-    // set to `tony` group so THS can move files to finished,
-    // and other users can't delete this job directory
+    // set to `tony` group by default
+    // due to inherited permission from parent folder
     Utils.createDir(fs, jobDir, Constants.PERM770);
   }
 

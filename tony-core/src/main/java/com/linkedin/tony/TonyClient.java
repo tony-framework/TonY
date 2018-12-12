@@ -342,9 +342,6 @@ public class TonyClient implements AutoCloseable {
    * @param cliParser CommandLine object that has all the command line arguments.
    */
   public static void initTonyConf(Configuration tonyConf, CommandLine cliParser) {
-    if (System.getenv(Constants.TONY_CONF_DIR) != null) {
-      tonyConf.addResource(new Path(System.getenv(Constants.TONY_CONF_DIR) + File.separatorChar + Constants.TONY_SITE_CONF));
-    }
     tonyConf.addResource(Constants.TONY_DEFAULT_XML);
     if (cliParser.hasOption("conf_file")) {
       tonyConf.addResource(new Path(cliParser.getOptionValue("conf_file")));
@@ -356,6 +353,9 @@ public class TonyClient implements AutoCloseable {
       for (Map.Entry<String, String> cliConf : Utils.parseKeyValue(confs).entrySet()) {
         tonyConf.set(cliConf.getKey(), cliConf.getValue());
       }
+    }
+    if (System.getenv(Constants.TONY_CONF_DIR) != null) {
+      tonyConf.addResource(new Path(System.getenv(Constants.TONY_CONF_DIR) + File.separatorChar + Constants.TONY_SITE_CONF));
     }
   }
 

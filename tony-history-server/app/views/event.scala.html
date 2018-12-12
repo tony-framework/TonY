@@ -1,0 +1,12 @@
+@(eventList: List[JobEvent])
+
+  @main("Events") {
+
+    <section id="content">
+      <div class="wrapper doc">
+        <article>
+        @tableEvent(eventList)
+        </article>
+      </div>
+    </section>
+  }

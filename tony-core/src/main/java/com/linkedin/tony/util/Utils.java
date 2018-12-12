@@ -436,7 +436,6 @@ public class Utils {
       return null;
     }
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
-
   }
 
   public static void createDir(FileSystem fs, Path dir, FsPermission permission) {
@@ -450,7 +449,7 @@ public class Utils {
       warningMsg = "Directory " + dir + " already exists!";
       LOG.info(warningMsg);
     } catch (IOException e) {
-      warningMsg = "Failed to create " + dir + e.toString();
+      warningMsg = "Failed to create " + dir + ": " + e.toString();
       LOG.error(warningMsg);
     }
   }
