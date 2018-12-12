@@ -203,12 +203,37 @@
   </property>
 
   <!--History Server configurations-->
+  <!--All the configurations below should be set in $TONY_CONF_DIR/tony-site.xml-->
+  <property>
+    <description>
+      Hostname of history server
+    </description>
+    <name>tony.history.host</name>
+    <value>historyhost.com</value>
+  </property>
+
   <property>
     <description>
       Location for Tony AM to write config and events on HDFS
     </description>
     <name>tony.history.location</name>
-    <value>/system/tony-history</value>
+    <value>/path/to/tony-history</value>
+  </property>
+
+  <property>
+    <description>
+      Location of intermediate folder
+    </description>
+    <name>tony.history.intermediate</name>
+    <value>/path/to/tony-history/intermediate</value>
+  </property>
+
+  <property>
+    <description>
+      Location of finished folder
+    </description>
+    <name>tony.history.finished</name>
+    <value>/path/to/tony-history/finished</value>
   </property>
 
   <property>
@@ -289,7 +314,7 @@
       In production, this is mandatory.
     </description>
     <name>tony.secret.key</name>
-    <value>Prod</value>
+    <value>changeme</value>
   </property>
 
   <property>

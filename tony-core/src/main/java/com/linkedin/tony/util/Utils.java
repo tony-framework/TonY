@@ -173,6 +173,11 @@ public class Utils {
     log.info(String.format("Logs for %s %s at: %s", taskUrl.getName(), taskUrl.getIndex(), taskUrl.getUrl()));
   }
 
+  public static void printTHSUrl(String thsHost, String appId, Log log) {
+    log.info(
+        String.format("Link for %s's events/metrics: http://%s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
+  }
+
   /**
    * Parse a list of env key-value pairs like PATH=ABC to a map of key value entries.
    * @param keyValues the input key value pairs

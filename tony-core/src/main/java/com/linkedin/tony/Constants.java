@@ -14,6 +14,10 @@ public class Constants {
   public static final FsPermission perm770 = new FsPermission((short) 0770);
   public static final FsPermission perm777 = new FsPermission((short) 0777);
 
+  // History Server related constants
+  public static final String JOBS_SUFFIX = "jobs";
+  public static final String CONFIG_SUFFIX = "config";
+
   // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
   public static final String TASK_INDEX = "TASK_INDEX";
