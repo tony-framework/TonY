@@ -19,14 +19,14 @@ public class TestTonyClient {
     assertEquals(1, client.getTonyConf().getInt(TonyConfigurationKeys.AM_GPUS, TonyConfigurationKeys.DEFAULT_AM_GPUS));
   }
 
-  @Test
-  public void testBuildCommand() {
-    String command = TonyClient.buildCommand(1000, null, "venv/python",
-        "/user/pi/myvenv.zip",
-        "ls", "/user/pi", new HashMap<>(), new HashMap<>());
-    String expected = "{{JAVA_HOME}}/bin/java -Xmx800m -Dyarn.app.container.log.dir=<LOG_DIR> com.linkedin.tony."
-        + "TonyApplicationMaster --python_binary_path venv/python --python_venv myvenv.zip --executes ls --hdfs_"
-        + "classpath /user/pi 1><LOG_DIR>/amstdout.log 2><LOG_DIR>/amstderr.log";
-    assertEquals(command, expected);
-  }
+//  @Test
+//  public void testBuildCommand() {
+//    String command = TonyClient.buildCommand(1000, null, "venv/python",
+//        "/user/pi/myvenv.zip",
+//        "ls", "/user/pi", new HashMap<>(), new HashMap<>());
+//    String expected = "{{JAVA_HOME}}/bin/java -Xmx800m -Dyarn.app.container.log.dir=<LOG_DIR> com.linkedin.tony."
+//        + "TonyApplicationMaster --python_binary_path venv/python --python_venv myvenv.zip --executes ls --hdfs_"
+//        + "classpath /user/pi 1><LOG_DIR>/amstdout.log 2><LOG_DIR>/amstderr.log";
+//    assertEquals(command, expected);
+//  }
 }

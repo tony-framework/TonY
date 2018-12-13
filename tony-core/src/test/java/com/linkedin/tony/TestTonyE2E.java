@@ -8,7 +8,6 @@ import com.linkedin.minitony.cluster.HDFSUtils;
 import com.linkedin.minitony.cluster.MiniCluster;
 import com.linkedin.minitony.cluster.MiniTonyUtils;
 import java.nio.file.Files;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -67,7 +66,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testSingleNodeTrainingShouldPass() throws ParseException {
+  public void testSingleNodeTrainingShouldPass() throws Exception {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[] {
@@ -83,7 +82,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingShouldFailMissedHeartbeat() throws ParseException {
+  public void testPSWorkerTrainingShouldFailMissedHeartbeat() throws Exception {
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.setInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS, 2);
     client = new TonyClient(conf);
@@ -100,7 +99,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSSkewedWorkerTrainingShouldPass() throws ParseException {
+  public void testPSSkewedWorkerTrainingShouldPass() throws Exception {
     conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
     client = new TonyClient(conf);
     client.init(new String[]{
@@ -117,7 +116,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingShouldPass() throws ParseException {
+  public void testPSWorkerTrainingShouldPass() throws Exception {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
@@ -132,7 +131,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException {
+  public void testPSWorkerTrainingPyTorchShouldPass() throws Exception {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_0_check_pytorchenv.py",
@@ -149,7 +148,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingShouldFail() throws ParseException {
+  public void testPSWorkerTrainingShouldFail() throws Exception {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
         "--executes", "tony-core/src/test/resources/exit_1.py",
@@ -162,7 +161,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testSingleNodeTrainingShouldFail() throws ParseException {
+  public void testSingleNodeTrainingShouldFail() throws Exception {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
@@ -177,7 +176,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testAMCrashTonyShouldFail() throws ParseException {
+  public void testAMCrashTonyShouldFail() throws Exception {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
@@ -200,7 +199,7 @@ public class TestTonyE2E {
    * allocated is that Physical Memory Enforcement doesn't seem to work under MiniYARN.
    */
   @Test
-  public void testAMStopsJobAfterWorker0Killed() throws ParseException {
+  public void testAMStopsJobAfterWorker0Killed() throws Exception {
     client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "tony-core/src/test/resources/exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
         Constants.TEST_WORKER_TERMINATED + "=true"});
     int exitCode = client.start();
@@ -224,7 +223,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testNonChiefWorkerFail() throws ParseException {
+  public void testNonChiefWorkerFail() throws Exception {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     client.init(new String[]{
@@ -239,7 +238,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testTonyResourcesFlag() throws ParseException {
+  public void testTonyResourcesFlag() throws Exception {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     client.init(new String[]{

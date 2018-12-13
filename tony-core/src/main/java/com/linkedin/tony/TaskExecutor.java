@@ -93,6 +93,10 @@ public class TaskExecutor {
       System.exit(-1);
     }
 
+    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
+      LOG.info("Unpacking src directory..");
+      Utils.unzipArchive(Constants.PYTHON_VENV_DIR, "./");
+    }
     if (new File(Constants.PYTHON_VENV_DIR).exists()) {
       LOG.info("Unpacking Python virtual environment.. ");
       Utils.unzipArchive(Constants.PYTHON_VENV_DIR, Constants.PYTHON_VENV_DIR);
