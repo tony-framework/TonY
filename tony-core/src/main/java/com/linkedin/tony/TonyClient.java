@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,16 +107,12 @@ public class TonyClient implements AutoCloseable {
   private int amGpus;
   private String taskParams = null;
   private String pythonBinaryPath = null;
-  private String pythonVenv = "";
   private String executes;
-  private String hdfsClasspath;
-  private String srcDir;
   private long appTimeout;
   private boolean secureMode;
   private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
-  private String archivePath;
   private String tonyFinalConfPath;
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
@@ -162,8 +159,6 @@ public class TonyClient implements AutoCloseable {
 
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     ApplicationId appId = appContext.getApplicationId();
-    this.archivePath = Utils.getClientResourcesPath(appId.toString(), ARCHIVE_SUFFIX);
-    zipArchive();
 
     this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
     // Write user's overridden conf to an xml to be localized.
@@ -190,8 +185,7 @@ public class TonyClient implements AutoCloseable {
 
     // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(appId, this.amMemory, this.taskParams, this.pythonBinaryPath,
-                              this.pythonVenv, this.executes, getTokens());
+        createAMContainerSpec(appId, this.amMemory, this.taskParams, this.pythonBinaryPath, this.executes, getTokens());
     appContext.setAMContainerSpec(amSpec);
     String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
     if (nodeLabel != null) {
@@ -245,7 +239,7 @@ public class TonyClient implements AutoCloseable {
     new HelpFormatter().printHelp("TonyClient", opts);
   }
 
-  public boolean init(String[] args) throws ParseException {
+  public boolean init(String[] args) throws ParseException, IOException {
     CommandLine cliParser = new GnuParser().parse(opts, args, true);
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
@@ -279,12 +273,38 @@ public class TonyClient implements AutoCloseable {
     hdfsConfAddress = tonyConf.get(TonyConfigurationKeys.HDFS_CONF_LOCATION);
     taskParams = cliParser.getOptionValue("task_params");
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
-    pythonVenv = cliParser.getOptionValue("python_venv");
+    String pythonVenv = cliParser.getOptionValue("python_venv");
     executes = cliParser.getOptionValue("executes");
 
     // src_dir & hdfs_classpath flags are for compatibility.
-    srcDir = cliParser.getOptionValue("src_dir");
-    hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
+    String srcDir = cliParser.getOptionValue("src_dir");
+    if (srcDir != null) {
+      if (Utils.isArchive(srcDir)) {
+        uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir), tonyConf, hdfsConf);
+      } else {
+        Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
+        uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
+            Constants.TONY_SRC_ZIP_NAME, tonyConf, hdfsConf);
+      }
+    }
+
+    if (pythonVenv != null) {
+      uploadFileAndSetConfResources(appResourcesPath, new Path(pythonVenv), tonyConf, hdfsConf);
+    }
+
+    String hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
+
+    if (yarnConfAddress != null) {
+      uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConfAddress),
+          Constants.YARN_SITE_CONF, tonyConf, hdfsConf);
+    }
+    if (hdfsConfAddress != null) {
+      uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConfAddress),
+          Constants.HDFS_SITE_CONF, tonyConf, hdfsConf);
+    }
+
+    // Set hdfsClassPath for all workers
+    tonyConf.set(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath);
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -364,14 +384,13 @@ public class TonyClient implements AutoCloseable {
   }
 
   public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory, String taskParams,
-                                                      String pythonBinaryPath, String pythonVenv, String executes,
+                                                      String pythonBinaryPath, String executes,
                                                       ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
     FileSystem fs = FileSystem.get(hdfsConf);
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(fs, archivePath, LocalResourceType.FILE, Constants.TONY_ZIP_NAME, localResources);
     addLocalResources(fs, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
     String[] amResources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(Constants.AM_NAME));
     if (null != amResources) {
@@ -379,7 +398,13 @@ public class TonyClient implements AutoCloseable {
         Utils.addResource(dir, localResources, hdfsConf);
       }
     }
-    Utils.addResource(hdfsClasspath, localResources, hdfsConf);
+    amResources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
+    if (null != amResources) {
+      for (String dir : amResources) {
+        Utils.addResource(dir, localResources, hdfsConf);
+      }
+    }
+
     setAMEnvironment(localResources, fs);
 
     // Update absolute path with relative path
@@ -388,7 +413,7 @@ public class TonyClient implements AutoCloseable {
         String hc = hdfsConfAddress.substring(1);
         containerEnv.put(Constants.HDFS_CONF_PATH, hc);
       } else {
-        containerEnv.put(Constants.HDFS_CONF_PATH, hdfsConfAddress);
+        containerEnv.put(Constants.HDFS_CONF_PATH, FilenameUtils.getName(hdfsConfAddress));
       }
     }
     if (yarnConfAddress != null) {
@@ -396,7 +421,7 @@ public class TonyClient implements AutoCloseable {
         String yc = yarnConfAddress.substring(1);
         containerEnv.put(Constants.YARN_CONF_PATH, yc);
       } else {
-        containerEnv.put(Constants.YARN_CONF_PATH, yarnConfAddress);
+        containerEnv.put(Constants.YARN_CONF_PATH, FilenameUtils.getName(yarnConfAddress));
       }
     }
 
@@ -406,8 +431,8 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
-    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath, pythonVenv,
-        executes, hdfsClasspath, shellEnv, containerEnv);
+    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath,
+        executes, shellEnv, containerEnv);
 
     LOG.info("Completed setting up Application Master command " + command);
     amContainer.setCommands(ImmutableList.of(command));
@@ -421,8 +446,9 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath, String pythonVenv,
-      String executes, String hdfsClasspath, Map<String, String> shellEnv, Map<String, String> containerEnv) {
+  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath,
+      String executes, Map<String, String> shellEnv,
+      Map<String, String> containerEnv) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
@@ -439,14 +465,8 @@ public class TonyClient implements AutoCloseable {
     if (pythonBinaryPath != null) {
       arguments.add("--python_binary_path " + String.valueOf(pythonBinaryPath));
     }
-    if (pythonVenv != null) {
-      arguments.add("--python_venv " + FilenameUtils.getName(String.valueOf(pythonVenv)));
-    }
     if (executes != null) {
       arguments.add("--executes " + String.valueOf(executes));
-    }
-    if (hdfsClasspath != null) {
-      arguments.add("--hdfs_classpath " + String.valueOf(hdfsClasspath));
     }
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
       arguments.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
@@ -459,50 +479,8 @@ public class TonyClient implements AutoCloseable {
     return String.join(" ", arguments);
   }
 
-  /**
-   * Create zip archive required by TonY to distribute python code and virtual environment
-   */
-  private void zipArchive() throws IOException {
-    FileOutputStream fos = new FileOutputStream(archivePath);
-    ZipOutputStream zos = new ZipOutputStream(fos);
-    // Accept archive file as srcDir.
-    if (srcDir != null) {
-      if (!Utils.isArchive(srcDir)) {
-        addDirToZip(zos, srcDir);
-      } else {
-        Utils.renameFile(srcDir, archivePath);
-      }
-    } else {
-      LOG.warn("--src_dir flag is not passed in.");
-    }
-    if (hdfsConfAddress != null) {
-      addFileToZip(zos, hdfsConfAddress);
-    }
-    if (yarnConfAddress != null) {
-      addFileToZip(zos, yarnConfAddress);
-    }
-    if (pythonVenv != null) {
-      addFileToZip(zos, pythonVenv);
-    }
-    zos.close();
-  }
-
-  private static void addDirToZip(ZipOutputStream zos, String dirName) throws IOException {
-    File f = new File(dirName);
-    if (!f.isDirectory()) {
-      throw new IOException(dirName + " is not a valid directory.");
-    }
-    for (File content : f.listFiles()) {
-      if (content.isDirectory()) {
-        addDirToZip(zos, content.getPath());
-      } else {
-        addFileToZip(zos, content.getPath());
-      }
-    }
-  }
-
-  private static void addFileToZip(ZipOutputStream zos, String filePath) throws IOException {
-    zos.putNextEntry(new ZipEntry(filePath));
+  private static void addFileToZip(ZipOutputStream zos, String filePath, String zipName) throws IOException {
+    zos.putNextEntry(new ZipEntry(FilenameUtils.getName(filePath)));
     byte[] buf = new byte[2048];
 
     try (FileInputStream fos = new FileInputStream(new File(filePath))) {
@@ -690,6 +668,20 @@ public class TonyClient implements AutoCloseable {
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken, serviceAddr);
       UserGroupInformation.getCurrentUser().addToken(token);
     }
+  }
+
+  private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
+      Configuration tonyConf, Configuration hdfsConf) throws IOException {
+    uploadFileAndSetConfResources(hdfsPath, filePath, filePath.getName(), tonyConf, hdfsConf);
+  }
+
+  private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
+      String fileName, Configuration tonyConf, Configuration hdfsConf) throws IOException {
+    Path dst = new Path(hdfsPath, fileName);
+    FileSystem fs = FileSystem.get(hdfsConf);
+    fs.copyFromLocalFile(filePath, dst);
+    fs.setPermission(dst, new FsPermission((short) 0770));
+    tonyConf.set(TonyConfigurationKeys.getContainerResourcesKey(), dst.toString());
   }
 
   /**

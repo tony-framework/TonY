@@ -13,9 +13,15 @@ import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URI;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
@@ -131,6 +139,19 @@ public class Utils {
       return String.valueOf(Integer.parseInt(memory.substring(0, g)) * 1024);
     }
     return memory;
+  }
+
+  public static void zipFolder(java.nio.file.Path sourceFolderPath, java.nio.file.Path zipPath) throws IOException {
+    ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipPath.toFile()));
+    Files.walkFileTree(sourceFolderPath, new SimpleFileVisitor<java.nio.file.Path>() {
+      public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs) throws IOException {
+        zos.putNextEntry(new ZipEntry(sourceFolderPath.relativize(file).toString()));
+        Files.copy(file, zos);
+        zos.closeEntry();
+        return FileVisitResult.CONTINUE;
+      }
+    });
+    zos.close();
   }
 
   public static void unzipArchive(String src, String dst) throws IOException {
@@ -391,9 +412,7 @@ public class Utils {
    * @param path the directory whose contents will be localized.
    * @param hdfsConf the configuration file for HDFS.
    */
-  public static void addResource(String path,
-                                 Map<String, LocalResource> resourcesMap,
-                                 Configuration hdfsConf) {
+  public static void addResource(String path, Map<String, LocalResource> resourcesMap, Configuration hdfsConf) {
     try {
       FileSystem fs = FileSystem.get(hdfsConf);
       if (path != null) {

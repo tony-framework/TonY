@@ -123,6 +123,7 @@ public class TestTonyE2E {
         "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
+        "--python_venv", "/Users/khu/hadoop/tony/tony-core/src/test/resources/test.zip",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
     });

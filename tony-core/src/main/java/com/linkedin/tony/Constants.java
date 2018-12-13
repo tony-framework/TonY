@@ -16,7 +16,6 @@ public class Constants {
 
   // History Server related constants
   public static final String JOBS_SUFFIX = "jobs";
-  public static final String CONFIG_SUFFIX = "config";
 
   public static final String TMP_AVRO = "tmp.avro";
 
@@ -50,8 +49,9 @@ public class Constants {
   public static final String LENGTH_SUFFIX = "_LENGTH";
 
   public static final String TONY_ZIP_NAME = "tony.zip";
+  public static final String TONY_SRC_ZIP_NAME = "tony_src.zip";
 
-  public static final String PYTHON_VENV_DIR = "venv";
+  public static final String PYTHON_VENV_DIR = "venv.zip";
   public static final String TASK_PARAM_KEY = "MODEL_PARAMS";
 
   public static final String AM_STDOUT_FILENAME = "amstdout.log";
@@ -60,6 +60,7 @@ public class Constants {
   public static final String HDFS_CONF_PATH = "HDFS_CONF_PATH";
   public static final String YARN_CONF_PATH = "YARN_CONF_PATH";
   public static final String HDFS_SITE_CONF = "hdfs-site.xml";
+  public static final String YARN_SITE_CONF = "yarn-site.xml";
   public static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
   public static final String TONY_SITE_CONF = "tony-site.xml";

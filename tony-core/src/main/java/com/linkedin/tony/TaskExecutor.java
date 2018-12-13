@@ -52,7 +52,6 @@ public class TaskExecutor {
   private int timeOut;
   private String amAddress;
   private String taskCommand;
-  private String venv;
   private String clusterSpec;
   private String jobName;
   private int taskIndex;
@@ -94,9 +93,9 @@ public class TaskExecutor {
       System.exit(-1);
     }
 
-    if (executor.venv != null) {
-      LOG.info("Unpacking Python virtual environment: " + executor.venv);
-      Utils.unzipArchive(executor.venv, Constants.PYTHON_VENV_DIR);
+    if (new File(Constants.PYTHON_VENV_DIR).exists()) {
+      LOG.info("Unpacking Python virtual environment.. ");
+      Utils.unzipArchive(Constants.PYTHON_VENV_DIR, Constants.PYTHON_VENV_DIR);
     } else {
       LOG.info("No virtual environment uploaded.");
     }
@@ -165,7 +164,6 @@ public class TaskExecutor {
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
     opts.addOption("task_command", true, "The task command to run.");
-    opts.addOption("venv", true, "The name of python venv zip.");
     opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
     CommandLine cliParser = new GnuParser().parse(opts, args);
     amAddress = cliParser.getOptionValue("am_address", "");
@@ -177,7 +175,6 @@ public class TaskExecutor {
     String[] shellEnvs = cliParser.getOptionValues("shell_env");
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
-    venv = cliParser.getOptionValue("venv");
     framework = MLFramework.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 

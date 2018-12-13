@@ -107,7 +107,6 @@ public class TonyApplicationMaster {
   private long workerTimeout;
   private String hdfsClasspath;
   private String baseTaskCommand;
-  private String pythonVenvZip;
   private int amPort;
   private ByteBuffer allTokens;
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
@@ -242,10 +241,8 @@ public class TonyApplicationMaster {
     shellEnv = Utils.parseKeyValue(shellEnvs);
     String[] containerEnvs = cliParser.getOptionValues("container_env");
     containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
-    pythonVenvZip = cliParser.getOptionValue("python_venv");
 
     baseTaskCommand = buildBaseTaskCommand(
-        pythonVenvZip,
         cliParser.getOptionValue("python_binary_path"),
         cliParser.getOptionValue("executes"),
         cliParser.getOptionValue("task_params"));
@@ -282,10 +279,10 @@ public class TonyApplicationMaster {
   }
 
   @VisibleForTesting
-  static String buildBaseTaskCommand(String pythonVenvZip, String pythonBinaryPath, String script,
+  static String buildBaseTaskCommand(String pythonBinaryPath, String script,
       String taskParams) {
     String pythonInterpreter = "";
-    if (pythonVenvZip == null || pythonBinaryPath.startsWith("/")) {
+    if (pythonBinaryPath.startsWith("/")) {
       if (pythonBinaryPath != null) {
         pythonInterpreter = pythonBinaryPath;
       }
@@ -309,7 +306,6 @@ public class TonyApplicationMaster {
 
     TonySession.Builder builder = new TonySession.Builder()
         .setTaskCmd(taskCommand)
-        .setVenv(pythonVenvZip)
         .setAMAddress(amHostPort)
         .setShellEnv(shellEnv)
         .setTonyConf(tonyConf)
@@ -699,12 +695,6 @@ public class TonyApplicationMaster {
       tbSocket.close();
     }
     LOG.info("Start python preprocessing");
-    if (pythonVenvZip != null) {
-      LOG.info("Unpacking python venv: " + pythonVenvZip);
-      Utils.unzipArchive(pythonVenvZip, Constants.PYTHON_VENV_DIR);
-    } else {
-      LOG.warn("No Python virtual environment uploaded, using python_binary_path directly.");
-    }
 
     extraEnv.put(Constants.PREPROCESSING_JOB, "true");
 
@@ -1077,6 +1067,7 @@ public class TonyApplicationMaster {
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
+      // Add job type specific resources
       Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
       String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
       if (null != resources) {
@@ -1084,6 +1075,15 @@ public class TonyApplicationMaster {
           Utils.addResource(dir, containerResources, hdfsConf);
         }
       }
+
+      // All resources available to all containers
+      resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
+      if (null != resources) {
+        for (String dir : resources) {
+          Utils.addResource(dir, containerResources, hdfsConf);
+        }
+      }
+
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
