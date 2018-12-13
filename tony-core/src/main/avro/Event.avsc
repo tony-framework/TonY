@@ -4,7 +4,7 @@
   "name": "Event",
   "fields": [
     {"name": "type", "type": "EventType"},
-    {"name": "event", "type": [ "ApplicationInited", "ApplicationFinished" ]},
+    {"name": "event", "type": [ "ApplicationInited", "ApplicationFinished", "EOQ" ]},
     {"name": "timestamp", "type": "long"}
   ]
 }

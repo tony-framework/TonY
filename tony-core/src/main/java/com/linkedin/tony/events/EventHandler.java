@@ -42,6 +42,35 @@ public class EventHandler implements Runnable {
     }
   }
 
+  @VisibleForTesting
+  public void writeEvent(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+    Event event = null;
+    try {
+      event = queue.take();
+      if (event.getType() == EventType.EOQ) {
+        return;
+      }
+      writer.append(event);
+    } catch (IOException e) {
+      LOG.error("Failed to append event " + event, e);
+    } catch (InterruptedException e) {
+      LOG.info("Event writer interrupted", e);
+    }
+  }
+
+  @VisibleForTesting
+  public void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+    try {
+      Event event = queue.poll();
+      if (event.getType() == EventType.EOQ) {
+        return;
+      }
+      writer.append(event);
+    } catch (IOException e) {
+      LOG.error("Failed to drain queue", e);
+    }
+  }
+
   public void emitEvent(Event event) {
     try {
       eventQueue.put(event);
@@ -50,29 +79,15 @@ public class EventHandler implements Runnable {
     }
   }
 
-  @VisibleForTesting
-  public void writeEvent(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
-    Event event = null;
-    try {
-      event = queue.poll();
-      if (event == null) {
-        return;
-      }
-      writer.append(event);
-    } catch (IOException e) {
-      LOG.error("Failed to append event " + event, e);
-    }
-  }
-
   @Override
   public void run() {
-    while (!isStopped) {
+    while (!isStopped && !Thread.currentThread().isInterrupted()) {
       writeEvent(eventQueue, dataFileWriter);
     }
 
     // Clear the queue
     while (!eventQueue.isEmpty()) {
-      writeEvent(eventQueue, dataFileWriter);
+      drainQueue(eventQueue, dataFileWriter);
     }
 
     try {
@@ -103,6 +118,8 @@ public class EventHandler implements Runnable {
 
   public void stop(Path jobDir, TonyJobMetadata metadata) {
     isStopped = true;
+    Event EOQ = new Event(EventType.EOQ, new EOQ(), System.currentTimeMillis());
+    emitEvent(EOQ);
     if (jobDir == null) {
       return;
     }

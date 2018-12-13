@@ -1,0 +1,6 @@
+{
+  "namespace": "com.linkedin.tony.events",
+  "type": "record",
+  "name": "EOQ",
+  "fields": []
+}

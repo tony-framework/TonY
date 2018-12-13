@@ -143,9 +143,25 @@ public class TestEventHandler {
     EventHandler eh = new EventHandler(fs, eventQueue);
 
     assertEquals(eventQueue.size(), 1);
-    eh.writeEvent(eventQueue, writer); // should drain the queue
+    eh.writeEvent(eventQueue, writer); // should remove the event from queue
     assertEquals(eventQueue.size(), 0);
     verify(writer).append(eEventWrapper);
+  }
+
+  @Test
+  public void testDrainQueue() {
+    DataFileWriter<Event> writer = mock(DataFileWriter.class);
+    eventQueue.add(eEventWrapper);
+    eventQueue.add(eEventWrapper);
+    eventQueue.add(eEventWrapper);
+    eventQueue.add(eEventWrapper);
+    EventHandler eh = new EventHandler(fs, eventQueue);
+
+    assertEquals(eventQueue.size(), 4);
+    while (!eventQueue.isEmpty()) {
+      eh.drainQueue(eventQueue, writer); // should drain the queue
+    }
+    assertEquals(eventQueue.size(), 0);
   }
 
   @AfterClass
