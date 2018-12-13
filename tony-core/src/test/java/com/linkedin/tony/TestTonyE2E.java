@@ -8,6 +8,7 @@ import com.linkedin.minitony.cluster.HDFSUtils;
 import com.linkedin.minitony.cluster.MiniCluster;
 import com.linkedin.minitony.cluster.MiniTonyUtils;
 import java.nio.file.Files;
+import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -66,12 +67,12 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testSingleNodeTrainingShouldPass() throws Exception {
+  public void testSingleNodeTrainingShouldPass() throws ParseException {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[] {
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -82,13 +83,13 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingShouldFailMissedHeartbeat() throws Exception {
+  public void testPSWorkerTrainingShouldFailMissedHeartbeat() throws ParseException {
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.setInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS, 2);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
@@ -99,12 +100,12 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSSkewedWorkerTrainingShouldPass() throws Exception {
+  public void testPSSkewedWorkerTrainingShouldPass() throws ParseException {
     conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -116,13 +117,12 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingShouldPass() throws Exception {
+  public void testPSWorkerTrainingShouldPass() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
-        "--python_venv", "/Users/khu/hadoop/tony/tony-core/src/test/resources/test.zip",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
     });
@@ -131,10 +131,10 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingPyTorchShouldPass() throws Exception {
+  public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_pytorchenv.py",
+        "--executes", "exit_0_check_pytorchenv.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -148,10 +148,10 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testPSWorkerTrainingShouldFail() throws Exception {
+  public void testPSWorkerTrainingShouldFail() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--executes", "exit_1.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
@@ -161,12 +161,12 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testSingleNodeTrainingShouldFail() throws Exception {
+  public void testSingleNodeTrainingShouldFail() throws ParseException {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--executes", "exit_1.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
@@ -176,12 +176,12 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testAMCrashTonyShouldFail() throws Exception {
+  public void testAMCrashTonyShouldFail() throws ParseException {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--executes", "exit_0.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.TEST_AM_CRASH + "=true",
@@ -199,8 +199,8 @@ public class TestTonyE2E {
    * allocated is that Physical Memory Enforcement doesn't seem to work under MiniYARN.
    */
   @Test
-  public void testAMStopsJobAfterWorker0Killed() throws Exception {
-    client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "tony-core/src/test/resources/exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
+  public void testAMStopsJobAfterWorker0Killed() throws ParseException {
+    client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
         Constants.TEST_WORKER_TERMINATED + "=true"});
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
@@ -210,10 +210,10 @@ public class TestTonyE2E {
    * Test amRpcClient is nulled out after client finishes.
    */
   @Test
-  public void testNullAMRpcClient() throws Exception {
+  public void testNullAMRpcClient() throws ParseException {
     String[] args = new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--executes", "exit_0.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python"
     };
@@ -223,12 +223,12 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testNonChiefWorkerFail() throws Exception {
+  public void testNonChiefWorkerFail() throws ParseException {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--executes", "exit_1.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
@@ -238,7 +238,7 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testTonyResourcesFlag() throws Exception {
+  public void testTonyResourcesFlag() throws ParseException {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     client.init(new String[]{

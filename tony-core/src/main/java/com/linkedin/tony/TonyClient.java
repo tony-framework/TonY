@@ -82,7 +82,6 @@ public class TonyClient implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TonyClient.class);
 
   private static final String APP_TYPE = "TENSORFLOW";
-  private static final String ARCHIVE_SUFFIX = "tony_archive.zip";
 
   // Configurations
   private YarnClient yarnClient;
@@ -263,7 +262,7 @@ public class TonyClient implements AutoCloseable {
     new HelpFormatter().printHelp("TonyClient", opts);
   }
 
-  public boolean init(String[] args) throws ParseException, IOException {
+  public boolean init(String[] args) throws ParseException {
     CommandLine cliParser = new GnuParser().parse(opts, args, true);
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
@@ -407,24 +406,6 @@ public class TonyClient implements AutoCloseable {
 
     setAMEnvironment(localResources, fs);
 
-    // Update absolute path with relative path
-    if (hdfsConfAddress != null) {
-      if (hdfsConfAddress.charAt(0) == '/') {
-        String hc = hdfsConfAddress.substring(1);
-        containerEnv.put(Constants.HDFS_CONF_PATH, hc);
-      } else {
-        containerEnv.put(Constants.HDFS_CONF_PATH, FilenameUtils.getName(hdfsConfAddress));
-      }
-    }
-    if (yarnConfAddress != null) {
-      if (yarnConfAddress.charAt(0) == '/') {
-        String yc = yarnConfAddress.substring(1);
-        containerEnv.put(Constants.YARN_CONF_PATH, yc);
-      } else {
-        containerEnv.put(Constants.YARN_CONF_PATH, FilenameUtils.getName(yarnConfAddress));
-      }
-    }
-
     // Set logs to be readable by everyone. Set app to be modifiable only by app owner.
     Map<ApplicationAccessType, String> acls = new HashMap<>(2);
     acls.put(ApplicationAccessType.VIEW_APP, "*");
@@ -450,7 +431,7 @@ public class TonyClient implements AutoCloseable {
       String executes, Map<String, String> shellEnv,
       Map<String, String> containerEnv) {
     List<String> arguments = new ArrayList<>(30);
-    arguments.add("ls -al && sleep 500 &&");
+    arguments.add("ls -al &&");
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
     arguments.add("-Xmx" + (int) (amMemory * 0.8f) + "m");

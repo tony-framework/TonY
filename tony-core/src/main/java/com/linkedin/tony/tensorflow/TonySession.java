@@ -121,16 +121,6 @@ public class TonySession {
                            String hdfsClasspathDir) {
 
     Map<String, String> env = System.getenv();
-    String zipPath = env.get(Constants.TONY_ZIP_PREFIX + Constants.PATH_SUFFIX);
-    long zipTimestamp = Long.valueOf(env.get(Constants.TONY_ZIP_PREFIX + Constants.TIMESTAMP_SUFFIX));
-    long zipLength = Long.valueOf(env.get(Constants.TONY_ZIP_PREFIX + Constants.LENGTH_SUFFIX));
-
-    LocalResource zipResource =
-        LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(zipPath)),
-            LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-            zipLength, zipTimestamp);
-    localResources.put(Constants.TONY_ZIP_NAME, zipResource);
-
     String tonyConfPath = env.get(Constants.TONY_CONF_PREFIX + Constants.PATH_SUFFIX);
     long tonyConfTimestamp = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.TIMESTAMP_SUFFIX));
     long tonyConfLength = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.LENGTH_SUFFIX));

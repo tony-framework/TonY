@@ -95,11 +95,11 @@ public class TaskExecutor {
 
     if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
       LOG.info("Unpacking src directory..");
-      Utils.unzipArchive(Constants.PYTHON_VENV_DIR, "./");
+      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
     }
-    if (new File(Constants.PYTHON_VENV_DIR).exists()) {
+    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
       LOG.info("Unpacking Python virtual environment.. ");
-      Utils.unzipArchive(Constants.PYTHON_VENV_DIR, Constants.PYTHON_VENV_DIR);
+      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
     } else {
       LOG.info("No virtual environment uploaded.");
     }
@@ -182,12 +182,11 @@ public class TaskExecutor {
     framework = MLFramework.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
-    Utils.unzipArchive(Constants.TONY_ZIP_NAME, "./");
-    if (System.getenv(Constants.YARN_CONF_PATH) != null) {
-      yarnConf.addResource(new Path(System.getenv(Constants.YARN_CONF_PATH)));
+    if (new File(Constants.YARN_SITE_CONF).exists()) {
+      yarnConf.addResource(new Path(Constants.YARN_SITE_CONF));
     }
-    if (System.getenv(Constants.HDFS_CONF_PATH) != null) {
-      hdfsConf.addResource(new Path(System.getenv(Constants.HDFS_CONF_PATH)));
+    if (new File(Constants.HDFS_SITE_CONF).exists()) {
+      hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
     }
     LOG.info("Setting up Rpc client, connecting to: " + amAddress);
     proxy = ApplicationRpcClient.getInstance(amAddress.split(":")[0], Integer.parseInt(amAddress.split(":")[1]), yarnConf);
