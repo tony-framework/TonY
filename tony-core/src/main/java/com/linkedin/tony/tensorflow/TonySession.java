@@ -179,7 +179,7 @@ public class TonySession {
   public boolean allTasksScheduled() {
     for (TonyTask[] tasks : jobTasks.values()) {
       for (TonyTask task : tasks) {
-        if (task == null) {
+        if (task == null || task.getTaskUrl() == null) {
           return false;
         }
       }

@@ -42,7 +42,6 @@ public class Constants {
   public static final String PY4JGATEWAY = "PY4J_GATEWAY_PORT";
 
   // Environment variables for resource localization
-  public static final String TONY_ZIP_PREFIX = "TONY_ZIP";
   public static final String TONY_CONF_PREFIX = "TONY_CONF";
 
   public static final String PATH_SUFFIX = "_PATH";
