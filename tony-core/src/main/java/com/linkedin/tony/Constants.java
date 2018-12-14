@@ -16,6 +16,7 @@ public class Constants {
 
   // History Server related constants
   public static final String JOBS_SUFFIX = "jobs";
+  public static final String CONFIG_SUFFIX = "config";
 
   public static final String TMP_AVRO = "tmp.avro";
 

@@ -28,7 +28,7 @@ public class TestTonyApplicationMaster {
     // pythonBinaryPath is relative, so should be appended to "venv"
     actual = TonyApplicationMaster.buildTaskCommand("Python/bin/python",
                                                         "src/main/python/my_awesome_script.py", "--input_dir hdfs://default/foo/bar");
-    expected = Constants.PYTHON_VENV_DIR + "/Python/bin/python "
+    expected = "Python/bin/python "
                + "src/main/python/my_awesome_script.py --input_dir hdfs://default/foo/bar";
     Assert.assertEquals(actual, expected);
   }

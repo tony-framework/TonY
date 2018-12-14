@@ -26,8 +26,6 @@ public class TestTaskExecutor {
     listArgs.add("localhost:1234");
     listArgs.add("-task_command");
     listArgs.add("'sleep 5'");
-    listArgs.add("-venv");
-    listArgs.add("venv.zip");
     args = listArgs.toArray(new String[listArgs.size()]);
   }
 

@@ -431,7 +431,6 @@ public class TonyClient implements AutoCloseable {
       String executes, Map<String, String> shellEnv,
       Map<String, String> containerEnv) {
     List<String> arguments = new ArrayList<>(30);
-    arguments.add("ls -al &&");
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
     arguments.add("-Xmx" + (int) (amMemory * 0.8f) + "m");
