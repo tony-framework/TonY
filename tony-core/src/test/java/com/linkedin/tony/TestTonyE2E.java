@@ -264,7 +264,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "conditional_wait.py",
+        "--executes", "python conditional_wait.py",
         "--hdfs_classpath", "/yarn/libs",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--conf", "tony.application.ignored.jobtypes=worker",
