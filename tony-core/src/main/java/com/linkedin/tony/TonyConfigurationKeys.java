@@ -163,8 +163,14 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.gpus", jobName);
   }
 
+  // Job specific resources
   public static String getResourcesKey(String jobName) {
     return String.format(TONY_PREFIX + "%s.resources", jobName);
+  }
+
+  // Resources for all containers
+  public static String getContainerResourcesKey() {
+    return TONY_PREFIX + "containers.resources";
   }
 
   // Worker configurations

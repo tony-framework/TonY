@@ -45,8 +45,6 @@ public class TonySession {
   private Configuration tonyConf;
 
   private String taskCmd;
-
-  private String venv;
   private String amAddress;
   private Map<String, TensorFlowContainerRequest> containerRequests;
 
@@ -80,10 +78,6 @@ public class TonySession {
         .append(amAddress)
         .append(" --task_command ")
         .append(taskCmd);
-    if (venv != null) {
-      cmd.append(" --venv ");
-      cmd.append(venv);
-    }
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
       cmd.append(" --shell_env ");
       cmd.append(entry.getKey());
@@ -100,7 +94,6 @@ public class TonySession {
 
   private TonySession(Builder builder) {
     this.taskCmd = builder.taskCmd;
-    this.venv = builder.venv;
     this.amAddress = builder.amAddress;
     this.containerRequests = Utils.parseContainerRequests(builder.tonyConf);
     this.shellEnv = builder.shellEnv;
@@ -128,16 +121,6 @@ public class TonySession {
                            String hdfsClasspathDir) {
 
     Map<String, String> env = System.getenv();
-    String zipPath = env.get(Constants.TONY_ZIP_PREFIX + Constants.PATH_SUFFIX);
-    long zipTimestamp = Long.valueOf(env.get(Constants.TONY_ZIP_PREFIX + Constants.TIMESTAMP_SUFFIX));
-    long zipLength = Long.valueOf(env.get(Constants.TONY_ZIP_PREFIX + Constants.LENGTH_SUFFIX));
-
-    LocalResource zipResource =
-        LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(zipPath)),
-            LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-            zipLength, zipTimestamp);
-    localResources.put(Constants.TONY_ZIP_NAME, zipResource);
-
     String tonyConfPath = env.get(Constants.TONY_CONF_PREFIX + Constants.PATH_SUFFIX);
     long tonyConfTimestamp = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.TIMESTAMP_SUFFIX));
     long tonyConfLength = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.LENGTH_SUFFIX));
@@ -394,7 +377,6 @@ public class TonySession {
    */
   public static class Builder {
     private String taskCmd;
-    private String venv;
     private Map<String, String> shellEnv;
     private String amAddress;
     private String jvmArgs;
@@ -406,11 +388,6 @@ public class TonySession {
 
     public Builder setTaskCmd(String taskCmd) {
       this.taskCmd = taskCmd;
-      return this;
-    }
-
-    public Builder setVenv(String venv) {
-      this.venv = venv;
       return this;
     }
 
