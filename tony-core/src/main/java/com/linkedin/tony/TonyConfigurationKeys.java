@@ -86,7 +86,7 @@ public class TonyConfigurationKeys {
   public static final String TONY_APPLICATION_PREFIX = TONY_PREFIX + "application.";
 
   public static final String APPLICATION_NAME = TONY_APPLICATION_PREFIX + "name";
-  public static final String DEFAULT_APPLICATION_NAME = "TensorFlowApplication";
+  public static final String DEFAULT_APPLICATION_NAME = "TonyApplication";
 
   public static final String FRAMEWORK_NAME = TONY_APPLICATION_PREFIX + "framework";
   public static final String DEFAULT_FRAMEWORK_NAME = "tensorflow";
@@ -171,6 +171,10 @@ public class TonyConfigurationKeys {
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
   public static final int DEFAULT_WORKER_TIMEOUT = 0;
+
+  // Job types that we don't wait to finish
+  public static final String IGNORED_JOBTYPES = TONY_APPLICATION_PREFIX + "ignored.jobtypes";
+  public static final String IGNORED_JOBTYPES_DEFAULT = "ps";
 
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";

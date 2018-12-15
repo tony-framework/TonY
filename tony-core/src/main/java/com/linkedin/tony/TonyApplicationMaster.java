@@ -127,8 +127,8 @@ public class TonyApplicationMaster {
    /** Resource manager **/
   private AMRMClientAsync<ContainerRequest> amRMClient;
    /** Job progress **/
-  private AtomicInteger numCompletedWorkerTasks = new AtomicInteger();
-  private long numTotalWorkerTasks = 1;
+  private AtomicInteger numCompletedTrackedTasks = new AtomicInteger();
+  private long numTotalTrackedTasks = 1;
 
   private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
@@ -401,13 +401,13 @@ public class TonyApplicationMaster {
     switch (type) {
       case "APPLICATION_INITED":
         event.setType(EventType.APPLICATION_INITED);
-        event.setEvent(new ApplicationInited(appIdString, (int) numTotalWorkerTasks, Utils.getCurrentHostName()));
+        event.setEvent(new ApplicationInited(appIdString, (int) numTotalTrackedTasks, Utils.getCurrentHostName()));
         return event;
       case "APPLICATION_FINISHED":
         event.setType(EventType.APPLICATION_FINISHED);
         List<Metric> metrics = new ArrayList<>();
-        int numFailedTasks = (int) numTotalWorkerTasks - numCompletedWorkerTasks.get();
-        event.setEvent(new ApplicationFinished(appIdString, (int) numTotalWorkerTasks, numFailedTasks, metrics));
+        int numFailedTasks = (int) numTotalTrackedTasks - numCompletedTrackedTasks.get();
+        event.setEvent(new ApplicationFinished(appIdString, (int) numTotalTrackedTasks, numFailedTasks, metrics));
         return event;
       default:
         return null;
@@ -549,7 +549,8 @@ public class TonyApplicationMaster {
   private void scheduleTasks() {
     session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
     List<TensorFlowContainerRequest> requests = session.getContainersRequests();
-    numTotalWorkerTasks = requests.stream().filter(request -> request.getJobName().equals("worker")).count();
+    numTotalTrackedTasks = requests.stream()
+        .filter(request -> Utils.isJobTypeTracked(request.getJobName(), tonyConf)).count();
     for (TensorFlowContainerRequest request : requests) {
       scheduleTask(request);
     }
@@ -577,7 +578,7 @@ public class TonyApplicationMaster {
     // Reset session and counters.
     session = sessionBuilder.build();
 
-    numCompletedWorkerTasks.set(0);
+    numCompletedTrackedTasks.set(0);
     numRequestedContainers.set(0);
     rpcServer.reset();
     session.sessionId += 1;
@@ -591,7 +592,9 @@ public class TonyApplicationMaster {
     int attempt = 0;
     containerEnv.put(Constants.ATTEMPT_NUMBER, String.valueOf(attempt));
     long expireTime = appTimeout == 0 ? Long.MAX_VALUE : System.currentTimeMillis() + appTimeout;
+    int counter = 0;
     while (true) {
+      counter += 1;
       // Checking timeout
       if (System.currentTimeMillis() > expireTime) {
         LOG.error("Application times out.");
@@ -624,12 +627,15 @@ public class TonyApplicationMaster {
         break;
       }
 
-      if (numCompletedWorkerTasks.get() == numTotalWorkerTasks) {
-        Utils.printWorkerTasksCompleted(numCompletedWorkerTasks, numTotalWorkerTasks);
+      if (numCompletedTrackedTasks.get() == numTotalTrackedTasks) {
+        Utils.printWorkerTasksCompleted(numCompletedTrackedTasks, numTotalTrackedTasks);
         break;
       }
 
-      Utils.printWorkerTasksCompleted(numCompletedWorkerTasks, numTotalWorkerTasks);
+      // Reduce logging frequency to every 100s.
+      if (counter % 20 == 1) {
+        Utils.printWorkerTasksCompleted(numCompletedTrackedTasks, numTotalTrackedTasks);
+      }
 
       // Pause before refresh job status
       try {
@@ -641,7 +647,7 @@ public class TonyApplicationMaster {
 
     session.updateSessionStatus();
 
-    Utils.printWorkerTasksCompleted(numCompletedWorkerTasks, numTotalWorkerTasks);
+    Utils.printWorkerTasksCompleted(numCompletedTrackedTasks, numTotalTrackedTasks);
 
     FinalApplicationStatus status = session.getFinalStatus();
     String appMessage = session.getFinalMessage();
@@ -1003,8 +1009,8 @@ public class TonyApplicationMaster {
 
           // Update TonySession on the state of the task.
           session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
-          if (task.getJobName().equals(Constants.WORKER_JOB_NAME)) {
-            numCompletedWorkerTasks.incrementAndGet();
+          if (Utils.isJobTypeTracked(task.getJobName(), tonyConf)) {
+            numCompletedTrackedTasks.incrementAndGet();
           }
 
           // Unregister task after completion..
@@ -1043,7 +1049,7 @@ public class TonyApplicationMaster {
 
     @Override
     public float getProgress() {
-      return (float) numCompletedWorkerTasks.get() / numTotalWorkerTasks;
+      return (float) numCompletedTrackedTasks.get() / numTotalTrackedTasks;
     }
 
     @Override
@@ -1094,7 +1100,7 @@ public class TonyApplicationMaster {
        */
       containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
       containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
-      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalWorkerTasks));
+      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
       List<String> commands = new ArrayList<>();
 
       List<CharSequence> arguments = new ArrayList<>(5);

@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -452,6 +453,11 @@ public class Utils {
       warningMsg = "Failed to create " + dir + ": " + e.toString();
       LOG.error(warningMsg);
     }
+  }
+
+  public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
+    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.IGNORED_JOBTYPES, TonyConfigurationKeys.IGNORED_JOBTYPES_DEFAULT);
+    return !Arrays.asList(ignoredJobTypes).contains(taskName);
   }
 
   private Utils() { }

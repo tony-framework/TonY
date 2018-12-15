@@ -304,8 +304,8 @@ public class TonySession {
       String jobName = entry.getKey();
       TonyTask[] tasks = entry.getValue();
 
-      if (jobName.equals(PS_JOB_NAME)) {
-        // ignore PS job
+      // If the job type is not tracked, continue.
+      if (!Utils.isJobTypeTracked(jobName, tonyConf)) {
         continue;
       }
 
