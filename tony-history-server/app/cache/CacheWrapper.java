@@ -3,13 +3,13 @@ package cache;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.models.JobConfig;
+import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.models.JobMetadata;
 import com.typesafe.config.Config;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import models.JobConfig;
-import models.JobEvent;
-import models.JobMetadata;
 import utils.ConfigUtils;
 
 

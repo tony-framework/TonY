@@ -8,19 +8,12 @@ import com.linkedin.tony.events.ApplicationInited;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.events.EventHandler;
 import com.linkedin.tony.events.EventType;
-import com.linkedin.tony.util.HistoryFileUtils;
 import com.linkedin.tony.util.Utils;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
@@ -30,6 +23,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import static com.linkedin.tony.util.ParserUtils.*;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
@@ -43,35 +37,6 @@ public class TestEventHandler {
   private ApplicationInited eAppInitEvent = new ApplicationInited("app123", 1, "fakehost");
   private Path jobDir = new Path("./src/test/resources/jobDir");
   private TonyJobMetadata metadata = new TonyJobMetadata();
-
-  private List<Event> parseEvents(FileSystem fs, Path jobDir, TonyJobMetadata metadata) {
-    String jhistFile = HistoryFileUtils.generateFileName(metadata);
-    if (jhistFile.isEmpty()) {
-      return Collections.emptyList();
-    }
-
-    Path historyFile = new Path(jobDir, jhistFile);
-    List<Event> events = new ArrayList<>();
-    try (InputStream in = fs.open(historyFile)) {
-      DatumReader<Event> datumReader = new SpecificDatumReader<>(Event.class);
-      try (DataFileStream<Event> avroFileStream = new DataFileStream<>(in, datumReader)) {
-        Event record = null;
-        while (avroFileStream.hasNext()) {
-          record = avroFileStream.next(record);
-          Event ev = new Event();
-          ev.setType(record.getType());
-          ev.setEvent(record.getEvent());
-          ev.setTimestamp(record.getTimestamp());
-          events.add(ev);
-        }
-      } catch (IOException e) {
-        LOG.error("Failed to read events from " + historyFile);
-      }
-    } catch (IOException e) {
-      LOG.error("Failed to open history file", e);
-    }
-    return events;
-  }
 
   @BeforeClass
   public void setup() {
@@ -107,7 +72,7 @@ public class TestEventHandler {
     eh.emitEvent(eEventWrapper);
     eh.stop(jobDir, metadata);
     eventHandlerThread.join();
-    List<Event> events = parseEvents(fs, jobDir, metadata);
+    List<Event> events = parseEvents(fs, jobDir);
     Event aEventWrapper = events.get(0);
     ApplicationInited aAppInitEvent = (ApplicationInited) aEventWrapper.getEvent();
 

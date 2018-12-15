@@ -3,6 +3,8 @@ package controllers;
 import cache.CacheWrapper;
 import com.google.common.cache.Cache;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.models.JobMetadata;
+import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import hadoop.Configuration;
 import hadoop.Requirements;
@@ -14,7 +16,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import models.JobMetadata;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -23,10 +24,9 @@ import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
-import utils.HdfsUtils;
 
-import static utils.HdfsUtils.*;
-import static utils.ParserUtils.*;
+import static com.linkedin.tony.util.HdfsUtils.*;
+import static com.linkedin.tony.util.ParserUtils.*;
 
 
 public class JobsMetadataPageController extends Controller {
