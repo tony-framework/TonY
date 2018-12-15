@@ -473,7 +473,7 @@ public class Utils {
   }
 
   public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
-    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.IGNORED_JOBTYPES, TonyConfigurationKeys.IGNORED_JOBTYPES_DEFAULT);
+    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES, TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
     return !Arrays.asList(ignoredJobTypes).contains(taskName);
   }
 
