@@ -36,7 +36,8 @@ Below is a folder structure of what you need to launch the job:
 
     MyJob/
       > src/
-        mnist_distributed.py
+        > models/
+          mnist_distributed.py
       tony.xml
       tony-cli-0.1.5-all.jar
 
@@ -76,7 +77,7 @@ Now you're ready to launch your job:
 
     $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob/" \
             com.linkedin.tony.cli.ClusterSubmitter \
-            -executes src/models/mnist_distributed.py \
+            -executes models/mnist_distributed.py \
             -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output' \
             -src_dir src \
             -python_binary_path /home/user_name/python_virtual_env/bin/python
@@ -107,7 +108,8 @@ As you know, nothing comes for free. If you don't want to bother setting your cl
 
     MyJob/
       > src/
-        mnist_distributed.py
+        > models/
+          mnist_distributed.py
       tony.xml
       tony-cli-0.1.5-all.jar
       my-venv.zip # The additional file you need.
@@ -138,10 +140,10 @@ Then you can launch your job:
 
     $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob" \
                 com.linkedin.tony.cli.ClusterSubmitter \
-                -executes src/models/mnist_distributed.py \
+                -executes models/mnist_distributed.py \ # relative path to the src directory.
                 -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output \
                 -python_venv my-venv.zip \
-                -python_binary_path Python/bin/python \  # Path to the Python binary inside the my-venv.zip
+                -python_binary_path Python/bin/python \  # relative path to the Python binary inside the my-venv.zip
                 -src_dir src
 
 ## TonY arguments
@@ -149,8 +151,8 @@ The command line arguments are as follows:
 
 | Name               | Required? | Example                                           | Meaning                                                                                                                                                                                                           |
 |--------------------|-----------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| executes           | yes       | -executes src/model/mnist.py                      | Location to the entry point of your training code.                                                                                                                                                                |
-| src_dir            | yes       | -src src/                                         | Specifies the name of the root directory locally which contains all of your python model source code. This directory will be copied to all worker node.                                                           |
+| executes           | yes       | --executes src/model/mnist.py                     | Location to the entry point of your training code.                                                                                                                                                                |
+| src_dir            | yes       | --src src/                                        | Specifies the name of the root directory locally which contains all of your python model source code. This directory will be copied to all worker node.                                                           |
 | task_params        | no        | --input_dir /hdfs/input --output_dir /hdfs/output | The command line arguments which will be passed to your entry point                                                                                                                                               |
 | python_venv        | no        | --python_venv venv.zip                            | Path to the *zipped* local Python virtual environment                                                                                                                                                             |
 | python_binary_path | no        | --python_binary_path Python/bin/python            | Used together with python_venv, describes the relative path in your python virtual environment which contains the python binary, or an absolute path to use a python binary already installed on all worker nodes |

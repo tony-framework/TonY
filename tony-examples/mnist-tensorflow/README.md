@@ -55,7 +55,7 @@ gradlew :tony-cli:build
 java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all.jar com.linkedin.tony.cli.ClusterSubmitter \
 --python_venv=/path/to/venv.zip \
 --src_dir=/path/to/TonY/tony-examples/mnist-tensorflow \
---executes=/path/to/TonY/tony-examples/mnist-tensorflow/mnist_distributed.py \
+--executes=mnist_distributed.py \ # relative path inside src/
 --conf_file=/path/to/tony-test.xml \
---python_binary_path=venv/bin/python
+--python_binary_path=bin/python # relative path inside venv.zip
 ```
