@@ -171,6 +171,13 @@
     <value>0</value>
   </property>
 
+  <!-- Untracked job type configurations -->
+  <property>
+    <description>Job types that we don't track to finish</description>
+    <name>tony.application.untracked.jobtypes</name>
+    <value>ps</value>
+  </property>
+
   <!-- Docker configurations -->
   <property>
     <description>Whether we use docker container to launch the tasks</description>
