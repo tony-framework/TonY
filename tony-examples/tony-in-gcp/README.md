@@ -389,11 +389,10 @@ gcloud dataproc jobs submit hadoop --cluster tony-staging \
 --jars file:///usr/local/src/jobs/TFJob/tony-cli-0.1.5-all.jar -- \
 --python_venv=/usr/local/src/jobs/TFJob/env/tf19.zip \
 --src_dir=/usr/local/src/jobs/TFJob/src \
---executes=/usr/local/src/jobs/TFJob/src/mnist_distributed.py \
+--executes=mnist_distributed.py \
 --task_params='--data_dir /tmp/data/ --working_dir /tmp/output' \
 --conf_file=/usr/local/src/jobs/TFJob/tony.xml \
---python_binary_path=tf19/bin/python3.5
-
+--python_binary_path=tbin/python3.5
 ```
 
 **Launch training job using GCS paths**
