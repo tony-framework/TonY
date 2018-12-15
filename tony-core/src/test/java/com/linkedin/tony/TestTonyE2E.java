@@ -259,8 +259,6 @@ public class TestTonyE2E {
    */
   @Test
   public void testWaitingForChiefToFinish() throws ParseException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
-    conf.setInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS, 2);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
