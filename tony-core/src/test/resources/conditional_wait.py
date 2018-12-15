@@ -3,7 +3,7 @@ Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD
 See LICENSE in the project root for license information.
 """
 import time
-
+import os
 
 job_name = os.environ.get('JOB_NAME')
 if job_name == 'chief':
