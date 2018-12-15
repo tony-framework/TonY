@@ -349,8 +349,7 @@ public class TonyApplicationMaster {
     }
 
     mainThread = Thread.currentThread();
-    EventHandler eventHandler = new EventHandler(fs, eventQueue);
-    Thread eventHandlerThread = new Thread(eventHandler);
+    EventHandler eventHandlerThread = new EventHandler(fs, eventQueue);
     eventHandlerThread.start();
     boolean succeeded;
     do {
@@ -362,7 +361,7 @@ public class TonyApplicationMaster {
       }
 
       try {
-        eventHandler.emitEvent(constructEvent("APPLICATION_INITED"));
+        eventHandlerThread.emitEvent(constructEvent("APPLICATION_INITED"));
         start();
       } catch (Exception e) {
         LOG.error("Exception when we're starting TonyAM", e);
@@ -384,8 +383,9 @@ public class TonyApplicationMaster {
     stop();
     long completed = System.currentTimeMillis();
     printTaskUrls();
-    eventHandler.emitEvent(constructEvent("APPLICATION_FINISHED"));
-    eventHandler.stop(jobDir, TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded, user));
+    eventHandlerThread.emitEvent(constructEvent("APPLICATION_FINISHED"));
+    eventHandlerThread.stop(jobDir, TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded, user));
+
     // Wait for eventHandlerThread to wrap up before exiting
     try {
       eventHandlerThread.join();

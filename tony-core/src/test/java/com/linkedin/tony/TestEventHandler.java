@@ -32,7 +32,7 @@ public class TestEventHandler {
   private static final Log LOG = LogFactory.getLog(TestEventHandler.class);
   private FileSystem fs = null;
   private BlockingQueue<Event> eventQueue;
-  private Thread eventHandlerThread;
+  private EventHandler eventHandlerThread;
   private Event eEventWrapper;
   private ApplicationInited eAppInitEvent = new ApplicationInited("app123", 1, "fakehost");
   private Path jobDir = new Path("./src/test/resources/jobDir");
@@ -66,11 +66,10 @@ public class TestEventHandler {
   @Test
   public void testEventHandlerE2E_success() throws InterruptedException, IOException {
     fs.mkdirs(jobDir);
-    EventHandler eh = new EventHandler(fs, eventQueue);
-    eventHandlerThread = new Thread(eh);
+    eventHandlerThread = new EventHandler(fs, eventQueue);
     eventHandlerThread.start();
-    eh.emitEvent(eEventWrapper);
-    eh.stop(jobDir, metadata);
+    eventHandlerThread.emitEvent(eEventWrapper);
+    eventHandlerThread.stop(jobDir, metadata);
     eventHandlerThread.join();
     List<Event> events = parseEvents(fs, jobDir);
     Event aEventWrapper = events.get(0);
@@ -90,10 +89,9 @@ public class TestEventHandler {
   @Test
   public void testEventHandlerE2E_failedJobDirNotSet() throws InterruptedException, IOException {
     fs.mkdirs(jobDir);
-    EventHandler eh = new EventHandler(fs, eventQueue);
-    eventHandlerThread = new Thread(eh);
+    eventHandlerThread = new EventHandler(fs, eventQueue);
     eventHandlerThread.start();
-    eh.stop(null, metadata); // jobDir == null
+    eventHandlerThread.stop(null, metadata); // jobDir == null
     eventHandlerThread.join();
 
     assertEquals(fs.listStatus(jobDir).length, 0);
@@ -105,10 +103,10 @@ public class TestEventHandler {
   public void testWriteEvent() throws IOException {
     DataFileWriter<Event> writer = mock(DataFileWriter.class);
     eventQueue.add(eEventWrapper);
-    EventHandler eh = new EventHandler(fs, eventQueue);
+    eventHandlerThread = new EventHandler(fs, eventQueue);
 
     assertEquals(eventQueue.size(), 1);
-    eh.writeEvent(eventQueue, writer); // should remove the event from queue
+    eventHandlerThread.writeEvent(eventQueue, writer); // should remove the event from queue
     assertEquals(eventQueue.size(), 0);
     verify(writer).append(eEventWrapper);
   }
@@ -120,12 +118,10 @@ public class TestEventHandler {
     eventQueue.add(eEventWrapper);
     eventQueue.add(eEventWrapper);
     eventQueue.add(eEventWrapper);
-    EventHandler eh = new EventHandler(fs, eventQueue);
+    eventHandlerThread = new EventHandler(fs, eventQueue);
 
     assertEquals(eventQueue.size(), 4);
-    while (!eventQueue.isEmpty()) {
-      eh.drainQueue(eventQueue, writer); // should drain the queue
-    }
+    eventHandlerThread.drainQueue(eventQueue, writer); // should drain the queue
     assertEquals(eventQueue.size(), 0);
   }
 

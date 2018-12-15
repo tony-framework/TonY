@@ -20,7 +20,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 
-public class EventHandler implements Runnable {
+public class EventHandler extends Thread {
   private static final Log LOG = LogFactory.getLog(EventHandler.class);
   private boolean isStopped = false;
   private BlockingQueue<Event> eventQueue;
@@ -47,9 +47,6 @@ public class EventHandler implements Runnable {
     Event event = null;
     try {
       event = queue.take();
-      if (event.getType() == EventType.EOQ) {
-        return;
-      }
       writer.append(event);
     } catch (IOException e) {
       LOG.error("Failed to append event " + event, e);
@@ -60,14 +57,13 @@ public class EventHandler implements Runnable {
 
   @VisibleForTesting
   public void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
-    try {
-      Event event = queue.poll();
-      if (event.getType() == EventType.EOQ) {
-        return;
+    while (!eventQueue.isEmpty()) {
+      try {
+        Event event = queue.poll();
+        writer.append(event);
+      } catch (IOException e) {
+        LOG.error("Failed to drain queue", e);
       }
-      writer.append(event);
-    } catch (IOException e) {
-      LOG.error("Failed to drain queue", e);
     }
   }
 
@@ -86,9 +82,7 @@ public class EventHandler implements Runnable {
     }
 
     // Clear the queue
-    while (!eventQueue.isEmpty()) {
-      drainQueue(eventQueue, dataFileWriter);
-    }
+    drainQueue(eventQueue, dataFileWriter);
 
     try {
       dataFileWriter.close();
@@ -118,12 +112,13 @@ public class EventHandler implements Runnable {
 
   public void stop(Path jobDir, TonyJobMetadata metadata) {
     isStopped = true;
-    Event EOQ = new Event(EventType.EOQ, new EOQ(), System.currentTimeMillis());
-    emitEvent(EOQ);
+    LOG.info("Stopped event handler thread");
     if (jobDir == null) {
+      this.interrupt();
       return;
     }
     historyFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
+    this.interrupt();
   }
 }
 
