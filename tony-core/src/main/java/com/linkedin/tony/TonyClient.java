@@ -166,21 +166,21 @@ public class TonyClient implements AutoCloseable {
       } else {
         Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
         uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
-            Constants.TONY_SRC_ZIP_NAME, tonyConf, hdfsConf);
+            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs);
       }
     }
 
     if (pythonVenv != null) {
-      uploadFileAndSetConfResources(appResourcesPath, new Path(pythonVenv), tonyConf, hdfsConf);
+      uploadFileAndSetConfResources(appResourcesPath, new Path(pythonVenv), tonyConf, fs);
     }
 
     if (yarnConfAddress != null) {
       uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConfAddress),
-          Constants.YARN_SITE_CONF, tonyConf, hdfsConf);
+          Constants.YARN_SITE_CONF, tonyConf, fs);
     }
     if (hdfsConfAddress != null) {
       uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConfAddress),
-          Constants.HDFS_SITE_CONF, tonyConf, hdfsConf);
+          Constants.HDFS_SITE_CONF, tonyConf, fs);
     }
 
     this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
@@ -394,13 +394,13 @@ public class TonyClient implements AutoCloseable {
     String[] amResources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(Constants.AM_NAME));
     if (null != amResources) {
       for (String dir : amResources) {
-        Utils.addResource(dir, localResources, hdfsConf);
+        Utils.addResource(dir, localResources, fs);
       }
     }
     amResources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
     if (null != amResources) {
       for (String dir : amResources) {
-        Utils.addResource(dir, localResources, hdfsConf);
+        Utils.addResource(dir, localResources, fs);
       }
     }
 
@@ -637,14 +637,13 @@ public class TonyClient implements AutoCloseable {
   }
 
   private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
-      Configuration tonyConf, Configuration hdfsConf) throws IOException {
-    uploadFileAndSetConfResources(hdfsPath, filePath, filePath.getName(), tonyConf, hdfsConf);
+      Configuration tonyConf, FileSystem fs) throws IOException {
+    uploadFileAndSetConfResources(hdfsPath, filePath, filePath.getName(), tonyConf, fs);
   }
 
   private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
-      String fileName, Configuration tonyConf, Configuration hdfsConf) throws IOException {
+      String fileName, Configuration tonyConf, FileSystem fs) throws IOException {
     Path dst = new Path(hdfsPath, fileName);
-    FileSystem fs = FileSystem.get(hdfsConf);
     fs.copyFromLocalFile(filePath, dst);
     fs.setPermission(dst, new FsPermission((short) 0770));
     appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), dst.toString(), tonyConf);

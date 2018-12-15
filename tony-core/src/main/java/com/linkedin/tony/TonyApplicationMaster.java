@@ -1074,7 +1074,7 @@ public class TonyApplicationMaster {
       String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
       if (null != resources) {
         for (String dir : resources) {
-          Utils.addResource(dir, containerResources, hdfsConf);
+          Utils.addResource(dir, containerResources, fs);
         }
       }
 
@@ -1082,7 +1082,7 @@ public class TonyApplicationMaster {
       resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
       if (null != resources) {
         for (String dir : resources) {
-          Utils.addResource(dir, containerResources, hdfsConf);
+          Utils.addResource(dir, containerResources, fs);
         }
       }
 

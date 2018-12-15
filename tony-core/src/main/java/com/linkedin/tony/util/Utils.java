@@ -19,7 +19,6 @@ import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
@@ -410,11 +409,10 @@ public class Utils {
    * Add files inside a path to local resources. If the path is a directory, its first level files will be added
    * to the local resources. Note that we don't add nested files.
    * @param path the directory whose contents will be localized.
-   * @param hdfsConf the configuration file for HDFS.
+   * @param fs the configuration file for HDFS.
    */
-  public static void addResource(String path, Map<String, LocalResource> resourcesMap, Configuration hdfsConf) {
+  public static void addResource(String path, Map<String, LocalResource> resourcesMap, FileSystem fs) {
     try {
-      FileSystem fs = FileSystem.get(hdfsConf);
       if (path != null) {
         FileStatus[] ls = fs.listStatus(new Path(path));
         for (FileStatus jar : ls) {
