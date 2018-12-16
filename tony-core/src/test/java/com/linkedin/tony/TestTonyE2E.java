@@ -72,7 +72,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[] {
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -89,7 +89,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
@@ -105,7 +105,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -120,7 +120,7 @@ public class TestTonyE2E {
   public void testPSWorkerTrainingShouldPass() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_env.py",
+        "--executes", "exit_0_check_env.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -134,7 +134,7 @@ public class TestTonyE2E {
   public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0_check_pytorchenv.py",
+        "--executes", "exit_0_check_pytorchenv.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
@@ -151,7 +151,7 @@ public class TestTonyE2E {
   public void testPSWorkerTrainingShouldFail() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--executes", "exit_1.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
@@ -166,7 +166,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--executes", "exit_1.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
@@ -181,7 +181,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--executes", "exit_0.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.TEST_AM_CRASH + "=true",
@@ -200,7 +200,7 @@ public class TestTonyE2E {
    */
   @Test
   public void testAMStopsJobAfterWorker0Killed() throws ParseException {
-    client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "tony-core/src/test/resources/exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
+    client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
         Constants.TEST_WORKER_TERMINATED + "=true"});
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
@@ -210,10 +210,10 @@ public class TestTonyE2E {
    * Test amRpcClient is nulled out after client finishes.
    */
   @Test
-  public void testNullAMRpcClient() throws Exception {
+  public void testNullAMRpcClient() throws ParseException {
     String[] args = new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_0.py",
+        "--executes", "exit_0.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python"
     };
@@ -228,7 +228,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "tony-core/src/test/resources/exit_1.py",
+        "--executes", "exit_1.py",
         "--hdfs_classpath", "/yarn/libs",
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
@@ -247,6 +247,26 @@ public class TestTonyE2E {
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--conf", "tony.worker.resources=/yarn/libs",
         "--conf", "tony.ps.instances=0",
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+
+  /*
+   * In conditional_wait.py script, we wait for 5s for chief job type. If we only wait for worker to finish, this test
+   * is gonna fail.
+   */
+  @Test
+  public void testWaitingForChiefToFinish() throws ParseException {
+    client = new TonyClient(conf);
+    client.init(new String[]{
+        "--src_dir", "tony-core/src/test/resources/",
+        "--executes", "'python conditional_wait.py'",
+        "--hdfs_classpath", "/yarn/libs",
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.application.ignored.jobtypes=worker",
+        "--conf", "tony.chief.instances=1",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
