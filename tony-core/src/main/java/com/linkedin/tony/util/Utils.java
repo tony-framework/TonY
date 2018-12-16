@@ -21,6 +21,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -469,6 +470,11 @@ public class Utils {
       warningMsg = "Failed to create " + dir + ": " + e.toString();
       LOG.error(warningMsg);
     }
+  }
+
+  public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
+    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES, TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
+    return !Arrays.asList(ignoredJobTypes).contains(taskName);
   }
 
   private Utils() { }

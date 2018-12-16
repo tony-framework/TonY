@@ -90,7 +90,7 @@ public class TestEventHandler {
   @Test
   public void testEventHandlerConstructor_failedToSetUpWriter() throws IOException {
     FileSystem mockFs = mock(FileSystem.class);
-    when(mockFs.create(any(Path.class))).thenThrow(new IOException("IO Excpt"));
+    when(mockFs.create(any(Path.class))).thenThrow(new IOException("IO Exception"));
 
     // we don't need to assign to a variable since we don't use it
     new EventHandler(mockFs, eventQueue);
