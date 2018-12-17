@@ -54,7 +54,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseMetadata_success() {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     JobMetadata expected = new JobMetadata("application123", "/" + Constants.JOBS_SUFFIX + "/application123",
         "/" + Constants.CONFIG_SUFFIX + "/application123", 1, 1, "SUCCEEDED", "user1");
@@ -71,7 +71,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseMetadata_fail_IOException() throws IOException {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
@@ -82,7 +82,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseConfig_success() {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     List<JobConfig> expected = new ArrayList<>();
     JobConfig expectedConfig = new JobConfig();
     expectedConfig.setName("name");
@@ -102,7 +102,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseConfig_fail_IOException() throws IOException {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
 

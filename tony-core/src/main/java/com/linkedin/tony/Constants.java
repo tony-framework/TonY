@@ -96,5 +96,8 @@ public class Constants {
   // file and CLI confs are combined. This file is uploaded to HDFS and localized to containers
   public static final String TONY_FINAL_XML = "tony-final.xml";
 
+  // Module relative path
+  public static final String TONY_CORE_SRC = "./tony-core/src/";
+
   private Constants() { }
 }
