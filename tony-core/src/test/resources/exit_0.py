@@ -4,10 +4,5 @@ See LICENSE in the project root for license information.
 """
 import time
 
-
-def return_zero():
-    time.sleep(1)
-    return 0
-
-
-exit(return_zero())
+time.sleep(1)
+exit(0)
