@@ -120,11 +120,11 @@ public class TestTonyE2E {
   public void testPSWorkerTrainingShouldPass() throws ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "exit_0_check_env.py",
+        "--executes", "'python check_env_and_venv.py'",
         "--hdfs_classpath", "/yarn/libs",
-        "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--python_venv", "tony-core/src/test/resources/test.zip",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);

@@ -171,7 +171,7 @@ public class TonyClient implements AutoCloseable {
     }
 
     if (pythonVenv != null) {
-      uploadFileAndSetConfResources(appResourcesPath, new Path(pythonVenv), tonyConf, fs);
+      uploadFileAndSetConfResources(appResourcesPath, new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs);
     }
 
     if (yarnConfAddress != null) {
