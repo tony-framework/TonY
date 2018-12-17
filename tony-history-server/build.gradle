@@ -11,6 +11,7 @@ model {
       sources {
         twirlTemplates {
           defaultImports = TwirlImports.JAVA
+          setAdditionalImports(['com.linkedin.tony.models._'])
         }
       }
     }

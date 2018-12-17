@@ -1,8 +1,15 @@
-package utils;
+/**
+ * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
+ * See LICENSE in the project root for license information.
+ */
+package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.events.Event;
+import com.linkedin.tony.models.JobConfig;
+import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -12,12 +19,11 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import models.JobConfig;
-import models.JobEvent;
-import models.JobMetadata;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.specific.SpecificDatumReader;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -26,16 +32,15 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import play.Logger;
 
-import static utils.HdfsUtils.*;
+import static com.linkedin.tony.util.HdfsUtils.*;
 
 
 /**
  * The class handles parsing different file format
  */
 public class ParserUtils {
-  private static final Logger.ALogger LOG = Logger.of(ParserUtils.class);
+  private static final Log LOG = LogFactory.getLog(ParserUtils.class);
 
   /**
    * Checks if {@code fileName} string contains valid metadata.
@@ -51,7 +56,7 @@ public class ParserUtils {
    * @return true if {@code fileName} are in proper format, false otherwise.
    */
   @VisibleForTesting
-  static boolean isValidHistFileName(String fileName, String jobIdRegex) {
+  public static boolean isValidHistFileName(String fileName, String jobIdRegex) {
     String histFileNoExt = fileName.substring(0, fileName.lastIndexOf('.'));
     String[] metadataArr = histFileNoExt.split("-");
     if (metadataArr.length != 5) {
@@ -167,7 +172,7 @@ public class ParserUtils {
    * @param jobFolderPath Path object of job directory.
    * @return a list of {@code JobEvent} objects.
    */
-  public static List<JobEvent> parseEvents(FileSystem fs, Path jobFolderPath) {
+  public static List<Event> parseEvents(FileSystem fs, Path jobFolderPath) {
     if (!pathExists(fs, jobFolderPath)) {
       return Collections.emptyList();
     }
@@ -178,18 +183,14 @@ public class ParserUtils {
     }
 
     Path historyFile = new Path(jhistFile);
-    List<JobEvent> events = new ArrayList<>();
+    List<Event> events = new ArrayList<>();
     try (InputStream in = fs.open(historyFile)) {
       DatumReader<Event> datumReader = new SpecificDatumReader<>(Event.class);
       try (DataFileStream<Event> avroFileStream = new DataFileStream<>(in, datumReader)) {
         Event record = null;
         while (avroFileStream.hasNext()) {
           record = avroFileStream.next(record);
-          JobEvent wrapper = new JobEvent();
-          wrapper.setType(record.getType());
-          wrapper.setEvent(record.getEvent());
-          wrapper.setTimestamp(record.getTimestamp());
-          events.add(wrapper);
+          events.add(record);
         }
       } catch (IOException e) {
         LOG.error("Failed to read events from " + historyFile);
@@ -198,6 +199,18 @@ public class ParserUtils {
       LOG.error("Failed to open history file", e);
     }
     return events;
+  }
+
+  public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
+    List<JobEvent> jobEvents = new ArrayList<>();
+    for (Event e : events) {
+      JobEvent wrapper = new JobEvent();
+      wrapper.setType(e.getType());
+      wrapper.setEvent(e.getEvent());
+      wrapper.setTimestamp(e.getTimestamp());
+      jobEvents.add(wrapper);
+    }
+    return jobEvents;
   }
 
   private ParserUtils() { }

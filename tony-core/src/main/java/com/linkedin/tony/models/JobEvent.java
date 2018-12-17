@@ -1,4 +1,8 @@
-package models;
+/**
+ * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
+ * See LICENSE in the project root for license information.
+ */
+package com.linkedin.tony.models;
 
 import com.linkedin.tony.events.EventType;
 import java.util.Date;

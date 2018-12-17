@@ -2,6 +2,7 @@ package hadoop;
 
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.typesafe.config.Config;
 import java.io.IOException;
@@ -13,7 +14,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import play.Logger;
 import utils.ConfigUtils;
-import utils.HdfsUtils;
 
 
 /**

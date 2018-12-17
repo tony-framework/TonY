@@ -1,4 +1,8 @@
-package utils;
+/**
+ * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
+ * See LICENSE in the project root for license information.
+ */
+package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.io.BufferedReader;
@@ -9,19 +13,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
-import play.Logger;
 
 
 /**
  * The class handles all HDFS file operations
  */
 public class HdfsUtils {
-  private static final Logger.ALogger LOG = Logger.of(HdfsUtils.class);
+  private static final Log LOG = LogFactory.getLog(ParserUtils.class);
   private static final FileStatus[] NO_FILES = {};
 
   /**
@@ -51,7 +56,7 @@ public class HdfsUtils {
    * @param filePath path of file to validate.
    * @return true if path is valid, false otherwise.
    */
-  static boolean pathExists(FileSystem fs, Path filePath) {
+  public static boolean pathExists(FileSystem fs, Path filePath) {
     try {
       return fs.exists(filePath);
     } catch (IOException e) {
@@ -66,7 +71,7 @@ public class HdfsUtils {
    * @param filePath path of file to read from.
    * @return the content of the file, or empty string if errors occur during read.
    */
-  static String contentOfHdfsFile(FileSystem fs, Path filePath) {
+  public static String contentOfHdfsFile(FileSystem fs, Path filePath) {
     StringBuilder fileContent = new StringBuilder();
     try (FSDataInputStream inStrm = fs.open(filePath);
         BufferedReader bufReader = new BufferedReader(new InputStreamReader(inStrm))) {
@@ -102,7 +107,7 @@ public class HdfsUtils {
    * @return true if path {@code p} is a job folder path, false otherwise.
    */
   @VisibleForTesting
-  static boolean isJobFolder(Path p, String regex) {
+  public static boolean isJobFolder(Path p, String regex) {
     return p != null && getJobId(p.toString()).matches(regex);
   }
 

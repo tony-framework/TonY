@@ -1,17 +1,22 @@
-package utils;
+/**
+ * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
+ * See LICENSE in the project root for license information.
+ */
+package com.linkedin.tony;
 
+import com.linkedin.tony.models.JobConfig;
+import com.linkedin.tony.models.JobMetadata;
+import com.linkedin.tony.util.ParserUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import models.JobConfig;
-import models.JobMetadata;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
-import static org.junit.Assert.*;
+import static org.testng.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class TestParserUtils {
@@ -49,7 +54,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseMetadata_success() {
-    Path jobFolder = new Path("./test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     JobMetadata expected =
         new JobMetadata("application123", "/jobs/application123", "/config/application123", 1, 1, "SUCCEEDED", "user1");
@@ -66,7 +71,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseMetadata_fail_IOException() throws IOException {
-    Path jobFolder = new Path("./test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
@@ -77,7 +82,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseConfig_success() {
-    Path jobFolder = new Path("./test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
     List<JobConfig> expected = new ArrayList<>();
     JobConfig expectedConfig = new JobConfig();
     expectedConfig.setName("name");
@@ -97,7 +102,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseConfig_fail_IOException() throws IOException {
-    Path jobFolder = new Path("./test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
 
