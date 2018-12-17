@@ -203,15 +203,7 @@ public class ParserUtils {
   }
 
   public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
-    return events.stream().map(ParserUtils::initJobEvent).collect(Collectors.toList());
-  }
-
-  private static JobEvent initJobEvent(Event e) {
-    JobEvent wrapper = new JobEvent();
-    wrapper.setType(e.getType());
-    wrapper.setEvent(e.getEvent());
-    wrapper.setTimestamp(e.getTimestamp());
-    return wrapper;
+    return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
   }
 
   private ParserUtils() { }

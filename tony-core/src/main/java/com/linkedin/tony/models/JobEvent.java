@@ -4,6 +4,7 @@
  */
 package com.linkedin.tony.models;
 
+import com.linkedin.tony.events.Event;
 import com.linkedin.tony.events.EventType;
 import java.util.Date;
 
@@ -35,5 +36,13 @@ public class JobEvent {
 
   public void setTimestamp(long timestamp) {
     this.timestamp = timestamp;
+  }
+
+  public static JobEvent convertEventToJobEvent(Event e) {
+    JobEvent wrapper = new JobEvent();
+    wrapper.setType(e.getType());
+    wrapper.setEvent(e.getEvent());
+    wrapper.setTimestamp(e.getTimestamp());
+    return wrapper;
   }
 }
