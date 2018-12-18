@@ -275,13 +275,12 @@ public class TonyApplicationMaster {
   static String buildTaskCommand(String pythonBinaryPath, String script,
       String taskParams) {
     String pythonInterpreter = "";
-    if (!new File(Constants.PYTHON_VENV_ZIP).exists() || pythonBinaryPath.startsWith("/")) {
-      if (pythonBinaryPath != null) {
+    if (pythonBinaryPath != null) {
+      if (pythonBinaryPath.startsWith("/") || !new File(Constants.PYTHON_VENV_ZIP).exists()) {
         pythonInterpreter = pythonBinaryPath;
+      } else {
+        pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
       }
-    } else {
-      // Note that we always extract the Python venv zip to a "venv" (Constants.PYTHON_VENV_DIR) directory.
-      pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar + pythonBinaryPath;
     }
 
     String baseTaskCommand = pythonInterpreter + " " + script;
