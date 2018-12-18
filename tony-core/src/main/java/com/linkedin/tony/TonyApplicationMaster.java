@@ -275,7 +275,7 @@ public class TonyApplicationMaster {
   static String buildTaskCommand(String pythonBinaryPath, String script,
       String taskParams) {
     String pythonInterpreter = "";
-    if (!new File(Constants.PYTHON_VENV_DIR).exists() || pythonBinaryPath.startsWith("/")) {
+    if (!new File(Constants.PYTHON_VENV_ZIP).exists() || pythonBinaryPath.startsWith("/")) {
       if (pythonBinaryPath != null) {
         pythonInterpreter = pythonBinaryPath;
       }
