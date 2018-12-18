@@ -338,6 +338,8 @@ public class TonyApplicationMaster {
 
     mainThread = Thread.currentThread();
     EventHandler eventHandlerThread = new EventHandler(fs, eventQueue);
+    eventHandlerThread.setUpThread(jobDir,
+        TonyJobMetadata.newInstance(yarnConf, appIdString, started, null, null, user));
     eventHandlerThread.start();
     boolean succeeded;
     do {

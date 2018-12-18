@@ -5,17 +5,14 @@
 package com.linkedin.tony;
 
 import com.linkedin.tony.util.Utils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 
 public class TonyJobMetadata {
-  private static final Log LOG = LogFactory.getLog(TonyJobMetadata.class);
   private String id;
   private String url;
-  private long started;
-  private long completed;
+  private Long started;
+  private Long completed;
   private String status;
   private String user;
 
@@ -23,13 +20,13 @@ public class TonyJobMetadata {
   TonyJobMetadata() {
     this.id = "";
     this.url = "";
-    this.started = 0;
-    this.completed = 0;
+    this.started = (long) 0;
+    this.completed = (long) 0;
     this.status = "";
     this.user = "";
   }
 
-  private TonyJobMetadata(String id, String url, long started, long completed, String status, String user) {
+  private TonyJobMetadata(String id, String url, Long started, Long completed, String status, String user) {
     this.id = id;
     this.url = url;
     this.started = started;
@@ -38,9 +35,14 @@ public class TonyJobMetadata {
     this.user = user;
   }
 
-  public static TonyJobMetadata newInstance(Configuration yarnConf, String appId, long started, long completed,
-      boolean status, String user) {
-    String jobStatus = status ? "SUCCEEDED" : "FAILED";
+  // Since newInstance could be called when the job hasn't finished,
+  // `completed` and `status` could be null
+  public static TonyJobMetadata newInstance(Configuration yarnConf, String appId, Long started, Long completed,
+      Boolean status, String user) {
+    String jobStatus = null;
+    if (status != null) {
+      jobStatus = status ? "SUCCEEDED" : "FAILED";
+    }
     return new TonyJobMetadata(appId, Utils.buildRMUrl(yarnConf, appId), started, completed, jobStatus, user);
   }
 
@@ -48,11 +50,11 @@ public class TonyJobMetadata {
     return id;
   }
 
-  public long getStarted() {
+  public Long getStarted() {
     return started;
   }
 
-  public long getCompleted() {
+  public Long getCompleted() {
     return completed;
   }
 

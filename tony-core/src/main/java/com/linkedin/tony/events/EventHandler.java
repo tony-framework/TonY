@@ -5,7 +5,6 @@
 package com.linkedin.tony.events;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyJobMetadata;
 import com.linkedin.tony.util.HistoryFileUtils;
 import java.io.IOException;
@@ -24,18 +23,26 @@ public class EventHandler extends Thread {
   private static final Log LOG = LogFactory.getLog(EventHandler.class);
   private boolean isStopped = false;
   private BlockingQueue<Event> eventQueue;
-  private Path historyFile = null;
-  private Path tmpFile = new Path(Constants.TMP_AVRO);
+  private Path finalHistFile = null;
+  private Path tmpHistFile;
   private DatumWriter<Event> eventWriter = new SpecificDatumWriter<>();
   private DataFileWriter<Event> dataFileWriter = new DataFileWriter<>(eventWriter);
   private OutputStream out;
   private FileSystem myFs;
 
+  // Call the constructor to initialize the queue and fs object,
+  // and then call setUpThread with the appropriate parameters
+  // to set up destination path for event writer
   public EventHandler(FileSystem fs, BlockingQueue<Event> q) {
     eventQueue = q;
     myFs = fs;
+  }
+
+  @VisibleForTesting
+  public void setUpThread(Path jobDir, TonyJobMetadata metadata) {
+    tmpHistFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
     try {
-      out = myFs.create(tmpFile);
+      out = myFs.create(tmpHistFile);
       dataFileWriter.create(Event.SCHEMA$, out);
     } catch (IOException e) {
       LOG.error("Failed to set up writer", e);
@@ -86,17 +93,25 @@ public class EventHandler extends Thread {
 
     try {
       dataFileWriter.close();
-      out.close();
+      if (out != null) {
+        out.close();
+      }
     } catch (IOException e) {
       LOG.error("Failed to close writer", e);
     }
 
-    // At this point, historyFile should be set
+    // If setupThread method fails to create tmpHistFile,
+    // return immediately since we don't have any file to begin with
+    if (tmpHistFile == null) {
+      return;
+    }
+
+    // At this point, finalHistFile should be set
     // If not, then discard all events
-    if (historyFile == null) {
+    if (finalHistFile == null) {
       LOG.info("No history file found. Discard all events.");
       try {
-        myFs.delete(tmpFile, true);
+        myFs.delete(tmpHistFile, true);
       } catch (IOException e) {
         LOG.error("Failed to discard all events", e);
       }
@@ -104,7 +119,7 @@ public class EventHandler extends Thread {
     }
 
     try {
-      myFs.rename(tmpFile, historyFile);
+      myFs.rename(tmpHistFile, finalHistFile);
     } catch (IOException e) {
       LOG.error("Failed to rename to jhist file", e);
     }
@@ -117,7 +132,7 @@ public class EventHandler extends Thread {
       this.interrupt();
       return;
     }
-    historyFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
+    finalHistFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
     this.interrupt();
   }
 }
