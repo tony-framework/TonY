@@ -54,24 +54,24 @@ public class TestParserUtils {
 
   @Test
   public void testParseMetadata_success() {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
-    JobMetadata expected =
-        new JobMetadata("application123", "/jobs/application123", "/config/application123", 1, 1, "SUCCEEDED", "user1");
+    JobMetadata expected = new JobMetadata("application123", "/" + Constants.JOBS_SUFFIX + "/application123",
+        "/" + Constants.CONFIG_SUFFIX + "/application123", 1, 1, "SUCCEEDED", "user1");
     JobMetadata actual = ParserUtils.parseMetadata(fs, jobFolder, jobRegex);
 
-    assertEquals(expected.getId(), actual.getId());
-    assertEquals(expected.getJobLink(), actual.getJobLink());
-    assertEquals(expected.getConfigLink(), actual.getConfigLink());
-    assertEquals(expected.getStartedDate(), actual.getStartedDate());
-    assertEquals(expected.getCompletedDate(), actual.getCompletedDate());
-    assertEquals(expected.getStatus(), actual.getStatus());
-    assertEquals(expected.getUser(), actual.getUser());
+    assertEquals(actual.getId(), expected.getId());
+    assertEquals(actual.getJobLink(), expected.getJobLink());
+    assertEquals(actual.getConfigLink(), expected.getConfigLink());
+    assertEquals(actual.getStartedDate(), expected.getStartedDate());
+    assertEquals(actual.getCompletedDate(), expected.getCompletedDate());
+    assertEquals(actual.getStatus(), expected.getStatus());
+    assertEquals(actual.getUser(), expected.getUser());
   }
 
   @Test
   public void testParseMetadata_fail_IOException() throws IOException {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
@@ -82,7 +82,7 @@ public class TestParserUtils {
 
   @Test
   public void testParseConfig_success() {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     List<JobConfig> expected = new ArrayList<>();
     JobConfig expectedConfig = new JobConfig();
     expectedConfig.setName("name");
@@ -93,16 +93,16 @@ public class TestParserUtils {
     expected.add(expectedConfig);
     List<JobConfig> actual = ParserUtils.parseConfig(fs, jobFolder);
 
-    assertEquals(expected.size(), actual.size());
-    assertEquals(expected.get(0).getName(), actual.get(0).getName());
-    assertEquals(expected.get(0).getValue(), actual.get(0).getValue());
-    assertEquals(expected.get(0).isFinal(), actual.get(0).isFinal());
-    assertEquals(expected.get(0).getSource(), actual.get(0).getSource());
+    assertEquals(actual.size(), expected.size());
+    assertEquals(actual.get(0).getName(), expected.get(0).getName());
+    assertEquals(actual.get(0).getValue(), expected.get(0).getValue());
+    assertEquals(actual.get(0).isFinal(), expected.get(0).isFinal());
+    assertEquals(actual.get(0).getSource(), expected.get(0).getSource());
   }
 
   @Test
   public void testParseConfig_fail_IOException() throws IOException {
-    Path jobFolder = new Path("./tony-core/src/test/resources/typicalHistFolder/job1");
+    Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
 

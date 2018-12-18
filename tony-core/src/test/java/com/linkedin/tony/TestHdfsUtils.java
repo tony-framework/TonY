@@ -35,14 +35,14 @@ public class TestHdfsUtils {
 
   @Test
   public void testScanDir_emptyDir() {
-    Path histFolder = new Path("./tony-core/src/test/resources/emptyHistFolder");
+    Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/emptyHistFolder");
 
     assertEquals(HdfsUtils.scanDir(fs, histFolder).length, 0);
   }
 
   @Test
   public void testScanDir_typical() {
-    Path histFolder = new Path("./tony-core/src/test/resources/typicalHistFolder");
+    Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder");
     FileStatus[] res = HdfsUtils.scanDir(fs, histFolder);
     assertEquals(res.length, 5);
   }
@@ -65,7 +65,7 @@ public class TestHdfsUtils {
 
   @Test
   public void testPathExists_true() {
-    Path exists = new Path("./tony-core/src/test/resources/file.txt");
+    Path exists = new Path(Constants.TONY_CORE_SRC + "test/resources/file.txt");
 
     assertTrue(HdfsUtils.pathExists(fs, exists));
   }
@@ -89,14 +89,14 @@ public class TestHdfsUtils {
 
   @Test
   public void testContentOfHdfsFile_withContent() {
-    Path filePath = new Path("./tony-core/src/test/resources/file.txt");
+    Path filePath = new Path(Constants.TONY_CORE_SRC + "test/resources/file.txt");
 
     assertEquals(HdfsUtils.contentOfHdfsFile(fs, filePath),"someContent");
   }
 
   @Test
   public void testContentOfHdfsFile_noContent() {
-    Path filePath = new Path("./tony-core/src/test/resources/empty.txt");
+    Path filePath = new Path(Constants.TONY_CORE_SRC + "test/resources/empty.txt");
 
     assertEquals(HdfsUtils.contentOfHdfsFile(fs, filePath), "");
   }
@@ -104,7 +104,7 @@ public class TestHdfsUtils {
   @Test
   public void testContentOfHdfsFile_throwsException() throws IOException {
     FileSystem mockFs = mock(FileSystem.class);
-    Path filePath = new Path("./tony-core/src/test/resources/empty.txt");
+    Path filePath = new Path(Constants.TONY_CORE_SRC + "test/resources/empty.txt");
 
     when(mockFs.exists(filePath)).thenThrow(new IOException("IO Excpt"));
 
@@ -113,8 +113,8 @@ public class TestHdfsUtils {
 
   @Test
   public void testGetJobId_typicalCase() {
-    Path filePath1 = new Path("./tony-core/src/test/resources/job1");
-    Path filePath2 = new Path("./tony-core/src/test/resources/app2/");
+    Path filePath1 = new Path(Constants.TONY_CORE_SRC + "test/resources/job1");
+    Path filePath2 = new Path(Constants.TONY_CORE_SRC + "test/resources/app2/");
 
     assertEquals("job1", HdfsUtils.getJobId(filePath1.toString()));
     assertEquals("app2", HdfsUtils.getJobId(filePath2.toString()));
@@ -141,8 +141,8 @@ public class TestHdfsUtils {
 
   @Test
   public void testIsJobFolder_notMatch() {
-    Path filePath1 = new Path("./tony-core/src/test/job/application_1541469337545_0024");
-    Path filePath2 = new Path("./tony-core/src/test/resources/application2/");
+    Path filePath1 = new Path(Constants.TONY_CORE_SRC + "test/job/application_1541469337545_0024");
+    Path filePath2 = new Path(Constants.TONY_CORE_SRC + "test/resources/application2/");
     String regex1 = ".*job.*";
     String regex2 = "application_.*";
 
@@ -152,14 +152,14 @@ public class TestHdfsUtils {
 
   @Test
   public void testGetJobFolders_emptyHistoryFolder() {
-    Path histFolder = new Path("./tony-core/src/test/resources/emptyHistFolder");
+    Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/emptyHistFolder");
 
     assertEquals(HdfsUtils.getJobFolders(fs, histFolder, "job*"), new ArrayList<Path>());
   }
 
   @Test
   public void testGetJobFolders_typicalHistoryFolder() {
-    Path histFolder = new Path("./tony-core/src/test/resources/typicalHistFolder");
+    Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder");
     String regex = "^job.*";
     List<Path> expectedRes = new ArrayList<>();
 
@@ -178,7 +178,7 @@ public class TestHdfsUtils {
 
   @Test
   public void testGetJobFolders_nestedHistFolder() {
-    Path histFolder = new Path("./tony-core/src/test/resources/nestedHistFolder");
+    Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/nestedHistFolder");
     String regex = "^job.*";
     List<Path> expectedRes = new ArrayList<>();
     StringBuilder sb = new StringBuilder();
@@ -206,7 +206,7 @@ public class TestHdfsUtils {
 
   @Test
   public void testGetJobFolders_throwsException() throws IOException {
-    Path histFolder = new Path("./tony-core/src/test/resources/typicalHistFolder");
+    Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder");
     FileSystem mockFs = mock(FileSystem.class);
     String regex = "job*";
 

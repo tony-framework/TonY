@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -202,15 +203,7 @@ public class ParserUtils {
   }
 
   public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
-    List<JobEvent> jobEvents = new ArrayList<>();
-    for (Event e : events) {
-      JobEvent wrapper = new JobEvent();
-      wrapper.setType(e.getType());
-      wrapper.setEvent(e.getEvent());
-      wrapper.setTimestamp(e.getTimestamp());
-      jobEvents.add(wrapper);
-    }
-    return jobEvents;
+    return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
   }
 
   private ParserUtils() { }
