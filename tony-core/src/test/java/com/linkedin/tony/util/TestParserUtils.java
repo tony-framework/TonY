@@ -22,6 +22,7 @@ import static org.testng.Assert.*;
 
 public class TestParserUtils {
   private static FileSystem fs = null;
+  private YarnConfiguration yarnConf = new YarnConfiguration();
 
   @BeforeClass
   public static void setup() {
@@ -57,10 +58,10 @@ public class TestParserUtils {
   public void testParseMetadata_success() {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
-    String RMLink = Utils.buildRMUrl(new YarnConfiguration(), "application123");
+    String RMLink = Utils.buildRMUrl(yarnConf, "application123");
     JobMetadata expected = new JobMetadata("application123", "/" + Constants.JOBS_SUFFIX + "/application123",
-        "/" + Constants.CONFIG_SUFFIX + "/application123", RMLink,1, 1, "SUCCEEDED", "user1");
-    JobMetadata actual = ParserUtils.parseMetadata(fs, jobFolder, jobRegex);
+        "/" + Constants.CONFIG_SUFFIX + "/application123", RMLink, 1, 1, "SUCCEEDED", "user1");
+    JobMetadata actual = ParserUtils.parseMetadata(fs, yarnConf, jobFolder, jobRegex);
 
     assertEquals(actual.getId(), expected.getId());
     assertEquals(actual.getJobLink(), expected.getJobLink());
@@ -79,7 +80,7 @@ public class TestParserUtils {
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));
 
-    JobMetadata result = ParserUtils.parseMetadata(mockFs, jobFolder, jobRegex);
+    JobMetadata result = ParserUtils.parseMetadata(mockFs, yarnConf, jobFolder, jobRegex);
     assertNull(result);
   }
 

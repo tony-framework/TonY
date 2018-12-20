@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -101,7 +102,7 @@ public class ParserUtils {
    * @param jobIdRegex Regular expression string to validate metadata.
    * @return a {@code JobMetadata} object.
    */
-  public static JobMetadata parseMetadata(FileSystem fs, Path jobFolderPath, String jobIdRegex) {
+  public static JobMetadata parseMetadata(FileSystem fs, YarnConfiguration yarnConf, Path jobFolderPath, String jobIdRegex) {
     if (!pathExists(fs, jobFolderPath)) {
       return null;
     }
@@ -114,7 +115,7 @@ public class ParserUtils {
     }
 
     LOG.debug("Successfully parsed metadata");
-    return JobMetadata.newInstance(histFileName);
+    return JobMetadata.newInstance(yarnConf, histFileName);
   }
 
   /**

@@ -31,7 +31,7 @@ public class JobMetadata {
     this.user = user;
   }
 
-  public static JobMetadata newInstance(String histFileName) {
+  public static JobMetadata newInstance(YarnConfiguration conf, String histFileName) {
     String histFileNoExt = histFileName.substring(0, histFileName.lastIndexOf('.'));
     String[] metadata = histFileNoExt.split("-");
     String id = metadata[0];
@@ -41,7 +41,7 @@ public class JobMetadata {
     long completed = Long.parseLong(metadata[2]);
     String user = metadata[3];
     String status = metadata[4];
-    String rmLink = Utils.buildRMUrl(new YarnConfiguration(), id);
+    String rmLink = Utils.buildRMUrl(conf, id);
     return new JobMetadata(id, jobLink, configLink, rmLink, started, completed, status, user);
   }
 
