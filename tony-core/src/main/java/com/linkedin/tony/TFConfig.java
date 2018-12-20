@@ -15,7 +15,7 @@ public class TFConfig {
   private Map<String, List<String>> clusterSpec;
   private Task task;
 
-  static class Task {
+  public static class Task {
     private String type;
     private int index;
 

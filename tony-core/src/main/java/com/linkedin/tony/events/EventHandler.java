@@ -24,7 +24,7 @@ public class EventHandler extends Thread {
   private boolean isStopped = false;
   private BlockingQueue<Event> eventQueue;
   private Path finalHistFile = null;
-  private Path tmpHistFile;
+  private Path inProgressHistFile = null;
   private DatumWriter<Event> eventWriter = new SpecificDatumWriter<>();
   private DataFileWriter<Event> dataFileWriter = new DataFileWriter<>(eventWriter);
   private OutputStream out;
@@ -38,11 +38,13 @@ public class EventHandler extends Thread {
     myFs = fs;
   }
 
-  @VisibleForTesting
-  public void setUpThread(Path jobDir, TonyJobMetadata metadata) {
-    tmpHistFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
+  public void setUpThread(Path intermDir, TonyJobMetadata metadata) {
+    if (intermDir == null) {
+      return;
+    }
+    inProgressHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
     try {
-      out = myFs.create(tmpHistFile);
+      out = myFs.create(inProgressHistFile);
       dataFileWriter.create(Event.SCHEMA$, out);
     } catch (IOException e) {
       LOG.error("Failed to set up writer", e);
@@ -50,7 +52,7 @@ public class EventHandler extends Thread {
   }
 
   @VisibleForTesting
-  public void writeEvent(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+  void writeEvent(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
     Event event = null;
     try {
       event = queue.take();
@@ -63,7 +65,7 @@ public class EventHandler extends Thread {
   }
 
   @VisibleForTesting
-  public void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+  void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
     while (!eventQueue.isEmpty()) {
       try {
         Event event = queue.poll();
@@ -84,6 +86,13 @@ public class EventHandler extends Thread {
 
   @Override
   public void run() {
+    LOG.info("Checking if jhist file is ready...");
+    // If setupThread method fails to create inProgressHistFile,
+    // return immediately since we don't have any file to begin with
+    if (inProgressHistFile == null) {
+      return;
+    }
+
     while (!isStopped && !Thread.currentThread().isInterrupted()) {
       writeEvent(eventQueue, dataFileWriter);
     }
@@ -100,39 +109,26 @@ public class EventHandler extends Thread {
       LOG.error("Failed to close writer", e);
     }
 
-    // If setupThread method fails to create tmpHistFile,
-    // return immediately since we don't have any file to begin with
-    if (tmpHistFile == null) {
-      return;
-    }
-
     // At this point, finalHistFile should be set
-    // If not, then discard all events
+    // If not, then leave the inProgressHistFile as is.
     if (finalHistFile == null) {
-      LOG.info("No history file found. Discard all events.");
-      try {
-        myFs.delete(tmpHistFile, true);
-      } catch (IOException e) {
-        LOG.error("Failed to discard all events", e);
-      }
       return;
     }
 
     try {
-      myFs.rename(tmpHistFile, finalHistFile);
+      myFs.rename(inProgressHistFile, finalHistFile);
     } catch (IOException e) {
       LOG.error("Failed to rename to jhist file", e);
     }
   }
 
-  public void stop(Path jobDir, TonyJobMetadata metadata) {
-    isStopped = true;
-    LOG.info("Stopped event handler thread");
-    if (jobDir == null) {
-      this.interrupt();
+  public void stop(Path intermDir, TonyJobMetadata metadata) {
+    if (inProgressHistFile == null) {
       return;
     }
-    finalHistFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
+    isStopped = true;
+    LOG.info("Stopped event handler thread");
+    finalHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
     this.interrupt();
   }
 }

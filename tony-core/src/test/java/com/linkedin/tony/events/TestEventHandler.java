@@ -2,12 +2,9 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony;
+package com.linkedin.tony.events;
 
-import com.linkedin.tony.events.ApplicationInited;
-import com.linkedin.tony.events.Event;
-import com.linkedin.tony.events.EventHandler;
-import com.linkedin.tony.events.EventType;
+import com.linkedin.tony.TonyJobMetadata;
 import com.linkedin.tony.util.Utils;
 import java.io.IOException;
 import java.util.List;

@@ -2,12 +2,12 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony;
+package com.linkedin.tony.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
-import com.linkedin.tony.util.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

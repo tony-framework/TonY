@@ -2,10 +2,9 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony;
+package com.linkedin.tony.util;
 
-import com.linkedin.tony.util.HistoryFileUtils;
-import org.apache.hadoop.conf.Configuration;
+import com.linkedin.tony.TonyJobMetadata;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
@@ -23,11 +22,14 @@ public class TestHistoryFileUtils {
   @Test
   public void testGenerateFileName_inprogressJob() {
     String appId = "app123";
-    Long started = (long) 1;
+    long started = 1L;
     String user = "user";
 
-    TonyJobMetadata metadata =
-        TonyJobMetadata.newInstance(new Configuration(), appId, started, null, null, user);
+    TonyJobMetadata metadata = new TonyJobMetadata.Builder()
+        .setId(appId)
+        .setStartedTime(started)
+        .setUser(user)
+        .build();
     String expectedName = "app123-1-user.jhist.inprogress";
 
     assertEquals(HistoryFileUtils.generateFileName(metadata), expectedName);
@@ -36,13 +38,17 @@ public class TestHistoryFileUtils {
   @Test
   public void testGenerateFileName_finishedJob() {
     String appId = "app123";
-    Long started = (long) 1;
-    Long completed = (long) 2;
+    long started = 1L;
+    long completed = 2L;
     String user = "user";
-    Boolean status = true;
 
-    TonyJobMetadata metadata =
-        TonyJobMetadata.newInstance(new Configuration(), appId, started, completed, status, user);
+    TonyJobMetadata metadata = new TonyJobMetadata.Builder()
+        .setId(appId)
+        .setStartedTime(started)
+        .setCompleted(completed)
+        .setUser(user)
+        .setStatus(true)
+        .build();
     String expectedName = "app123-1-2-user-SUCCEEDED.jhist";
 
     assertEquals(HistoryFileUtils.generateFileName(metadata), expectedName);

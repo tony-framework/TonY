@@ -338,8 +338,14 @@ public class TonyApplicationMaster {
 
     mainThread = Thread.currentThread();
     EventHandler eventHandlerThread = new EventHandler(fs, eventQueue);
-    eventHandlerThread.setUpThread(jobDir,
-        TonyJobMetadata.newInstance(yarnConf, appIdString, started, null, null, user));
+    // Set up the builder with parameters that don't change
+    TonyJobMetadata.Builder metadataBuilder = new TonyJobMetadata.Builder()
+        .setId(appIdString)
+        .setConf(yarnConf)
+        .setStartedTime(started)
+        .setUser(user);
+    TonyJobMetadata metadata = metadataBuilder.build();
+    eventHandlerThread.setUpThread(jobDir, metadata);
     eventHandlerThread.start();
     boolean succeeded;
     do {
@@ -374,7 +380,11 @@ public class TonyApplicationMaster {
     long completed = System.currentTimeMillis();
     printTaskUrls();
     eventHandlerThread.emitEvent(constructEvent("APPLICATION_FINISHED"));
-    eventHandlerThread.stop(jobDir, TonyJobMetadata.newInstance(yarnConf, appIdString, started, completed, succeeded, user));
+    metadata = metadataBuilder
+        .setCompleted(completed)
+        .setStatus(succeeded)
+        .build();
+    eventHandlerThread.stop(jobDir, metadata);
 
     // Wait for eventHandlerThread to wrap up before exiting
     try {

@@ -14,7 +14,7 @@ public class HistoryFileUtils {
     sb.append("-");
     sb.append(metadata.getStarted());
     sb.append("-");
-    if (metadata.getCompleted() != null) {
+    if (metadata.getCompleted() != -1L) {
       sb.append(metadata.getCompleted());
       sb.append("-");
     }
