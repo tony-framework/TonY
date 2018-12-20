@@ -2,12 +2,9 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony;
+package com.linkedin.tony.events;
 
-import com.linkedin.tony.events.ApplicationInited;
-import com.linkedin.tony.events.Event;
-import com.linkedin.tony.events.EventHandler;
-import com.linkedin.tony.events.EventType;
+import com.linkedin.tony.TonyJobMetadata;
 import com.linkedin.tony.util.Utils;
 import java.io.IOException;
 import java.util.List;
@@ -53,12 +50,13 @@ public class TestEventHandler {
   }
 
   @Test
-  public void testEventHandlerConstructor_failedToSetUpWriter() throws IOException {
+  public void testSetUpThread_failedToSetUpWriter() throws IOException {
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.create(any(Path.class))).thenThrow(new IOException("IO Exception"));
 
-    // we don't need to assign to a variable since we don't use it
-    new EventHandler(mockFs, eventQueue);
+    EventHandler thread = new EventHandler(mockFs, eventQueue);
+    thread.setUpThread(jobDir, metadata);
+    thread.stop(jobDir, metadata);
 
     verify(mockFs).create(any(Path.class));
   }
@@ -67,8 +65,12 @@ public class TestEventHandler {
   public void testEventHandlerE2E_success() throws InterruptedException, IOException {
     fs.mkdirs(jobDir);
     eventHandlerThread = new EventHandler(fs, eventQueue);
+    eventHandlerThread.setUpThread(jobDir, metadata);
     eventHandlerThread.start();
     eventHandlerThread.emitEvent(eEventWrapper);
+
+    // In real scenario, this `metadata` would be different from the
+    // `metadata` passed in `setUpThread` method (i.e with status and completed time)
     eventHandlerThread.stop(jobDir, metadata);
     eventHandlerThread.join();
     List<Event> events = parseEvents(fs, jobDir);
@@ -127,6 +129,6 @@ public class TestEventHandler {
 
   @AfterClass
   public void cleanUp() throws IOException {
-    fs.delete(new Path(Constants.TMP_AVRO), true);
+    fs.delete(jobDir, true);
   }
 }

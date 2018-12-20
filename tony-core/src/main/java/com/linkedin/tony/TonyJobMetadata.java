@@ -5,13 +5,10 @@
 package com.linkedin.tony;
 
 import com.linkedin.tony.util.Utils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 
 public class TonyJobMetadata {
-  private static final Log LOG = LogFactory.getLog(TonyJobMetadata.class);
   private String id;
   private String url;
   private long started;
@@ -19,40 +16,81 @@ public class TonyJobMetadata {
   private String status;
   private String user;
 
+  private TonyJobMetadata(TonyJobMetadata.Builder builder) {
+    this.id = builder.id;
+    this.url = Utils.buildRMUrl(builder.conf, builder.id);
+    this.started = builder.started;
+    this.completed = builder.completed;
+    this.status = builder.status;
+    this.user = builder.user;
+  }
+
+  public static class Builder {
+    private String id;
+    private long started = -1L;
+    private long completed = -1L;
+    private String status;
+    private String user;
+    private Configuration conf = new Configuration();
+
+    public TonyJobMetadata build() {
+      return new TonyJobMetadata(this);
+    }
+
+    public TonyJobMetadata.Builder setId(String id) {
+      this.id = id;
+      return this;
+    }
+
+    public TonyJobMetadata.Builder setConf(Configuration conf) {
+      this.conf = conf;
+      return this;
+    }
+
+    public TonyJobMetadata.Builder setStartedTime(long startTime) {
+      this.started = startTime;
+      return this;
+    }
+
+    public TonyJobMetadata.Builder setCompleted(long completed) {
+      this.completed = completed;
+      return this;
+    }
+
+    public TonyJobMetadata.Builder setStatus(Boolean status) {
+      String jobStatus = null;
+      if (status != null) {
+        jobStatus = status ? "SUCCEEDED" : "FAILED";
+      }
+      this.status = jobStatus;
+      return this;
+    }
+
+    public TonyJobMetadata.Builder setUser(String user) {
+      this.user = user;
+      return this;
+    }
+  }
+
   // for testing only
-  TonyJobMetadata() {
+  public TonyJobMetadata() {
     this.id = "";
     this.url = "";
-    this.started = 0;
-    this.completed = 0;
+    this.started = 0L;
+    this.completed = 0L;
     this.status = "";
     this.user = "";
-  }
-
-  private TonyJobMetadata(String id, String url, long started, long completed, String status, String user) {
-    this.id = id;
-    this.url = url;
-    this.started = started;
-    this.completed = completed;
-    this.status = status;
-    this.user = user;
-  }
-
-  public static TonyJobMetadata newInstance(Configuration yarnConf, String appId, long started, long completed,
-      boolean status, String user) {
-    String jobStatus = status ? "SUCCEEDED" : "FAILED";
-    return new TonyJobMetadata(appId, Utils.buildRMUrl(yarnConf, appId), started, completed, jobStatus, user);
   }
 
   public String getId() {
     return id;
   }
 
-  public long getStarted() {
+  public Long getStarted() {
     return started;
   }
 
-  public long getCompleted() {
+  public Long getCompleted() {
     return completed;
   }
 

@@ -2,11 +2,11 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony;
+package com.linkedin.tony.util;
 
+import com.linkedin.tony.Constants;
 import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.models.JobMetadata;
-import com.linkedin.tony.util.ParserUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +16,8 @@ import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 public class TestParserUtils {
   private static FileSystem fs = null;

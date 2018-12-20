@@ -5,7 +5,6 @@
 package com.linkedin.tony.events;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyJobMetadata;
 import com.linkedin.tony.util.HistoryFileUtils;
 import java.io.IOException;
@@ -24,18 +23,28 @@ public class EventHandler extends Thread {
   private static final Log LOG = LogFactory.getLog(EventHandler.class);
   private boolean isStopped = false;
   private BlockingQueue<Event> eventQueue;
-  private Path historyFile = null;
-  private Path tmpFile = new Path(Constants.TMP_AVRO);
+  private Path finalHistFile = null;
+  private Path inProgressHistFile = null;
   private DatumWriter<Event> eventWriter = new SpecificDatumWriter<>();
   private DataFileWriter<Event> dataFileWriter = new DataFileWriter<>(eventWriter);
   private OutputStream out;
   private FileSystem myFs;
 
+  // Call the constructor to initialize the queue and fs object,
+  // and then call setUpThread with the appropriate parameters
+  // to set up destination path for event writer
   public EventHandler(FileSystem fs, BlockingQueue<Event> q) {
     eventQueue = q;
     myFs = fs;
+  }
+
+  public void setUpThread(Path intermDir, TonyJobMetadata metadata) {
+    if (intermDir == null) {
+      return;
+    }
+    inProgressHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
     try {
-      out = myFs.create(tmpFile);
+      out = myFs.create(inProgressHistFile);
       dataFileWriter.create(Event.SCHEMA$, out);
     } catch (IOException e) {
       LOG.error("Failed to set up writer", e);
@@ -43,7 +52,7 @@ public class EventHandler extends Thread {
   }
 
   @VisibleForTesting
-  public void writeEvent(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+  void writeEvent(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
     Event event = null;
     try {
       event = queue.take();
@@ -56,7 +65,7 @@ public class EventHandler extends Thread {
   }
 
   @VisibleForTesting
-  public void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+  void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
     while (!eventQueue.isEmpty()) {
       try {
         Event event = queue.poll();
@@ -77,6 +86,13 @@ public class EventHandler extends Thread {
 
   @Override
   public void run() {
+    LOG.info("Checking if jhist file is ready...");
+    // If setupThread method fails to create inProgressHistFile,
+    // return immediately since we don't have any file to begin with
+    if (inProgressHistFile == null) {
+      return;
+    }
+
     while (!isStopped && !Thread.currentThread().isInterrupted()) {
       writeEvent(eventQueue, dataFileWriter);
     }
@@ -86,38 +102,33 @@ public class EventHandler extends Thread {
 
     try {
       dataFileWriter.close();
-      out.close();
+      if (out != null) {
+        out.close();
+      }
     } catch (IOException e) {
       LOG.error("Failed to close writer", e);
     }
 
-    // At this point, historyFile should be set
-    // If not, then discard all events
-    if (historyFile == null) {
-      LOG.info("No history file found. Discard all events.");
-      try {
-        myFs.delete(tmpFile, true);
-      } catch (IOException e) {
-        LOG.error("Failed to discard all events", e);
-      }
+    // At this point, finalHistFile should be set
+    // If not, then leave the inProgressHistFile as is.
+    if (finalHistFile == null) {
       return;
     }
 
     try {
-      myFs.rename(tmpFile, historyFile);
+      myFs.rename(inProgressHistFile, finalHistFile);
     } catch (IOException e) {
       LOG.error("Failed to rename to jhist file", e);
     }
   }
 
-  public void stop(Path jobDir, TonyJobMetadata metadata) {
-    isStopped = true;
-    LOG.info("Stopped event handler thread");
-    if (jobDir == null) {
-      this.interrupt();
+  public void stop(Path intermDir, TonyJobMetadata metadata) {
+    if (inProgressHistFile == null) {
       return;
     }
-    historyFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
+    isStopped = true;
+    LOG.info("Stopped event handler thread");
+    finalHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
     this.interrupt();
   }
 }

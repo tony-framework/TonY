@@ -18,8 +18,6 @@ public class Constants {
   public static final String JOBS_SUFFIX = "jobs";
   public static final String CONFIG_SUFFIX = "config";
 
-  public static final String TMP_AVRO = "tmp.avro";
-
   // TensorFlow constants
   public static final String TB_PORT = "TB_PORT";
   public static final String TASK_INDEX = "TASK_INDEX";
