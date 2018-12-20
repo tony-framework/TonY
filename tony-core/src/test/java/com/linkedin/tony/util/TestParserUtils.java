@@ -13,6 +13,7 @@ import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -56,13 +57,15 @@ public class TestParserUtils {
   public void testParseMetadata_success() {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
+    String RMLink = Utils.buildRMUrl(new YarnConfiguration(), "application123");
     JobMetadata expected = new JobMetadata("application123", "/" + Constants.JOBS_SUFFIX + "/application123",
-        "/" + Constants.CONFIG_SUFFIX + "/application123", 1, 1, "SUCCEEDED", "user1");
+        "/" + Constants.CONFIG_SUFFIX + "/application123", RMLink,1, 1, "SUCCEEDED", "user1");
     JobMetadata actual = ParserUtils.parseMetadata(fs, jobFolder, jobRegex);
 
     assertEquals(actual.getId(), expected.getId());
     assertEquals(actual.getJobLink(), expected.getJobLink());
     assertEquals(actual.getConfigLink(), expected.getConfigLink());
+    assertEquals(actual.getRMLink(), expected.getRMLink());
     assertEquals(actual.getStartedDate(), expected.getStartedDate());
     assertEquals(actual.getCompletedDate(), expected.getCompletedDate());
     assertEquals(actual.getStatus(), expected.getStatus());

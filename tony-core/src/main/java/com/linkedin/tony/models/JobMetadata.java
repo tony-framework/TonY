@@ -5,22 +5,26 @@
 package com.linkedin.tony.models;
 
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.util.Utils;
 import java.util.Date;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 
 public class JobMetadata {
   private String id;
   private String jobLink;
   private String configLink;
+  private String rmLink;
   private long started;
   private long completed;
   private String status;
   private String user;
 
-  public JobMetadata(String id, String jobLink, String configLink, long started, long completed, String status, String user) {
+  public JobMetadata(String id, String jobLink, String configLink, String rmLink, long started, long completed, String status, String user) {
     this.id = id;
     this.jobLink = jobLink;
     this.configLink = configLink;
+    this.rmLink = rmLink;
     this.started = started;
     this.completed = completed;
     this.status = status;
@@ -37,7 +41,8 @@ public class JobMetadata {
     long completed = Long.parseLong(metadata[2]);
     String user = metadata[3];
     String status = metadata[4];
-    return new JobMetadata(id, jobLink, configLink, started, completed, status, user);
+    String rmLink = Utils.buildRMUrl(new YarnConfiguration(), id);
+    return new JobMetadata(id, jobLink, configLink, rmLink, started, completed, status, user);
   }
 
   public String getId() {
@@ -50,6 +55,10 @@ public class JobMetadata {
 
   public String getConfigLink() {
     return configLink;
+  }
+
+  public String getRMLink() {
+    return rmLink;
   }
 
   public Date getStartedDate() {
