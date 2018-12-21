@@ -26,6 +26,7 @@ public class JobEventPageController extends Controller {
   private HdfsConfiguration conf;
   private FileSystem myFs;
   private Cache<String, List<JobEvent>> cache;
+  private Path interm;
   private Path finished;
 
   @Inject
@@ -33,6 +34,7 @@ public class JobEventPageController extends Controller {
     conf = Configuration.getHdfsConf();
     myFs = HdfsUtils.getFileSystem(conf);
     cache = CacheWrapper.getEventCache();
+    interm = Requirements.getIntermDir();
     finished = Requirements.getFinishedDir();
   }
 
@@ -46,6 +48,11 @@ public class JobEventPageController extends Controller {
     if (listOfEvents != null) {
       return ok(views.html.event.render(listOfEvents));
     }
+
+    if (getJobFolders(myFs, interm, jobId).size() > 0) {
+      return internalServerError("Cannot display events because job is still running");
+    }
+
     List<Path> jobFolder = getJobFolders(myFs, finished, jobId);
     // There should only be 1 folder since jobId is unique
     Preconditions.checkArgument(jobFolder.size() == 1);

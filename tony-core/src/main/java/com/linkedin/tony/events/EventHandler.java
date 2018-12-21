@@ -5,7 +5,7 @@
 package com.linkedin.tony.events;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.TonyJobMetadata;
+import com.linkedin.tony.models.JobMetadata;
 import com.linkedin.tony.util.HistoryFileUtils;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -38,7 +38,7 @@ public class EventHandler extends Thread {
     myFs = fs;
   }
 
-  public void setUpThread(Path intermDir, TonyJobMetadata metadata) {
+  public void setUpThread(Path intermDir, JobMetadata metadata) {
     if (intermDir == null) {
       return;
     }
@@ -122,7 +122,7 @@ public class EventHandler extends Thread {
     }
   }
 
-  public void stop(Path intermDir, TonyJobMetadata metadata) {
+  public void stop(Path intermDir, JobMetadata metadata) {
     if (inProgressHistFile == null) {
       return;
     }

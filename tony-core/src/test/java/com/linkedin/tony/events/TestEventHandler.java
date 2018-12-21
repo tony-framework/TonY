@@ -4,7 +4,7 @@
  */
 package com.linkedin.tony.events;
 
-import com.linkedin.tony.TonyJobMetadata;
+import com.linkedin.tony.models.JobMetadata;
 import com.linkedin.tony.util.Utils;
 import java.io.IOException;
 import java.util.List;
@@ -33,7 +33,7 @@ public class TestEventHandler {
   private Event eEventWrapper;
   private ApplicationInited eAppInitEvent = new ApplicationInited("app123", 1, "fakehost");
   private Path jobDir = new Path("./src/test/resources/jobDir");
-  private TonyJobMetadata metadata = new TonyJobMetadata();
+  private JobMetadata metadata = new JobMetadata();
 
   @BeforeClass
   public void setup() {

@@ -7,6 +7,7 @@ import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.util.HdfsUtils;
 import hadoop.Configuration;
 import hadoop.Requirements;
+import java.util.Collections;
 import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -25,13 +26,27 @@ public class JobConfigPageController extends Controller {
   private HdfsConfiguration conf;
   private FileSystem myFs;
   private Cache<String, List<JobConfig>> cache;
+  private Path interm;
   private Path finished;
 
   public JobConfigPageController() {
     conf = Configuration.getHdfsConf();
     myFs = HdfsUtils.getFileSystem(conf);
     cache = CacheWrapper.getConfigCache();
+    interm = Requirements.getIntermDir();
     finished = Requirements.getFinishedDir();
+  }
+
+  private List<JobConfig> getAndStoreConfigs(String jobId, List<Path> jobDirs) {
+    if (jobDirs.size() == 0) {
+      return Collections.emptyList();
+    }
+    List<JobConfig> listOfConfigs = parseConfig(myFs, jobDirs.get(0));
+    if (listOfConfigs.size() == 0) {
+      return Collections.emptyList();
+    }
+    cache.put(jobId, listOfConfigs);
+    return listOfConfigs;
   }
 
   public Result index(String jobId) {
@@ -44,15 +59,17 @@ public class JobConfigPageController extends Controller {
     if (listOfConfigs != null) {
       return ok(views.html.config.render(listOfConfigs));
     }
-    List<Path> jobFolder = getJobFolders(myFs, finished, jobId);
-    // There should only be 1 folder since jobId is unique
-    Preconditions.checkArgument(jobFolder.size() == 1);
-    listOfConfigs = parseConfig(myFs, jobFolder.get(0));
-    if (listOfConfigs.size() == 0) {
-      LOG.error("Failed to fetch list of configs");
-      return internalServerError("Failed to fetch configuration");
+
+    listOfConfigs = getAndStoreConfigs(jobId, getJobFolders(myFs, interm, jobId));
+    if (listOfConfigs.size() > 0) {
+      return ok(views.html.config.render(listOfConfigs));
     }
-    cache.put(jobId, listOfConfigs);
-    return ok(views.html.config.render(listOfConfigs));
+
+    listOfConfigs = getAndStoreConfigs(jobId, getJobFolders(myFs, finished, jobId));
+    if (listOfConfigs.size() > 0) {
+      return ok(views.html.config.render(listOfConfigs));
+    }
+
+    return internalServerError("Failed to fetch configs");
   }
 }

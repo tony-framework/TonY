@@ -49,9 +49,29 @@ public class JobsMetadataPageController extends Controller {
     finished = Requirements.getFinishedDir();
   }
 
+  private boolean jobInprogress(FileSystem fs, Path jobDir) {
+    FileStatus[] jobFiles;
+    try {
+      jobFiles = fs.listStatus(jobDir);
+      for (FileStatus file : jobFiles) {
+        if (file.getPath().toString().endsWith(Constants.INPROGRESS)) {
+          return true;
+        }
+      }
+    } catch (IOException e) {
+      LOG.error("Couldn't list files in " + jobDir, e);
+    }
+    return false;
+  }
+
   private void moveIntermToFinished(FileSystem fs, Map<String, Date> jobsAccessTime,
       Map<String, Path> jobFolders) {
     jobsAccessTime.forEach((id, date) -> {
+      Path source = jobFolders.get(id);
+      if (jobInprogress(fs, source)) {
+        return;
+      }
+
       StringBuilder path = new StringBuilder(finished.toString());
       LocalDate ldate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
       String[] directories = {Integer.toString(ldate.getYear()), Integer.toString(ldate.getMonthValue()),
@@ -61,7 +81,6 @@ public class JobsMetadataPageController extends Controller {
         Utils.createDir(fs, new Path(path.toString()), Constants.PERM770);
       }
 
-      Path source = jobFolders.get(id);
       Path dest = new Path(path.toString());
       try {
         fs.rename(source, dest);
@@ -98,15 +117,18 @@ public class JobsMetadataPageController extends Controller {
       moveIntermToFinished(myFs, jobsAccessTime, jobsFiles);
     }
 
-    for (Path f : getJobFolders(myFs, finished, JOB_FOLDER_REGEX)) {
-      jobId = getJobId(f.toString());
+    List<Path> listOfJobDirs = new ArrayList<>(getJobFolders(myFs, finished, JOB_FOLDER_REGEX));
+    listOfJobDirs.addAll(getJobFolders(myFs, interm, JOB_FOLDER_REGEX));
+
+    for (Path jobDir : listOfJobDirs) {
+      jobId = getJobId(jobDir.toString());
       tmpMetadata = cache.getIfPresent(jobId);
-      if (tmpMetadata == null) {
+      if (tmpMetadata == null || tmpMetadata.getStatus().equals(Constants.RUNNING)) {
         try {
-          tmpMetadata = parseMetadata(myFs, yarnConf, f, JOB_FOLDER_REGEX);
+          tmpMetadata = parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
           cache.put(jobId, tmpMetadata);
         } catch (Exception e) {
-          LOG.error("Couldn't parse " + f, e);
+          LOG.error("Couldn't parse " + jobDir, e);
           continue;
         }
       }

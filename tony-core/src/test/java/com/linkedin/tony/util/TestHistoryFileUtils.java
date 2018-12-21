@@ -4,7 +4,8 @@
  */
 package com.linkedin.tony.util;
 
-import com.linkedin.tony.TonyJobMetadata;
+import com.linkedin.tony.Constants;
+import com.linkedin.tony.models.JobMetadata;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
@@ -13,8 +14,8 @@ import static org.testng.Assert.*;
 public class TestHistoryFileUtils {
   @Test
   public void testGenerateFileName_defaultConstructor() {
-    TonyJobMetadata metadata = new TonyJobMetadata();
-    String expectedName = "-0-0--.jhist";
+    JobMetadata metadata = new JobMetadata();
+    String expectedName = "-0-0--." + Constants.HISTFILE_SUFFIX;
 
     assertEquals(HistoryFileUtils.generateFileName(metadata), expectedName);
   }
@@ -25,12 +26,12 @@ public class TestHistoryFileUtils {
     long started = 1L;
     String user = "user";
 
-    TonyJobMetadata metadata = new TonyJobMetadata.Builder()
+    JobMetadata metadata = new JobMetadata.Builder()
         .setId(appId)
-        .setStartedTime(started)
+        .setStarted(started)
         .setUser(user)
         .build();
-    String expectedName = "app123-1-user.jhist.inprogress";
+    String expectedName = "app123-1-user." + Constants.HISTFILE_SUFFIX + "." + Constants.INPROGRESS;
 
     assertEquals(HistoryFileUtils.generateFileName(metadata), expectedName);
   }
@@ -42,14 +43,14 @@ public class TestHistoryFileUtils {
     long completed = 2L;
     String user = "user";
 
-    TonyJobMetadata metadata = new TonyJobMetadata.Builder()
+    JobMetadata metadata = new JobMetadata.Builder()
         .setId(appId)
-        .setStartedTime(started)
+        .setStarted(started)
         .setCompleted(completed)
         .setUser(user)
-        .setStatus(true)
+        .setStatus(Constants.SUCCEEDED)
         .build();
-    String expectedName = "app123-1-2-user-SUCCEEDED.jhist";
+    String expectedName = "app123-1-2-user-SUCCEEDED." + Constants.HISTFILE_SUFFIX;
 
     assertEquals(HistoryFileUtils.generateFileName(metadata), expectedName);
   }
