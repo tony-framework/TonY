@@ -8,6 +8,7 @@
     <th>Completed</th>
     <th>User</th>
     <th>Status</th>
+    <th>ResourceManager Link</th>
   </tr>
   @for(s <- metricsList) {
     <tr>
@@ -21,6 +22,9 @@
       <td>@s.getCompletedDate.format("dd MMM yyyy HH:mm:ss:SSS Z")</td>
       <td>@s.getUser</td>
       <td>@s.getStatus</td>
+      <td>
+        <a href=@s.getRMLink target="_blank">Link</a>
+      </td>
     </tr>
   }
 </table>

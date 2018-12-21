@@ -20,6 +20,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import play.Logger;
 import play.Logger.ALogger;
 import play.mvc.Controller;
@@ -32,15 +33,17 @@ import static com.linkedin.tony.util.ParserUtils.*;
 public class JobsMetadataPageController extends Controller {
   private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private static final String JOB_FOLDER_REGEX = "^application_\\d+_\\d+$";
-  private HdfsConfiguration conf;
+  private HdfsConfiguration hdfsConf;
+  private YarnConfiguration yarnConf;
   private FileSystem myFs;
   private Cache<String, JobMetadata> cache;
   private Path interm;
   private Path finished;
 
   public JobsMetadataPageController() {
-    conf = Configuration.getHdfsConf();
-    myFs = HdfsUtils.getFileSystem(conf);
+    yarnConf = Configuration.getYarnConf();
+    hdfsConf = Configuration.getHdfsConf();
+    myFs = HdfsUtils.getFileSystem(hdfsConf);
     cache = CacheWrapper.getMetadataCache();
     interm = Requirements.getIntermDir();
     finished = Requirements.getFinishedDir();
@@ -100,7 +103,7 @@ public class JobsMetadataPageController extends Controller {
       tmpMetadata = cache.getIfPresent(jobId);
       if (tmpMetadata == null) {
         try {
-          tmpMetadata = parseMetadata(myFs, f, JOB_FOLDER_REGEX);
+          tmpMetadata = parseMetadata(myFs, yarnConf, f, JOB_FOLDER_REGEX);
           cache.put(jobId, tmpMetadata);
         } catch (Exception e) {
           LOG.error("Couldn't parse " + f, e);
