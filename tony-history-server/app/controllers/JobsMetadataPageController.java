@@ -49,7 +49,7 @@ public class JobsMetadataPageController extends Controller {
     finished = Requirements.getFinishedDir();
   }
 
-  private boolean jobInprogress(FileSystem fs, Path jobDir) {
+  private boolean jobInProgress(FileSystem fs, Path jobDir) {
     FileStatus[] jobFiles;
     try {
       jobFiles = fs.listStatus(jobDir);
@@ -68,7 +68,7 @@ public class JobsMetadataPageController extends Controller {
       Map<String, Path> jobFolders) {
     jobsAccessTime.forEach((id, date) -> {
       Path source = jobFolders.get(id);
-      if (jobInprogress(fs, source)) {
+      if (jobInProgress(fs, source)) {
         return;
       }
 

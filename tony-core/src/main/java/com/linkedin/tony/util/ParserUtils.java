@@ -74,6 +74,7 @@ public class ParserUtils {
           && metadataArr[2].matches(metadataArr[2].toLowerCase());
     }
 
+    Preconditions.checkArgument(metadataArr.length == 5);
     return metadataArr[0].matches(jobIdRegex)
         && metadataArr[1].matches("\\d+")
         && metadataArr[2].matches("\\d+")

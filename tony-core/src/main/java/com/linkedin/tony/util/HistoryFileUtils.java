@@ -20,7 +20,7 @@ public class HistoryFileUtils {
       sb.append("-");
     }
     sb.append(metadata.getUser());
-    if (metadata.getStatus() != null) {
+    if (!metadata.getStatus().isEmpty()) {
       sb.append("-");
       sb.append(metadata.getStatus());
       sb.append("." + Constants.HISTFILE_SUFFIX);

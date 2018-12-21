@@ -33,7 +33,10 @@ public class TestEventHandler {
   private Event eEventWrapper;
   private ApplicationInited eAppInitEvent = new ApplicationInited("app123", 1, "fakehost");
   private Path jobDir = new Path("./src/test/resources/jobDir");
-  private JobMetadata metadata = new JobMetadata();
+  private JobMetadata metadata = new JobMetadata.Builder()
+      .setStarted(0L)
+      .setCompleted(0L)
+      .build();
 
   @BeforeClass
   public void setup() {

@@ -38,11 +38,11 @@ public class JobConfigPageController extends Controller {
   }
 
   private List<JobConfig> getAndStoreConfigs(String jobId, List<Path> jobDirs) {
-    if (jobDirs.size() == 0) {
+    if (jobDirs.isEmpty()) {
       return Collections.emptyList();
     }
     List<JobConfig> listOfConfigs = parseConfig(myFs, jobDirs.get(0));
-    if (listOfConfigs.size() == 0) {
+    if (listOfConfigs.isEmpty()) {
       return Collections.emptyList();
     }
     cache.put(jobId, listOfConfigs);
@@ -61,12 +61,12 @@ public class JobConfigPageController extends Controller {
     }
 
     listOfConfigs = getAndStoreConfigs(jobId, getJobFolders(myFs, interm, jobId));
-    if (listOfConfigs.size() > 0) {
+    if (!listOfConfigs.isEmpty()) {
       return ok(views.html.config.render(listOfConfigs));
     }
 
     listOfConfigs = getAndStoreConfigs(jobId, getJobFolders(myFs, finished, jobId));
-    if (listOfConfigs.size() > 0) {
+    if (!listOfConfigs.isEmpty()) {
       return ok(views.html.config.render(listOfConfigs));
     }
 

@@ -32,16 +32,6 @@ public class JobMetadata {
     this.user = builder.user;
   }
 
-  // for testing only
-  public JobMetadata() {
-    this.id = "";
-    this.rmLink = "";
-    this.started = 0L;
-    this.completed = 0L;
-    this.status = "";
-    this.user = "";
-  }
-
   public static JobMetadata newInstance(YarnConfiguration conf, String histFileName) {
     String histFileNoExt = histFileName.substring(0, histFileName.indexOf('.'));
     String[] metadata = histFileNoExt.split("-");
@@ -63,11 +53,11 @@ public class JobMetadata {
   }
 
   public static class Builder {
-    private String id;
+    private String id = "";
     private long started = -1L;
     private long completed = -1L;
-    private String status;
-    private String user;
+    private String status = "";
+    private String user = "";
     private Configuration conf = new Configuration();
 
     public JobMetadata build() {

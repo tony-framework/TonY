@@ -13,14 +13,6 @@ import static org.testng.Assert.*;
 
 public class TestHistoryFileUtils {
   @Test
-  public void testGenerateFileName_defaultConstructor() {
-    JobMetadata metadata = new JobMetadata();
-    String expectedName = "-0-0--." + Constants.HISTFILE_SUFFIX;
-
-    assertEquals(HistoryFileUtils.generateFileName(metadata), expectedName);
-  }
-
-  @Test
   public void testGenerateFileName_inprogressJob() {
     String appId = "app123";
     long started = 1L;

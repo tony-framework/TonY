@@ -49,7 +49,7 @@ public class JobEventPageController extends Controller {
       return ok(views.html.event.render(listOfEvents));
     }
 
-    if (getJobFolders(myFs, interm, jobId).size() > 0) {
+    if (!getJobFolders(myFs, interm, jobId).isEmpty()) {
       return internalServerError("Cannot display events because job is still running");
     }
 
@@ -57,7 +57,7 @@ public class JobEventPageController extends Controller {
     // There should only be 1 folder since jobId is unique
     Preconditions.checkArgument(jobFolder.size() == 1);
     listOfEvents = mapEventToJobEvent(parseEvents(myFs, jobFolder.get(0)));
-    if (listOfEvents.size() == 0) {
+    if (listOfEvents.isEmpty()) {
       LOG.error("Failed to fetch list of events");
       return internalServerError("Failed to fetch events");
     }
