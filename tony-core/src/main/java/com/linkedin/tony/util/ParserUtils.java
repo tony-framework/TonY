@@ -6,6 +6,7 @@ package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.linkedin.tony.Constants;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.models.JobEvent;
@@ -47,10 +48,11 @@ public class ParserUtils {
   /**
    * Checks if {@code fileName} string contains valid metadata.
    * Ex: If {@code jobIdRegex} is "^application_\\d+_\\d+$",
-   * metadata = "application_1541469337545_0031-1542325695566-1542325733637-user1-FAILED" -> true
-   * metadata = "application_1541469337545_0031-1542325695566-1542325733637-user2-succeeded" -> false
+   * {@code fileName} = "application_1541469337545_0031-1542325695566-1542325733637-user1-FAILED.jhist" -> true
+   * {@code fileName} = "application_1541469337545_0031-1542325695566-user1.jhist.inprogress" -> true
+   * {@code fileName} = "application_1541469337545_0031-1542325695566-1542325733637-user2-succeeded.jhist" -> false
    * because status should be upper-cased.
-   * metadata = "job_01_01-1542325695566-1542325733637-user3-SUCCEEDED" -> false
+   * {@code fileName} = "job_01_01-1542325695566-1542325733637-user3-SUCCEEDED.jhist" -> false
    * because the job ID portion doesn't match {@code jobIdRegex}.
    * If a metadata component doesn't satisfy its corresponding condition, {@code fileName} is invalid.
    * @param fileName A string with metadata components.
@@ -59,12 +61,20 @@ public class ParserUtils {
    */
   @VisibleForTesting
   public static boolean isValidHistFileName(String fileName, String jobIdRegex) {
-    String histFileNoExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    String histFileNoExt = fileName.substring(0, fileName.indexOf('.'));
     String[] metadataArr = histFileNoExt.split("-");
-    if (metadataArr.length != 5) {
+    if (metadataArr.length < 3) {
       LOG.error("Missing fields in metadata");
       return false;
     }
+
+    if (fileName.endsWith(Constants.INPROGRESS)) {
+      return metadataArr[0].matches(jobIdRegex)
+          && metadataArr[1].matches("\\d+")
+          && metadataArr[2].matches(metadataArr[2].toLowerCase());
+    }
+
+    Preconditions.checkArgument(metadataArr.length == 5);
     return metadataArr[0].matches(jobIdRegex)
         && metadataArr[1].matches("\\d+")
         && metadataArr[2].matches("\\d+")
@@ -82,8 +92,10 @@ public class ParserUtils {
   static String getJhistFileName(FileSystem fs, Path jobFolderPath) {
     String[] jobFilesArr;
     try {
+      // We want to have both running jobs and completed jobs
+      // so we can't use endsWith() but rather contains() to filter
       jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
-          .filter(f -> f.getPath().toString().endsWith("jhist"))
+          .filter(f -> f.getPath().toString().contains(Constants.HISTFILE_SUFFIX))
           .map(f -> f.getPath().toString())
           .toArray(String[]::new);
       Preconditions.checkArgument(jobFilesArr.length == 1);

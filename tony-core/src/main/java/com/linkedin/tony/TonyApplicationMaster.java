@@ -7,6 +7,7 @@ package com.linkedin.tony;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.linkedin.tony.models.JobMetadata;
 import com.linkedin.tony.events.ApplicationFinished;
 import com.linkedin.tony.events.ApplicationInited;
 import com.linkedin.tony.events.Event;
@@ -339,12 +340,12 @@ public class TonyApplicationMaster {
     mainThread = Thread.currentThread();
     EventHandler eventHandlerThread = new EventHandler(fs, eventQueue);
     // Set up the builder with parameters that don't change
-    TonyJobMetadata.Builder metadataBuilder = new TonyJobMetadata.Builder()
+    JobMetadata.Builder metadataBuilder = new JobMetadata.Builder()
         .setId(appIdString)
         .setConf(yarnConf)
-        .setStartedTime(started)
+        .setStarted(started)
         .setUser(user);
-    TonyJobMetadata metadata = metadataBuilder.build();
+    JobMetadata metadata = metadataBuilder.build();
     eventHandlerThread.setUpThread(jobDir, metadata);
     eventHandlerThread.start();
     boolean succeeded;
@@ -382,7 +383,7 @@ public class TonyApplicationMaster {
     eventHandlerThread.emitEvent(constructEvent("APPLICATION_FINISHED"));
     metadata = metadataBuilder
         .setCompleted(completed)
-        .setStatus(succeeded)
+        .setStatus(succeeded ? Constants.SUCCEEDED : Constants.FAILED)
         .build();
     eventHandlerThread.stop(jobDir, metadata);
 

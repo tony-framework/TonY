@@ -4,11 +4,12 @@
  */
 package com.linkedin.tony.util;
 
-import com.linkedin.tony.TonyJobMetadata;
+import com.linkedin.tony.Constants;
+import com.linkedin.tony.models.JobMetadata;
 
 
 public class HistoryFileUtils {
-  public static String generateFileName(TonyJobMetadata metadata) {
+  public static String generateFileName(JobMetadata metadata) {
     StringBuilder sb = new StringBuilder();
     sb.append(metadata.getId());
     sb.append("-");
@@ -19,14 +20,14 @@ public class HistoryFileUtils {
       sb.append("-");
     }
     sb.append(metadata.getUser());
-    if (metadata.getStatus() != null) {
+    if (!metadata.getStatus().isEmpty()) {
       sb.append("-");
       sb.append(metadata.getStatus());
-      sb.append(".jhist");
+      sb.append("." + Constants.HISTFILE_SUFFIX);
       return sb.toString();
     }
-    sb.append(".jhist");
-    sb.append(".inprogress");
+    sb.append("." + Constants.HISTFILE_SUFFIX);
+    sb.append("." + Constants.INPROGRESS);
     return sb.toString();
   }
 

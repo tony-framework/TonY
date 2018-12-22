@@ -18,8 +18,12 @@
       <td>
         <a href=@s.getConfigLink target="_blank">tony-final.xml</a>
       </td>
-      <td>@s.getStartedDate.format("dd MMM yyyy HH:mm:ss:SSS Z")</td>
-      <td>@s.getCompletedDate.format("dd MMM yyyy HH:mm:ss:SSS Z")</td>
+      <td>@s.getStartedDate.format(Constants.TIME_FORMAT)</td>
+      @if(s.getCompleted == -1) {
+        <td>-</td>
+      } else {
+        <td>@s.getCompletedDate.format(Constants.TIME_FORMAT)</td>
+      }
       <td>@s.getUser</td>
       <td>@s.getStatus</td>
       <td>

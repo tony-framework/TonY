@@ -36,7 +36,7 @@ public class TestParserUtils {
 
   @Test
   public void testIsValidHistFileName_true() {
-    String fileName = "job123-1-1-user1-FAILED.jhist";
+    String fileName = "job123-1-1-user1-FAILED." + Constants.HISTFILE_SUFFIX;
     String jobRegex = "job\\d+";
 
     assertTrue(ParserUtils.isValidHistFileName(fileName, jobRegex));
@@ -45,9 +45,9 @@ public class TestParserUtils {
   @Test
   public void testIsValidHistFileName_false() {
     // Job name doesn't match job regex
-    String fileName1 = "application123-1-1-user1-FAILED.jhist";
+    String fileName1 = "application123-1-1-user1-FAILED." + Constants.HISTFILE_SUFFIX;
     // User isn't supposed to be upper-cased
-    String fileName2 = "job123-1-1-USER-SUCCEEDED.jhist";
+    String fileName2 = "job123-1-1-USER-SUCCEEDED." + Constants.HISTFILE_SUFFIX;
     String jobRegex = "job\\d+";
 
     assertFalse(ParserUtils.isValidHistFileName(fileName1, jobRegex));
@@ -58,9 +58,14 @@ public class TestParserUtils {
   public void testParseMetadata_success() {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
-    String RMLink = Utils.buildRMUrl(yarnConf, "application123");
-    JobMetadata expected = new JobMetadata("application123", "/" + Constants.JOBS_SUFFIX + "/application123",
-        "/" + Constants.CONFIG_SUFFIX + "/application123", RMLink, 1, 1, "SUCCEEDED", "user1");
+    JobMetadata expected = new JobMetadata.Builder()
+        .setId("application123")
+        .setConf(yarnConf)
+        .setStarted(1)
+        .setCompleted(1)
+        .setStatus(Constants.SUCCEEDED)
+        .setUser("user1")
+        .build();
     JobMetadata actual = ParserUtils.parseMetadata(fs, yarnConf, jobFolder, jobRegex);
 
     assertEquals(actual.getId(), expected.getId());
