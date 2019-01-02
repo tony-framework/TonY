@@ -264,7 +264,7 @@ public class TonySession {
         // continue, while if chief worker is dead, a TensorFlow training would hang.
         // Also note that, we only short circuit when the chief worker failed, not finished.
         if (exitCode != 0) {
-          if (isChief(jobName)) {
+          if (isChief(jobName, jobIndex)) {
             trainingFinished = true;
           }
           setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
@@ -362,8 +362,12 @@ public class TonySession {
     return null;
   }
 
-  private boolean isChief(String jobName) {
-    return jobName.equals(CHIEF_JOB_NAME);
+  /**
+   * Returns true if the job is "chief" or if there is no "chief" job and ("worker", "0") is passed in.
+   */
+  private boolean isChief(String jobName, String index) {
+    return jobName.equals(CHIEF_JOB_NAME) || (!jobTasks.containsKey(CHIEF_JOB_NAME) &&
+        jobName.equals(WORKER_JOB_NAME) && index.equals("0"));
   }
 
   public TonyTask getTask(ContainerId containerId) {
