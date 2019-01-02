@@ -115,7 +115,7 @@ subprojects {
     header rootProject.file('license_header')
     // Set the year in the license
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
-    skipExistingHeaders = false
+    skipExistingHeaders = true
     excludes(
         ["com/linkedin/tony/rpc/proto/", "**/*.properties", "**/*.txt", "**/*.json", "**/*.jhist", "**/*.xml"])
   }

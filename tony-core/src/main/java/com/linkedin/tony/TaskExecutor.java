@@ -66,32 +66,53 @@ public class TaskExecutor {
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
 
-  protected TaskExecutor() throws IOException {
+  protected TaskExecutor() { }
+
+  private void setupTaskExecutor() {
+    jobName = System.getenv(Constants.JOB_NAME);
+    taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
+    numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
+    taskId = jobName + ":" + taskIndex;
+
+    LOG.info("Executor is running task " + jobName + " " + taskIndex);
+  }
+
+  private void setupPorts() throws IOException {
     // Reserve a rpcSocket rpcPort.
     this.rpcSocket = new ServerSocket(0);
     this.rpcPort = this.rpcSocket.getLocalPort();
-    this.tbSocket = new ServerSocket(0);
-    this.tbPort = this.tbSocket.getLocalPort();
+    LOG.info("Reserved rpcPort: " + this.rpcPort);
+
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
-
-    LOG.info("Reserved rpcPort: " + this.rpcPort);
-    LOG.info("Reserved tbPort: " + this.tbPort);
     LOG.info("Reserved py4j gatewayServerPort: " + this.gatewayServerPort);
+
+    // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
+    // With the low-level distributed API, worker 0 runs TensorBoard.
+    if (jobName.equals(Constants.CHIEF_JOB_NAME) || (jobName.equals(Constants.WORKER_JOB_NAME) && taskIndex == 0)) {
+      this.tbSocket = new ServerSocket(0);
+      this.tbPort = this.tbSocket.getLocalPort();
+      LOG.info("Reserved tbPort: " + this.tbPort);
+    }
   }
 
   public static void main(String[] args) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = new TaskExecutor();
+
+    executor.initConfigs(args);
+    executor.setupTaskExecutor();
+    executor.setupPorts();
+
     // Set up py4j
     GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
     executor.gatewayServerSocket.close();
     pyServer.start();
-    boolean sanitized = executor.init(args);
-    if (!sanitized) {
-      LOG.fatal("Failed to initialize TaskExecutor.");
-      System.exit(-1);
-    }
+
+
+    LOG.info("Setting up Rpc client, connecting to: " + executor.amAddress);
+    executor.proxy = ApplicationRpcClient.getInstance(executor.amAddress.split(":")[0],
+        Integer.parseInt(executor.amAddress.split(":")[1]), executor.yarnConf);
 
     if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
       LOG.info("Unpacking src directory..");
@@ -104,13 +125,6 @@ public class TaskExecutor {
       LOG.info("No virtual environment uploaded.");
     }
 
-    executor.jobName = System.getenv(Constants.JOB_NAME);
-    executor.taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
-    executor.numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
-    executor.taskId = executor.jobName + ":" + executor.taskIndex;
-
-    LOG.info("Executor is running task " + executor.jobName + " " + executor.taskIndex);
-
     executor.clusterSpec = executor.registerAndGetClusterSpec(executor.amAddress);
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
@@ -121,7 +135,8 @@ public class TaskExecutor {
     // Release the rpcPort and start the process
     executor.rpcSocket.close();
 
-    if (executor.taskIndex == 0 && executor.jobName.equals("worker")) {
+    if (executor.jobName.equals(Constants.CHIEF_JOB_NAME) ||
+        (executor.jobName.equals(Constants.WORKER_JOB_NAME) && executor.taskIndex == 0)) {
       executor.registerTensorBoardUrl();
       executor.tbSocket.close();
     }
@@ -163,7 +178,7 @@ public class TaskExecutor {
     System.exit(exitCode);
   }
 
-  protected boolean init(String[] args) throws Exception {
+  protected void initConfigs(String[] args) throws Exception {
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
@@ -188,9 +203,6 @@ public class TaskExecutor {
     if (new File(Constants.HDFS_SITE_CONF).exists()) {
       hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
     }
-    LOG.info("Setting up Rpc client, connecting to: " + amAddress);
-    proxy = ApplicationRpcClient.getInstance(amAddress.split(":")[0], Integer.parseInt(amAddress.split(":")[1]), yarnConf);
-    return true;
   }
 
   private String registerAndGetClusterSpec(String amAddress) {

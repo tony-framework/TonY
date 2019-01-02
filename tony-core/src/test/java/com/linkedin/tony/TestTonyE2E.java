@@ -23,6 +23,10 @@ import org.testng.annotations.Test;
  * Before running these tests in your IDE, you should run {@code ./gradlew
  * :tony-core:setupHdfsLib} first. If you make any changes to {@code
  * tony-core/src/main/java} code, you'll need to run the above command again.
+ *
+ * If you get an exception saying there's "no such file or directory tony-core/out/libs",
+ * you will need to update the working directory in your test configuration
+ * to {@code /path/to/linkedin/TonY}.
  */
 public class TestTonyE2E {
 
@@ -252,21 +256,17 @@ public class TestTonyE2E {
     Assert.assertEquals(exitCode, 0);
   }
 
-
-  /*
-   * In conditional_wait.py script, we wait for 5s for chief job type. If we only wait for worker to finish, this test
-   * is gonna fail.
-   */
   @Test
-  public void testWaitingForChiefToFinish() throws ParseException {
+  public void testChiefWorkerTensorBoardPortOpen() throws ParseException {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "'python conditional_wait.py'",
+        "--executes", "'python check_tb_port.py'",
         "--hdfs_classpath", "/yarn/libs",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--conf", "tony.application.ignored.jobtypes=worker",
         "--conf", "tony.chief.instances=1",
+        "--conf", "tony.ps.instances=0",
+        "--conf", "tony.worker.instances=0",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);

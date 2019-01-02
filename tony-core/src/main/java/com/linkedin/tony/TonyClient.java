@@ -320,10 +320,6 @@ public class TonyClient implements AutoCloseable {
     boolean singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
         TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
     if (!singleNode) {
-      if (numWorkers < 1) {
-        throw new IllegalArgumentException(
-            "Cannot request non-positive worker instances. Requested numWorkers=" + numWorkers);
-      }
       if (amGpus > 0) {
         LOG.warn("It seems you reserved " + amGpus + " GPUs in application master (driver, which doesn't perform training) during distributed training.");
       }

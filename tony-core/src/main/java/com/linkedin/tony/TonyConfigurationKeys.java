@@ -184,10 +184,6 @@ public class TonyConfigurationKeys {
 
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
-  public static final String CHIEF_NAME = CHIEF_PREFIX + "name";
-  public static final String DEFAULT_CHIEF_NAME = "worker";
-  public static final String CHIEF_INDEX = CHIEF_PREFIX + "index";
-  public static final String DEFAULT_CHIEF_INDEX = "0";
 
   // Tony with docker configuration
   public static final String DOCKER_PREFIX = TONY_APPLICATION_PREFIX + "docker.";
