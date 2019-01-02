@@ -26,9 +26,8 @@ if 'TB_PORT' in os.environ:
     except socket.error as e:
         if e.errno == errno.EADDRINUSE:
             logging.error('Port ' + os.environ['TB_PORT'] + ' is already in use!')
-            exit(1)
         else:
             logging.error('Error encountered while binding to port ' + os.environ['TB_PORT'] + ': ' + str(e))
-            exit(1)
+        exit(1)
 
     s.close()

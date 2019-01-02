@@ -85,7 +85,9 @@ public class TaskExecutor {
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
     LOG.info("Reserved py4j gatewayServerPort: " + this.gatewayServerPort);
 
-    if (jobName.equals(Constants.CHIEF_JOB_NAME)) {
+    // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
+    // With the low-level distributed API, worker 0 runs TensorBoard.
+    if (jobName.equals(Constants.CHIEF_JOB_NAME) || (jobName.equals(Constants.WORKER_JOB_NAME) && taskIndex == 0)) {
       this.tbSocket = new ServerSocket(0);
       this.tbPort = this.tbSocket.getLocalPort();
       LOG.info("Reserved tbPort: " + this.tbPort);
@@ -129,7 +131,8 @@ public class TaskExecutor {
     // Release the rpcPort and start the process
     executor.rpcSocket.close();
 
-    if (executor.jobName.equals(Constants.CHIEF_JOB_NAME)) {
+    if (executor.jobName.equals(Constants.CHIEF_JOB_NAME) ||
+        (executor.jobName.equals(Constants.WORKER_JOB_NAME) && executor.taskIndex == 0)) {
       executor.registerTensorBoardUrl();
       executor.tbSocket.close();
     }
