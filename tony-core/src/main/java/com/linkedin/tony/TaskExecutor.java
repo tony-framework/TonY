@@ -66,7 +66,9 @@ public class TaskExecutor {
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
 
-  protected TaskExecutor() {
+  protected TaskExecutor() { }
+
+  private void setupTaskExecutor() {
     jobName = System.getenv(Constants.JOB_NAME);
     taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
@@ -98,17 +100,19 @@ public class TaskExecutor {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = new TaskExecutor();
 
+    executor.initConfigs(args);
+    executor.setupTaskExecutor();
     executor.setupPorts();
 
     // Set up py4j
     GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
     executor.gatewayServerSocket.close();
     pyServer.start();
-    boolean sanitized = executor.init(args);
-    if (!sanitized) {
-      LOG.fatal("Failed to initialize TaskExecutor.");
-      System.exit(-1);
-    }
+
+
+    LOG.info("Setting up Rpc client, connecting to: " + executor.amAddress);
+    executor.proxy = ApplicationRpcClient.getInstance(executor.amAddress.split(":")[0],
+        Integer.parseInt(executor.amAddress.split(":")[1]), executor.yarnConf);
 
     if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
       LOG.info("Unpacking src directory..");
@@ -174,7 +178,7 @@ public class TaskExecutor {
     System.exit(exitCode);
   }
 
-  protected boolean init(String[] args) throws Exception {
+  protected void initConfigs(String[] args) throws Exception {
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
@@ -199,9 +203,6 @@ public class TaskExecutor {
     if (new File(Constants.HDFS_SITE_CONF).exists()) {
       hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
     }
-    LOG.info("Setting up Rpc client, connecting to: " + amAddress);
-    proxy = ApplicationRpcClient.getInstance(amAddress.split(":")[0], Integer.parseInt(amAddress.split(":")[1]), yarnConf);
-    return true;
   }
 
   private String registerAndGetClusterSpec(String amAddress) {
