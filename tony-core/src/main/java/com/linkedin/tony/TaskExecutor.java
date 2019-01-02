@@ -66,23 +66,38 @@ public class TaskExecutor {
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
 
-  protected TaskExecutor() throws IOException {
+  protected TaskExecutor() {
+    jobName = System.getenv(Constants.JOB_NAME);
+    taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
+    numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
+    taskId = jobName + ":" + taskIndex;
+
+    LOG.info("Executor is running task " + jobName + " " + taskIndex);
+  }
+
+  private void setupPorts() throws IOException {
     // Reserve a rpcSocket rpcPort.
     this.rpcSocket = new ServerSocket(0);
     this.rpcPort = this.rpcSocket.getLocalPort();
-    this.tbSocket = new ServerSocket(0);
-    this.tbPort = this.tbSocket.getLocalPort();
+    LOG.info("Reserved rpcPort: " + this.rpcPort);
+
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
-
-    LOG.info("Reserved rpcPort: " + this.rpcPort);
-    LOG.info("Reserved tbPort: " + this.tbPort);
     LOG.info("Reserved py4j gatewayServerPort: " + this.gatewayServerPort);
+
+    if (jobName.equals(Constants.CHIEF_JOB_NAME)) {
+      this.tbSocket = new ServerSocket(0);
+      this.tbPort = this.tbSocket.getLocalPort();
+      LOG.info("Reserved tbPort: " + this.tbPort);
+    }
   }
 
   public static void main(String[] args) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = new TaskExecutor();
+
+    executor.setupPorts();
+
     // Set up py4j
     GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
     executor.gatewayServerSocket.close();
@@ -104,13 +119,6 @@ public class TaskExecutor {
       LOG.info("No virtual environment uploaded.");
     }
 
-    executor.jobName = System.getenv(Constants.JOB_NAME);
-    executor.taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
-    executor.numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
-    executor.taskId = executor.jobName + ":" + executor.taskIndex;
-
-    LOG.info("Executor is running task " + executor.jobName + " " + executor.taskIndex);
-
     executor.clusterSpec = executor.registerAndGetClusterSpec(executor.amAddress);
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
@@ -121,7 +129,7 @@ public class TaskExecutor {
     // Release the rpcPort and start the process
     executor.rpcSocket.close();
 
-    if (executor.taskIndex == 0 && executor.jobName.equals("worker")) {
+    if (executor.jobName.equals(Constants.CHIEF_JOB_NAME)) {
       executor.registerTensorBoardUrl();
       executor.tbSocket.close();
     }

@@ -69,8 +69,9 @@ public class Constants {
   public static final String TONY_CONF_DIR = "TONY_CONF_DIR";
 
   public static final String AM_NAME = "am";
-  public static final String WORKER_JOB_NAME = "worker";
+  public static final String CHIEF_JOB_NAME = "chief";
   public static final String PS_JOB_NAME = "ps";
+  public static final String WORKER_JOB_NAME = "worker";
   public static final String NOTEBOOK_JOB_NAME = "notebook";
   public static final String DRIVER_JOB_NAME = "driver";
 

@@ -32,8 +32,9 @@ public class VersionInfo {
         .getResourceAsStream(VERSION_INFO_FILE)) {
       if (is == null) {
         LOG.warn("Could not open input stream to " + VERSION_INFO_FILE);
+      } else {
+        versionInfo.load(is);
       }
-      versionInfo.load(is);
     } catch (IOException ex) {
       LOG.warn("Could not read '" + VERSION_INFO_FILE + "', " + ex.toString(), ex);
     }
