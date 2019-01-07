@@ -29,6 +29,6 @@ public class BrowserTest extends WithBrowser {
   @Test
   public void test() {
     browser.goTo("http://localhost:" + play.api.test.Helpers.testServerPort());
-    assertTrue(browser.pageSource().contains("Tony History Server"));
+    assertTrue(browser.pageSource().contains("TonY History Server"));
   }
 }
