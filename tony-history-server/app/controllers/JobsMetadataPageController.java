@@ -63,9 +63,9 @@ public class JobsMetadataPageController extends Controller {
     return false;
   }
 
-  private void moveIntermToFinished(FileSystem fs, Map<String, Date> jobsAccessTime,
+  private void moveIntermToFinished(FileSystem fs, Map<String, Date> jobsModTime,
       Map<String, Path> jobFolders) {
-    jobsAccessTime.forEach((id, date) -> {
+    jobsModTime.forEach((id, date) -> {
       Path source = jobFolders.get(id);
       if (jobInProgress(fs, source)) {
         return;
@@ -73,8 +73,11 @@ public class JobsMetadataPageController extends Controller {
 
       StringBuilder path = new StringBuilder(finished.toString());
       LocalDate ldate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-      String[] directories = {Integer.toString(ldate.getYear()), Integer.toString(ldate.getMonthValue()),
-          Integer.toString(ldate.getDayOfMonth())};
+      String[] directories = {
+          Integer.toString(ldate.getYear()),
+          String.format("%02d", ldate.getMonthValue()),
+          String.format("%02d", ldate.getDayOfMonth())
+      };
       for (String dir : directories) {
         path.append("/").append(dir);
         Utils.createDir(fs, new Path(path.toString()), Constants.PERM770);
@@ -89,13 +92,13 @@ public class JobsMetadataPageController extends Controller {
     });
   }
 
-  private void storeJobData(Map<String, Date> jobsAccessTime, Map<String, Path> jobsFiles,
+  private void storeJobData(Map<String, Date> jobsModTime, Map<String, Path> jobsFiles,
       FileStatus[] jobDirs) {
     for (FileStatus dir : jobDirs) {
       Path jobFolderPath = dir.getPath();
       String jid = HdfsUtils.getJobId(jobFolderPath.toString());
       jobsFiles.putIfAbsent(jid, jobFolderPath);
-      jobsAccessTime.putIfAbsent(jid, new Date(dir.getAccessTime()));
+      jobsModTime.putIfAbsent(jid, new Date(dir.getModificationTime()));
     }
   }
 
@@ -110,10 +113,10 @@ public class JobsMetadataPageController extends Controller {
 
     FileStatus[] jobDirs = HdfsUtils.scanDir(myFs, interm);
     if (jobDirs.length > 0) {
-      Map<String, Date> jobsAccessTime = new HashMap<>();
+      Map<String, Date> jobsModTime = new HashMap<>();
       Map<String, Path> jobsFiles = new HashMap<>();
-      storeJobData(jobsAccessTime, jobsFiles, jobDirs);
-      moveIntermToFinished(myFs, jobsAccessTime, jobsFiles);
+      storeJobData(jobsModTime, jobsFiles, jobDirs);
+      moveIntermToFinished(myFs, jobsModTime, jobsFiles);
     }
 
     List<Path> listOfJobDirs = new ArrayList<>(getJobFolders(myFs, finished, JOB_FOLDER_REGEX));
