@@ -97,8 +97,10 @@ public class TonyApplicationMaster {
   private ApplicationAttemptId appAttemptID = null;
   private String appIdString;
   private String amHostPort;
-  private FileSystem fs;
-  private FileSystem historyFs;  // FileSystem used to write history-related files like config and events
+  private FileSystem resourceFs; // FileSystem used to access resources for the job, like jars and zips
+  private FileSystem historyFs;  // FileSystem used to write history-related files like config and events.
+                                 // In some HDFS setups, operators may wish to write history files to a different
+                                 // NameNode instance than data and other files.
   private String tonyHistoryFolder;
   private Path jobDir = null;
   private String user = null;
@@ -215,7 +217,7 @@ public class TonyApplicationMaster {
     }
 
     try {
-      fs = FileSystem.get(hdfsConf);
+      resourceFs = FileSystem.get(hdfsConf);
     } catch (IOException e) {
       LOG.error("Failed to create FileSystem object", e);
       return false;
@@ -1101,7 +1103,7 @@ public class TonyApplicationMaster {
       String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
       if (null != resources) {
         for (String dir : resources) {
-          Utils.addResource(dir, containerResources, fs);
+          Utils.addResource(dir, containerResources, resourceFs);
         }
       }
 
@@ -1109,7 +1111,7 @@ public class TonyApplicationMaster {
       resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
       if (null != resources) {
         for (String dir : resources) {
-          Utils.addResource(dir, containerResources, fs);
+          Utils.addResource(dir, containerResources, resourceFs);
         }
       }
 

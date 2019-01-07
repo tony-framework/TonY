@@ -179,7 +179,7 @@ save () {
 }
 
 # Set up TONY_CONF_DIR if not exist
-DEFAULT_TONY_CONF_DIR=/export/apps/tony/conf
+DEFAULT_TONY_CONF_DIR=$APP_HOME/conf
 if [[ -z "${TONY_CONF_DIR}" ]]; then
   echo "TONY_CONF_DIR not set. Default to $DEFAULT_TONY_CONF_DIR"
   TONY_CONF_DIR=$DEFAULT_TONY_CONF_DIR

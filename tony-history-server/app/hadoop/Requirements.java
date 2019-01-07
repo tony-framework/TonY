@@ -58,7 +58,7 @@ public class Requirements {
     }
   }
 
-  private void setUpKeytab(HdfsConfiguration hdfsConf) {
+  private void setupKeytab(HdfsConfiguration hdfsConf) {
     boolean isSecurityEnabled = hdfsConf.get("hadoop.security.authentication").equals("kerberos");
     if (isSecurityEnabled) {
       try {
@@ -75,7 +75,7 @@ public class Requirements {
         TonyConfigurationKeys.DEFAULT_TONY_KEYTAB_USER);
     keytabLocation = ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_KEYTAB_LOCATION,
         TonyConfigurationKeys.DEFAULT_TONY_KEYTAB_LOCATION);
-    setUpKeytab(hdfsConf);
+    setupKeytab(hdfsConf);
   }
 
   @Inject
