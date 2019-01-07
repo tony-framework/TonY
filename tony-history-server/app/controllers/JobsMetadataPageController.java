@@ -16,10 +16,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import play.Logger;
 import play.Logger.ALogger;
@@ -33,20 +33,19 @@ import static com.linkedin.tony.util.ParserUtils.*;
 public class JobsMetadataPageController extends Controller {
   private static final ALogger LOG = Logger.of(JobsMetadataPageController.class);
   private static final String JOB_FOLDER_REGEX = "^application_\\d+_\\d+$";
-  private HdfsConfiguration hdfsConf;
   private YarnConfiguration yarnConf;
   private FileSystem myFs;
   private Cache<String, JobMetadata> cache;
   private Path interm;
   private Path finished;
 
-  public JobsMetadataPageController() {
-    yarnConf = Configuration.getYarnConf();
-    hdfsConf = Configuration.getHdfsConf();
-    myFs = HdfsUtils.getFileSystem(hdfsConf);
-    cache = CacheWrapper.getMetadataCache();
-    interm = Requirements.getIntermDir();
-    finished = Requirements.getFinishedDir();
+  @Inject
+  public JobsMetadataPageController(Configuration configuration, Requirements requirements, CacheWrapper cacheWrapper) {
+    yarnConf = configuration.getYarnConf();
+    myFs = requirements.getFileSystem();
+    cache = cacheWrapper.getMetadataCache();
+    interm = requirements.getIntermDir();
+    finished = requirements.getFinishedDir();
   }
 
   private boolean jobInProgress(FileSystem fs, Path jobDir) {
@@ -106,7 +105,7 @@ public class JobsMetadataPageController extends Controller {
     String jobId;
 
     if (myFs == null) {
-      return internalServerError("Failed to initialize file system");
+      return internalServerError("Failed to initialize file system in " + this.getClass());
     }
 
     FileStatus[] jobDirs = HdfsUtils.scanDir(myFs, interm);

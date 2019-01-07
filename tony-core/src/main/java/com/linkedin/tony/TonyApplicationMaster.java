@@ -98,6 +98,7 @@ public class TonyApplicationMaster {
   private String appIdString;
   private String amHostPort;
   private FileSystem fs;
+  private FileSystem historyFs;  // FileSystem used to write history-related files like config and events
   private String tonyHistoryFolder;
   private Path jobDir = null;
   private String user = null;
@@ -264,10 +265,18 @@ public class TonyApplicationMaster {
                                                  TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
     tonyHistoryFolder = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION,
                                      TonyConfigurationKeys.DEFAULT_TONY_HISTORY_LOCATION);
+
+    try {
+      historyFs = new Path(tonyHistoryFolder).getFileSystem(hdfsConf);
+    } catch (IOException e) {
+      LOG.error("Failed to create history FileSystem object", e);
+      return false;
+    }
+
     try {
       user = UserGroupInformation.getCurrentUser().getShortUserName();
     } catch (IOException e) {
-      LOG.error("Failed to fetch users", e);
+      LOG.warn("Failed to fetch users", e);
     }
     return true;
   }
@@ -338,7 +347,7 @@ public class TonyApplicationMaster {
     }
 
     mainThread = Thread.currentThread();
-    EventHandler eventHandlerThread = new EventHandler(fs, eventQueue);
+    EventHandler eventHandlerThread = new EventHandler(historyFs, eventQueue);
     // Set up the builder with parameters that don't change
     JobMetadata.Builder metadataBuilder = new JobMetadata.Builder()
         .setId(appIdString)
@@ -457,8 +466,8 @@ public class TonyApplicationMaster {
     }
 
     try {
-      setupJobDir(fs, tonyHistoryFolder, appIdString);
-      writeConfigFile(fs, jobDir);
+      setupJobDir(historyFs, tonyHistoryFolder, appIdString);
+      writeConfigFile(historyFs, jobDir);
     } catch (IOException e) {
       LOG.error(e);
       return false;

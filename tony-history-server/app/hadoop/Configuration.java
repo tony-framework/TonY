@@ -20,25 +20,28 @@ public class Configuration {
   private static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   private static final String HDFS_SITE_CONF = "hdfs-site.xml";
 
-  private static HdfsConfiguration hdfsConf = new HdfsConfiguration();
-  private static YarnConfiguration yarnConf = new YarnConfiguration();
+  private static HdfsConfiguration hdfsConf;
+  private static YarnConfiguration yarnConf;
 
   public Configuration() {
+    hdfsConf = new HdfsConfiguration();
     if (System.getenv("HADOOP_CONF_DIR") != null) {
       hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
       hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     }
 
     // return `kerberos` if on Kerberized cluster.
-    // return `simple` if develop locally.
-    LOG.debug("Hadoop Auth Setting: " + hdfsConf.get("hadoop.security.authentication"));
+    // return `simple` if on unsecure cluster.
+    LOG.info("Hadoop Auth Setting: " + hdfsConf.get("hadoop.security.authentication"));
+
+    yarnConf = new YarnConfiguration();
   }
 
-  public static HdfsConfiguration getHdfsConf() {
+  public HdfsConfiguration getHdfsConf() {
     return hdfsConf;
   }
 
-  public static YarnConfiguration getYarnConf() {
+  public YarnConfiguration getYarnConf() {
     return yarnConf;
   }
 }

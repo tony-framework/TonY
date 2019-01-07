@@ -410,7 +410,7 @@ public class Utils {
    * Add files inside a path to local resources. If the path is a directory, its first level files will be added
    * to the local resources. Note that we don't add nested files.
    * @param path the directory whose contents will be localized.
-   * @param fs the configuration file for HDFS.
+   * @param fs the filesystem instance used to read the {@code path}.
    */
   public static void addResource(String path, Map<String, LocalResource> resourcesMap, FileSystem fs) {
     try {

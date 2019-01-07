@@ -67,6 +67,7 @@ public class Constants {
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
   public static final String TONY_SITE_CONF = "tony-site.xml";
   public static final String TONY_CONF_DIR = "TONY_CONF_DIR";
+  public static final String DEFAULT_TONY_CONF_DIR = "/export/apps/tony/conf";
 
   public static final String AM_NAME = "am";
   public static final String CHIEF_JOB_NAME = "chief";
