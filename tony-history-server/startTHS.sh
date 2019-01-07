@@ -82,7 +82,7 @@ case "`uname`" in
     ;;
 esac
 
-CLASSPATH=${APP_HOME}/lib/tony-history-server.jar
+CLASSPATH="$APP_HOME/lib/tony-history-server.jar:$APP_HOME/conf"
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
@@ -179,9 +179,10 @@ save () {
 }
 
 # Set up TONY_CONF_DIR if not exist
+DEFAULT_TONY_CONF_DIR=$APP_HOME/conf
 if [[ -z "${TONY_CONF_DIR}" ]]; then
-  echo "TONY_CONF_DIR not set. Default to /export/apps/tony"
-  TONY_CONF_DIR="/export/apps/tony"
+  echo "TONY_CONF_DIR not set. Default to $DEFAULT_TONY_CONF_DIR"
+  TONY_CONF_DIR=$DEFAULT_TONY_CONF_DIR
 fi
 
 if [ ! -f $TONY_CONF_DIR/tony-site.xml ]; then

@@ -19,7 +19,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.HdfsConfiguration;
 
 
 /**
@@ -139,15 +138,6 @@ public class HdfsUtils {
       LOG.error("Failed to traverse down history folder", e);
     }
     return intermediateFolders;
-  }
-
-  public static FileSystem getFileSystem(HdfsConfiguration hdfsConf) {
-    try {
-      return FileSystem.get(hdfsConf);
-    } catch (IOException e) {
-      LOG.error("Failed to instantiate HDFS FileSystem object", e);
-    }
-    return null;
   }
 
   private HdfsUtils() { }
