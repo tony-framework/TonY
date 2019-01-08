@@ -720,6 +720,7 @@ public class TonyClient implements AutoCloseable {
         exitCode = client.start();
         if (client.amRpcClient != null) {
           client.amRpcClient.finishApplication();
+          LOG.info("Sent message to AM to stop.");
         }
       }
     } catch (ParseException | IOException | YarnException e) {

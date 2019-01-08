@@ -166,7 +166,7 @@ public class TonyApplicationMaster {
   /** Lifecycle control **/
   private long appTimeout;
 
-  private boolean clientSignalToStop = false; // client signal to stop
+  private volatile boolean clientSignalToStop = false; // client signal to stop
 
   /** HeartBeat monitor **/
   private final AbstractLivelinessMonitor<TonyTask> hbMonitor;
@@ -398,12 +398,6 @@ public class TonyApplicationMaster {
         .build();
     eventHandlerThread.stop(jobDir, metadata);
 
-    // Wait for eventHandlerThread to wrap up before exiting
-    try {
-      eventHandlerThread.join();
-    } catch (InterruptedException e) {
-      LOG.error("Failed to dump leftover events", e);
-    }
     return succeeded;
   }
 

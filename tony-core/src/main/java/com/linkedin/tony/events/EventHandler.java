@@ -21,7 +21,9 @@ import org.apache.hadoop.fs.Path;
 
 public class EventHandler extends Thread {
   private static final Log LOG = LogFactory.getLog(EventHandler.class);
-  private boolean isStopped = false;
+
+  private volatile boolean isStopped = false;
+
   private BlockingQueue<Event> eventQueue;
   private Path finalHistFile = null;
   private Path inProgressHistFile = null;
@@ -60,12 +62,13 @@ public class EventHandler extends Thread {
     } catch (IOException e) {
       LOG.error("Failed to append event " + event, e);
     } catch (InterruptedException e) {
-      LOG.info("Event writer interrupted", e);
+      LOG.info("Event writer interrupted");
     }
   }
 
   @VisibleForTesting
   void drainQueue(BlockingQueue<Event> queue, DataFileWriter<Event> writer) {
+    LOG.info("Draining queue");
     while (!eventQueue.isEmpty()) {
       try {
         Event event = queue.poll();
@@ -78,6 +81,7 @@ public class EventHandler extends Thread {
 
   public void emitEvent(Event event) {
     try {
+      LOG.info("Emitting event: " + event);
       eventQueue.put(event);
     } catch (InterruptedException e) {
       LOG.error("Failed to add event " + event + " to event queue", e);
@@ -90,6 +94,7 @@ public class EventHandler extends Thread {
     // If setupThread method fails to create inProgressHistFile,
     // return immediately since we don't have any file to begin with
     if (inProgressHistFile == null) {
+      LOG.warn("inProgressHistFile is null");
       return;
     }
 
@@ -99,7 +104,9 @@ public class EventHandler extends Thread {
 
     // Clear the queue
     drainQueue(eventQueue, dataFileWriter);
+  }
 
+  private void cleanUp() {
     try {
       dataFileWriter.close();
       if (out != null) {
@@ -108,13 +115,9 @@ public class EventHandler extends Thread {
     } catch (IOException e) {
       LOG.error("Failed to close writer", e);
     }
+  }
 
-    // At this point, finalHistFile should be set
-    // If not, then leave the inProgressHistFile as is.
-    if (finalHistFile == null) {
-      return;
-    }
-
+  private void moveInProgressToFinal() {
     try {
       myFs.rename(inProgressHistFile, finalHistFile);
     } catch (IOException e) {
@@ -124,12 +127,22 @@ public class EventHandler extends Thread {
 
   public void stop(Path intermDir, JobMetadata metadata) {
     if (inProgressHistFile == null) {
+      LOG.warn("inProgressHistFile is null");
       return;
     }
-    isStopped = true;
-    LOG.info("Stopped event handler thread");
+
     finalHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
+    LOG.info("Stopping event handler thread");
+    isStopped = true;
     this.interrupt();
+    try {
+      this.join();
+    } catch (InterruptedException e) {
+      LOG.warn("Encountered interruption while stopping event handler thread", e);
+    }
+
+    cleanUp();
+    moveInProgressToFinal();
   }
 }
 
