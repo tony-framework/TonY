@@ -2,7 +2,7 @@
 
 ## Development
 
-You can use the `gradlew` script in `TonY` root. 
+You can use the `gradlew` script in `TonY` root.
 Make sure you allow execution permission (`chmod +x gradlew`) to script before running if encountering permission issue.
 Assuming you are in the root `TonY` folder:
 
