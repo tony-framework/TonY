@@ -35,7 +35,7 @@ you can load by copying it to `/tmp`:
 cp -r tony-history-server/example/tony-history /tmp
 ```
 
-Double-check that the `history` configs in `tony-history-server/conf/application.conf` point to `/tmp/tony-history`. 
+Double-check that the `history` configs in `tony-history-server/conf/application.conf` point to `/tmp/tony-history`.
 
 - To run tests:
 ```
@@ -52,7 +52,7 @@ The zip should be created in `tony-history-server/build/distributions`.
 2. Copy the zip to your production host.
 3. Unzip it.
 4. Optional: Before running the production binary, all the configurations for Tony History Server should be
-set in `$TONY_CONF_DIR/tony-site.xml`. You can look at the [sample](./conf/tony-site.sample.xml) 
+set in `$TONY_CONF_DIR/tony-site.xml`. You can look at the [sample](./conf/tony-site.sample.xml)
 to set up your own `tony-site.xml`. If needed, run
 ```
 # should contain `tony-site.xml` inside it
