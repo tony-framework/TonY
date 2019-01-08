@@ -407,24 +407,40 @@ public class Utils {
   }
 
   /**
+   * Adds the resources in {@code resources} to the {@code resourcesMap}.
+   * @param resources  List of resource paths to process. If a resource is a directory,
+   *                   its immediate files will be added.
+   * @param resourcesMap  map where resource path to {@Link LocalResource} mapping will be added
+   * @param fs  {@link FileSystem} used to list the resources
+   */
+  public static void addResources(String[] resources, Map<String, LocalResource> resourcesMap, FileSystem fs) {
+    if (null != resources) {
+      for (String dir : resources) {
+        Utils.addResource(dir, resourcesMap, fs);
+      }
+    }
+  }
+
+  /**
    * Add files inside a path to local resources. If the path is a directory, its first level files will be added
    * to the local resources. Note that we don't add nested files.
    * @param path the directory whose contents will be localized.
+   * @param resourcesMap map where resource path to {@link LocalResource} mapping will be added
    * @param fs the filesystem instance used to read the {@code path}.
    */
   public static void addResource(String path, Map<String, LocalResource> resourcesMap, FileSystem fs) {
     try {
       if (path != null) {
         FileStatus[] ls = fs.listStatus(new Path(path));
-        for (FileStatus jar : ls) {
+        for (FileStatus fileStatus : ls) {
           // We only add first level files.
-          if (jar.isDirectory()) {
+          if (fileStatus.isDirectory()) {
             continue;
           }
-          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
+          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(fileStatus.getPath().toString())),
                                                              LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-                                                             jar.getLen(), jar.getModificationTime());
-          resourcesMap.put(jar.getPath().getName(), resource);
+                                                             fileStatus.getLen(), fileStatus.getModificationTime());
+          resourcesMap.put(fileStatus.getPath().getName(), resource);
         }
       }
     } catch (IOException exception) {

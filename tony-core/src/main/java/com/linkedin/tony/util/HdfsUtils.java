@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 
 
@@ -138,6 +140,24 @@ public class HdfsUtils {
       LOG.error("Failed to traverse down history folder", e);
     }
     return intermediateFolders;
+  }
+
+  /**
+   * Copies {@code src} to {@code dst}. If {@code src} does not have a scheme, it is assumed to be on local filesystem.
+   * @param src  Source {@code Path}
+   * @param dst  Destination {@code Path}
+   * @param conf  HDFS configuration
+   * @throws IOException
+   */
+  public static void copySrcToDest(Path src, Path dst, Configuration conf) throws IOException {
+    FileSystem srcFs;
+    if (src.toUri().getScheme() == null) {
+      srcFs = FileSystem.getLocal(conf);
+    } else {
+      srcFs = src.getFileSystem(conf);
+    }
+    FileSystem dstFs = dst.getFileSystem(conf);
+    FileUtil.copy(srcFs, src, dstFs, dst, false, true, conf);
   }
 
   private HdfsUtils() { }

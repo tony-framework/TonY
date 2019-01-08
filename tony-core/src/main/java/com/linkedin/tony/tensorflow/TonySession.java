@@ -134,15 +134,7 @@ public class TonySession {
     try {
       if (hdfsClasspathDir != null) {
         FileSystem fs = FileSystem.get(new URI(hdfsClasspathDir), hdfsConf);
-        FileStatus[] ls = fs.listStatus(new Path(hdfsClasspathDir));
-        for (FileStatus jar : ls) {
-          LocalResource resource =
-              LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(jar.getPath().toString())),
-                                        LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-                                        jar.getLen(), jar.getModificationTime());
-
-          localResources.put(jar.getPath().getName(), resource);
-        }
+        Utils.addResource(hdfsClasspathDir, localResources, fs);
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

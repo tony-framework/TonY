@@ -1096,19 +1096,11 @@ public class TonyApplicationMaster {
       // Add job type specific resources
       Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
       String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
-      if (null != resources) {
-        for (String dir : resources) {
-          Utils.addResource(dir, containerResources, resourceFs);
-        }
-      }
+      Utils.addResources(resources, containerResources, resourceFs);
 
       // All resources available to all containers
       resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
-      if (null != resources) {
-        for (String dir : resources) {
-          Utils.addResource(dir, containerResources, resourceFs);
-        }
-      }
+      Utils.addResources(resources, containerResources, resourceFs);
 
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
