@@ -58,24 +58,25 @@ public class Requirements {
     }
   }
 
-  private void setupKeytab(HdfsConfiguration hdfsConf) {
-    boolean isSecurityEnabled = hdfsConf.get("hadoop.security.authentication").equals("kerberos");
-    if (isSecurityEnabled) {
-      try {
-        UserGroupInformation.setConfiguration(hdfsConf);
-        UserGroupInformation.loginUserFromKeytab(keytabUser, keytabLocation);
-      } catch (IOException e) {
-        LOG.error("Failed to set up keytab", e);
-      }
-    }
-  }
-
-  private void setupSecurity(Config appConf, HdfsConfiguration hdfsConf) {
+  private void setupKeytab(Config appConf) {
     keytabUser = ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_KEYTAB_USER,
         TonyConfigurationKeys.DEFAULT_TONY_KEYTAB_USER);
     keytabLocation = ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_KEYTAB_LOCATION,
         TonyConfigurationKeys.DEFAULT_TONY_KEYTAB_LOCATION);
-    setupKeytab(hdfsConf);
+
+    try {
+      UserGroupInformation.loginUserFromKeytab(keytabUser, keytabLocation);
+    } catch (IOException e) {
+      LOG.error("Failed to login with user " + keytabUser + " from keytab file " + keytabLocation, e);
+    }
+  }
+
+  private void setupSecurity(Config appConf, HdfsConfiguration hdfsConf) {
+    boolean isSecurityEnabled = hdfsConf.get("hadoop.security.authentication").equals("kerberos");
+    if (isSecurityEnabled) {
+      UserGroupInformation.setConfiguration(hdfsConf);
+      setupKeytab(appConf);
+    }
   }
 
   @Inject
