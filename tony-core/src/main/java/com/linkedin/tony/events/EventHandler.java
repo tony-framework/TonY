@@ -94,11 +94,11 @@ public class EventHandler extends Thread {
     // If setupThread method fails to create inProgressHistFile,
     // return immediately since we don't have any file to begin with
     if (inProgressHistFile == null) {
-      LOG.info("inProgressHistFile is null");
+      LOG.warn("inProgressHistFile is null");
       return;
     }
 
-    while (!isStopped && !this.isInterrupted()) {
+    while (!isStopped && !Thread.currentThread().isInterrupted()) {
       writeEvent(eventQueue, dataFileWriter);
     }
 
@@ -127,9 +127,10 @@ public class EventHandler extends Thread {
 
   public void stop(Path intermDir, JobMetadata metadata) {
     if (inProgressHistFile == null) {
-      LOG.info("inProgressHistFile is null, in stop");
+      LOG.warn("inProgressHistFile is null");
       return;
     }
+
     finalHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
     LOG.info("Stopping event handler thread");
     isStopped = true;
