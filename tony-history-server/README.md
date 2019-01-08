@@ -62,7 +62,7 @@ export TONY_CONF_DIR=/path/to/tony/config/folder`
 6. Run `bin/startTHS.sh`. See [script](./startTHS.sh) for more details.
 
 Steps (1) and (2) can also be done together by running the `./buildAndDeploy.sh` script
-(see `Deployment` section below).
+(see [Deployment](#deployment) section below).
 
 To stop the THS, run
 ```
@@ -70,7 +70,7 @@ bin/stopTHS.sh
 ```
 
 
-### Deployment
+### <a name='deployment'>Deployment</a>
 
 Before using the script, ensure that you have set execution permission (`chmod +x buildAndDeploy.sh`)
 
