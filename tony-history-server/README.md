@@ -44,31 +44,31 @@ $ ./gradlew :tony-history-server:testPlayBinary
 
 For more info about developing with Play using Gradle, click [here](https://docs.gradle.org/current/userguide/play_plugin.html#play_continuous_build).
 
+
 ## Production
-- Bundle the production binary:
-```
-$ ./gradlew :tony-history-server:createPlayBinaryZipDist
-```
 
+1. Create the production zip by running `./gradlew :tony-history-server:createPlayBinaryZipDist`.
 The zip should be created in `tony-history-server/build/distributions`.
-
-Before running the production binary, all the configurations for Tony History Server should be 
+2. Copy the zip to your production host.
+3. Unzip it.
+4. Optional: Before running the production binary, all the configurations for Tony History Server should be
 set in `$TONY_CONF_DIR/tony-site.xml`. You can look at the [sample](./conf/tony-site.sample.xml) 
-to set up your own `tony-site.xml`.
+to set up your own `tony-site.xml`. If needed, run
+```
+# should contain `tony-site.xml` inside it
+export TONY_CONF_DIR=/path/to/tony/config/folder`
+```
+5. `cd tony-history-server-*`
+6. Run `bin/startTHS.sh`. See [script](./startTHS.sh) for more details.
 
-- To start the server after bundling with `./gradlew :tony-history-server:createPlayBinaryZipDist`:
-1. Copy the zip to your production host.
-2. Unzip it.
-3. Optional: `export TONY_CONF_DIR=/path/to/tony/config/folder` (should contain `tony-site.xml` inside it).
-4. `cd tony-history-server-*`
-5. `bin/startTHS.sh`
-
-See [script](./startTHS.sh) for more details.
+Steps (1) and (2) can also be done together by running the `./buildAndDeploy.sh` script
+(see `Deployment` section below).
 
 To stop the THS, run
 ```
 bin/stopTHS.sh
 ```
+
 
 ### Deployment
 
@@ -76,6 +76,7 @@ Before using the script, ensure that you have set execution permission (`chmod +
 
 - To bundle the history server app and copy it to another host
 ```
+# must be run from the tony-history-server folder
 $ ./buildAndDeploy.sh user hostname.test.abc.com
 ```
 
