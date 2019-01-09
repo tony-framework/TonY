@@ -12,10 +12,10 @@
 *.suo
 *.swp
 *.vcxproj.user
-*.xml
 *.zip
 */bin
 */classes
+*tony-final.xml
 .DS_Store
 .classpath
 .gradle/
@@ -29,7 +29,6 @@ dependency-reduced-pom.xml
 log/
 out/
 target
-tony-final.xml
 tony-history-server/conf/*.jks
 tony-history-server/conf/application.conf
 tony-history-server/conf/prod.conf
