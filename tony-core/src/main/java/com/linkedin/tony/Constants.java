@@ -28,6 +28,7 @@ public class Constants {
   public static final String TB_PORT = "TB_PORT";
   public static final String TASK_INDEX = "TASK_INDEX";
   public static final String TASK_NUM = "TASK_NUM";
+  public static final String IS_CHIEF = "IS_CHIEF";
   public static final String CLUSTER_SPEC = "CLUSTER_SPEC";
   public static final String TF_CONFIG = "TF_CONFIG";
 

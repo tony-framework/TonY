@@ -7,6 +7,7 @@ package com.linkedin.tony;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.linkedin.tony.models.JobMetadata;
 import com.linkedin.tony.events.ApplicationFinished;
 import com.linkedin.tony.events.ApplicationInited;
@@ -1117,10 +1118,14 @@ public class TonyApplicationMaster {
        * task_num and TaskExecutor is responsible for setting up the actual shell environment
        * for different deep learning frameworks.
        */
-      containerShellEnv.put(Constants.JOB_NAME, task.getJobName());
-      containerShellEnv.put(Constants.TASK_INDEX, task.getTaskIndex());
+      String jobName = task.getJobName();
+      String taskIndex = task.getTaskIndex();
+      containerShellEnv.put(Constants.JOB_NAME, jobName);
+      containerShellEnv.put(Constants.TASK_INDEX, taskIndex);
       containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
-      List<String> commands = new ArrayList<>();
+      if (session.isChief(jobName, taskIndex)) {
+        containerShellEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
+      }
 
       List<CharSequence> arguments = new ArrayList<>(5);
       arguments.add(session.getTaskCommand());
@@ -1130,11 +1135,10 @@ public class TonyApplicationMaster {
       for (CharSequence str : arguments) {
         command.append(str).append(" ");
       }
-      commands.add(command.toString());
+      List<String> commands = ImmutableList.of(command.toString());
 
       LOG.info("Constructed command: " + commands);
       LOG.info("Container environment: " + containerShellEnv);
-
 
       // Set logs to be readable by everyone.
       Map<ApplicationAccessType, String> acls = new HashMap<>(2);

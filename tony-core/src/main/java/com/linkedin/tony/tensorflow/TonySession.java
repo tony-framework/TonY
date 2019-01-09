@@ -365,7 +365,7 @@ public class TonySession {
   /**
    * Returns true if the job is "chief" or if there is no "chief" job and ("worker", "0") is passed in.
    */
-  private boolean isChief(String jobName, String index) {
+  public boolean isChief(String jobName, String index) {
     return jobName.equals(CHIEF_JOB_NAME) || (!jobTasks.containsKey(CHIEF_JOB_NAME) &&
         jobName.equals(WORKER_JOB_NAME) && index.equals("0"));
   }

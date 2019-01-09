@@ -257,16 +257,16 @@ public class TestTonyE2E {
   }
 
   @Test
-  public void testChiefWorkerTensorBoardPortOpen() throws ParseException {
+  public void testTensorBoardPortSetOnlyOnChiefWorker() throws ParseException {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/",
-        "--executes", "'python check_tb_port.py'",
+        "--executes", "'python check_tb_port_set_in_chief_only.py'",
         "--hdfs_classpath", "/yarn/libs",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--conf", "tony.chief.instances=1",
-        "--conf", "tony.ps.instances=0",
-        "--conf", "tony.worker.instances=0",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
