@@ -57,6 +57,7 @@ public class TaskExecutor {
   private int taskIndex;
   private String taskId;
   private int numTasks;
+  private boolean isChief;
   private Configuration yarnConf = new Configuration();
   private Configuration hdfsConf = new Configuration();
   private ApplicationRpcClient proxy;
@@ -74,24 +75,36 @@ public class TaskExecutor {
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
     taskId = jobName + ":" + taskIndex;
 
+    String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
+    isChief = isChiefEnvValue == null ? false : Boolean.parseBoolean(isChiefEnvValue);
+
     LOG.info("Executor is running task " + jobName + " " + taskIndex);
   }
 
+  /**
+   * We bind to random ports and then release them, and these are the ports used by the task.
+   * However, there is the possibility that another process grabs the port between when it's released and used again.
+   */
   private void setupPorts() throws IOException {
     // Reserve a rpcSocket rpcPort.
     this.rpcSocket = new ServerSocket(0);
     this.rpcPort = this.rpcSocket.getLocalPort();
+    this.rpcSocket.close();
     LOG.info("Reserved rpcPort: " + this.rpcPort);
 
     this.gatewayServerSocket = new ServerSocket(0);
     this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
+    this.gatewayServerSocket.close();
     LOG.info("Reserved py4j gatewayServerPort: " + this.gatewayServerPort);
 
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
-    if (jobName.equals(Constants.CHIEF_JOB_NAME) || (jobName.equals(Constants.WORKER_JOB_NAME) && taskIndex == 0)) {
+    if (isChief) {
       this.tbSocket = new ServerSocket(0);
       this.tbPort = this.tbSocket.getLocalPort();
+      this.tbSocket.close();
+      this.registerTensorBoardUrl();
+      this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort));
       LOG.info("Reserved tbPort: " + this.tbPort);
     }
   }
@@ -102,17 +115,12 @@ public class TaskExecutor {
 
     executor.initConfigs(args);
     executor.setupTaskExecutor();
-    executor.setupPorts();
-
-    // Set up py4j
-    GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
-    executor.gatewayServerSocket.close();
-    pyServer.start();
-
 
     LOG.info("Setting up Rpc client, connecting to: " + executor.amAddress);
     executor.proxy = ApplicationRpcClient.getInstance(executor.amAddress.split(":")[0],
         Integer.parseInt(executor.amAddress.split(":")[1]), executor.yarnConf);
+
+    executor.setupPorts();
 
     if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
       LOG.info("Unpacking src directory..");
@@ -132,43 +140,34 @@ public class TaskExecutor {
     }
     LOG.info("Successfully registered and got cluster spec: " + executor.clusterSpec);
 
-    // Release the rpcPort and start the process
-    executor.rpcSocket.close();
-
-    if (executor.jobName.equals(Constants.CHIEF_JOB_NAME) ||
-        (executor.jobName.equals(Constants.WORKER_JOB_NAME) && executor.taskIndex == 0)) {
-      executor.registerTensorBoardUrl();
-      executor.tbSocket.close();
-    }
-
-    // Execute the user command
-    HashMap<String, String> extraEnv = new HashMap<>(executor.shellEnv);
     switch (executor.framework) {
       case TENSORFLOW: {
-        LOG.info("Setting up TensorFlow jobs..");
-        extraEnv.put(Constants.TB_PORT, String.valueOf(executor.tbPort));
-        extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
-        extraEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
-        extraEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
-        extraEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
-        extraEnv.put(Constants.TF_CONFIG, Utils.constructTFConfig(executor.clusterSpec, executor.jobName, executor.taskIndex));
+        LOG.info("Setting up TensorFlow job...");
+        // Set up py4j
+        GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
+        pyServer.start();
+        executor.shellEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
+        executor.shellEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
+        executor.shellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
+        executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+        executor.shellEnv.put(Constants.TF_CONFIG, Utils.constructTFConfig(executor.clusterSpec, executor.jobName, executor.taskIndex));
         break;
       }
       case PYTORCH: {
-        LOG.info("Setting up PyTorch jobs..");
+        LOG.info("Setting up PyTorch job...");
         String initMethod = Utils.parseClusterSpecForPytorch(executor.clusterSpec);
         if (initMethod == null) {
           System.exit(-1);
         }
         LOG.info("Init method is: " + initMethod);
-        extraEnv.put(Constants.INIT_METHOD, String.valueOf(initMethod));
-        extraEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
-        extraEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
+        executor.shellEnv.put(Constants.INIT_METHOD, initMethod);
+        executor.shellEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
+        executor.shellEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
       }
     }
 
-    int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, extraEnv);
+    int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
     // START - worker skew testing:
     executor.skewAndHangIfTesting();
     // END - worker skew testing:
