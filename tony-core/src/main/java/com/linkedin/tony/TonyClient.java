@@ -367,7 +367,7 @@ public class TonyClient implements AutoCloseable {
         tonyConf.addResource(confFilePath.getFileSystem(hdfsConf).open(confFilePath));
       }
     } else {
-      // Searched for on the classpath. Will NOT throw an error if not present on classpath.
+      // Search for tony.xml on classpath. Will NOT throw an error if not present on classpath.
       tonyConf.addResource(Constants.TONY_XML);
     }
     if (cliParser.hasOption("conf")) {
