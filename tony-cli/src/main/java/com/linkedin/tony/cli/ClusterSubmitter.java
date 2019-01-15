@@ -59,14 +59,6 @@ public class ClusterSubmitter extends TonySubmitter {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
       fs.mkdirs(cachedLibPath);
-
-//      Path src = new Path(jarLocation);  // gs://  --> GsFileSystem, file:// --> local, /foo --> defaultFs
-//      FileSystem srcFs = src.getFileSystem(hdfsConf);
-//      Path dst = cachedLibPath;
-//      FileSystem dstFs = dst.getFileSystem(hdfsConf);
-//
-//      FileUtil.copy(srcFs, src, dstFs, dst, false, true, hdfsConf);
-
       fs.copyFromLocalFile(new Path(jarLocation), cachedLibPath);
 
       // Insert --hdfs_classpath at the beginning to avoid confusion when user pass in wrong arguments.
