@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;
 import java.io.File;
@@ -34,7 +35,6 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -208,7 +208,7 @@ public class TonyClient implements AutoCloseable {
 
     // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(appId, this.amMemory, this.taskParams, this.pythonBinaryPath, this.executes, getTokens());
+        createAMContainerSpec(this.amMemory, this.taskParams, this.pythonBinaryPath, this.executes, getTokens());
     appContext.setAMContainerSpec(amSpec);
     String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
     if (nodeLabel != null) {
@@ -262,7 +262,7 @@ public class TonyClient implements AutoCloseable {
     new HelpFormatter().printHelp("TonyClient", opts);
   }
 
-  public boolean init(String[] args) throws ParseException {
+  public boolean init(String[] args) throws ParseException, IOException {
     CommandLine cliParser = new GnuParser().parse(opts, args, true);
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
@@ -315,8 +315,6 @@ public class TonyClient implements AutoCloseable {
                                          + " Specified virtual cores=" + amVCores);
     }
 
-    int numWorkers = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME),
-        TonyConfigurationKeys.getDefaultInstances(Constants.WORKER_JOB_NAME));
     boolean singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
         TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
     if (!singleNode) {
@@ -357,11 +355,19 @@ public class TonyClient implements AutoCloseable {
    * @param tonyConf Configuration object.
    * @param cliParser CommandLine object that has all the command line arguments.
    */
-  public static void initTonyConf(Configuration tonyConf, CommandLine cliParser) {
+  public void initTonyConf(Configuration tonyConf, CommandLine cliParser) throws IOException {
     tonyConf.addResource(Constants.TONY_DEFAULT_XML);
     if (cliParser.hasOption("conf_file")) {
-      tonyConf.addResource(new Path(cliParser.getOptionValue("conf_file")));
+      Path confFilePath = new Path(cliParser.getOptionValue("conf_file"));
+
+      // if no scheme, assume local file, else read using corresponding filesystem
+      if (confFilePath.toUri().getScheme() == null) {
+        tonyConf.addResource(confFilePath);
+      } else {
+        tonyConf.addResource(confFilePath.getFileSystem(hdfsConf).open(confFilePath));
+      }
     } else {
+      // Search for tony.xml on classpath. Will NOT throw an error if not present on classpath.
       tonyConf.addResource(Constants.TONY_XML);
     }
     if (cliParser.hasOption("conf")) {
@@ -382,26 +388,22 @@ public class TonyClient implements AutoCloseable {
     return this.tonyConf;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(ApplicationId appId, long amMemory, String taskParams,
+  public ContainerLaunchContext createAMContainerSpec(long amMemory, String taskParams,
                                                       String pythonBinaryPath, String executes,
                                                       ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
     FileSystem fs = FileSystem.get(hdfsConf);
     Map<String, LocalResource> localResources = new HashMap<>();
-    addLocalResources(fs, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
+    addResource(fs, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
+
+    // Add AM resources
     String[] amResources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(Constants.AM_NAME));
-    if (null != amResources) {
-      for (String dir : amResources) {
-        Utils.addResource(dir, localResources, fs);
-      }
-    }
+    Utils.addResources(amResources, localResources, fs);
+
+    // Add resources for all containers
     amResources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
-    if (null != amResources) {
-      for (String dir : amResources) {
-        Utils.addResource(dir, localResources, fs);
-      }
-    }
+    Utils.addResources(amResources, localResources, fs);
 
     setAMEnvironment(localResources, fs);
 
@@ -440,13 +442,13 @@ public class TonyClient implements AutoCloseable {
     arguments.add("com.linkedin.tony.TonyApplicationMaster");
 
     if (taskParams != null) {
-      arguments.add("--task_params " + "'" + String.valueOf(taskParams) + "'");
+      arguments.add("--task_params " + "'" + taskParams + "'");
     }
     if (pythonBinaryPath != null) {
-      arguments.add("--python_binary_path " + String.valueOf(pythonBinaryPath));
+      arguments.add("--python_binary_path " + pythonBinaryPath);
     }
     if (executes != null) {
-      arguments.add("--executes " + String.valueOf(executes));
+      arguments.add("--executes " + executes);
     }
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
       arguments.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
@@ -460,17 +462,19 @@ public class TonyClient implements AutoCloseable {
   }
 
   /**
-   * Add a local resource to HDFS and local resources map.
+   * Adds resource to HDFS and local resources map.
    * @param fs HDFS file system reference
+   * @param srcPath Source path of resource. If no scheme is included, assumed to be on local filesystem.
    * @param resourceType the type of the src file
    * @param dstPath name of the resource after localization
    * @param localResources the local resources map
    * @throws IOException error when writing to HDFS
    */
-  private void addLocalResources(FileSystem fs, String srcPath, LocalResourceType resourceType,
+  private void addResource(FileSystem fs, String srcPath, LocalResourceType resourceType,
                                  String dstPath, Map<String, LocalResource> localResources) throws IOException {
+    Path src = new Path(srcPath);
     Path dst = new Path(appResourcesPath, dstPath);
-    fs.copyFromLocalFile(new Path(srcPath), dst);
+    HdfsUtils.copySrcToDest(src, dst, hdfsConf);
     fs.setPermission(dst, new FsPermission((short) 0770));
     FileStatus scFileStatus = fs.getFileStatus(dst);
     LocalResource scRsrc =
@@ -578,7 +582,7 @@ public class TonyClient implements AutoCloseable {
    * Kill application if time expires.
    * @param appId Application Id of application to be monitored
    * @return true if application completed successfully
-   * @throws org.apache.hadoop.yarn.exceptions.YarnException
+   * @throws YarnException
    * @throws java.io.IOException
    */
   private boolean monitorApplication(ApplicationId appId)
@@ -649,27 +653,22 @@ public class TonyClient implements AutoCloseable {
   }
 
   private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
-      Configuration tonyConf, FileSystem fs) throws IOException {
-    uploadFileAndSetConfResources(hdfsPath, filePath, filePath.getName(), tonyConf, fs);
-  }
-
-  private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
       String fileName, Configuration tonyConf, FileSystem fs) throws IOException {
     Path dst = new Path(hdfsPath, fileName);
-    fs.copyFromLocalFile(filePath, dst);
+    HdfsUtils.copySrcToDest(filePath, dst, tonyConf);
     fs.setPermission(dst, new FsPermission((short) 0770));
     appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), dst.toString(), tonyConf);
   }
 
   private void appendConfResources(String key, String resource, Configuration tonyConf) {
     String currentResources = tonyConf.get(key, "");
-    tonyConf.set(TonyConfigurationKeys.getContainerResourcesKey(), currentResources + "," + resource);
+    tonyConf.set(key, currentResources + "," + resource);
   }
 
   /**
    * Kill a submitted application by sending a call to the ASM
    * @param appId Application Id to be killed.
-   * @throws org.apache.hadoop.yarn.exceptions.YarnException
+   * @throws YarnException
    * @throws java.io.IOException
    */
   private void forceKillApplication(ApplicationId appId)
