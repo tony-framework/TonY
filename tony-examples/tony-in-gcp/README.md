@@ -164,8 +164,9 @@ gcloud dataproc jobs submit hadoop --cluster "$CLUSTER_NAME" \
 --python_venv=/opt/tony/TonY-samples/deps/tf.zip \
 --python_binary_path=tf/bin/python3.5
 ```
+## Running a PyTorch distributed job
 
-## Launch your PyTorch training job
+**Launch your PyTorch training job**
 
 For PyTorch as well, you can launch your Cloud Dataproc job using `gcloud` command.
 
@@ -204,17 +205,19 @@ gcloud dataproc jobs submit hadoop --cluster "$CLUSTER_NAME" \
 --python_binary_path=pytorch/bin/python3.5
 ```
 
-### Verify Job run successfully
+## Verify Job run successfully
 
-Access Hadoop UI
+You can track Job status from the Dataproc Jobs tab: navigate to Cloud Console > Big Data > Dataproc > Jobs.
 
-![img](https://i.imgur.com/3XgZI5Z.png)
+![img](https://i.imgur.com/OJL5Ook.png)
 
-Logging via web to DataProc master node via web: http://<Node_IP>:8088 and track Job status. If you don’t have access to UI, please jump into the Create a Firewall rule section.
+**Access Hadoop UI**
+
+Logging via web to Cloud Dataproc’s master node via web: http://<Node_IP>:8088 and track Job status. Please take a look at this [section](https://cloud.google.com/dataproc/docs/concepts/accessing/cluster-web-interfaces) to see how to access the Cloud Dataproc UI.
 
 You can also track Job status from DataProc Jobs tab: Cloud Console -> Big Data -> DataProc -> Jobs
 
-![img](https://i.imgur.com/OJL5Ook.png)
+![img](https://i.imgur.com/3XgZI5Z.png)
 
 
 ## Conclusion
