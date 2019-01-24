@@ -33,7 +33,7 @@ Get started on Google Cloud Platform (GCP) by creating a new project, using the 
 Then create a Cloud Storage bucket. Reference [here](https://cloud.google.com/storage/docs/creating-buckets#storage-create-bucket-gsutil).
 
 ```
-export BUCKET=
+export BUCKET=<your bucket name>
 gsutil mb gs://tony-staging
 ```
 
