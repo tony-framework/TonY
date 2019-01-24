@@ -68,7 +68,8 @@ public class TestUtils {
     assertEquals(3, requests.get("worker").getNumInstances());
     assertEquals(1, requests.get("evaluator").getNumInstances());
     assertEquals(3072, requests.get("ps").getMemory());
-    assertEquals(1, requests.get("worker").getGPU());
+    // For Hadoop 2.7 GPUs should get overwritten to 0
+    assertEquals(0, requests.get("worker").getGPU());
     assertEquals(2, requests.get("evaluator").getVCores());
     // Check default value.
     assertEquals(2048, requests.get("worker").getMemory());
