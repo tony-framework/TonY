@@ -9,18 +9,11 @@ import org.apache.hadoop.security.authorize.Service;
 import com.linkedin.tony.rpc.TensorFlowCluster;
 
 /**
- *  * PolicyProvider for Client to AM protocol.
- *   */
+ * PolicyProvider for Client to AM protocol.
+ **/
 public class TFPolicyProvider extends PolicyProvider {
-
-    private static final Service[] TF_AM_SERVICE =
-            new Service[]{
-                    new Service(
-                            "security.tf.client-am-protocol.acl",
-                            TensorFlowCluster.class)};
-
     @Override
     public Service[] getServices() {
-        return TF_AM_SERVICE;
-    };
+        return new Service[]{new Service("security.tf.client-am-protocol.acl", TensorFlowCluster.class)};
+    }
 }

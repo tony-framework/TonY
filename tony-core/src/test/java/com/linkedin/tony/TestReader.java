@@ -42,20 +42,20 @@ public class TestReader {
   public void testOffsetCalculation() {
     for (int t = 0; t < 1000; t++) {
       Random ran = new Random();
-      long totalLen = Math.abs(ran.nextLong()) % 100000 + 10000;
+      long totalLen = Math.abs(ran.nextInt(Integer.MAX_VALUE)) % 100000 + 10000;
       int totalIdx = ran.nextInt(20) + 10; // make sure this is not 0
 
-      long next_start = 0;
+      long nextStart = 0;
 
       for (int i = 0; i < totalIdx; i++) {
         long start = HdfsAvroFileSplitReader.computeReadSplitStart(
             totalLen, i, totalIdx);
-        assertEquals(next_start, start);
+        assertEquals(nextStart, start);
         long length = HdfsAvroFileSplitReader
             .computeReadSplitLength(totalLen, i, totalIdx);
-        next_start = start + length;
+        nextStart = start + length;
       }
-      assertEquals(totalLen, next_start);
+      assertEquals(totalLen, nextStart);
     }
   }
 
@@ -73,10 +73,10 @@ public class TestReader {
     Files.deleteIfExists(Paths.get(path2));
     try {
       Schema schema = generateTestSchema();
-      List<GenericData.Record> all_records = new ArrayList<>();
-      all_records.addAll(generateTestAvro(path0, schema));
-      all_records.addAll(generateTestAvro(path1, schema));
-      all_records.addAll(generateTestAvro(path2, schema));
+      List<GenericData.Record> allRecords = new ArrayList<>();
+      allRecords.addAll(generateTestAvro(path0, schema));
+      allRecords.addAll(generateTestAvro(path1, schema));
+      allRecords.addAll(generateTestAvro(path2, schema));
       // NOTE This will not use HDFS, this generates a RawLocalFileSystem
       // instance, we will only be testing with local file system in this unit
       // test.
@@ -89,8 +89,8 @@ public class TestReader {
       Schema readSchema = new Schema.Parser().parse(schemaJson);
       assertEquals(schema, readSchema);
 
-      readAndCheck(reader, readSchema, all_records);
-      assertEquals(all_records.size(), 0);
+      readAndCheck(reader, readSchema, allRecords);
+      assertEquals(allRecords.size(), 0);
       reader.close();
     } finally {
       Files.deleteIfExists(Paths.get(path0));
@@ -119,10 +119,10 @@ public class TestReader {
       List<GenericData.Record> records1 = generateTestAvro(path1, schema);
       List<GenericData.Record> records2 = generateTestAvro(path2, schema);
 
-      List<GenericData.Record> all_records = new ArrayList<>();
-      all_records.addAll(records0);
-      all_records.addAll(records1);
-      all_records.addAll(records2);
+      List<GenericData.Record> allRecords = new ArrayList<>();
+      allRecords.addAll(records0);
+      allRecords.addAll(records1);
+      allRecords.addAll(records2);
 
       // NOTE here we have 3 avro files, and a total of 3 splits.
       // but it does not necessarily mean each reader will be processing
@@ -136,8 +136,8 @@ public class TestReader {
       String schemaJson = reader0.getSchemaJson();
       Schema readSchema = new Schema.Parser().parse(schemaJson);
       assertEquals(schema, readSchema);
-      // this call below will remove some entries from all_records.
-      readAndCheck(reader0, readSchema, all_records);
+      // this call below will remove some entries from allRecords.
+      readAndCheck(reader0, readSchema, allRecords);
       reader0.close();
 
       HdfsAvroFileSplitReader reader1 =
@@ -148,7 +148,7 @@ public class TestReader {
       schemaJson = reader1.getSchemaJson();
       readSchema = new Schema.Parser().parse(schemaJson);
       assertEquals(schema, readSchema);
-      readAndCheck(reader1, readSchema, all_records);
+      readAndCheck(reader1, readSchema, allRecords);
       reader1.close();
 
       HdfsAvroFileSplitReader reader2 =
@@ -159,11 +159,11 @@ public class TestReader {
       schemaJson = reader2.getSchemaJson();
       readSchema = new Schema.Parser().parse(schemaJson);
       assertEquals(schema, readSchema);
-      readAndCheck(reader2, readSchema, all_records);
+      readAndCheck(reader2, readSchema, allRecords);
       reader2.close();
 
       // after all three readers, all records should be removed.
-      assertEquals(all_records.size(), 0);
+      assertEquals(allRecords.size(), 0);
     } finally {
       Files.deleteIfExists(Paths.get(path0));
       Files.deleteIfExists(Paths.get(path1));
@@ -172,7 +172,7 @@ public class TestReader {
   }
 
   private void readAndCheck(HdfsAvroFileSplitReader reader, Schema readSchema,
-      List<GenericData.Record> all_records) throws IOException, InterruptedException {
+      List<GenericData.Record> allRecords) throws IOException, InterruptedException {
     while (reader.hasNext()) {
       // an arbitrary chosen batch size, to capture the more likely case
       // that last batch will be smaller
@@ -188,7 +188,7 @@ public class TestReader {
         String name = record.get("name").toString();
         int age = (Integer) record.get("age");
 
-        GenericData.Record expected = all_records.remove(0);
+        GenericData.Record expected = allRecords.remove(0);
 
         assertEquals(name, expected.get("name"));
         assertEquals(age, expected.get("age"));
@@ -215,7 +215,7 @@ public class TestReader {
     Random ran = new Random();
     File file = new File(path);
 
-    List<GenericData.Record> all_records = new ArrayList<>();
+    List<GenericData.Record> allRecords = new ArrayList<>();
 
     GenericDatumWriter<GenericData.Record> datum =
         new GenericDatumWriter<>(schema);
@@ -224,14 +224,14 @@ public class TestReader {
 
     writer.create(schema, file);
 
-    for (int i = 0; i < NUM_RECORD; i ++) {
+    for (int i = 0; i < NUM_RECORD; i++) {
       GenericData.Record record =
           makeObject(schema, "Person " + i, ran.nextInt(120));
-      all_records.add(record);
+      allRecords.add(record);
       writer.append(record);
     }
     writer.close();
-    return all_records;
+    return allRecords;
   }
 
   private static GenericData.Record makeObject(Schema schema, String name,
@@ -239,6 +239,6 @@ public class TestReader {
     GenericData.Record record = new GenericData.Record(schema);
     record.put("name", name);
     record.put("age", age);
-    return(record);
+    return record;
   }
 }

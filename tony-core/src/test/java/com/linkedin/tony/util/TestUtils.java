@@ -111,7 +111,7 @@ public class TestUtils {
     String spec = "{\"worker\":[\"host0:1234\", \"host1:1234\"], \"ps\":[\"host2:1234\"]}";
     String tfConfig = Utils.constructTFConfig(spec, "worker", 1);
     ObjectMapper mapper = new ObjectMapper();
-    TFConfig config = mapper.readValue(tfConfig, new TypeReference<TFConfig>(){});
+    TFConfig config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
     assertEquals("worker", config.getTask().getType());
     assertEquals(1, config.getTask().getIndex());
     assertEquals("host0:1234", config.getCluster().get("worker").get(0));

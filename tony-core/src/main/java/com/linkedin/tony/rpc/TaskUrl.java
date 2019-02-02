@@ -8,7 +8,7 @@ package com.linkedin.tony.rpc;
 /**
  * Contains the name, index, and URL for a task.
  */
-public class TaskUrl implements Comparable<TaskUrl> {
+public class TaskUrl {
   private final String name;   // The name (worker or ps) of the task
   private final String index;  // The index of the task
   private final String url;    // The URL where the logs for the task can be found
@@ -29,13 +29,5 @@ public class TaskUrl implements Comparable<TaskUrl> {
 
   public String getUrl() {
     return url;
-  }
-
-  @Override
-  public int compareTo(TaskUrl other) {
-    if (!this.name.equals(other.name)) {
-      return this.name.compareTo(other.name);
-    }
-    return Integer.valueOf(this.index).compareTo(Integer.valueOf(other.index));
   }
 }

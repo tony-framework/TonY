@@ -58,7 +58,7 @@ public class NotebookSubmitter extends TonySubmitter {
     opts.addOption("src_dir", true, "Name of directory of source files.");
 
     int exitCode = 0;
-    Path cachedLibPath = null;
+    Path cachedLibPath;
     Configuration hdfsConf = new Configuration();
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
@@ -67,10 +67,7 @@ public class NotebookSubmitter extends TonySubmitter {
       LOG.info("Copying " + jarPath + " to: " + cachedLibPath);
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
-      exitCode = -1;
-    }
-    if (cachedLibPath == null) {
-      System.exit(-1);
+      return -1;
     }
 
     String[] updatedArgs = Arrays.copyOf(args, args.length + 4);
@@ -81,9 +78,6 @@ public class NotebookSubmitter extends TonySubmitter {
 
     client.init(updatedArgs);
     client.start();
-    if (client == null) {
-      System.exit(-1);
-    }
     Thread clientThread = new Thread(client::start);
     clientThread.start();
     while (clientThread.isAlive()) {
@@ -118,6 +112,5 @@ public class NotebookSubmitter extends TonySubmitter {
     NotebookSubmitter submitter = new NotebookSubmitter();
     exitCode = submitter.submit(args);
     System.exit(exitCode);
-
   }
 }

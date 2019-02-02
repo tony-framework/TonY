@@ -8,6 +8,7 @@ import com.google.protobuf.BlockingService;
 import com.linkedin.tony.TFPolicyProvider;
 import com.linkedin.tony.rpc.impl.pb.service.TensorFlowClusterPBServiceImpl;
 import java.io.IOException;
+import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -22,8 +23,8 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 
 
 public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
-  private static final RecordFactory RECORD_FACTORY =
-          RecordFactoryProvider.getRecordFactory(null);
+  private static final RecordFactory RECORD_FACTORY = RecordFactoryProvider.getRecordFactory(null);
+  private static final Random RANDOM_NUMBER_GENERATOR = new Random();
   private final int rpcPort;
   private final String rpcAddress;
   private final ApplicationRpc appRpc;
@@ -33,7 +34,7 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
 
   public ApplicationRpcServer(String hostname, ApplicationRpc rpc, Configuration conf) {
     this.rpcAddress = hostname;
-    this.rpcPort = 10000 + ((int) (Math.random() * (5000)) + 1);
+    this.rpcPort = 10000 + RANDOM_NUMBER_GENERATOR.nextInt(5000) + 1;
     this.appRpc = rpc;
     this.conf = conf;
     if (conf == null) {

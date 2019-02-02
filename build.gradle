@@ -89,6 +89,8 @@ subprojects {
   apply plugin: "license"
   apply plugin: "com.google.protobuf"
   apply plugin: "java"
+  apply plugin: "checkstyle"
+  apply plugin: "findbugs"
   apply plugin: "eclipse"
   apply plugin: "idea"
   apply plugin: "maven-publish"
@@ -179,6 +181,26 @@ subprojects {
   }
   signing {
     sign publishing.publications.mavenJava
+  }
+
+  checkstyle {
+    configFile rootProject.file('config/checkstyle/checkstyle.xml')
+    maxWarnings 0
+  }
+
+  tasks.withType(FindBugs) {
+    reports {
+      xml.enabled false
+      html.enabled true
+    }
+
+    classpath = classpath.filter {
+      // POM files are getting included in the classpath for some reason, but this causes parsing errors when FindBugs
+      // tries to analyze them, thinking they are zips. Excluding POM files as a workaround.
+      !it.name.endsWith('.pom')
+    }
+
+    excludeFilter = rootProject.file('config/findbugs/findbugsExclude.xml')
   }
 }
 

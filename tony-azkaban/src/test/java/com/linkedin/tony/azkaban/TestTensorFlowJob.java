@@ -29,7 +29,7 @@ public class TestTensorFlowJob {
   private static void initServiceProvider() {
     final Injector injector = Guice.createInjector(new AbstractModule() {
       @Override
-      protected void configure() {}
+      protected void configure() { }
     });
     // Because SERVICE_PROVIDER is a singleton and it is shared among many tests,
     // need to reset the state to avoid assertion failures.
