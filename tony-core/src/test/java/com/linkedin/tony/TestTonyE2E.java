@@ -115,7 +115,7 @@ public class TestTonyE2E {
         "--python_binary_path", "python",
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--container_env", Constants.TEST_TASK_EXECUTOR_SKEW+ "=worker#0#30000"
+        "--container_env", Constants.TEST_TASK_EXECUTOR_SKEW + "=worker#0#30000"
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
@@ -205,7 +205,8 @@ public class TestTonyE2E {
    */
   @Test
   public void testAMStopsJobAfterWorker0Killed() throws ParseException, IOException {
-    client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "exit_0.py", "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
+    client.init(new String[]{"--src_dir", "tony-core/src/test/resources/", "--executes", "exit_0.py",
+        "--hdfs_classpath", "/yarn/libs", "--python_binary_path", "python", "--container_env",
         Constants.TEST_WORKER_TERMINATED + "=true"});
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);

@@ -53,7 +53,7 @@ public class TestEventHandler {
   }
 
   @Test
-  public void testSetUpThread_failedToSetUpWriter() throws IOException {
+  public void testSetUpThreadFailedToSetUpWriter() throws IOException {
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.create(any(Path.class))).thenThrow(new IOException("IO Exception"));
 
@@ -65,7 +65,7 @@ public class TestEventHandler {
   }
 
   @Test
-  public void testEventHandlerE2E_success() throws InterruptedException, IOException {
+  public void testEventHandlerE2ESuccess() throws InterruptedException, IOException {
     fs.mkdirs(jobDir);
     eventHandlerThread = new EventHandler(fs, eventQueue);
     eventHandlerThread.setUpThread(jobDir, metadata);
@@ -92,7 +92,7 @@ public class TestEventHandler {
   }
 
   @Test
-  public void testEventHandlerE2E_failedJobDirNotSet() throws InterruptedException, IOException {
+  public void testEventHandlerE2EFailedJobDirNotSet() throws InterruptedException, IOException {
     fs.mkdirs(jobDir);
     eventHandlerThread = new EventHandler(fs, eventQueue);
     eventHandlerThread.start();

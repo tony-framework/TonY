@@ -24,11 +24,13 @@ import com.linkedin.tony.tensorflow.TonySession.TonyTask;
 import com.linkedin.tony.util.Utils;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,8 +87,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
-
-import static com.linkedin.tony.TonyConfigurationKeys.*;
 
 
 public class TonyApplicationMaster {
@@ -146,7 +146,7 @@ public class TonyApplicationMaster {
   private TonySession.Builder sessionBuilder;
 
   /** Configuration **/
-  private static Configuration yarnConf;
+  private Configuration yarnConf;
   private Configuration hdfsConf;
 
   /** Cluster spec **/
@@ -175,9 +175,6 @@ public class TonyApplicationMaster {
   private int maxConsecutiveHBMiss;
   private volatile boolean taskHasMissesHB = false;
   private Thread mainThread;
-
-  /** Handle different machine frameworks **/
-  private MLFramework framework;
 
   private TonyApplicationMaster() {
     hdfsConf = new Configuration();
@@ -264,8 +261,6 @@ public class TonyApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     maxConsecutiveHBMiss = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
-    framework = MLFramework.valueOf(tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
-                                                 TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
     tonyHistoryFolder = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION,
                                      TonyConfigurationKeys.DEFAULT_TONY_HISTORY_LOCATION);
 
@@ -509,7 +504,7 @@ public class TonyApplicationMaster {
     if (jobDir == null) {
       return;
     }
-    Path configFile = new Path(jobDir,"config.xml");
+    Path configFile = new Path(jobDir, "config.xml");
     try (FSDataOutputStream out = fs.create(configFile)) {
       tonyConf.writeXml(out);
     } catch (IOException e) {
@@ -744,9 +739,9 @@ public class TonyApplicationMaster {
       session.setFinalStatus(FinalApplicationStatus.FAILED, "Preprocessing job failed.");
       return exitCode;
     }
-    try (BufferedReader reader = new BufferedReader(new FileReader(
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(
         System.getProperty(YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR)
-        + File.separatorChar + Constants.AM_STDOUT_FILENAME))) {
+        + File.separatorChar + Constants.AM_STDOUT_FILENAME), StandardCharsets.UTF_8))) {
       String line;
       while ((line = reader.readLine()) != null) {
         if (line.contains("Model parameters: ")) {
@@ -1042,7 +1037,7 @@ public class TonyApplicationMaster {
             + ", containerId = " + container.getId()
             + ", containerNode = " + container.getNodeId().getHost() + ":" + container.getNodeId().getPort()
             + ", resourceRequest = " + container.getResource());
-        new ContainerLauncher(container, containerListener).run();
+        new ContainerLauncher(container).run();
       }
     }
 
@@ -1074,11 +1069,9 @@ public class TonyApplicationMaster {
    */
   private class ContainerLauncher implements Runnable {
     Container container;
-    NMCallbackHandler containerListener;
 
-    ContainerLauncher(Container container, NMCallbackHandler containerListener) {
+    ContainerLauncher(Container container) {
       this.container = container;
-      this.containerListener = containerListener;
     }
 
     /**

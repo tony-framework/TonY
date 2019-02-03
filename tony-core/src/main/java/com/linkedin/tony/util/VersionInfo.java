@@ -40,42 +40,42 @@ public class VersionInfo {
     }
   }
 
-  protected String _getVersion() {
+  private String getVersionInternal() {
     return versionInfo.getProperty("version", "Unknown");
   }
 
-  protected String _getRevision() {
+  private String getRevisionInternal() {
     return versionInfo.getProperty("revision", "Unknown");
   }
 
-  protected String _getBranch() {
+  private String getBranchInternal() {
     return versionInfo.getProperty("branch", "Unknown");
   }
 
-  protected String _getDate() {
+  private String getDateInternal() {
     return versionInfo.getProperty("date", "Unknown");
   }
 
-  protected String _getUser() {
+  private String getUserInternal() {
     return versionInfo.getProperty("user", "Unknown");
   }
 
-  protected String _getUrl() {
+  private String getUrlInternal() {
     return versionInfo.getProperty("url", "Unknown");
   }
 
-  protected String _getSrcChecksum() {
+  private String getSrcChecksumInternal() {
     return versionInfo.getProperty("srcChecksum", "Unknown");
   }
 
-  private static VersionInfo COMMON_VERSION_INFO = new VersionInfo();
+  private static final VersionInfo COMMON_VERSION_INFO = new VersionInfo();
 
   /**
    * Get the jar version.
    * @return the version string, e.g. "0.1.5"
    */
   public static String getVersion() {
-    return COMMON_VERSION_INFO._getVersion();
+    return COMMON_VERSION_INFO.getVersionInternal();
   }
 
   /**
@@ -83,7 +83,7 @@ public class VersionInfo {
    * @return the commit hash, e.g. "1cba10da369b846c53a3f99e9acbf8321db876e7"
    */
   public static String getRevision() {
-    return COMMON_VERSION_INFO._getRevision();
+    return COMMON_VERSION_INFO.getRevisionInternal();
   }
 
   /**
@@ -91,7 +91,7 @@ public class VersionInfo {
    * @return The branch name, e.g. "master" or "my-feature-branch"
    */
   public static String getBranch() {
-    return COMMON_VERSION_INFO._getBranch();
+    return COMMON_VERSION_INFO.getBranchInternal();
   }
 
   /**
@@ -99,7 +99,7 @@ public class VersionInfo {
    * @return the compilation date in unix date format
    */
   public static String getDate() {
-    return COMMON_VERSION_INFO._getDate();
+    return COMMON_VERSION_INFO.getDateInternal();
   }
 
   /**
@@ -107,21 +107,21 @@ public class VersionInfo {
    * @return the username of the user
    */
   public static String getUser() {
-    return COMMON_VERSION_INFO._getUser();
+    return COMMON_VERSION_INFO.getUserInternal();
   }
 
   /**
    * Get the Git URL for the root directory.
    */
   public static String getUrl() {
-    return COMMON_VERSION_INFO._getUrl();
+    return COMMON_VERSION_INFO.getUrlInternal();
   }
 
   /**
    * Get the checksum of the source files from which this project was built.
    **/
   public static String getSrcChecksum() {
-    return COMMON_VERSION_INFO._getSrcChecksum();
+    return COMMON_VERSION_INFO.getSrcChecksumInternal();
   }
 
   public static void injectVersionInfo(Configuration conf) {

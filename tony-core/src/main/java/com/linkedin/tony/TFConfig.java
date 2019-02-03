@@ -20,7 +20,7 @@ public class TFConfig {
     private int index;
 
     // Jackson needs a default constructor
-    Task() {}
+    Task() { }
 
     Task(String type, int index) {
       this.type = type;
@@ -47,7 +47,7 @@ public class TFConfig {
   }
 
   // Jackson needs a default constructor
-  TFConfig() {}
+  TFConfig() { }
 
   public TFConfig(Map<String, List<String>> clusterSpec, String jobName, int taskIndex) {
     this.clusterSpec = clusterSpec;

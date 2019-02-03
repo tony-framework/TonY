@@ -12,7 +12,7 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
 
   @Override
   public void initializeMemberVariables() {
-    xmlFilename = new String(Constants.TONY_DEFAULT_XML);
+    xmlFilename = Constants.TONY_DEFAULT_XML;
     configurationClasses = new Class[] { TonyConfigurationKeys.class };
 
     // Set error modes

@@ -8,8 +8,6 @@ package com.linkedin.tonyproxy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import org.apache.commons.logging.Log;
@@ -61,10 +59,10 @@ public class ProxyServer {
         final byte[] request = new byte[1024];
         byte[] reply = new byte[4096];
         new Thread(() -> {
-          int bytes_read;
+          int bytesRead;
           try {
-            while ((bytes_read = inFromClient.read(request)) != -1) {
-              outToServer.write(request, 0, bytes_read);
+            while ((bytesRead = inFromClient.read(request)) != -1) {
+              outToServer.write(request, 0, bytesRead);
               outToServer.flush();
             }
             outToServer.close();
@@ -72,9 +70,9 @@ public class ProxyServer {
             LOG.error(e);
           }
         }).start();
-        int bytes_read;
-        while ((bytes_read = inFromServer.read(reply)) != -1) {
-          outToClient.write(reply, 0, bytes_read);
+        int bytesRead;
+        while ((bytesRead = inFromServer.read(reply)) != -1) {
+          outToClient.write(reply, 0, bytesRead);
           outToClient.flush();
         }
       } catch (IOException e) {

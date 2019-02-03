@@ -13,7 +13,7 @@ import static org.testng.Assert.*;
 
 public class TestHistoryFileUtils {
   @Test
-  public void testGenerateFileName_inprogressJob() {
+  public void testGenerateFileNameInProgressJob() {
     String appId = "app123";
     long started = 1L;
     String user = "user";
@@ -29,7 +29,7 @@ public class TestHistoryFileUtils {
   }
 
   @Test
-  public void testGenerateFileName_finishedJob() {
+  public void testGenerateFileNameFinishedJob() {
     String appId = "app123";
     long started = 1L;
     long completed = 2L;

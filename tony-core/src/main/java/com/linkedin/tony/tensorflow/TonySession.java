@@ -6,7 +6,6 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
-import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.net.URI;
@@ -21,9 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -100,8 +97,8 @@ public class TonySession {
     this.jvmArgs = builder.jvmArgs;
     this.tonyConf = builder.tonyConf;
 
-    for (String jobName : containerRequests.keySet()) {
-      jobTasks.put(jobName, new TonyTask[containerRequests.get(jobName).getNumInstances()]);
+    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
+      jobTasks.put(entry.getKey(), new TonyTask[entry.getValue().getNumInstances()]);
     }
   }
 
@@ -122,8 +119,8 @@ public class TonySession {
 
     Map<String, String> env = System.getenv();
     String tonyConfPath = env.get(Constants.TONY_CONF_PREFIX + Constants.PATH_SUFFIX);
-    long tonyConfTimestamp = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.TIMESTAMP_SUFFIX));
-    long tonyConfLength = Long.valueOf(env.get(Constants.TONY_CONF_PREFIX + Constants.LENGTH_SUFFIX));
+    long tonyConfTimestamp = Long.parseLong(env.get(Constants.TONY_CONF_PREFIX + Constants.TIMESTAMP_SUFFIX));
+    long tonyConfLength = Long.parseLong(env.get(Constants.TONY_CONF_PREFIX + Constants.LENGTH_SUFFIX));
 
     LocalResource tonyConfResource =
         LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(tonyConfPath)),
@@ -358,8 +355,8 @@ public class TonySession {
    * Returns true if the job is "chief" or if there is no "chief" job and ("worker", "0") is passed in.
    */
   public boolean isChief(String jobName, String index) {
-    return jobName.equals(CHIEF_JOB_NAME) || (!jobTasks.containsKey(CHIEF_JOB_NAME) &&
-        jobName.equals(WORKER_JOB_NAME) && index.equals("0"));
+    return jobName.equals(CHIEF_JOB_NAME) || (!jobTasks.containsKey(CHIEF_JOB_NAME)
+        && jobName.equals(WORKER_JOB_NAME) && index.equals("0"));
   }
 
   public TonyTask getTask(ContainerId containerId) {

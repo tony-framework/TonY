@@ -415,7 +415,7 @@ public class HdfsAvroFileSplitReader implements Closeable {
     return filesToRead;
   }
 
-  private class FileAccessInfo {
+  private static class FileAccessInfo {
     final String filePath;
     final long startOffset;
     final long readLength;
@@ -472,7 +472,7 @@ public class HdfsAvroFileSplitReader implements Closeable {
    * as a byte array. Python code can simply parse this
    * in memory byte array as if it is a regular avro file.
    */
-  class FileObject extends OutputStream {
+  static class FileObject extends OutputStream {
 
     ByteArrayOutputStream stream;
 
@@ -769,7 +769,9 @@ public class HdfsAvroFileSplitReader implements Closeable {
           int attempt = 100;
           while (list.size() < pollingThreshold * this.bufferSize
               && !fetcher.readFinished && attempt-- > 0) {
-            bufferReady.await(10, TimeUnit.MILLISECONDS);
+            if (!bufferReady.await(10, TimeUnit.MILLISECONDS) && attempt % 20 == 0) {
+              LOG.warn("Read buffer not ready");
+            }
           }
           if (attempt <= 0) {
             return null;

@@ -8,6 +8,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,7 +76,7 @@ public class HdfsUtils {
   public static String contentOfHdfsFile(FileSystem fs, Path filePath) {
     StringBuilder fileContent = new StringBuilder();
     try (FSDataInputStream inStrm = fs.open(filePath);
-        BufferedReader bufReader = new BufferedReader(new InputStreamReader(inStrm))) {
+        BufferedReader bufReader = new BufferedReader(new InputStreamReader(inStrm, StandardCharsets.UTF_8))) {
       String line;
       while ((line = bufReader.readLine()) != null) {
         fileContent.append(line);

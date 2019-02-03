@@ -4,6 +4,8 @@
  */
 package com.linkedin.tony.rpc;
 
+import java.util.Objects;
+
 
 /**
  * Contains the name, index, and URL for a task.
@@ -37,5 +39,23 @@ public class TaskUrl implements Comparable<TaskUrl> {
       return this.name.compareTo(other.name);
     }
     return Integer.valueOf(this.index).compareTo(Integer.valueOf(other.index));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    TaskUrl taskUrl = (TaskUrl) o;
+    return Objects.equals(name, taskUrl.name) && Objects.equals(index, taskUrl.index) && Objects.equals(url,
+        taskUrl.url);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, index, url);
   }
 }

@@ -384,7 +384,7 @@ public class Utils {
     ObjectMapper mapper = new ObjectMapper();
     try {
       Map<String, List<String>> spec =
-          mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() {});
+          mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
       TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
       return mapper.writeValueAsString(tfConfig);
     } catch (IOException ioe) {
@@ -457,13 +457,13 @@ public class Utils {
       LOG.info("Completed all " + totalWTasks + " worker tasks.");
       return;
     }
-    LOG.info("Completed worker tasks: " + completedWTasks.get() + " out of " + totalWTasks + " worker tasks." );
+    LOG.info("Completed worker tasks: " + completedWTasks.get() + " out of " + totalWTasks + " worker tasks.");
   }
 
   public static String parseClusterSpecForPytorch(String clusterSpec) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, List<String>> clusterSpecMap =
-        objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>(){});
+        objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
     String chiefWorkerAddress = clusterSpecMap.get(Constants.WORKER_JOB_NAME).get(0);
     if (chiefWorkerAddress == null) {
       LOG.error("Failed to get chief worker address from cluster spec.");

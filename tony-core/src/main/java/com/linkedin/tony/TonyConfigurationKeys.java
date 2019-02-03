@@ -18,7 +18,7 @@ public class TonyConfigurationKeys {
 
   // Version info configuration
   public static final String TONY_VERSION_INFO_PREFIX = TONY_PREFIX + "version-info.";
-  public static final String TONY_VERSION_INFO_VERSION= TONY_VERSION_INFO_PREFIX + "version";
+  public static final String TONY_VERSION_INFO_VERSION = TONY_VERSION_INFO_PREFIX + "version";
   public static final String TONY_VERSION_INFO_REVISION = TONY_VERSION_INFO_PREFIX + "revision";
   public static final String TONY_VERSION_INFO_BRANCH = TONY_VERSION_INFO_PREFIX + "branch";
   public static final String TONY_VERSION_INFO_USER = TONY_VERSION_INFO_PREFIX + "user";

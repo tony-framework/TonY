@@ -35,7 +35,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testIsValidHistFileName_true() {
+  public void testIsValidHistFileNameTrue() {
     String fileName = "job123-1-1-user1-FAILED." + Constants.HISTFILE_SUFFIX;
     String jobRegex = "job\\d+";
 
@@ -43,7 +43,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testIsValidHistFileName_false() {
+  public void testIsValidHistFileNameFalse() {
     // Job name doesn't match job regex
     String fileName1 = "application123-1-1-user1-FAILED." + Constants.HISTFILE_SUFFIX;
     // User isn't supposed to be upper-cased
@@ -55,7 +55,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testParseMetadata_success() {
+  public void testParseMetadataSuccess() {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     JobMetadata expected = new JobMetadata.Builder()
@@ -79,7 +79,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testParseMetadata_fail_IOException() throws IOException {
+  public void testParseMetadataFailIOException() throws IOException {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     String jobRegex = "application\\d+";
     FileSystem mockFs = mock(FileSystem.class);
@@ -90,7 +90,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testParseConfig_success() {
+  public void testParseConfigSuccess() {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     List<JobConfig> expected = new ArrayList<>();
     JobConfig expectedConfig = new JobConfig();
@@ -110,7 +110,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testParseConfig_fail_IOException() throws IOException {
+  public void testParseConfigFailIOException() throws IOException {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     FileSystem mockFs = mock(FileSystem.class);
     when(mockFs.listStatus(jobFolder)).thenThrow(new IOException("IO Excpt"));

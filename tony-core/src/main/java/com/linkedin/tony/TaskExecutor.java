@@ -165,6 +165,8 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
       }
+      default:
+        throw new RuntimeException("Unsupported executor framework: " + executor.framework);
     }
 
     int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
@@ -209,8 +211,6 @@ public class TaskExecutor {
     ContainerId containerId = ContainerId.fromString(System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name()));
     String hostName = Utils.getCurrentHostName();
     LOG.info("ContainerId is: " + containerId + " HostName is: " + hostName);
-
-    hangIfTesting();
 
     // Start the Heartbeater..
     hbExec.scheduleAtFixedRate(new Heartbeater(),
@@ -273,9 +273,10 @@ public class TaskExecutor {
       } catch (Exception e) {
         LOG.error("[" + taskId + "] Failed to send Heart Beat.", e);
         if (++numFailedHBAttempts > MAX_NUM_FAILED_HB_ATTEMPTS) {
-          LOG.error("[" + taskId + "] Exceeded Failed Heart Beat send attempts.. going to die !!");
+          LOG.error("[" + taskId + "] Exceeded max number of allowed failed heart beat send attempts. "
+              + "Going to stop heartbeating!");
           e.printStackTrace();
-          System.exit(-1);
+          throw new RuntimeException(e);
         } else {
           LOG.warn("Will retry heartbeat..");
         }
@@ -283,7 +284,7 @@ public class TaskExecutor {
     }
   }
 
-  //region TonyDataFeed
+  // Start region TonyDataFeed
 
   // TODO : currently requires caller (tf job) to provide the path to read
   // maybe a better abstraction if task executor itself figures this out (if
@@ -303,30 +304,7 @@ public class TaskExecutor {
     return new HdfsAvroFileSplitReader(hdfsConf, readPaths, this.taskIndex,
         this.numTasks, useRandomShuffle);
   }
-
-
-  //endregion
-
-  //region Testing
-
-  private void hangIfTesting() {
-    // Simulate hanging task executor if enabled and is first attempt
-    String shouldHang = System.getenv(Constants.TEST_TASK_EXECUTOR_HANG);
-    String attempt = System.getenv(Constants.ATTEMPT_NUMBER);
-    int attemptNumber = attempt == null ? 0 : Integer.valueOf(attempt);
-    if (shouldHang != null && Boolean.parseBoolean(shouldHang) && attemptNumber < 1) {
-      LOG.info("Hanging for 20 seconds for testing purposes");
-      try {
-        Thread.sleep(20000);
-      } catch (InterruptedException e) {
-        LOG.error("Thread interrupted while hanging forever", e);
-      }
-      // We still exit after 20 seconds to prevent this process from sticking around forever.
-      // In the cluster, when using cgroups, when the container for this process is killed, this process will also be
-      // killed, but when using MiniYARNCluster, that's not the case, so this process still needs to exit during tests.
-      System.exit(-1);
-    }
-  }
+  // End region TonyDataFeed
 
   private void skewAndHangIfTesting() {
     String skewInstr = System.getenv(Constants.TEST_TASK_EXECUTOR_SKEW);
@@ -349,6 +327,4 @@ public class TaskExecutor {
       }
     }
   }
-  //endregion
-
 }
