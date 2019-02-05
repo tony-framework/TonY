@@ -46,4 +46,11 @@ public class TestTonyClient {
     conf.setInt("tony.bar.instances", 2);
     TonyClient.validateTonyConf(conf);
   }
+
+  @Test
+  public void testValidateTonyConfZeroInstances() {
+    Configuration conf = new Configuration();
+    conf.setInt(TonyConfigurationKeys.TONY_MAX_TASKS, 0);
+    TonyClient.validateTonyConf(conf);
+  }
 }
