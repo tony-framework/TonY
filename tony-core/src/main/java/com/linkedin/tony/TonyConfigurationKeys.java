@@ -147,6 +147,11 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.instances", jobName);
   }
 
+  /**
+   * Configuration key for property controlling how many {@code jobName} task instances a job can request.
+   * @param jobName the task type for which to get the max instances config key
+   * @return the max instances configuration key for the {@code jobName}
+   */
   public static String getMaxInstancesKey(String jobName) {
     return String.format(TONY_PREFIX + "%s.max-instances", jobName);
   }
