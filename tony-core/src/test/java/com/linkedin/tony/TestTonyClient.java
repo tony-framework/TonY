@@ -38,19 +38,27 @@ public class TestTonyClient {
     TonyClient.validateTonyConf(conf);
   }
 
-  @Test(expectedExceptions = RuntimeException.class)
-  public void testValidateTonyConfTooManyInstances() {
+  @Test
+  public void testValidateTonyConfZeroInstances() {
     Configuration conf = new Configuration();
-    conf.setInt(TonyConfigurationKeys.TONY_MAX_TASKS, 3);
+    conf.setInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, 0);
+    TonyClient.validateTonyConf(conf);
+  }
+
+  @Test(expectedExceptions = RuntimeException.class)
+  public void testValidateTonyConfTooManyTotalInstances() {
+    Configuration conf = new Configuration();
+    conf.setInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, 3);
     conf.setInt("tony.foo.instances", 2);
     conf.setInt("tony.bar.instances", 2);
     TonyClient.validateTonyConf(conf);
   }
 
-  @Test
-  public void testValidateTonyConfZeroInstances() {
+  @Test(expectedExceptions = RuntimeException.class)
+  public void testValidateTonyConfTooManyFooInstances() {
     Configuration conf = new Configuration();
-    conf.setInt(TonyConfigurationKeys.TONY_MAX_TASKS, 0);
+    conf.setInt(TonyConfigurationKeys.getMaxInstancesKey("foo"), 1);
+    conf.setInt("tony.foo.instances", 2);
     TonyClient.validateTonyConf(conf);
   }
 }
