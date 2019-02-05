@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;
@@ -274,6 +275,7 @@ public class TonyClient implements AutoCloseable {
     }
 
     initTonyConf(tonyConf, cliParser);
+    validateTonyConf(tonyConf);
 
     String amMemoryString = tonyConf.get(TonyConfigurationKeys.AM_MEMORY,
         TonyConfigurationKeys.DEFAULT_AM_MEMORY);
@@ -382,6 +384,35 @@ public class TonyClient implements AutoCloseable {
       tonyConfDir = Constants.DEFAULT_TONY_CONF_DIR;
     }
     tonyConf.addResource(new Path(tonyConfDir + File.separatorChar + Constants.TONY_SITE_CONF));
+  }
+
+  /**
+   * Validates that the configuration does not request more task instances than allowed for a given task type
+   * or more than the max total instances allowed across all task types. Throws a {@link RuntimeException}
+   * if any limits are exceeded.
+   * @param tonyConf  the configuration to validate
+   */
+  @VisibleForTesting
+  static void validateTonyConf(Configuration tonyConf) {
+    Map<String, TensorFlowContainerRequest> containerRequestMap = Utils.parseContainerRequests(tonyConf);
+
+    // check that we don't request more than the max allowed for any task type
+    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequestMap.entrySet()) {
+      int numInstancesRequested = entry.getValue().getNumInstances();
+      int maxAllowedInstances = tonyConf.getInt(TonyConfigurationKeys.getMaxInstancesKey(entry.getKey()), -1);
+      if (maxAllowedInstances >= 0 && numInstancesRequested > maxAllowedInstances) {
+        throw new RuntimeException("Job requested " + numInstancesRequested + " " + entry.getKey() + " task instances "
+            + "but the limit is " + maxAllowedInstances + " " + entry.getKey() + " task instances.");
+      }
+    }
+
+    // check that we don't request more than the allowed total tasks
+    int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, -1);
+    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(req -> req.getNumInstances()).sum();
+    if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
+      throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
+          + maxTotalInstances + ".");
+    }
   }
 
   public Configuration getTonyConf() {

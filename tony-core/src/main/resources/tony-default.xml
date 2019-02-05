@@ -66,6 +66,12 @@
 
   <!-- Task configurations -->
   <property>
+    <name>tony.task.max-total-instances</name>
+    <value>-1</value>
+    <description>Maximum number of tasks that can be requested across all tony.X.instances configs.</description>
+  </property>
+
+  <property>
     <description>JVM opts for each TaskExecutor.</description>
     <name>tony.task.executor.jvm.opts</name>
     <value>-Xmx1536m</value>

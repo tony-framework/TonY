@@ -108,6 +108,11 @@ public class TonyConfigurationKeys {
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
 
+  /**
+   * Max total number of task instances that can be requested across all task types.
+   */
+  public static final String TONY_MAX_TOTAL_INSTANCES = TONY_TASK_PREFIX + "max-total-instances";
+
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
@@ -142,6 +147,15 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.instances", jobName);
   }
 
+  /**
+   * Configuration key for property controlling how many {@code jobName} task instances a job can request.
+   * @param jobName the task type for which to get the max instances config key
+   * @return the max instances configuration key for the {@code jobName}
+   */
+  public static String getMaxInstancesKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.max-instances", jobName);
+  }
+
   public static int getDefaultInstances(String jobName) {
     switch (jobName) {
       case Constants.PS_JOB_NAME:
@@ -151,6 +165,7 @@ public class TonyConfigurationKeys {
         return 0;
     }
   }
+
   public static String getMemoryKey(String jobName) {
     return String.format(TONY_PREFIX + "%s.memory", jobName);
   }
