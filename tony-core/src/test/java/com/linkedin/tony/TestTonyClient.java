@@ -5,6 +5,7 @@
 package com.linkedin.tony;
 
 import java.util.HashMap;
+import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
@@ -27,5 +28,22 @@ public class TestTonyClient {
         + "TonyApplicationMaster --python_binary_path venv/python --executes ls"
         + " 1><LOG_DIR>/amstdout.log 2><LOG_DIR>/amstderr.log";
     assertEquals(command, expected);
+  }
+
+  @Test
+  public void testValidateTonyConfValidConf() {
+    Configuration conf = new Configuration();
+    conf.setInt("tony.foo.instances", 2);
+    conf.setInt("tony.bar.instances", 2);
+    TonyClient.validateTonyConf(conf);
+  }
+
+  @Test(expectedExceptions = RuntimeException.class)
+  public void testValidateTonyConfTooManyInstances() {
+    Configuration conf = new Configuration();
+    conf.setInt(TonyConfigurationKeys.TONY_MAX_TASKS, 3);
+    conf.setInt("tony.foo.instances", 2);
+    conf.setInt("tony.bar.instances", 2);
+    TonyClient.validateTonyConf(conf);
   }
 }

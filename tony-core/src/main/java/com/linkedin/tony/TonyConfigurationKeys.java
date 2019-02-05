@@ -108,6 +108,11 @@ public class TonyConfigurationKeys {
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
 
+  /**
+   * Max number of tasks that can be requested across all tony.X.instances configs.
+   */
+  public static final String TONY_MAX_TASKS = TONY_PREFIX + "max-tasks";
+
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 

@@ -274,6 +274,7 @@ public class TonyClient implements AutoCloseable {
     }
 
     initTonyConf(tonyConf, cliParser);
+    validateTonyConf(tonyConf);
 
     String amMemoryString = tonyConf.get(TonyConfigurationKeys.AM_MEMORY,
         TonyConfigurationKeys.DEFAULT_AM_MEMORY);
@@ -382,6 +383,23 @@ public class TonyClient implements AutoCloseable {
       tonyConfDir = Constants.DEFAULT_TONY_CONF_DIR;
     }
     tonyConf.addResource(new Path(tonyConfDir + File.separatorChar + Constants.TONY_SITE_CONF));
+  }
+
+  /**
+   * Throws a {@link RuntimeException} if the configuration requests for more tasks than the max configured.
+   * @param tonyConf  the configuration to validate
+   */
+  @VisibleForTesting
+  static void validateTonyConf(Configuration tonyConf) {
+    int maxTasks = tonyConf.getInt(TonyConfigurationKeys.TONY_MAX_TASKS, -1);
+    if (maxTasks >= 0) {
+      int numRequestedTasks = Utils.parseContainerRequests(tonyConf).values().stream()
+          .mapToInt(containerReq -> containerReq.getNumInstances()).sum();
+      if (numRequestedTasks > maxTasks) {
+        throw new RuntimeException("Job requested " + numRequestedTasks + " total tasks but limit is " + maxTasks
+            + ".");
+      }
+    }
   }
 
   public Configuration getTonyConf() {
