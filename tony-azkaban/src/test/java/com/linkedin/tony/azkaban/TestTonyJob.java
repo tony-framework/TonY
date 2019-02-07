@@ -50,14 +50,14 @@ public class TestTonyJob {
     jobProps.put(TonyJob.WORKER_ENV_PREFIX + "E1", "e1");
     jobProps.put(TonyJob.WORKER_ENV_PREFIX + "E2", "e2");
 
-    final TonyJob tfJob = new TonyJob("test_tf_job", new Props(), jobProps, log) {
+    final TonyJob tonyJob = new TonyJob("test_tony_job", new Props(), jobProps, log) {
       @Override
       public String getWorkingDirectory() {
         return System.getProperty("java.io.tmpdir");
       }
     };
-    String args = tfJob.getMainArguments();
-    Assert.assertTrue(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job/tony.xml").exists());
+    String args = tonyJob.getMainArguments();
+    Assert.assertTrue(new File(tonyJob.getWorkingDirectory(), "_tony-conf-test_tony_job/tony.xml").exists());
     Assert.assertTrue(args.contains(TonyJobArg.HDFS_CLASSPATH.tonyParamName + " hdfs://nn:8020"));
     Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E2=e2"));
     Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E1=e1"));
@@ -70,13 +70,13 @@ public class TestTonyJob {
     jobProps.put(TonyJob.WORKING_DIR, FilenameUtils.getFullPath(FileIOUtils.getSourcePathFromClass(Props.class)));
     sysProps.put("jobtype.classpath", "123,456,789");
     sysProps.put("plugin.dir", "Plugins");
-    final TonyJob tfJob = new TonyJob("test_tf_job_class_path", sysProps, jobProps, log) {
+    final TonyJob tonyJob = new TonyJob("test_tony_job_class_path", sysProps, jobProps, log) {
       @Override
       public String getWorkingDirectory() {
         return System.getProperty("java.io.tmpdir");
       }
     };
-    List<String> paths = tfJob.getClassPaths();
+    List<String> paths = tonyJob.getClassPaths();
     int counter = 0;
     for (String path : paths) {
       if (path.contains("Plugins/123") || path.contains("Plugins/456") || path.contains("Plugins/789")) {
@@ -84,6 +84,6 @@ public class TestTonyJob {
       }
     }
     Assert.assertTrue(counter == 3);
-    Assert.assertTrue(paths.contains(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job_class_path").toString()));
+    Assert.assertTrue(paths.contains(new File(tonyJob.getWorkingDirectory(), "_tony-conf-test_tony_job_class_path").toString()));
   }
 }

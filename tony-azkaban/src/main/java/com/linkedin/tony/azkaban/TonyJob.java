@@ -122,9 +122,9 @@ public class TonyJob extends HadoopJavaJob {
     }
 
     Map<String, String> tonyConfs = getJobProps().getMapByPrefix(TONY_CONF_PREFIX);
-    Configuration tfConf = new Configuration(false);
-    for (Map.Entry<String, String> tfConfEntry : tonyConfs.entrySet()) {
-      tfConf.set(TONY_CONF_PREFIX + tfConfEntry.getKey(), tfConfEntry.getValue());
+    Configuration tonyConf = new Configuration(false);
+    for (Map.Entry<String, String> confEntry : tonyConfs.entrySet()) {
+      tonyConf.set(TONY_CONF_PREFIX + confEntry.getKey(), confEntry.getValue());
     }
 
     // Write user's tony confs to an xml to be localized.
@@ -134,7 +134,7 @@ public class TonyJob extends HadoopJavaJob {
           + " for TonY conf file.");
     }
     try (OutputStream os = new FileOutputStream(tonyConfFile)) {
-      tfConf.writeXml(os);
+      tonyConf.writeXml(os);
     } catch (Exception e) {
       throw new RuntimeException("Failed to create " + tonyXml + " conf file. Exiting.", e);
     }
