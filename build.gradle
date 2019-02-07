@@ -95,8 +95,23 @@ subprojects {
   apply plugin: "idea"
   apply plugin: "maven-publish"
   apply plugin: "signing"
+  apply plugin: 'com.github.johnrengelman.shadow'
 
   apply from: "$rootDir/gradle/version-info.gradle"
+
+  if (project.name.equals("tony-cli")) {
+    shadowJar {
+      mergeServiceFiles()
+      dependencies {
+        exclude(dependency('com.sun.jersey:'))
+        exclude(dependency('com.sun.jersey.contribs:'))
+        exclude(dependency('org.apache.hadoop:'))
+      }
+      zip64 true
+    }
+
+    build.dependsOn(shadowJar)
+  }
 
   repositories {
     mavenCentral()
@@ -135,6 +150,9 @@ subprojects {
         artifactId = "${project.name}"
         artifact sourcesJar
         artifact javadocJar
+        if (project.name.equals("tony-cli")) {
+          artifact shadowJar
+        }
         pom {
           name = "${project.name}".toString()
           description = "${project.name}".toString()
