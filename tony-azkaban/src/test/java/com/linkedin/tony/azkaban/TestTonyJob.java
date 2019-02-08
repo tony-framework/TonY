@@ -21,9 +21,9 @@ import org.testng.annotations.Test;
 import static azkaban.ServiceProvider.SERVICE_PROVIDER;
 
 
-public class TestTensorFlowJob {
+public class TestTonyJob {
 
-  private final Logger log = Logger.getLogger(TestTensorFlowJob.class);
+  private final Logger log = Logger.getLogger(TestTonyJob.class);
 
   // Taken from azkaban.test.Utils in azkaban-common.
   private static void initServiceProvider() {
@@ -46,37 +46,37 @@ public class TestTensorFlowJob {
   @Test
   public void testMainArguments() {
     final Props jobProps = new Props();
-    jobProps.put(TensorFlowJobArg.HDFS_CLASSPATH.azPropName, "hdfs://nn:8020");
-    jobProps.put(TensorFlowJob.WORKER_ENV_PREFIX + "E1", "e1");
-    jobProps.put(TensorFlowJob.WORKER_ENV_PREFIX + "E2", "e2");
+    jobProps.put(TonyJobArg.HDFS_CLASSPATH.azPropName, "hdfs://nn:8020");
+    jobProps.put(TonyJob.WORKER_ENV_PREFIX + "E1", "e1");
+    jobProps.put(TonyJob.WORKER_ENV_PREFIX + "E2", "e2");
 
-    final TensorFlowJob tfJob = new TensorFlowJob("test_tf_job", new Props(), jobProps, log) {
+    final TonyJob tonyJob = new TonyJob("test_tony_job", new Props(), jobProps, log) {
       @Override
       public String getWorkingDirectory() {
         return System.getProperty("java.io.tmpdir");
       }
     };
-    String args = tfJob.getMainArguments();
-    Assert.assertTrue(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job/tony.xml").exists());
-    Assert.assertTrue(args.contains(TensorFlowJobArg.HDFS_CLASSPATH.tonyParamName + " hdfs://nn:8020"));
-    Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tonyParamName + " E2=e2"));
-    Assert.assertTrue(args.contains(TensorFlowJobArg.SHELL_ENV.tonyParamName + " E1=e1"));
+    String args = tonyJob.getMainArguments();
+    Assert.assertTrue(new File(tonyJob.getWorkingDirectory(), "_tony-conf-test_tony_job/tony.xml").exists());
+    Assert.assertTrue(args.contains(TonyJobArg.HDFS_CLASSPATH.tonyParamName + " hdfs://nn:8020"));
+    Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E2=e2"));
+    Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E1=e1"));
   }
 
   @Test
   public void testClassPaths() {
     final Props sysProps = new Props();
     final Props jobProps = new Props();
-    jobProps.put(TensorFlowJob.WORKING_DIR, FilenameUtils.getFullPath(FileIOUtils.getSourcePathFromClass(Props.class)));
+    jobProps.put(TonyJob.WORKING_DIR, FilenameUtils.getFullPath(FileIOUtils.getSourcePathFromClass(Props.class)));
     sysProps.put("jobtype.classpath", "123,456,789");
     sysProps.put("plugin.dir", "Plugins");
-    final TensorFlowJob tfJob = new TensorFlowJob("test_tf_job_class_path", sysProps, jobProps, log) {
+    final TonyJob tonyJob = new TonyJob("test_tony_job_class_path", sysProps, jobProps, log) {
       @Override
       public String getWorkingDirectory() {
         return System.getProperty("java.io.tmpdir");
       }
     };
-    List<String> paths = tfJob.getClassPaths();
+    List<String> paths = tonyJob.getClassPaths();
     int counter = 0;
     for (String path : paths) {
       if (path.contains("Plugins/123") || path.contains("Plugins/456") || path.contains("Plugins/789")) {
@@ -84,6 +84,6 @@ public class TestTensorFlowJob {
       }
     }
     Assert.assertTrue(counter == 3);
-    Assert.assertTrue(paths.contains(new File(tfJob.getWorkingDirectory(), "_tony-conf-test_tf_job_class_path").toString()));
+    Assert.assertTrue(paths.contains(new File(tonyJob.getWorkingDirectory(), "_tony-conf-test_tony_job_class_path").toString()));
   }
 }

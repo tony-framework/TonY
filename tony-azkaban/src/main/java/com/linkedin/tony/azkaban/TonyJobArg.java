@@ -4,8 +4,8 @@
  */
 package com.linkedin.tony.azkaban;
 
-// Standard TensorFlow submit arguments.
-public enum TensorFlowJobArg {
+// Standard TonY job arguments.
+public enum TonyJobArg {
   HDFS_CLASSPATH("hdfs_classpath"),
   SHELL_ENV("shell_env"),
   TASK_PARAMS("task_params"),
@@ -14,7 +14,7 @@ public enum TensorFlowJobArg {
   EXECUTES("executes"),
   SRC_DIR("src_dir");
 
-  TensorFlowJobArg(String azPropName) {
+  TonyJobArg(String azPropName) {
     this.azPropName = azPropName;
     this.tonyParamName = "-" + azPropName;
   }
