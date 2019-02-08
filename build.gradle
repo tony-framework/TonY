@@ -95,11 +95,11 @@ subprojects {
   apply plugin: "idea"
   apply plugin: "maven-publish"
   apply plugin: "signing"
-  apply plugin: 'com.github.johnrengelman.shadow'
 
   apply from: "$rootDir/gradle/version-info.gradle"
 
   if (project.name.equals("tony-cli")) {
+    apply plugin: 'com.github.johnrengelman.shadow'
     shadowJar {
       mergeServiceFiles()
       dependencies {
