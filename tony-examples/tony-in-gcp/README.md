@@ -126,7 +126,7 @@ The following folder structure was created during installation in `TONY_SAMPLES_
 
 ```
 .
-├── tony-cli-0.1.5-all.jar
+├── tony-cli-<version>-all.jar
 ├── jobs
 │   └── TFJob
 │          ├── tony.xml
@@ -152,7 +152,7 @@ Open Cloud Shell via the console UI:
 Use the following `gcloud` command to create a new job. Once launched, you can monitor the job. (See the section below on where to find the job monitoring dashboard in Cloud Console.)
 
 ```
-export TONY_JARFILE=tony-cli-0.1.5-all.jar
+export TONY_JARFILE=tony-cli-<version>-all.jar
 
 gcloud dataproc jobs submit hadoop --cluster "$CLUSTER_NAME" \
 --class com.linkedin.tony.cli.ClusterSubmitter \
@@ -174,7 +174,7 @@ The following folder structure was created during installation in the `TONY_SAMP
 
 ```
 .
-├── tony-cli-0.1.5-all.jar
+├── tony-cli-<version>-all.jar
 ├── jobs
 │   └── PTJob
 │          ├── tony.xml
@@ -192,7 +192,7 @@ The following folder structure was created during installation in the `TONY_SAMP
 ### Launch a PyTorch training job
 
 ```
-export TONY_JARFILE=tony-cli-0.1.5-all.jar
+export TONY_JARFILE=tony-cli-<version>-all.jar
 
 gcloud dataproc jobs submit hadoop --cluster "$CLUSTER_NAME" \
 --class com.linkedin.tony.cli.ClusterSubmitter \
