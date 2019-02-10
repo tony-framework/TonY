@@ -13,7 +13,6 @@
 *.swp
 *.vcxproj.user
 *.zip
-*/bin
 */classes
 *tony-final.xml
 .DS_Store

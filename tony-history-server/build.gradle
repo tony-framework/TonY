@@ -19,14 +19,8 @@ model {
   distributions {
     playBinary {
       contents {
-        from("startTHS.sh") {
-          into "bin"
-        }
-        from("stopTHS.sh") {
-          into "bin"
-        }
-        from("xml_to_play_opts.py") {
-          into "bin"
+        from('bin') {
+          into 'bin'
         }
       }
       baseName = "${project.name}-${project.version}"

@@ -4,7 +4,12 @@ import hadoop.Configuration;
 import hadoop.Requirements;
 
 
-public class Startup extends AbstractModule {
+/**
+ * Play automatically registers the module {@code Module} located in the root package.
+ * See {@href https://www.playframework.com/documentation/2.7.x/JavaDependencyInjection#Programmatic-bindings}
+ * for more details.
+ */
+public class Module extends AbstractModule {
   @Override
   public void configure() {
     bind(Configuration.class).asEagerSingleton();

@@ -73,9 +73,6 @@ public class TonyConfigurationKeys {
   public static final String TONY_SECRET_KEY = TONY_PREFIX + "secret.key";
   public static final String DEFAULT_TONY_SECRET_KEY = "changeme";
 
-  public static final String TONY_INIT_MODULE = TONY_PREFIX + "init.module";
-  public static final String DEFAULT_TONY_INIT_MODULE = "Startup";
-
   public static final String TONY_HISTORY_MAX_APPEND = TONY_PREFIX + "history.maxAppends";
   public static final int DEFAULT_TONY_HISTORY_MAX_APPEND = 3;
 
