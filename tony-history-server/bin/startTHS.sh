@@ -82,6 +82,10 @@ case "`uname`" in
     ;;
 esac
 
+# Play expects application.conf to exist, even though we don't use it.
+# We parse tony-site.xml and set properties using -D instead.
+cp $APP_HOME/conf/application.example.conf $APP_HOME/conf/application.conf
+
 CLASSPATH="$APP_HOME/lib/tony-history-server.jar:$APP_HOME/conf"
 
 # Determine the Java command to use to start the JVM.
@@ -191,18 +195,23 @@ if [ ! -f $TONY_CONF_DIR/tony-site.xml ]; then
     exit 1
 fi
 
-OPTS=`python $APP_HOME/bin/xml_to_play_opts.py $TONY_CONF_DIR/tony-site.xml`
-if [[ $OPTS == Invalid* ]]; then
-    echo "Invalid configuration in $TONY_CONF_DIR/tony-site.xml"
+# xml_to_play_opts.py requires Python 2.7+
+PYTHON=/export/apps/python/2.7/bin/python
+if [[ -z "${PYTHON}" ]]; then
+    PYTHON=python
+fi
+
+if ! $PYTHON $APP_HOME/bin/check_python_version.py; then
+    echo "Error: Python version must be greater than 2.6 (found $((python --version) 2>&1))"
     exit 1
 fi
 
-# Collect all arguments for the java command, following the shell quoting and substitution rules
-eval set -- ${OPTS} -classpath "\"${CLASSPATH}\"" play.core.server.ProdServerStart
+OPTS=`$PYTHON $APP_HOME/bin/xml_to_play_opts.py $TONY_CONF_DIR/tony-site.xml`
 
 # by default we should be in the correct project dir, but when run from Finder on Mac, the cwd is wrong
 if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
   cd "$(dirname "$0")"
 fi
 
-nohup ${JAVACMD} $@ & # run THS in the background
+# Run THS in the background
+nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart

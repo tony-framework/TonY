@@ -41,7 +41,6 @@
 <property><name>tony.keytab.location</name><value>/location/to/tony.keytab</value><final>false</final><source>tony-default.xml</source><source>tony-final.xml</source></property>
 <property><name>tony.history.intermediate</name><value>/tmp/tony-history/intermediate</value><final>false</final><source>tony-default.xml</source><source>tony-final.xml</source></property>
 <property><name>tony.https.keystore.type</name><value>JKS</value><final>false</final><source>tony-default.xml</source><source>tony-final.xml</source></property>
-<property><name>tony.init.module</name><value>Startup</value><final>false</final><source>tony-default.xml</source><source>tony-final.xml</source></property>
 <property><name>tony.application.single-node</name><value>false</value><final>false</final><source>tony-default.xml</source><source>tony-final.xml</source></property>
 <property><name>tony.application.enable-preprocess</name><value>false</value><final>false</final><source>tony-default.xml</source><source>tony-final.xml</source></property>
 <property><name>tony.version-info.user</name><value>testuser</value><final>false</final><source>programatically</source><source>tony-final.xml</source></property>

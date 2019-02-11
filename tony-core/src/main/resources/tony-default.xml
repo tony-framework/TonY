@@ -312,15 +312,6 @@
 
   <property>
     <description>
-      Name of module that binds other Singletons that
-      need to be run once before starting history server.
-    </description>
-    <name>tony.init.module</name>
-    <value>Startup</value>
-  </property>
-
-  <property>
-    <description>
       Number of times the AM tries append the event to buffer (Avro's DataWriter).
     </description>
     <name>tony.history.maxAppends</name>

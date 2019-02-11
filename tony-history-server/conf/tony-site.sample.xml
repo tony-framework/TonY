@@ -52,8 +52,4 @@
         <name>tony.secret.key</name>
         <value>changeme</value>
     </property>
-    <property>
-        <name>tony.init.module</name>
-        <value>Startup</value>
-    </property>
 </configuration>
