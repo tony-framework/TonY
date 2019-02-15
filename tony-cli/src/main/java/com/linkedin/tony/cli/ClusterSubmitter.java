@@ -20,6 +20,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+
 import static com.linkedin.tony.Constants.*;
 
 
@@ -45,15 +47,9 @@ public class ClusterSubmitter extends TonySubmitter {
   }
 
   public int submit(String[] args) throws ParseException, URISyntaxException {
-    Options opts = new Options();
-    opts.addOption("localResources", true, "Local resources to be localized to containers.");
-    CommandLine cliParser = new GnuParser().parse(opts, args, true);
-    List<String> argList = cliParser.getArgList();
-
     LOG.info("Starting ClusterSubmitter..");
     String jarLocation = new File(ClusterSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Configuration hdfsConf = new Configuration();
-    new Path()
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     LOG.info(hdfsConf);
@@ -61,21 +57,9 @@ public class ClusterSubmitter extends TonySubmitter {
     Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
-      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, hdfsConf, fs);
+      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, hdfsConf, fs, LocalResourceType.FILE);
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
-
-      // Massage the user arguments to remove ClusterSubmitter specific arguments.
-      List<String> argsToRemove = opts.getOptions().stream().map(Option::getArgName).collect(Collectors.toList());
-      List<String> processedArgList = new ArrayList<>();
-      for (int i = 0; i < argList.size(); i++) {
-        if (argsToRemove.contains(argList.get(i))) {
-          i++;
-          continue;
-        }
-        processedArgList.add(argList.get(i));
-      }
-
-      boolean sanityCheck = client.init(processedArgList.toArray(new String[0]));
+      boolean sanityCheck = client.init(args);
       if (!sanityCheck) {
         LOG.error("Arguments failed to pass sanity check");
         return -1;
