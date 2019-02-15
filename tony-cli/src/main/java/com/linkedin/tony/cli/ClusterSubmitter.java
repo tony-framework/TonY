@@ -8,14 +8,13 @@ package com.linkedin.tony.cli;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.util.Utils;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -46,9 +45,15 @@ public class ClusterSubmitter extends TonySubmitter {
   }
 
   public int submit(String[] args) throws ParseException, URISyntaxException {
+    Options opts = new Options();
+    opts.addOption("localResources", true, "Local resources to be localized to containers.");
+    CommandLine cliParser = new GnuParser().parse(opts, args, true);
+    List<String> argList = cliParser.getArgList();
+
     LOG.info("Starting ClusterSubmitter..");
     String jarLocation = new File(ClusterSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Configuration hdfsConf = new Configuration();
+    new Path()
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     LOG.info(hdfsConf);
@@ -56,15 +61,21 @@ public class ClusterSubmitter extends TonySubmitter {
     Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
+      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, hdfsConf, fs);
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
-      fs.mkdirs(cachedLibPath);
-      fs.copyFromLocalFile(new Path(jarLocation), cachedLibPath);
 
-      // Insert --hdfs_classpath at the beginning to avoid confusion when user pass in wrong arguments.
-      List<String> updatedArgs = new LinkedList<>(Arrays.asList(args));
-      updatedArgs.add(0, cachedLibPath.toString());
-      updatedArgs.add(0, "--hdfs_classpath");
-      boolean sanityCheck = client.init(updatedArgs.toArray(new String[0]));
+      // Massage the user arguments to remove ClusterSubmitter specific arguments.
+      List<String> argsToRemove = opts.getOptions().stream().map(Option::getArgName).collect(Collectors.toList());
+      List<String> processedArgList = new ArrayList<>();
+      for (int i = 0; i < argList.size(); i++) {
+        if (argsToRemove.contains(argList.get(i))) {
+          i++;
+          continue;
+        }
+        processedArgList.add(argList.get(i));
+      }
+
+      boolean sanityCheck = client.init(processedArgList.toArray(new String[0]));
       if (!sanityCheck) {
         LOG.error("Arguments failed to pass sanity check");
         return -1;

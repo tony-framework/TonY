@@ -54,6 +54,7 @@ public class Constants {
   public static final String LENGTH_SUFFIX = "_LENGTH";
 
   public static final String TONY_SRC_ZIP_NAME = "tony_src.zip";
+  public static final String TONY_JAR_NAME = "tony.jar";
 
   public static final String PYTHON_VENV_ZIP = "venv.zip";
   public static final String PYTHON_VENV_DIR = "venv";
