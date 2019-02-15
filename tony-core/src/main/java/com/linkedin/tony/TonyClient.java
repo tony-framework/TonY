@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -425,7 +426,9 @@ public class TonyClient implements AutoCloseable {
         }
       }
       // Filter out original local file locations
-      resources = Arrays.asList(resources).stream().filter().collect(Collectors.toSet());
+      resources = Stream.of(resources).filter( (filePath) ->
+              new Path(filePath).toUri().getScheme() == null
+      ).toArray(String[]::new);
       tonyConf.setStrings(resourceKey, resources);
     }
 
