@@ -395,7 +395,7 @@ public class TonyClient implements AutoCloseable {
    *  address of the uploaded file.
    **/
   private void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
-    Set<String> jobNames = tonyConf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
+    Set<String> jobNames = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet().stream()
             .map(Utils::getTaskType)
             .collect(Collectors.toSet());
 
