@@ -434,7 +434,6 @@ public class Utils {
       if (path != null) {
         // Check the format of the path, if the path is of path::archive, we set resource type as ARCHIVE
         if (path.contains(Constants.ARCHIVE_SUFFIX)) {
-          LOG.info("Adding Archive Resource: " + path);
           String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
           FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
           LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(scFileStatus.getPath().toString())),
@@ -443,7 +442,6 @@ public class Utils {
           resourcesMap.put(scFileStatus.getPath().getName(), resource);
           return;
         }
-        LOG.info("Adding Resource: " + path);
         FileStatus[] ls = fs.listStatus(new Path(path));
         for (FileStatus fileStatus : ls) {
           // We only add first level files.
