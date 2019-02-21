@@ -432,13 +432,13 @@ public class Utils {
     try {
       if (path != null) {
         // Check the format of the path, if the path is of path::archive, we set resource type as ARCHIVE
-        String[] pathType = path.split("::");
-        if (pathType.length == 2 && pathType[1].equals("archive")) {
-          assert Utils.isArchive(pathType[0]); // Assert it is an arvhive file.
-          FileStatus scFileStatus = fs.getFileStatus(new Path(pathType[0]));
+        if (path.contains(Constants.ARCHIVE_SUFFIX)) {
+          String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
+          Preconditions.checkArgument(Utils.isArchive(filePath)); // Assert it is an archive file.
+          FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
           LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(scFileStatus.getPath().toString())),
-                  LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
-                  scFileStatus.getLen(), scFileStatus.getModificationTime());
+              LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
+              scFileStatus.getLen(), scFileStatus.getModificationTime());
           resourcesMap.put(scFileStatus.getPath().getName(), resource);
           return;
         }
@@ -512,14 +512,16 @@ public class Utils {
     fs.setPermission(dst, new FsPermission((short) 0770));
     String dstAddress = dst.toString();
     if (resourceType == LocalResourceType.ARCHIVE) {
-      dstAddress += "::archive";
+      dstAddress += Constants.ARCHIVE_SUFFIX;
     }
     appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), dstAddress, tonyConf);
   }
 
   public static void appendConfResources(String key, String resource, Configuration tonyConf) {
-    String currentResources = tonyConf.get(key, "");
-    tonyConf.set(key, currentResources + "," + resource);
+    String[] resources = tonyConf.getStrings(key);
+    List<String> updatedResources = Arrays.asList(resources);
+    updatedResources.add(resource);
+    tonyConf.setStrings(key, updatedResources.toArray(new String[0]));
   }
 
   private Utils() { }

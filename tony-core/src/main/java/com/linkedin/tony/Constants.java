@@ -48,6 +48,7 @@ public class Constants {
 
   // Environment variables for resource localization
   public static final String TONY_CONF_PREFIX = "TONY_CONF";
+  public static final String ARCHIVE_SUFFIX = "#archive";
 
   public static final String PATH_SUFFIX = "_PATH";
   public static final String TIMESTAMP_SUFFIX = "_TIMESTAMP";
