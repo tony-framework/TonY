@@ -1059,7 +1059,7 @@ public class TonyApplicationMaster {
 
     @Override
     public void onError(Throwable throwable) {
-      LOG.info("Error " + throwable);
+      LOG.error("RMCallbackHandler " + throwable);
       amRMClient.stop();
     }
   }
@@ -1089,10 +1089,16 @@ public class TonyApplicationMaster {
       // Add job type specific resources
       Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
       String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
+      for (String resource : resources) {
+        LOG.info("---- keqiu ---- " + task.getJobName() + " " + resource);
+      }
       Utils.addResources(resources, containerResources, resourceFs);
 
       // All resources available to all containers
       resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
+      for (String resource : resources) {
+        LOG.info("---- keqiu ---- containers " + " " + resource);
+      }
       Utils.addResources(resources, containerResources, resourceFs);
 
       task.addContainer(container);

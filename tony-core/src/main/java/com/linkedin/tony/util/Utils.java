@@ -434,8 +434,8 @@ public class Utils {
       if (path != null) {
         // Check the format of the path, if the path is of path::archive, we set resource type as ARCHIVE
         if (path.contains(Constants.ARCHIVE_SUFFIX)) {
+          LOG.info("Adding Archive Resource: " + path);
           String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
-          Preconditions.checkArgument(Utils.isArchive(filePath)); // Assert it is an archive file.
           FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
           LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(scFileStatus.getPath().toString())),
               LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
@@ -443,6 +443,7 @@ public class Utils {
           resourcesMap.put(scFileStatus.getPath().getName(), resource);
           return;
         }
+        LOG.info("Adding Resource: " + path);
         FileStatus[] ls = fs.listStatus(new Path(path));
         for (FileStatus fileStatus : ls) {
           // We only add first level files.
@@ -507,7 +508,8 @@ public class Utils {
   }
 
   public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,
-                                                   Configuration tonyConf, FileSystem fs, LocalResourceType resourceType) throws IOException {
+                                                   Configuration tonyConf, FileSystem fs,
+                                                   LocalResourceType resourceType, String resourceKey) throws IOException {
     Path dst = new Path(hdfsPath, fileName);
     HdfsUtils.copySrcToDest(filePath, dst, tonyConf);
     fs.setPermission(dst, new FsPermission((short) 0770));
@@ -515,12 +517,15 @@ public class Utils {
     if (resourceType == LocalResourceType.ARCHIVE) {
       dstAddress += Constants.ARCHIVE_SUFFIX;
     }
-    appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), dstAddress, tonyConf);
+    appendConfResources(resourceKey, dstAddress, tonyConf);
   }
 
   public static void appendConfResources(String key, String resource, Configuration tonyConf) {
-    String[] resources = tonyConf.getStrings(key, new String[0]);
-    List<String> updatedResources = new ArrayList<>(Arrays.asList(resources));
+    String[] resources = tonyConf.getStrings(key);
+    List<String> updatedResources = new ArrayList<>();
+    if (resources != null) {
+      updatedResources = new ArrayList<>(Arrays.asList(resources));
+    }
     updatedResources.add(resource);
     tonyConf.setStrings(key, updatedResources.toArray(new String[0]));
   }

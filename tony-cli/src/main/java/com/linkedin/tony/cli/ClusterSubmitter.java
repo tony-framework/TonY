@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import com.linkedin.tony.TonyClient;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 import java.util.UUID;
 import org.apache.commons.cli.ParseException;
@@ -54,7 +55,8 @@ public class ClusterSubmitter extends TonySubmitter {
     Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
-      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, hdfsConf, fs, LocalResourceType.FILE);
+      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation),
+              TONY_JAR_NAME, hdfsConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
       boolean sanityCheck = client.init(args);
       if (!sanityCheck) {
