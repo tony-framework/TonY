@@ -24,7 +24,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -401,7 +407,7 @@ public class TonyClient implements AutoCloseable {
 
     for (String jobName : jobNames) {
       String resourceKey = TonyConfigurationKeys.getResourcesKey(jobName);
-      String[] resources = tonyConf.getStrings(resourceKey);
+      String[] resources = tonyConf.getStrings(resourceKey, new String[0]);
       for (String resource: resources) {
         if (new Path(resource).toUri().getScheme() == null) {
           File file = new File(resource);
@@ -426,7 +432,7 @@ public class TonyClient implements AutoCloseable {
         }
       }
       // Filter out original local file locations
-      resources = Stream.of(resources).filter( (filePath) ->
+      resources = Stream.of(resources).filter((filePath) ->
               new Path(filePath).toUri().getScheme() == null
       ).toArray(String[]::new);
       tonyConf.setStrings(resourceKey, resources);

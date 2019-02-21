@@ -11,7 +11,7 @@ import java.net.URISyntaxException;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.util.Utils;
 import java.util.UUID;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;

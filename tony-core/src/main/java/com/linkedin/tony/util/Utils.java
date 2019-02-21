@@ -21,11 +21,12 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -518,8 +519,8 @@ public class Utils {
   }
 
   public static void appendConfResources(String key, String resource, Configuration tonyConf) {
-    String[] resources = tonyConf.getStrings(key);
-    List<String> updatedResources = Arrays.asList(resources);
+    String[] resources = tonyConf.getStrings(key, new String[0]);
+    List<String> updatedResources = new ArrayList<>(Arrays.asList(resources));
     updatedResources.add(resource);
     tonyConf.setStrings(key, updatedResources.toArray(new String[0]));
   }
