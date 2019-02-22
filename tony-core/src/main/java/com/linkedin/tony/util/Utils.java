@@ -432,7 +432,7 @@ public class Utils {
   public static void addResource(String path, Map<String, LocalResource> resourcesMap, FileSystem fs) {
     try {
       if (path != null) {
-        // Check the format of the path, if the path is of path::archive, we set resource type as ARCHIVE
+        // Check the format of the path, if the path is of path#archive, we set resource type as ARCHIVE
         if (path.contains(Constants.ARCHIVE_SUFFIX)) {
           String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
           FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
