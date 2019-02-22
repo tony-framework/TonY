@@ -21,11 +21,12 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -344,7 +345,7 @@ public class Utils {
    * @param confKey Name of the configuration key
    * @return TensorFlow job name
    */
-  private static String getTaskType(String confKey) {
+  public static String getTaskType(String confKey) {
     Pattern instancePattern = Pattern.compile(TonyConfigurationKeys.INSTANCES_REGEX);
     Matcher instanceMatcher = instancePattern.matcher(confKey);
     if (instanceMatcher.matches()) {
@@ -431,6 +432,16 @@ public class Utils {
   public static void addResource(String path, Map<String, LocalResource> resourcesMap, FileSystem fs) {
     try {
       if (path != null) {
+        // Check the format of the path, if the path is of path#archive, we set resource type as ARCHIVE
+        if (path.contains(Constants.ARCHIVE_SUFFIX)) {
+          String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
+          FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
+          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(scFileStatus.getPath().toString())),
+              LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
+              scFileStatus.getLen(), scFileStatus.getModificationTime());
+          resourcesMap.put(scFileStatus.getPath().getName(), resource);
+          return;
+        }
         FileStatus[] ls = fs.listStatus(new Path(path));
         for (FileStatus fileStatus : ls) {
           // We only add first level files.
@@ -489,8 +500,32 @@ public class Utils {
   }
 
   public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
-    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES, TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
+    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES,
+            TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
     return !Arrays.asList(ignoredJobTypes).contains(taskName);
+  }
+
+  public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,
+                                                   Configuration tonyConf, FileSystem fs,
+                                                   LocalResourceType resourceType, String resourceKey) throws IOException {
+    Path dst = new Path(hdfsPath, fileName);
+    HdfsUtils.copySrcToDest(filePath, dst, tonyConf);
+    fs.setPermission(dst, new FsPermission((short) 0770));
+    String dstAddress = dst.toString();
+    if (resourceType == LocalResourceType.ARCHIVE) {
+      dstAddress += Constants.ARCHIVE_SUFFIX;
+    }
+    appendConfResources(resourceKey, dstAddress, tonyConf);
+  }
+
+  public static void appendConfResources(String key, String resource, Configuration tonyConf) {
+    String[] resources = tonyConf.getStrings(key);
+    List<String> updatedResources = new ArrayList<>();
+    if (resources != null) {
+      updatedResources = new ArrayList<>(Arrays.asList(resources));
+    }
+    updatedResources.add(resource);
+    tonyConf.setStrings(key, updatedResources.toArray(new String[0]));
   }
 
   private Utils() { }

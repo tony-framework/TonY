@@ -90,7 +90,7 @@ public class TestUtils {
   @Test
   public void testIsNotArchive() {
     ClassLoader classLoader = getClass().getClassLoader();
-    File file1 = new File(classLoader.getResource("exit_0.py").getFile());
+    File file1 = new File(classLoader.getResource("scripts/exit_0.py").getFile());
     assertFalse(Utils.isArchive(file1.getAbsolutePath()));
   }
 

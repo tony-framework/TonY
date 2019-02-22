@@ -48,12 +48,14 @@ public class Constants {
 
   // Environment variables for resource localization
   public static final String TONY_CONF_PREFIX = "TONY_CONF";
+  public static final String ARCHIVE_SUFFIX = "#archive";
 
   public static final String PATH_SUFFIX = "_PATH";
   public static final String TIMESTAMP_SUFFIX = "_TIMESTAMP";
   public static final String LENGTH_SUFFIX = "_LENGTH";
 
   public static final String TONY_SRC_ZIP_NAME = "tony_src.zip";
+  public static final String TONY_JAR_NAME = "tony.jar";
 
   public static final String PYTHON_VENV_ZIP = "venv.zip";
   public static final String PYTHON_VENV_DIR = "venv";

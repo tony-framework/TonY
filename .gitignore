@@ -34,3 +34,4 @@ tony-history-server/conf/application.conf
 tony-history-server/conf/prod.conf
 tony-history-server/logs
 tony.xml
+!tony-core/src/test/resources/*.zip

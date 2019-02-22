@@ -16,9 +16,6 @@ ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 log_root.addHandler(ch)
 
-if not os.path.isfile('test.zip'):
-    logging.error('test.zip doesn\'t exist')
-    exit(-1)
 if not os.path.isfile('venv/123.xml'):
     logging.error('venv/123.xml doesn\'t exist')
     exit(-1)

@@ -24,13 +24,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.stream.Stream;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -163,26 +165,30 @@ public class TonyClient implements AutoCloseable {
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
-        uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir), Constants.TONY_SRC_ZIP_NAME, tonyConf, fs);
+        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
+                Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       } else {
         Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
-        uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
-            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs);
+        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
+            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       }
     }
 
     if (pythonVenv != null) {
-      uploadFileAndSetConfResources(appResourcesPath, new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs);
+      Utils.uploadFileAndSetConfResources(appResourcesPath,
+              new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
 
     if (yarnConfAddress != null) {
-      uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConfAddress),
-          Constants.YARN_SITE_CONF, tonyConf, fs);
+      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConfAddress),
+          Constants.YARN_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
     if (hdfsConfAddress != null) {
-      uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConfAddress),
-          Constants.HDFS_SITE_CONF, tonyConf, fs);
+      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConfAddress),
+          Constants.HDFS_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
+
+    processTonyConfResources(tonyConf, fs);
 
     this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
     // Write user's overridden conf to an xml to be localized.
@@ -306,7 +312,7 @@ public class TonyClient implements AutoCloseable {
 
     // Set hdfsClassPath for all workers
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
-    appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath, tonyConf);
+    Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath, tonyConf);
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -384,6 +390,67 @@ public class TonyClient implements AutoCloseable {
       tonyConfDir = Constants.DEFAULT_TONY_CONF_DIR;
     }
     tonyConf.addResource(new Path(tonyConfDir + File.separatorChar + Constants.TONY_SITE_CONF));
+  }
+
+  /**
+   * This helper method parses and updates tonyConf's jobtype.resources fields
+   *  - If the file is remote, keep as is.
+   *  - If the file is local and is a file, upload to remote fs and replace this entry with address of uploaded file.
+   *  - If the file is local and is a directory, zip the directory, upload to remote fs and replace entry with the
+   *  address of the uploaded file.
+   **/
+  @VisibleForTesting
+  public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
+    Set<String> jobNames = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
+
+    for (String jobName : jobNames) {
+      String[] resources = tonyConf.getStrings(jobName);
+      if (resources == null) {
+        continue;
+      }
+      for (String resource: resources) {
+        // If it is local file, we upload to remote fs first
+        if (new Path(resource).toUri().getScheme() == null) {
+          boolean isArchiveFormat = resource.contains(Constants.ARCHIVE_SUFFIX);
+          String trimmedResource = resource.replace(Constants.ARCHIVE_SUFFIX, "");
+          File file = new File(trimmedResource);
+          if (!file.exists()) {
+            LOG.fatal(trimmedResource + " doesn't exist in local filesystem");
+            throw new IOException(trimmedResource + " doesn't exist in local filesystem.");
+          }
+          if (file.isFile()) {
+            // If it is archive format, set it as ARCHIVE format.
+            if (isArchiveFormat) {
+              Utils.uploadFileAndSetConfResources(appResourcesPath,
+                      new Path(trimmedResource),
+                      new Path(trimmedResource).getName(),
+                      tonyConf,
+                      fs, LocalResourceType.ARCHIVE, jobName);
+            } else {
+              Utils.uploadFileAndSetConfResources(appResourcesPath,
+                      new Path(trimmedResource),
+                      new Path(trimmedResource).getName(),
+                      tonyConf,
+                      fs, LocalResourceType.FILE, jobName);
+            }
+          } else {
+            Utils.zipFolder(Paths.get(srcDir), Paths.get(file.getName()));
+            Utils.uploadFileAndSetConfResources(appResourcesPath,
+                    new Path(trimmedResource),
+                    new Path(trimmedResource).getName(),
+                    tonyConf,
+                    fs, LocalResourceType.ARCHIVE, jobName);
+          }
+        }
+      }
+      // Filter out original local file locations
+      resources = tonyConf.getStrings(jobName);
+      resources = Stream.of(resources).filter((filePath) ->
+              new Path(filePath).toUri().getScheme() != null
+      ).toArray(String[]::new);
+      tonyConf.setStrings(jobName, resources);
+    }
+
   }
 
   /**
@@ -681,19 +748,6 @@ public class TonyClient implements AutoCloseable {
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken, serviceAddr);
       UserGroupInformation.getCurrentUser().addToken(token);
     }
-  }
-
-  private void uploadFileAndSetConfResources(Path hdfsPath, Path filePath,
-      String fileName, Configuration tonyConf, FileSystem fs) throws IOException {
-    Path dst = new Path(hdfsPath, fileName);
-    HdfsUtils.copySrcToDest(filePath, dst, tonyConf);
-    fs.setPermission(dst, new FsPermission((short) 0770));
-    appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), dst.toString(), tonyConf);
-  }
-
-  private void appendConfResources(String key, String resource, Configuration tonyConf) {
-    String currentResources = tonyConf.get(key, "");
-    tonyConf.set(key, currentResources + "," + resource);
   }
 
   /**

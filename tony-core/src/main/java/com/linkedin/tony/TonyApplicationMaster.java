@@ -1059,7 +1059,7 @@ public class TonyApplicationMaster {
 
     @Override
     public void onError(Throwable throwable) {
-      LOG.info("Error " + throwable);
+      LOG.error(throwable);
       amRMClient.stop();
     }
   }

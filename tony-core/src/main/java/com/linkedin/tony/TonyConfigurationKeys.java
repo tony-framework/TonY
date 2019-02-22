@@ -136,6 +136,7 @@ public class TonyConfigurationKeys {
 
   // Keys/default values for configurable TensorFlow job names
   public static final String INSTANCES_REGEX = "tony\\.([a-z]+)\\.instances";
+  public static final String RESOURCES_REGEX = "tony\\.([a-z]+)\\.resources";
   public static final String DEFAULT_MEMORY = "2g";
   public static final int DEFAULT_VCORES = 1;
   public static final int DEFAULT_GPUS = 0;
