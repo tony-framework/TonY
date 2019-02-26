@@ -38,7 +38,7 @@ public class ClusterSubmitter extends TonySubmitter {
   private TonyClient client;
 
   private ClusterSubmitter() {
-    this.client = new TonyClient(new Configuration());
+    this(new TonyClient(new Configuration()));
   }
   public ClusterSubmitter(TonyClient client) {
     this.client = client;
@@ -55,8 +55,8 @@ public class ClusterSubmitter extends TonySubmitter {
     Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
-      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation),
-              TONY_JAR_NAME, hdfsConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, client.getTonyConf(), fs,
+          LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
       boolean sanityCheck = client.init(args);
       if (!sanityCheck) {

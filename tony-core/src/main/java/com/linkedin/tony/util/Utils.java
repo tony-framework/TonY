@@ -197,7 +197,7 @@ public class Utils {
 
   public static void printTHSUrl(String thsHost, String appId, Log log) {
     log.info(
-        String.format("Link for %s's events/metrics: http://%s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
+        String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
   }
 
   /**
@@ -519,6 +519,9 @@ public class Utils {
   }
 
   public static void appendConfResources(String key, String resource, Configuration tonyConf) {
+    if (resource == null) {
+      return;
+    }
     String[] resources = tonyConf.getStrings(key);
     List<String> updatedResources = new ArrayList<>();
     if (resources != null) {

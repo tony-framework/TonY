@@ -29,9 +29,6 @@ public class TonyConfigurationKeys {
   public static final String OTHER_NAMENODES_TO_ACCESS = TONY_PREFIX + "other.namenodes";
 
   // History folder configuration
-  public static final String TONY_HISTORY_HOST = TONY_PREFIX + "history.host";
-  public static final String DEFAULT_TONY_HISTORY_HOST = "historyhost.com";
-
   public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
   public static final String DEFAULT_TONY_HISTORY_LOCATION = "/path/to/tony-history";
 
@@ -75,6 +72,9 @@ public class TonyConfigurationKeys {
 
   public static final String TONY_HISTORY_MAX_APPEND = TONY_PREFIX + "history.maxAppends";
   public static final int DEFAULT_TONY_HISTORY_MAX_APPEND = 3;
+
+  public static final String TONY_HISTORY_HOST = TONY_PREFIX + "history.host";
+  public static final String DEFAULT_TONY_HISTORY_HOST = "https://localhost:" + DEFAULT_TONY_HTTPS_PORT;
 
   // Application configurations
   public static final String YARN_QUEUE_NAME = TONY_PREFIX + "yarn.queue";
