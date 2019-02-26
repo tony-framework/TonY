@@ -77,7 +77,6 @@ public class NotebookSubmitter extends TonySubmitter {
     updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + String.valueOf(24 * 60 * 60 * 1000);
 
     client.init(updatedArgs);
-    client.start();
     Thread clientThread = new Thread(client::start);
     clientThread.start();
     while (clientThread.isAlive()) {
