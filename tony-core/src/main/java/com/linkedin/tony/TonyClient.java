@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -179,15 +180,16 @@ public class TonyClient implements AutoCloseable {
               new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
 
-    if (yarnConfAddress != null) {
-      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConfAddress),
-          Constants.YARN_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
-    }
-    if (hdfsConfAddress != null) {
-      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConfAddress),
-          Constants.HDFS_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+
+    URL coreSiteUrl = yarnConf.getResource(Constants.CORE_SITE_CONF);
+    if (coreSiteUrl != null) {
+      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(coreSiteUrl.getPath()),
+          Constants.CORE_SITE_CONF, tonyConf, fs, LocalResourceType.FILE,
+          TonyConfigurationKeys.getContainerResourcesKey());
     }
 
+    addConfToResources(yarnConf, yarnConfAddress, Constants.YARN_SITE_CONF);
+    addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
     processTonyConfResources(tonyConf, fs);
 
     this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
@@ -228,6 +230,31 @@ public class TonyClient implements AutoCloseable {
     return monitorApplication(appId);
   }
 
+  /**
+   * Uploads a configuration (e.g.: YARN or HDFS configuration) to HDFS and adds the configuration to the
+   * container resources in the TonY conf.
+   * @param conf  Configuration to upload and add.
+   * @param confAddress  If set, this config file will be uploaded rather than the {@code confFileName}.
+   * @param confFileName  The name of the config file to upload (if {@code confAddress} is not set, and also
+   *                      the name of the config file when localized in the cluster.
+   * @throws IOException  if an error occurs while getting a {@link FileSystem} instance
+   */
+  private void addConfToResources(Configuration conf, String confAddress, String confFileName) throws IOException {
+    Path confSitePath = null;
+    if (confAddress != null) {
+      confSitePath = new Path(confAddress);
+    } else {
+      URL confSiteUrl = conf.getResource(confFileName);
+      if (confSiteUrl != null) {
+        confSitePath = new Path(confSiteUrl.getPath());
+      }
+    }
+    if (confSitePath != null) {
+      Utils.uploadFileAndSetConfResources(appResourcesPath, confSitePath, confFileName, tonyConf,
+          FileSystem.get(hdfsConf), LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+    }
+  }
+
   private void logTrackingAndRMUrls(ApplicationReport report) {
     LOG.info("URL to track running application (will proxy to TensorBoard once it has started): "
              + report.getTrackingUrl());
@@ -236,6 +263,13 @@ public class TonyClient implements AutoCloseable {
   }
 
   private void createYarnClient() {
+    if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
+      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
+      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.YARN_SITE_CONF));
+    }
+
     if (this.yarnConfAddress != null) {
       this.yarnConf.addResource(new Path(this.yarnConfAddress));
     }
@@ -248,11 +282,6 @@ public class TonyClient implements AutoCloseable {
         YarnConfiguration.DEFAULT_RESOURCEMANAGER_CONNECT_RETRY_INTERVAL_MS) * numRMConnectRetries;
     yarnConf.setLong(YarnConfiguration.RESOURCEMANAGER_CONNECT_MAX_WAIT_MS, rmMaxWaitMS);
 
-    if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
-      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
-      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
-      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
-    }
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(yarnConf);
   }

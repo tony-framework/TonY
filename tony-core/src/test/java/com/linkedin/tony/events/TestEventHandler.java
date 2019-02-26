@@ -11,11 +11,10 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.avro.file.DataFileWriter;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -26,7 +25,6 @@ import static org.testng.Assert.*;
 
 
 public class TestEventHandler {
-  private static final Log LOG = LogFactory.getLog(TestEventHandler.class);
   private FileSystem fs = null;
   private BlockingQueue<Event> eventQueue;
   private EventHandler eventHandlerThread;
@@ -36,6 +34,7 @@ public class TestEventHandler {
   private JobMetadata metadata = new JobMetadata.Builder()
       .setStarted(0L)
       .setCompleted(0L)
+      .setConf(new YarnConfiguration())
       .build();
 
   @BeforeClass

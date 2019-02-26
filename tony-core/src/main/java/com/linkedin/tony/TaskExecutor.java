@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.CORE_SITE_CONF;
-import static com.linkedin.tony.Constants.HADOOP_CONF_DIR;
 import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 
 /**
@@ -42,7 +41,7 @@ public class TaskExecutor {
   private static final int MAX_NUM_FAILED_HB_ATTEMPTS = 5;
 
   @VisibleForTesting
-  protected Configuration tonyConf = new Configuration();
+  protected Configuration tonyConf = new Configuration(false);
   private ServerSocket rpcSocket;
   private int rpcPort;
   private ServerSocket tbSocket;
@@ -58,8 +57,8 @@ public class TaskExecutor {
   private String taskId;
   private int numTasks;
   private boolean isChief;
-  private Configuration yarnConf = new Configuration();
-  private Configuration hdfsConf = new Configuration();
+  private Configuration yarnConf = new Configuration(false);
+  private Configuration hdfsConf = new Configuration(false);
   private ApplicationRpcClient proxy;
   private Map<String, String> shellEnv = new HashMap<>();
   private int hbInterval;
@@ -198,12 +197,8 @@ public class TaskExecutor {
     framework = MLFramework.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
-    if (new File(Constants.YARN_SITE_CONF).exists()) {
-      yarnConf.addResource(new Path(Constants.YARN_SITE_CONF));
-    }
-    if (new File(Constants.HDFS_SITE_CONF).exists()) {
-      hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
-    }
+    Utils.initYarnConf(yarnConf);
+    Utils.initHdfsConf(hdfsConf);
   }
 
   private String registerAndGetClusterSpec(String amAddress) {
@@ -298,9 +293,8 @@ public class TaskExecutor {
   public HdfsAvroFileSplitReader getHdfsAvroFileSplitReader(List<String> readPaths,
                                                             boolean useRandomShuffle)
       throws IOException {
-    Configuration hdfsConf = new Configuration();
-    hdfsConf.addResource(new Path(
-        System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
+    Configuration hdfsConf = new Configuration(false);
+    hdfsConf.addResource(new Path(CORE_SITE_CONF));
     return new HdfsAvroFileSplitReader(hdfsConf, readPaths, this.taskIndex,
         this.numTasks, useRandomShuffle);
   }

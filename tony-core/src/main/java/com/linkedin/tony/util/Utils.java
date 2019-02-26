@@ -531,5 +531,23 @@ public class Utils {
     tonyConf.setStrings(key, updatedResources.toArray(new String[0]));
   }
 
+  public static void initYarnConf(Configuration yarnConf) {
+    if (new File(Constants.CORE_SITE_CONF).exists()) {
+      yarnConf.addResource(new Path(Constants.CORE_SITE_CONF));
+    }
+    if (new File(Constants.YARN_SITE_CONF).exists()) {
+      yarnConf.addResource(new Path(Constants.YARN_SITE_CONF));
+    }
+  }
+
+  public static void initHdfsConf(Configuration hdfsConf) {
+    if (new File(Constants.CORE_SITE_CONF).exists()) {
+      hdfsConf.addResource(new Path(Constants.CORE_SITE_CONF));
+    }
+    if (new File(Constants.HDFS_SITE_CONF).exists()) {
+      hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
+    }
+  }
+
   private Utils() { }
 }

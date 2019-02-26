@@ -115,7 +115,7 @@ public class TonyApplicationMaster {
   private int amPort;
   private ByteBuffer allTokens;
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
-  private Configuration tonyConf = new Configuration();
+  private Configuration tonyConf = new Configuration(false);
   private ContainerId containerId;
 
   /** The environment set up for the TaskExecutor **/
@@ -177,8 +177,8 @@ public class TonyApplicationMaster {
   private Thread mainThread;
 
   private TonyApplicationMaster() {
-    hdfsConf = new Configuration();
-    yarnConf = new Configuration();
+    hdfsConf = new Configuration(false);
+    yarnConf = new Configuration(false);
 
     hbMonitor = new AbstractLivelinessMonitor<TonyTask>("Tony Task liveliness Monitor") {
       @Override
@@ -201,18 +201,9 @@ public class TonyApplicationMaster {
    */
   private boolean init(String[] args) {
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
-    if (System.getenv(Constants.HDFS_SITE_CONF) != null) {
-      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
-      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
-      hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
-    }
 
-    if (new File(Constants.YARN_SITE_CONF).exists()) {
-      yarnConf.addResource(new Path(Constants.YARN_SITE_CONF));
-    }
-    if (new File(Constants.HDFS_SITE_CONF).exists()) {
-      hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
-    }
+    Utils.initYarnConf(yarnConf);
+    Utils.initHdfsConf(hdfsConf);
 
     try {
       resourceFs = FileSystem.get(hdfsConf);

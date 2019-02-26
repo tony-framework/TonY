@@ -6,6 +6,7 @@ package com.linkedin.tony.util;
 
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.models.JobMetadata;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
@@ -22,6 +23,7 @@ public class TestHistoryFileUtils {
         .setId(appId)
         .setStarted(started)
         .setUser(user)
+        .setConf(new YarnConfiguration())
         .build();
     String expectedName = "app123-1-user." + Constants.HISTFILE_SUFFIX + "." + Constants.INPROGRESS;
 
@@ -41,6 +43,7 @@ public class TestHistoryFileUtils {
         .setCompleted(completed)
         .setUser(user)
         .setStatus(Constants.SUCCEEDED)
+        .setConf(new YarnConfiguration())
         .build();
     String expectedName = "app123-1-2-user-SUCCEEDED." + Constants.HISTFILE_SUFFIX;
 
