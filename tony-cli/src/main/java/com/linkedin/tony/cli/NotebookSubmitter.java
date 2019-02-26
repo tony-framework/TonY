@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import static com.linkedin.tony.Constants.*;
 
@@ -49,7 +50,8 @@ public class NotebookSubmitter extends TonySubmitter {
     this.client = new TonyClient(new Configuration());
   }
 
-  public int submit(String[] args) throws ParseException, URISyntaxException, IOException, InterruptedException {
+  public int submit(String[] args)
+      throws ParseException, URISyntaxException, IOException, InterruptedException, YarnException {
     LOG.info("Starting NotebookSubmitter..");
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
     Options opts = Utils.getCommonOptions();
@@ -78,6 +80,15 @@ public class NotebookSubmitter extends TonySubmitter {
 
     client.init(updatedArgs);
     Thread clientThread = new Thread(client::start);
+
+    // ensure notebook application is killed when this client process terminates
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try {
+        client.forceKillApplication();
+      } catch (YarnException | IOException e) {
+        LOG.error("Failed to kill application during shutdown.", e);
+      }
+    }));
     clientThread.start();
     while (clientThread.isAlive()) {
       if (client.getTaskUrls() != null) {
@@ -88,12 +99,9 @@ public class NotebookSubmitter extends TonySubmitter {
             int localPort = localSocket.getLocalPort();
             localSocket.close();
             ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
-            LOG.info("If you are running NotebookSubmitter in your local box, please open [localhost:"
-                     + localPort + "] in your browser to visit the page. Otherwise, if "
-                     + "you're running NotebookSubmitter in a remote machine (like a gateway), please run"
-                     + " [ssh -L 18888:localhost:" + localPort
-                     + " name_of_this_host] in your laptop and open [localhost:18888] in your browser to "
-                     + "visit Jupyter Notebook. If the 18888 port is occupied, replace that number with another number.");
+            LOG.info("If you are running NotebookSubmitter in your local box, please open [localhost:" + localPort + "] in your browser to visit the page. Otherwise, if "
+                + "you're running NotebookSubmitter in a remote machine (like a gateway), please run" + " [ssh -L 18888:localhost:" + localPort
+                + " name_of_this_host] in your laptop and open [localhost:18888] in your browser to " + "visit Jupyter Notebook. If the 18888 port is occupied, replace that number with another number.");
             server.start();
             break;
           }
@@ -103,7 +111,6 @@ public class NotebookSubmitter extends TonySubmitter {
     }
     clientThread.join();
     return exitCode;
-
   }
 
   public static void main(String[] args) throws  Exception {

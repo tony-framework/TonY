@@ -119,6 +119,7 @@ public class TonyClient implements AutoCloseable {
   private String tonyFinalConfPath;
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
+  private ApplicationId appId;
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
@@ -162,7 +163,7 @@ public class TonyClient implements AutoCloseable {
 
     FileSystem fs = FileSystem.get(hdfsConf);
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+    appId = appContext.getApplicationId();
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
@@ -227,7 +228,7 @@ public class TonyClient implements AutoCloseable {
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
     logTrackingAndRMUrls(report);
-    return monitorApplication(appId);
+    return monitorApplication();
   }
 
   /**
@@ -706,12 +707,11 @@ public class TonyClient implements AutoCloseable {
   /**
    * Monitor the submitted application for completion.
    * Kill application if time expires.
-   * @param appId Application Id of application to be monitored
    * @return true if application completed successfully
    * @throws YarnException
    * @throws java.io.IOException
    */
-  private boolean monitorApplication(ApplicationId appId)
+  private boolean monitorApplication()
       throws YarnException, IOException, InterruptedException {
 
     while (true) {
@@ -749,7 +749,7 @@ public class TonyClient implements AutoCloseable {
         if (System.currentTimeMillis() > (clientStartTime + appTimeout)) {
           LOG.info("Reached client specified timeout for application. Killing application"
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
-          forceKillApplication(appId);
+          forceKillApplication();
           return false;
         }
       }
@@ -779,14 +779,15 @@ public class TonyClient implements AutoCloseable {
   }
 
   /**
-   * Kill a submitted application by sending a call to the ASM
-   * @param appId Application Id to be killed.
+   * Kill a submitted application by sending a call to the RM.
    * @throws YarnException
    * @throws java.io.IOException
    */
-  private void forceKillApplication(ApplicationId appId)
+  public void forceKillApplication()
       throws YarnException, IOException {
-    yarnClient.killApplication(appId);
+    if (appId != null) {
+      yarnClient.killApplication(appId);
+    }
 
   }
 
