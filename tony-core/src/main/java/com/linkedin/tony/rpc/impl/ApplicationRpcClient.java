@@ -45,13 +45,6 @@ public class ApplicationRpcClient implements ApplicationRpc {
   private static int port = 0;
   private static String address = "";
 
-  public static ApplicationRpcClient getInstance(String serverAddress, int serverPort) {
-    if (null == instance) {
-      instance = new ApplicationRpcClient(serverAddress, serverPort, null);
-    }
-    return instance;
-  }
-
   public static ApplicationRpcClient getInstance(String serverAddress, int serverPort, Configuration conf) {
     if (null == instance || !serverAddress.equals(address) || serverPort != port) {
       instance = new ApplicationRpcClient(serverAddress, serverPort, conf);
@@ -64,12 +57,7 @@ public class ApplicationRpcClient implements ApplicationRpc {
   private ApplicationRpcClient(String serverAddress, int serverPort, Configuration conf) {
     InetSocketAddress address = new InetSocketAddress(serverAddress, serverPort);
     YarnRPC rpc;
-    if (conf != null) {
-      rpc = YarnRPC.create(conf);
-    } else {
-      conf = new Configuration();
-      rpc = YarnRPC.create(conf);
-    }
+    rpc = YarnRPC.create(conf);
 
     UserGroupInformation ugi;
     try {

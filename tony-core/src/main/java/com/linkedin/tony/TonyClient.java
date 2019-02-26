@@ -179,14 +179,14 @@ public class TonyClient implements AutoCloseable {
               new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
 
-    if (yarnConfAddress != null) {
-      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConfAddress),
+    Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConf.getResource(Constants.CORE_SITE_CONF).getPath()),
+        Constants.CORE_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+
+    Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(yarnConf.getResource(Constants.YARN_SITE_CONF).getPath()),
           Constants.YARN_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
-    }
-    if (hdfsConfAddress != null) {
-      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConfAddress),
-          Constants.HDFS_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
-    }
+
+    Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(hdfsConf.getResource(Constants.HDFS_SITE_CONF).getPath()),
+        Constants.HDFS_SITE_CONF, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
 
     processTonyConfResources(tonyConf, fs);
 
@@ -250,8 +250,9 @@ public class TonyClient implements AutoCloseable {
 
     if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
       hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
-      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
       hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
+      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
+      yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.YARN_SITE_CONF));
     }
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(yarnConf);

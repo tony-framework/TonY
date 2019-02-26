@@ -58,7 +58,7 @@ public class JobMetadata {
     private long completed = -1L;
     private String status = "";
     private String user = "";
-    private Configuration conf = new Configuration();
+    private Configuration conf = null;
 
     public JobMetadata build() {
       return new JobMetadata(this);

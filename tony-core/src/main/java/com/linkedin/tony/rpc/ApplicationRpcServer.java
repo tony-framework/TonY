@@ -37,9 +37,6 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
     this.rpcPort = 10000 + RANDOM_NUMBER_GENERATOR.nextInt(5000) + 1;
     this.appRpc = rpc;
     this.conf = conf;
-    if (conf == null) {
-      this.conf = new Configuration();
-    }
   }
 
   @Override
