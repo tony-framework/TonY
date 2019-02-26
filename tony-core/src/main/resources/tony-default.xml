@@ -209,7 +209,7 @@
       Hostname of history server
     </description>
     <name>tony.history.host</name>
-    <value>historyhost.com</value>
+    <value>https://localhost:19886</value>
   </property>
 
   <property>

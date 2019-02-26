@@ -402,7 +402,6 @@ public class TonyClient implements AutoCloseable {
   @VisibleForTesting
   public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
     Set<String> jobNames = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
-
     for (String jobName : jobNames) {
       String[] resources = tonyConf.getStrings(jobName);
       if (resources == null) {
