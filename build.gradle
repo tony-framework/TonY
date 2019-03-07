@@ -202,7 +202,8 @@ subprojects {
   }
 
   checkstyle {
-    configFile rootProject.file('config/checkstyle/checkstyle.xml')
+    configDir rootProject.file('ligradle/checkstyle')
+    configFile rootProject.file(new File(configDir.path, 'linkedin-checkstyle.xml'))
     maxWarnings 0
   }
 
@@ -218,7 +219,7 @@ subprojects {
       !it.name.endsWith('.pom')
     }
 
-    excludeFilter = rootProject.file('config/findbugs/findbugsExclude.xml')
+    excludeFilter = rootProject.file('ligradle/findbugs/findbugsExclude.xml')
   }
 }
 
