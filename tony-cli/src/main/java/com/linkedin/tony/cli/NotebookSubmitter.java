@@ -99,9 +99,11 @@ public class NotebookSubmitter extends TonySubmitter {
             int localPort = localSocket.getLocalPort();
             localSocket.close();
             ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
-            LOG.info("If you are running NotebookSubmitter in your local box, please open [localhost:" + localPort + "] in your browser to visit the page. Otherwise, if "
-                + "you're running NotebookSubmitter in a remote machine (like a gateway), please run" + " [ssh -L 18888:localhost:" + localPort
-                + " name_of_this_host] in your laptop and open [localhost:18888] in your browser to " + "visit Jupyter Notebook. If the 18888 port is occupied, replace that number with another number.");
+            LOG.info("If you are running NotebookSubmitter in your local box, please open [localhost:" + localPort
+                + "] in your browser to visit the page. Otherwise, if you're running NotebookSubmitter in a remote "
+                + "machine (like a gateway), please run" + " [ssh -L 18888:localhost:" + localPort
+                + " name_of_this_host] in your laptop and open [localhost:18888] in your browser to visit Jupyter "
+                + "Notebook. If the 18888 port is occupied, replace that number with another number.");
             server.start();
             break;
           }

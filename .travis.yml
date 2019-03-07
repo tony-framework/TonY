@@ -5,7 +5,7 @@ jdk:
   - oraclejdk8
 env:
   - HADOOP_VERSION=3.1.1
-script: "./gradlew test --stacktrace --info"
+script: "./gradlew check test --stacktrace --info"
 
 # safelist
 branches:
