@@ -20,6 +20,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static com.linkedin.tony.TonyConfigurationKeys.*;
+
 
 /**
  * Before running these tests in your IDE, you should run {@code ./gradlew
@@ -29,6 +31,8 @@ import org.testng.annotations.Test;
  * If you get an exception saying there's "no such file or directory tony-core/out/libs",
  * you will need to update the working directory in your test configuration
  * to {@code /path/to/linkedin/TonY}.
+ *
+ * The YARN logs for the test should be in {@code <TonY>/target/MiniTonY}.
  */
 public class TestTonyE2E {
 
@@ -275,6 +279,28 @@ public class TestTonyE2E {
         "--conf", "tony.chief.instances=1",
         "--conf", "tony.ps.instances=1",
         "--conf", "tony.worker.instances=1",
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+  /**
+   * Tests that when the task completion notification is delayed (RMCallbackHandler.onContainersCompleted),
+   * the task has already been unregistered from the heartbeat monitor and thus the job should still succeed.
+   */
+  @Test
+  public void testTaskCompletionNotificationDelayed() throws IOException, ParseException {
+    client = new TonyClient(conf);
+    client.init(new String[]{
+        "--src_dir", "tony-core/src/test/resources/scripts",
+        "--executes", "exit_0.py",
+        "--python_binary_path", "python",
+        "--hdfs_classpath", libPath,
+        "--conf", "tony.ps.instances=0",
+        "--conf", "tony.worker.instances=1",
+        "--conf", TASK_HEARTBEAT_INTERVAL_MS + "=100",
+        "--conf", TASK_MAX_MISSED_HEARTBEATS + "=5",
+        "--container_env", Constants.TEST_TASK_COMPLETION_NOTIFICATION_DELAYED + "=true",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);

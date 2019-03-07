@@ -84,7 +84,7 @@ public class Constants {
 
   public static final String TEST_AM_CRASH = "TEST_AM_CRASH";
   public static final String TEST_WORKER_TERMINATED = "TEST_WORKER_TERMINATION";
-  public static final String TEST_TASK_EXECUTOR_HANG = "TEST_TASK_EXECUTOR_HANG";
+  public static final String TEST_TASK_COMPLETION_NOTIFICATION_DELAYED = "TEST_TASK_COMPLETION_NOTIFICATION_DELAYED";
   public static final String TEST_TASK_EXECUTOR_NUM_HB_MISS = "TEST_TASK_EXECUTOR_NUM_HB_MISS";
   // Should be of the form type#id#ms
   public static final String TEST_TASK_EXECUTOR_SKEW = "TEST_TASK_EXECUTOR_SKEW";
