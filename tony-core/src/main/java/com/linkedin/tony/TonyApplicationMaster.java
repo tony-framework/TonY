@@ -858,12 +858,24 @@ public class TonyApplicationMaster {
      * However, this easily introduces lots of bugs since we'd have 3 places to handle failures - register call, container
      * complete callback and heartbeat.
      * To make things easier, we decide to go back and piggyback on container completion to dictate the execution result
-     * of a task.
-     * Still keep this RPC call here for now.
+     * of a task. However, we use this method to unregister a completed task from the heartbeat monitor to avoid a race
+     * condition where the container complete callback is delayed, too many heartbeats are missed, and the task is
+     * marked as failed.
      */
     @Override
     public String registerExecutionResult(int exitCode, String jobName, String jobIndex, String sessionId) {
       LOG.info("Received result registration request with exit code " + exitCode + " from " + jobName + " " + jobIndex);
+
+      // Unregister task after completion..
+      // Since in the case of asynchronous exec, containers might
+      // end at different times..
+      TonyTask task = session.getTask(jobName + ":" + jobIndex);
+      if (task != null) {
+        LOG.info("Unregistering task [" + task.getId() + "] from Heartbeat monitor..");
+        hbMonitor.unregister(task);
+      } else {
+        LOG.warn("Task " + jobName + " " + jobIndex + " was null!");
+      }
       return "RECEIVED";
     }
 
@@ -984,6 +996,8 @@ public class TonyApplicationMaster {
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
       LOG.info("Completed containers: " + completedContainers.size());
+      sleepForTesting();
+
       for (ContainerStatus containerStatus : completedContainers) {
         int exitStatus = containerStatus.getExitStatus();
         LOG.info("ContainerID = " + containerStatus.getContainerId()
@@ -1008,14 +1022,22 @@ public class TonyApplicationMaster {
           if (Utils.isJobTypeTracked(task.getJobName(), tonyConf)) {
             numCompletedTrackedTasks.incrementAndGet();
           }
-
-          // Unregister task after completion..
-          // Since in the case of asynchronous exec, containers might
-          // end at different times..
-          LOG.info("Unregister task [" + task.getId() + "] from Heartbeat monitor..");
-          hbMonitor.unregister(task);
         } else {
           LOG.warn("No task found for container : [" + containerStatus.getContainerId() + "]!");
+        }
+      }
+    }
+
+    /**
+     * For testing purposes to simulate delay of container completion callback.
+     */
+    private void sleepForTesting() {
+      if (System.getenv(Constants.TEST_TASK_COMPLETION_NOTIFICATION_DELAYED) != null) {
+        LOG.info("Sleeping for 1 second to simulate task completion notification delay");
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          LOG.error(e);
         }
       }
     }
