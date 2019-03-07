@@ -996,14 +996,8 @@ public class TonyApplicationMaster {
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
       LOG.info("Completed containers: " + completedContainers.size());
-      if (System.getenv(Constants.TEST_TASK_COMPLETION_NOTIFICATION_DELAYED) != null) {
-        LOG.info("Sleeping for 1 second to simulate task completion notification delay");
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          LOG.error(e);
-        }
-      }
+      sleepForTesting();
+
       for (ContainerStatus containerStatus : completedContainers) {
         int exitStatus = containerStatus.getExitStatus();
         LOG.info("ContainerID = " + containerStatus.getContainerId()
@@ -1030,6 +1024,20 @@ public class TonyApplicationMaster {
           }
         } else {
           LOG.warn("No task found for container : [" + containerStatus.getContainerId() + "]!");
+        }
+      }
+    }
+
+    /**
+     * For testing purposes to simulate delay of container completion callback.
+     */
+    private void sleepForTesting() {
+      if (System.getenv(Constants.TEST_TASK_COMPLETION_NOTIFICATION_DELAYED) != null) {
+        LOG.info("Sleeping for 1 second to simulate task completion notification delay");
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          LOG.error(e);
         }
       }
     }

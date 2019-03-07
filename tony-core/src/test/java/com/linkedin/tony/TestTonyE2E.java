@@ -20,7 +20,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static com.linkedin.tony.TonyConfigurationKeys.*;
+import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
+import static com.linkedin.tony.TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS;
 
 
 /**
