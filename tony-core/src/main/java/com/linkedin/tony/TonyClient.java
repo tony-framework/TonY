@@ -9,6 +9,7 @@ import azkaban.utils.Props;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Files;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
@@ -463,7 +464,8 @@ public class TonyClient implements AutoCloseable {
                       fs, LocalResourceType.FILE, jobName);
             }
           } else {
-            Utils.zipFolder(Paths.get(srcDir), Paths.get(file.getName()));
+            File tmpDir = Files.createTempDir();
+            Utils.zipFolder(Paths.get(resource), Paths.get(tmpDir.getAbsolutePath(), file.getName()));
             Utils.uploadFileAndSetConfResources(appResourcesPath,
                     new Path(trimmedResource),
                     new Path(trimmedResource).getName(),
