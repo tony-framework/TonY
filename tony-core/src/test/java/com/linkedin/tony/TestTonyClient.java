@@ -4,7 +4,9 @@
  */
 package com.linkedin.tony;
 
+import java.io.IOException;
 import java.util.HashMap;
+import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
 
@@ -18,6 +20,17 @@ public class TestTonyClient {
     TonyClient client = new TonyClient();
     client.init(args);
     assertEquals(1, client.getTonyConf().getInt(TonyConfigurationKeys.AM_GPUS, TonyConfigurationKeys.DEFAULT_AM_GPUS));
+  }
+
+  @Test
+  public void testHdfsClasspathNoScheme() throws IOException, ParseException {
+    String hdfsConfPath = getClass().getClassLoader().getResource("test-core-site.xml").getPath();
+    String[] args = { "-conf", TonyConfigurationKeys.HDFS_CONF_LOCATION + "=" + hdfsConfPath,
+        "-hdfs_classpath", "/my/hdfs/path" };
+    TonyClient client = new TonyClient();
+    client.init(args);
+    String containerResources = client.getTonyConf().get(TonyConfigurationKeys.getContainerResourcesKey());
+    assertEquals(containerResources, "hdfs://example.com:9000/my/hdfs/path");
   }
 
   @Test
