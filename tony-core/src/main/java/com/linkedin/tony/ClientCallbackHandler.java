@@ -10,6 +10,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import java.util.Set;
 
 public interface ClientCallbackHandler {
-    void onApplicationIdReceived(ApplicationId appId);
-    void onTaskUrlReceived(Set<TaskUrl> taskUrlSet);
+    public void onApplicationIdReceived(ApplicationId appId);
+    public void onTaskUrlReceived(Set<TaskUrl> taskUrlSet);
 }
