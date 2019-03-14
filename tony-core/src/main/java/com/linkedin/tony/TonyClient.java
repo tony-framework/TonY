@@ -145,10 +145,6 @@ public class TonyClient implements AutoCloseable {
     VersionInfo.injectVersionInfo(tonyConf);
   }
 
-  private ImmutableSet<TaskUrl> getTaskUrls() {
-    return ImmutableSet.copyOf(taskUrls);
-  }
-
   private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
     LOG.info("Starting client..");
     yarnClient.start();
