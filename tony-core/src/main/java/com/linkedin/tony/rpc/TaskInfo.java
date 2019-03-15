@@ -5,7 +5,6 @@
 package com.linkedin.tony.rpc;
 
 import com.linkedin.tony.rpc.impl.TaskStatus;
-import org.apache.hadoop.yarn.api.records.ContainerState;
 
 import java.util.Objects;
 

@@ -89,8 +89,8 @@ import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
 
-public class TonyApplicationMaster {
-  private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
+public class ApplicationMaster {
+  private static final Log LOG = LogFactory.getLog(ApplicationMaster.class);
 
   /**
    * Metadata + History Server related variables
@@ -176,7 +176,7 @@ public class TonyApplicationMaster {
   private volatile boolean taskHasMissesHB = false;
   private Thread mainThread;
 
-  private TonyApplicationMaster() {
+  private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
 
@@ -196,7 +196,7 @@ public class TonyApplicationMaster {
   }
 
   /**
-   * Parse command line options and initialize TonyApplicationMaster
+   * Parse command line options and initialize ApplicationMaster
    * @return whether the initialization is successful or not.
    */
   private boolean init(String[] args) {
@@ -307,14 +307,14 @@ public class TonyApplicationMaster {
   }
 
   /**
-   * Entry point of TonyApplicationMaster
+   * Entry point of ApplicationMaster
    * The workflow of a training job in AM
    * prepare -> start -> failed    -> reset -> retry if amRetryCount > 0 otherwise fail the job.
    *                  -> succeeded -> stop -> job succeeded
    * @param args the args from user inputs
    */
   public static void main(String[] args) {
-    TonyApplicationMaster am = new TonyApplicationMaster();
+    ApplicationMaster am = new ApplicationMaster();
     boolean succeeded = am.run(args);
     if (succeeded) {
       LOG.info("Application Master completed successfully. Exiting");
@@ -351,7 +351,7 @@ public class TonyApplicationMaster {
       // Crash AM on purpose during AM crash tests.
       String shouldCrash = System.getenv(Constants.TEST_AM_CRASH);
       if (shouldCrash != null && shouldCrash.equals("true")) {
-        LOG.fatal("Error running TonyApplicationMaster !!");
+        LOG.fatal("Error running ApplicationMaster !!");
         return false;
       }
 

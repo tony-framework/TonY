@@ -10,5 +10,5 @@ public enum TaskStatus {
     RUNNING,
     FAILED,
     SUCCEEDED;
-    private TaskStatus() { }
+    TaskStatus() { }
 }

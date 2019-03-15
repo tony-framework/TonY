@@ -228,7 +228,7 @@ public class TonyClient implements AutoCloseable {
         TonyConfigurationKeys.DEFAULT_YARN_QUEUE_NAME);
     appContext.setQueue(yarnQueue);
 
-    // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
+    // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
     ContainerLaunchContext amSpec =
         createAMContainerSpec(this.amMemory, this.taskParams, this.pythonBinaryPath, this.executes, getTokens());
     appContext.setAMContainerSpec(amSpec);
@@ -592,7 +592,7 @@ public class TonyClient implements AutoCloseable {
     arguments.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     // Set class name
-    arguments.add("com.linkedin.tony.TonyApplicationMaster");
+    arguments.add("com.linkedin.tony.ApplicationMaster");
 
     if (taskParams != null) {
       arguments.add("--task_params " + "'" + taskParams + "'");

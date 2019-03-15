@@ -228,7 +228,7 @@ public class Utils {
   }
 
   /**
-   * This function is used by TonyApplicationMaster and TonyClient to set up
+   * This function is used by ApplicationMaster and TonyClient to set up
    * common command line arguments.
    * @return Options that contains common options
    */
