@@ -125,6 +125,8 @@ public class TonyClient implements AutoCloseable {
   private int hbInterval;
   private int maxHbMisses;
 
+  private ClientCallbackHandler callbackHandler;
+
   // For access from CLI.
   private Set<TaskUrl> taskUrls = new HashSet<>();
 
@@ -133,13 +135,14 @@ public class TonyClient implements AutoCloseable {
   }
 
   public TonyClient(Configuration conf) {
-    initOptions();
-    tonyConf = conf;
-    VersionInfo.injectVersionInfo(tonyConf);
+    this(null, conf);
   }
 
-  public ImmutableSet<TaskUrl> getTaskUrls() {
-    return ImmutableSet.copyOf(taskUrls);
+  public TonyClient(ClientCallbackHandler handler, Configuration conf) {
+    initOptions();
+    callbackHandler = handler;
+    tonyConf = conf;
+    VersionInfo.injectVersionInfo(tonyConf);
   }
 
   private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
@@ -165,6 +168,9 @@ public class TonyClient implements AutoCloseable {
     FileSystem fs = FileSystem.get(hdfsConf);
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     appId = appContext.getApplicationId();
+    if (callbackHandler != null) {
+      callbackHandler.onApplicationIdReceived(appId);
+    }
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
@@ -744,6 +750,9 @@ public class TonyClient implements AutoCloseable {
       if (amRpcServerInitialized && taskUrls.isEmpty()) {
         taskUrls = amRpcClient.getTaskUrls();
         if (!taskUrls.isEmpty()) {
+          if (callbackHandler != null) {
+            callbackHandler.onTaskUrlsReceived(ImmutableSet.copyOf(taskUrls));
+          }
           // Print TaskUrls
           new TreeSet<>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
         }
