@@ -18,6 +18,7 @@ import com.linkedin.tony.events.Metric;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
 import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
@@ -1097,6 +1098,7 @@ public class ApplicationMaster {
 
       TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
       TaskInfo taskInfo = task.getTaskInfo();
+      taskInfo.setState(TaskStatus.READY);
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
@@ -1158,6 +1160,7 @@ public class ApplicationMaster {
 
       Utils.printTaskUrl(task.getTaskInfo(), LOG);
       nmClientAsync.startContainerAsync(container, ctx);
+      taskInfo.setState(TaskStatus.RUNNING);
     }
   }
 

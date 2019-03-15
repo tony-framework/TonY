@@ -7,6 +7,7 @@ package com.linkedin.tony.tensorflow;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
 
 import java.net.URI;
@@ -257,8 +258,10 @@ public class TonySession {
           if (isChief(jobName, jobIndex)) {
             trainingFinished = true;
           }
+          task.getTaskInfo().setState(TaskStatus.FAILED);
           setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
         }
+        task.getTaskInfo().setState(TaskStatus.SUCCEEDED);
         break;
       default:
         break;
