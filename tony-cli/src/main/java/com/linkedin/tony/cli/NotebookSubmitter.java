@@ -128,7 +128,7 @@ public class NotebookSubmitter extends TonySubmitter implements CallbackHandler 
 
   // CallbackHandler callbacks
   public void onApplicationIdReceived(ApplicationId appId) { }
-  public void onTaskUrlsReceived(Set<TaskInfo> taskInfoSet) {
+  public void onTaskInfosReceived(Set<TaskInfo> taskInfoSet) {
     this.taskInfoSet = taskInfoSet;
   }
 

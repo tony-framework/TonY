@@ -40,7 +40,9 @@ public class TaskInfo implements Comparable<TaskInfo> {
     return url;
   }
 
-  public TaskStatus getStatus() { return status; }
+  public TaskStatus getStatus() {
+    return status;
+  }
 
   @Override
   public int compareTo(TaskInfo other) {

@@ -169,7 +169,7 @@ public class TonySession {
   public boolean allTasksScheduled() {
     for (TonyTask[] tasks : jobTasks.values()) {
       for (TonyTask task : tasks) {
-        if (task == null || task.getTaskUrl() == null) {
+        if (task == null || task.getTaskInfo() == null) {
           return false;
         }
       }
@@ -476,7 +476,7 @@ public class TonySession {
     /**
      * Returns a {@link TaskInfo} containing the HTTP URL for the task.
      */
-    public TaskInfo getTaskUrl() {
+    public TaskInfo getTaskInfo() {
       if (container == null) {
         return null;
       }

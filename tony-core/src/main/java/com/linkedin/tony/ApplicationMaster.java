@@ -752,7 +752,7 @@ public class ApplicationMaster {
           .values()
           .stream()
           .flatMap(Arrays::stream)
-          .forEach(task -> Utils.printTaskUrl(task.getTaskUrl(), LOG));
+          .forEach(task -> Utils.printTaskUrl(task.getTaskInfo(), LOG));
     }
   }
 
@@ -774,7 +774,7 @@ public class ApplicationMaster {
     }
 
     @Override
-    public Set<TaskInfo> getTaskUrls() {
+    public Set<TaskInfo> getTaskInfos() {
       // Special handling for NotebookSubmitter.
       if (singleNode && proxyUrl != null) {
         HashSet<TaskInfo> additionalTasks = new HashSet<>();
@@ -787,7 +787,7 @@ public class ApplicationMaster {
 
       if (!singleNode && session != null && session.allTasksScheduled()) {
         return session.getTonyTasks().values().stream()
-            .flatMap(tasks -> Arrays.stream(tasks).map(TonyTask::getTaskUrl))
+            .flatMap(tasks -> Arrays.stream(tasks).map(TonyTask::getTaskInfo))
             .collect(Collectors.toSet());
       }
 
@@ -1096,6 +1096,7 @@ public class ApplicationMaster {
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
       TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
+      TaskInfo taskInfo = task.getTaskInfo();
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
@@ -1155,7 +1156,7 @@ public class ApplicationMaster {
           Collections.synchronizedList(new ArrayList<>())
       ).add(container);
 
-      Utils.printTaskUrl(task.getTaskUrl(), LOG);
+      Utils.printTaskUrl(task.getTaskInfo(), LOG);
       nmClientAsync.startContainerAsync(container, ctx);
     }
   }

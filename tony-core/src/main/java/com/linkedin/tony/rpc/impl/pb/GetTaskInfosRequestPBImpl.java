@@ -6,21 +6,22 @@ package com.linkedin.tony.rpc.impl.pb;
 
 
 import com.linkedin.tony.rpc.GetTaskInfosRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRequestProto;
 
 
 public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
-  private GetTaskUrlsRequestProto proto = GetTaskUrlsRequestProto.getDefaultInstance();
-  private GetTaskUrlsRequestProto.Builder builder = null;
+  private YarnTensorFlowClusterProtos.GetTaskInfosRequestProto proto = YarnTensorFlowClusterProtos.GetTaskInfosRequestProto.getDefaultInstance();
+  private YarnTensorFlowClusterProtos.GetTaskInfosRequestProto.Builder builder = null;
   private boolean viaProto = false;
 
   private boolean rebuild = false;
 
   public GetTaskInfosRequestPBImpl() {
-        builder = GetTaskUrlsRequestProto.newBuilder();
+        builder = GetTaskInfosRequestProto.newBuilder();
     }
 
-  public GetTaskInfosRequestPBImpl(GetTaskUrlsRequestProto proto) {
+  public GetTaskInfosRequestPBImpl(YarnTensorFlowClusterProtos.GetTaskInfosRequestProto proto) {
     this.proto = proto;
     viaProto = true;
   }
@@ -34,7 +35,7 @@ public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
     viaProto = true;
   }
 
-  public GetTaskUrlsRequestProto getProto() {
+  public YarnTensorFlowClusterProtos.GetTaskInfosRequestProto getProto() {
      if (rebuild) {
        mergeLocalToProto();
      }
@@ -45,7 +46,7 @@ public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
 
   private void maybeInitBuilder() {
     if (viaProto || builder == null) {
-      builder = GetTaskUrlsRequestProto.newBuilder(proto);
+      builder = YarnTensorFlowClusterProtos.GetTaskInfosRequestProto.newBuilder(proto);
     }
     viaProto = false;
   }

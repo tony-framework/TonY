@@ -36,7 +36,7 @@ import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecResponsePBImpl;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetClusterSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRequestProto;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecRequestProto;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.HeartbeatRequestProto;
 import java.io.Closeable;
@@ -70,9 +70,9 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
 
   @Override
   public GetTaskInfosResponse getTaskUrls(GetTaskInfosRequest request) throws IOException, YarnException {
-    GetTaskUrlsRequestProto requestProto = ((GetTaskInfosRequestPBImpl) request).getProto();
+    GetTaskInfosRequestProto requestProto = ((GetTaskInfosRequestPBImpl) request).getProto();
     try {
-      return new GetTaskInfosResponsePBImpl(proxy.getTaskUrls(null, requestProto));
+      return new GetTaskInfosResponsePBImpl(proxy.getTaskInfos(null, requestProto));
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       return null;

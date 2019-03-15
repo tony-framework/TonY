@@ -5,16 +5,16 @@
 package com.linkedin.tony.util;
 
 import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsResponseProto.TaskUrlProto;
+import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosResponseProto.TaskInfoProto;
 
 
 public class ProtoUtils {
-  public static TaskInfo taskUrlProtoToTaskUrl(TaskUrlProto taskUrlProto) {
-    return new TaskInfo(taskUrlProto.getName(), taskUrlProto.getIndex(), taskUrlProto.getUrl());
+  public static TaskInfo taskUrlProtoToTaskUrl(TaskInfoProto taskInfoProto) {
+    return new TaskInfo(taskInfoProto.getName(), taskInfoProto.getIndex(), taskInfoProto.getUrl());
   }
 
-  public static TaskUrlProto taskUrlToTaskUrlProto(TaskInfo taskInfo) {
-    return TaskUrlProto.newBuilder().setName(taskInfo.getName()).setIndex(taskInfo.getIndex())
+  public static TaskInfoProto taskUrlToTaskUrlProto(TaskInfo taskInfo) {
+    return TaskInfoProto.newBuilder().setName(taskInfo.getName()).setIndex(taskInfo.getIndex())
         .setUrl(taskInfo.getUrl()).build();
   }
 

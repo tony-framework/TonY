@@ -42,7 +42,7 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
   @Override
   public GetTaskInfosResponse getTaskUrls(GetTaskInfosRequest request) throws IOException, YarnException {
     GetTaskInfosResponse response = RECORD_FACTORY.newRecordInstance(GetTaskInfosResponse.class);
-    response.setTaskInfos(this.appRpc.getTaskUrls());
+    response.setTaskInfos(this.appRpc.getTaskInfos());
     return response;
   }
 

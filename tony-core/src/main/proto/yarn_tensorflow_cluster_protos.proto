@@ -5,16 +5,25 @@
 option java_package = "com.linkedin.tony.rpc.proto";
 option java_outer_classname = "YarnTensorFlowClusterProtos";
 
-message GetTaskUrlsRequestProto {
+message GetTaskInfosRequestProto {
 }
 
-message GetTaskUrlsResponseProto {
-    message TaskUrlProto {
+message GetTaskInfosResponseProto {
+    message TaskInfoProto {
         required string name = 1;
         required string index = 2;
         required string url = 3;
+        enum TaskStatus {
+            NEW = 0;
+            READY = 1;
+            RUNNING = 2;
+            FAILED = 3;
+            SUCCEEDED = 4;
+        }
+        required TaskStatus taskStatus = 4 [default = NEW];
     }
-    repeated TaskUrlProto task_urls = 1;
+
+    repeated TaskInfoProto task_infos = 1;
 }
 
 message GetClusterSpecRequestProto {

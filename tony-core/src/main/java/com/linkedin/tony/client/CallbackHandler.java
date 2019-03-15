@@ -19,5 +19,5 @@ public interface CallbackHandler {
     // Called when TonyClient gets an application id response from RM.
 
     // Called when TonyClient gets a set of taskUrls from TonyAM.
-    public void onTaskUrlsReceived(Set<TaskInfo> taskInfoSet);
+    public void onTaskInfosReceived(Set<TaskInfo> taskInfoSet);
 }
