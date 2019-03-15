@@ -8,6 +8,7 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tonyproxy.ProxyServer;
@@ -44,7 +45,7 @@ import static com.linkedin.tony.Constants.*;
  * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
  * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
  */
-public class NotebookSubmitter extends TonySubmitter implements CallbackHandler {
+public class NotebookSubmitter extends TonySubmitter implements CallbackHandler, TaskUpdateListener {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
   private TonyClient client;
@@ -52,6 +53,7 @@ public class NotebookSubmitter extends TonySubmitter implements CallbackHandler 
 
   private NotebookSubmitter() {
     this.client = new TonyClient(new Configuration());
+    this.client.addListener(this);
   }
 
   public int submit(String[] args)

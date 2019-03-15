@@ -8,10 +8,9 @@ import azkaban.jobtype.HadoopConfigurationInjector;
 import azkaban.utils.Props;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.linkedin.tony.client.CallbackHandler;
-import com.linkedin.tony.client.StateTransitionListener;
+import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
@@ -131,7 +130,7 @@ public class TonyClient implements AutoCloseable {
   private YarnApplicationState applicationState;
 
   private CallbackHandler callbackHandler;
-  private CopyOnWriteArrayList<StateTransitionListener> listeners = new CopyOnWriteArrayList<>();
+  private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
 
   // For access from CLI.
   private Set<TaskInfo> taskInfos = new HashSet<>();
@@ -758,8 +757,11 @@ public class TonyClient implements AutoCloseable {
       Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
               .filter(taskInfo ->  !taskInfos.contains(taskInfo))
               .collect(Collectors.toSet());
-      for (StateTransitionListener listener : listeners) {
-        listener.onTaskInfosReceived(taskInfoDiff);
+      // If task status is changed, invoke callback for all listeners.
+      if (taskInfoDiff.isEmpty()) {
+        for (TaskUpdateListener listener : listeners) {
+          listener.onTaskInfosReceived(receivedInfos);
+        }
       }
       taskInfos = receivedInfos;
 
@@ -855,11 +857,11 @@ public class TonyClient implements AutoCloseable {
     return -1;
   }
 
-  public void addListener(StateTransitionListener listener) {
+  public void addListener(TaskUpdateListener listener) {
     listeners.add(listener);
   }
 
-  public void removeListener(StateTransitionListener listener) {
+  public void removeListener(TaskUpdateListener listener) {
     listeners.remove(listener);
   }
 
