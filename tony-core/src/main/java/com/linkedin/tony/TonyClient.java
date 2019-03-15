@@ -750,13 +750,11 @@ public class TonyClient implements AutoCloseable {
       if (amRpcServerInitialized && taskUrls.isEmpty()) {
         taskUrls = amRpcClient.getTaskUrls();
         if (!taskUrls.isEmpty()) {
+          // Print TaskUrls
           if (callbackHandler != null) {
             callbackHandler.onTaskUrlsReceived(ImmutableSet.copyOf(taskUrls));
           }
           // Print TaskUrls
-          if (callbackHandler != null) {
-            callbackHandler.onTaskUrlReceived(ImmutableSet.copyOf(taskUrls));
-          }
           new TreeSet<>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
         }
       }
