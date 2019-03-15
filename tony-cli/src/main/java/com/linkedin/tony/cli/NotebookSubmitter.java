@@ -4,6 +4,7 @@
  */
 package com.linkedin.tony.cli;
 
+import com.linkedin.tony.ClientCallbackHandler;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
@@ -23,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import static com.linkedin.tony.Constants.*;
@@ -41,10 +44,11 @@ import static com.linkedin.tony.Constants.*;
  * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
  * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
  */
-public class NotebookSubmitter extends TonySubmitter {
+public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHandler {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
   private TonyClient client;
+  private Set<TaskUrl> taskUrlSet;
 
   private NotebookSubmitter() {
     this.client = new TonyClient(new Configuration());
@@ -91,8 +95,8 @@ public class NotebookSubmitter extends TonySubmitter {
     }));
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (client.getTaskUrls() != null) {
-        for (TaskUrl taskUrl : client.getTaskUrls()) {
+      if (taskUrlSet != null) {
+        for (TaskUrl taskUrl : taskUrlSet) {
           if (taskUrl.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
             String[] hostPort = taskUrl.getUrl().split(":");
             ServerSocket localSocket = new ServerSocket(0);
@@ -121,4 +125,11 @@ public class NotebookSubmitter extends TonySubmitter {
     exitCode = submitter.submit(args);
     System.exit(exitCode);
   }
+
+  // ClientCallbackHandler callbacks
+  public void onApplicationIdReceived(ApplicationId appId) { }
+  public void onTaskUrlsReceived(Set<TaskUrl> taskUrlSet) {
+    this.taskUrlSet = taskUrlSet;
+  }
+
 }
