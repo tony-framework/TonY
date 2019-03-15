@@ -4,18 +4,18 @@
  */
 package com.linkedin.tony.util;
 
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsResponseProto.TaskUrlProto;
 
 
 public class ProtoUtils {
-  public static TaskUrl taskUrlProtoToTaskUrl(TaskUrlProto taskUrlProto) {
-    return new TaskUrl(taskUrlProto.getName(), taskUrlProto.getIndex(), taskUrlProto.getUrl());
+  public static TaskInfo taskUrlProtoToTaskUrl(TaskUrlProto taskUrlProto) {
+    return new TaskInfo(taskUrlProto.getName(), taskUrlProto.getIndex(), taskUrlProto.getUrl());
   }
 
-  public static TaskUrlProto taskUrlToTaskUrlProto(TaskUrl taskUrl) {
-    return TaskUrlProto.newBuilder().setName(taskUrl.getName()).setIndex(taskUrl.getIndex())
-        .setUrl(taskUrl.getUrl()).build();
+  public static TaskUrlProto taskUrlToTaskUrlProto(TaskInfo taskInfo) {
+    return TaskUrlProto.newBuilder().setName(taskInfo.getName()).setIndex(taskInfo.getIndex())
+        .setUrl(taskInfo.getUrl()).build();
   }
 
   private ProtoUtils() { }

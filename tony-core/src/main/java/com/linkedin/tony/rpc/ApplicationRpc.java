@@ -14,7 +14,7 @@ public interface ApplicationRpc {
    * Returns all the task URLs once all tasks have been allocated. Before all tasks have been allocated, this will
    * return an empty set.
    */
-  Set<TaskUrl> getTaskUrls() throws IOException, YarnException;
+  Set<TaskInfo> getTaskUrls() throws IOException, YarnException;
 
   String getClusterSpec() throws IOException, YarnException;
   String registerWorkerSpec(String worker, String spec) throws IOException, YarnException;

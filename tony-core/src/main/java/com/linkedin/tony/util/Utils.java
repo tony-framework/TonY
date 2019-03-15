@@ -10,7 +10,7 @@ import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -191,8 +191,8 @@ public class Utils {
     }
   }
 
-  public static void printTaskUrl(TaskUrl taskUrl, Log log) {
-    log.info(String.format("Logs for %s %s at: %s", taskUrl.getName(), taskUrl.getIndex(), taskUrl.getUrl()));
+  public static void printTaskUrl(TaskInfo taskInfo, Log log) {
+    log.info(String.format("Logs for %s %s at: %s", taskInfo.getName(), taskInfo.getIndex(), taskInfo.getUrl()));
   }
 
   public static void printTHSUrl(String thsHost, String appId, Log log) {

@@ -4,27 +4,27 @@
  */
 package com.linkedin.tony.rpc.impl.pb;
 
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.util.ProtoUtils;
-import com.linkedin.tony.rpc.GetTaskUrlsResponse;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.GetTaskInfosResponse;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsResponseProto;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsResponseProtoOrBuilder;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 
-public class GetTaskUrlsResponsePBImpl implements GetTaskUrlsResponse {
+public class GetTaskInfosResponsePBImpl implements GetTaskInfosResponse {
   GetTaskUrlsResponseProto proto = GetTaskUrlsResponseProto.getDefaultInstance();
   GetTaskUrlsResponseProto.Builder builder = null;
   private boolean viaProto = false;
 
-  private Set<TaskUrl> _taskUrls = null;
+  private Set<TaskInfo> _taskInfos = null;
 
-  public GetTaskUrlsResponsePBImpl() {
+  public GetTaskInfosResponsePBImpl() {
     builder = GetTaskUrlsResponseProto.newBuilder();
   }
 
-  public GetTaskUrlsResponsePBImpl(GetTaskUrlsResponseProto proto) {
+  public GetTaskInfosResponsePBImpl(GetTaskUrlsResponseProto proto) {
     this.proto = proto;
     viaProto = true;
   }
@@ -52,20 +52,20 @@ public class GetTaskUrlsResponsePBImpl implements GetTaskUrlsResponse {
   }
 
   @Override
-  public Set<TaskUrl> getTaskUrls() {
+  public Set<TaskInfo> getTaskInfos() {
     GetTaskUrlsResponseProtoOrBuilder p = viaProto ? proto : builder;
-    if (this._taskUrls != null) {
-      return this._taskUrls;
+    if (this._taskInfos != null) {
+      return this._taskInfos;
     }
     return p.getTaskUrlsList().stream().map(ProtoUtils::taskUrlProtoToTaskUrl).collect(Collectors.toSet());
   }
 
   @Override
-  public void setTaskUrls(Set<TaskUrl> taskUrls) {
+  public void setTaskInfos(Set<TaskInfo> taskInfos) {
     maybeInitBuilder();
-    this._taskUrls = taskUrls;
+    this._taskInfos = taskInfos;
     builder.clearTaskUrls();
-    builder.addAllTaskUrls(taskUrls.stream().map(ProtoUtils::taskUrlToTaskUrlProto)
+    builder.addAllTaskUrls(taskInfos.stream().map(ProtoUtils::taskUrlToTaskUrlProto)
         .collect(Collectors.toList()));
   }
 }

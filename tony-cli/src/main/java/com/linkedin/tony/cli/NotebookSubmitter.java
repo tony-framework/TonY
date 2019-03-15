@@ -4,12 +4,12 @@
  */
 package com.linkedin.tony.cli;
 
-import com.linkedin.tony.ClientCallbackHandler;
+import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.util.Utils;
-import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tonyproxy.ProxyServer;
 import java.io.File;
 import java.io.IOException;
@@ -44,11 +44,11 @@ import static com.linkedin.tony.Constants.*;
  * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
  * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
  */
-public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHandler {
+public class NotebookSubmitter extends TonySubmitter implements CallbackHandler {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
   private TonyClient client;
-  private Set<TaskUrl> taskUrlSet;
+  private Set<TaskInfo> taskInfoSet;
 
   private NotebookSubmitter() {
     this.client = new TonyClient(new Configuration());
@@ -95,10 +95,10 @@ public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHa
     }));
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (taskUrlSet != null) {
-        for (TaskUrl taskUrl : taskUrlSet) {
-          if (taskUrl.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
-            String[] hostPort = taskUrl.getUrl().split(":");
+      if (taskInfoSet != null) {
+        for (TaskInfo taskInfo : taskInfoSet) {
+          if (taskInfo.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
+            String[] hostPort = taskInfo.getUrl().split(":");
             ServerSocket localSocket = new ServerSocket(0);
             int localPort = localSocket.getLocalPort();
             localSocket.close();
@@ -126,10 +126,10 @@ public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHa
     System.exit(exitCode);
   }
 
-  // ClientCallbackHandler callbacks
+  // CallbackHandler callbacks
   public void onApplicationIdReceived(ApplicationId appId) { }
-  public void onTaskUrlsReceived(Set<TaskUrl> taskUrlSet) {
-    this.taskUrlSet = taskUrlSet;
+  public void onTaskUrlsReceived(Set<TaskInfo> taskInfoSet) {
+    this.taskInfoSet = taskInfoSet;
   }
 
 }

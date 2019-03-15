@@ -6,8 +6,9 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.util.Utils;
-import com.linkedin.tony.rpc.TaskUrl;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -473,13 +474,13 @@ public class TonySession {
     }
 
     /**
-     * Returns a {@link TaskUrl} containing the HTTP URL for the task.
+     * Returns a {@link TaskInfo} containing the HTTP URL for the task.
      */
-    public TaskUrl getTaskUrl() {
+    public TaskInfo getTaskUrl() {
       if (container == null) {
         return null;
       }
-      return new TaskUrl(jobName, taskIndex, Utils.constructContainerUrl(container));
+      return new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
     TonyTask(String jobName, String taskIndex, int sessionId) {

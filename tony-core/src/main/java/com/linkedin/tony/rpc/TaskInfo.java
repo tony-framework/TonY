@@ -4,21 +4,29 @@
  */
 package com.linkedin.tony.rpc;
 
+import com.linkedin.tony.rpc.impl.TaskStatus;
+import org.apache.hadoop.yarn.api.records.ContainerState;
+
 import java.util.Objects;
 
 
 /**
  * Contains the name, index, and URL for a task.
  */
-public class TaskUrl implements Comparable<TaskUrl> {
+public class TaskInfo implements Comparable<TaskInfo> {
   private final String name;   // The name (worker or ps) of the task
   private final String index;  // The index of the task
   private final String url;    // The URL where the logs for the task can be found
+  private TaskStatus status = TaskStatus.NEW;
 
-  public TaskUrl(String name, String index, String url) {
+  public TaskInfo(String name, String index, String url) {
     this.name = name;
     this.index = index;
     this.url = url;
+  }
+
+  public void setState(TaskStatus status) {
+    this.status = status;
   }
 
   public String getName() {
@@ -33,8 +41,10 @@ public class TaskUrl implements Comparable<TaskUrl> {
     return url;
   }
 
+  public TaskStatus getStatus() { return status; }
+
   @Override
-  public int compareTo(TaskUrl other) {
+  public int compareTo(TaskInfo other) {
     if (!this.name.equals(other.name)) {
       return this.name.compareTo(other.name);
     }
@@ -49,13 +59,15 @@ public class TaskUrl implements Comparable<TaskUrl> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    TaskUrl taskUrl = (TaskUrl) o;
-    return Objects.equals(name, taskUrl.name) && Objects.equals(index, taskUrl.index) && Objects.equals(url,
-        taskUrl.url);
+    TaskInfo taskInfo = (TaskInfo) o;
+    return Objects.equals(name, taskInfo.name)
+            && Objects.equals(index, taskInfo.index)
+            && Objects.equals(url, taskInfo.url)
+            && Objects.equals(status, taskInfo.getStatus());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, index, url);
+    return Objects.hash(name, index, url, status);
   }
 }

@@ -5,22 +5,22 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 
-import com.linkedin.tony.rpc.GetTaskUrlsRequest;
+import com.linkedin.tony.rpc.GetTaskInfosRequest;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsRequestProto;
 
 
-public class GetTaskUrlsRequestPBImpl implements GetTaskUrlsRequest {
+public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
   private GetTaskUrlsRequestProto proto = GetTaskUrlsRequestProto.getDefaultInstance();
   private GetTaskUrlsRequestProto.Builder builder = null;
   private boolean viaProto = false;
 
   private boolean rebuild = false;
 
-  public GetTaskUrlsRequestPBImpl() {
+  public GetTaskInfosRequestPBImpl() {
         builder = GetTaskUrlsRequestProto.newBuilder();
     }
 
-  public GetTaskUrlsRequestPBImpl(GetTaskUrlsRequestProto proto) {
+  public GetTaskInfosRequestPBImpl(GetTaskUrlsRequestProto proto) {
     this.proto = proto;
     viaProto = true;
   }

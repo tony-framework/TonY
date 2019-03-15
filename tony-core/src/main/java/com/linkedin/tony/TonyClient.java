@@ -10,7 +10,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.client.CallbackHandler;
+import com.linkedin.tony.client.StateTransitionListener;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
@@ -33,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -124,11 +127,13 @@ public class TonyClient implements AutoCloseable {
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
+  private YarnApplicationState applicationState;
 
-  private ClientCallbackHandler callbackHandler;
+  private CallbackHandler callbackHandler;
+  private CopyOnWriteArrayList<StateTransitionListener> listeners = new CopyOnWriteArrayList<>();
 
   // For access from CLI.
-  private Set<TaskUrl> taskUrls = new HashSet<>();
+  private Set<TaskInfo> taskInfos = new HashSet<>();
 
   public TonyClient() {
     this(new Configuration(false));
@@ -138,7 +143,7 @@ public class TonyClient implements AutoCloseable {
     this(null, conf);
   }
 
-  public TonyClient(ClientCallbackHandler handler, Configuration conf) {
+  public TonyClient(CallbackHandler handler, Configuration conf) {
     initOptions();
     callbackHandler = handler;
     tonyConf = conf;
@@ -743,19 +748,23 @@ public class TonyClient implements AutoCloseable {
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
       YarnApplicationState state = report.getYarnApplicationState();
+      if (state != applicationState) {
+        for (StateTransitionListener listener : listeners) {
+          listener.onApplicationStatusChanged(state);
+        }
+      }
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
 
-      // Query AM for taskUrls if taskUrls is empty.
-      if (amRpcServerInitialized && taskUrls.isEmpty()) {
-        taskUrls = amRpcClient.getTaskUrls();
-        if (!taskUrls.isEmpty()) {
-          // Print TaskUrls
+      // Query AM for taskInfos if taskInfos is empty.
+      if (amRpcServerInitialized && taskInfos.isEmpty()) {
+        taskInfos = amRpcClient.getTaskUrls();
+        if (!taskInfos.isEmpty()) {
           if (callbackHandler != null) {
-            callbackHandler.onTaskUrlsReceived(ImmutableSet.copyOf(taskUrls));
+            callbackHandler.onTaskUrlsReceived(ImmutableSet.copyOf(taskInfos));
           }
           // Print TaskUrls
-          new TreeSet<>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
+          new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
         }
       }
 
@@ -840,6 +849,14 @@ public class TonyClient implements AutoCloseable {
     }
     LOG.error("Application failed to complete successfully");
     return -1;
+  }
+
+  public void addListener(StateTransitionListener listener) {
+    listeners.add(listener);
+  }
+
+  public void removeListener(StateTransitionListener listener) {
+    listeners.remove(listener);
   }
 
   public static void main(String[] args) {

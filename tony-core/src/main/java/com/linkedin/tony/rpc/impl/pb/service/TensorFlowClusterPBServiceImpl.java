@@ -8,7 +8,7 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 import com.linkedin.tony.rpc.Empty;
 import com.linkedin.tony.rpc.GetClusterSpecResponse;
-import com.linkedin.tony.rpc.GetTaskUrlsResponse;
+import com.linkedin.tony.rpc.GetTaskInfosResponse;
 import com.linkedin.tony.rpc.HeartbeatResponse;
 import com.linkedin.tony.rpc.RegisterExecutionResultResponse;
 import com.linkedin.tony.rpc.RegisterTensorBoardUrlResponse;
@@ -18,8 +18,8 @@ import com.linkedin.tony.rpc.TensorFlowClusterPB;
 import com.linkedin.tony.rpc.impl.pb.EmptyPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecResponsePBImpl;
-import com.linkedin.tony.rpc.impl.pb.GetTaskUrlsRequestPBImpl;
-import com.linkedin.tony.rpc.impl.pb.GetTaskUrlsResponsePBImpl;
+import com.linkedin.tony.rpc.impl.pb.GetTaskInfosRequestPBImpl;
+import com.linkedin.tony.rpc.impl.pb.GetTaskInfosResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterExecutionResultRequestPBImpl;
@@ -54,10 +54,10 @@ public class TensorFlowClusterPBServiceImpl implements TensorFlowClusterPB {
   @Override
   public GetTaskUrlsResponseProto getTaskUrls(RpcController controller,
       GetTaskUrlsRequestProto proto) throws ServiceException {
-    GetTaskUrlsRequestPBImpl request = new GetTaskUrlsRequestPBImpl(proto);
+    GetTaskInfosRequestPBImpl request = new GetTaskInfosRequestPBImpl(proto);
     try {
-      GetTaskUrlsResponse response = real.getTaskUrls(request);
-      return ((GetTaskUrlsResponsePBImpl) response).getProto();
+      GetTaskInfosResponse response = real.getTaskUrls(request);
+      return ((GetTaskInfosResponsePBImpl) response).getProto();
     } catch (YarnException | IOException e) {
       throw new ServiceException(e);
     }

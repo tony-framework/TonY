@@ -17,7 +17,7 @@ import com.linkedin.tony.events.EventType;
 import com.linkedin.tony.events.Metric;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
@@ -774,14 +774,14 @@ public class TonyApplicationMaster {
     }
 
     @Override
-    public Set<TaskUrl> getTaskUrls() {
+    public Set<TaskInfo> getTaskUrls() {
       // Special handling for NotebookSubmitter.
       if (singleNode && proxyUrl != null) {
-        HashSet<TaskUrl> additionalTasks = new HashSet<>();
-        additionalTasks.add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
+        HashSet<TaskInfo> additionalTasks = new HashSet<>();
+        additionalTasks.add(new TaskInfo(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
                           Utils.getCurrentHostName() + ":"
                           + System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()), containerId)));
-        additionalTasks.add(new TaskUrl(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
+        additionalTasks.add(new TaskInfo(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
         return additionalTasks;
       }
 
