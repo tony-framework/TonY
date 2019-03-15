@@ -128,7 +128,7 @@ public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHa
 
   // ClientCallbackHandler callbacks
   public void onApplicationIdReceived(ApplicationId appId) { }
-  public void onTaskUrlReceived(Set<TaskUrl> taskUrlSet) {
+  public void onTaskUrlsReceived(Set<TaskUrl> taskUrlSet) {
     this.taskUrlSet = taskUrlSet;
   }
 
