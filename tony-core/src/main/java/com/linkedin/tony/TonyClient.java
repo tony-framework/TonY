@@ -270,10 +270,18 @@ public class TonyClient implements AutoCloseable {
         + Utils.buildRMUrl(yarnConf, report.getApplicationId().toString()));
   }
 
-  private void createYarnClient() {
+  private void initHdfsConf() {
     if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
       hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
       hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
+    }
+    if (hdfsConfAddress != null) {
+      hdfsConf.addResource(new Path(hdfsConfAddress));
+    }
+  }
+
+  private void createYarnClient() {
+    if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.YARN_SITE_CONF));
     }
@@ -281,9 +289,7 @@ public class TonyClient implements AutoCloseable {
     if (this.yarnConfAddress != null) {
       this.yarnConf.addResource(new Path(this.yarnConfAddress));
     }
-    if (this.hdfsConfAddress != null) {
-      this.hdfsConf.addResource(new Path(this.hdfsConfAddress));
-    }
+
     int numRMConnectRetries = tonyConf.getInt(TonyConfigurationKeys.RM_CLIENT_CONNECT_RETRY_MULTIPLIER,
         TonyConfigurationKeys.DEFAULT_RM_CLIENT_CONNECT_RETRY_MULTIPLIER);
     long rmMaxWaitMS = yarnConf.getLong(YarnConfiguration.RESOURCEMANAGER_CONNECT_RETRY_INTERVAL_MS,
@@ -337,8 +343,11 @@ public class TonyClient implements AutoCloseable {
     LOG.info("TonY heartbeat interval [" + hbInterval + "]");
     LOG.info("TonY max heartbeat misses allowed [" + maxHbMisses + "]");
 
-    yarnConfAddress = tonyConf.get(TonyConfigurationKeys.YARN_CONF_LOCATION);
     hdfsConfAddress = tonyConf.get(TonyConfigurationKeys.HDFS_CONF_LOCATION);
+    yarnConfAddress = tonyConf.get(TonyConfigurationKeys.YARN_CONF_LOCATION);
+    initHdfsConf();
+    createYarnClient();
+
     taskParams = cliParser.getOptionValue("task_params");
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
@@ -348,7 +357,11 @@ public class TonyClient implements AutoCloseable {
     srcDir = cliParser.getOptionValue("src_dir");
 
     // Set hdfsClassPath for all workers
+    // Prepend hdfs:// if missing
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
+    if (hdfsClasspath != null && !hdfsClasspath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
+      hdfsClasspath = FileSystem.getDefaultUri(hdfsConf) + hdfsClasspath;
+    }
     Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath, tonyConf);
 
     if (amMemory < 0) {
@@ -391,7 +404,7 @@ public class TonyClient implements AutoCloseable {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
     }
-    createYarnClient();
+
     return true;
   }
 
