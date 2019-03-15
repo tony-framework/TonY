@@ -758,7 +758,7 @@ public class TonyClient implements AutoCloseable {
               .filter(taskInfo ->  !taskInfos.contains(taskInfo))
               .collect(Collectors.toSet());
       // If task status is changed, invoke callback for all listeners.
-      if (taskInfoDiff.isEmpty()) {
+      if (!taskInfoDiff.isEmpty()) {
         for (TaskUpdateListener listener : listeners) {
           listener.onTaskInfosReceived(receivedInfos);
         }
