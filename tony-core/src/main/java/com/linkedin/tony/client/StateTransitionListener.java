@@ -4,8 +4,12 @@
  */
 package com.linkedin.tony.client;
 
+import com.linkedin.tony.rpc.TaskInfo;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 
+import java.util.Set;
+
 public interface StateTransitionListener {
-    public void onApplicationStatusChanged(YarnApplicationState state);
+    // Called when TonyClient gets a set of taskUrls from TonyAM.
+    public void onTaskInfosReceived(Set<TaskInfo> taskInfoSet);
 }

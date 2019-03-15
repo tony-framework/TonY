@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.ArrayList;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -740,31 +741,34 @@ public class TonyClient implements AutoCloseable {
   private boolean monitorApplication()
       throws YarnException, IOException, InterruptedException {
 
+    boolean isTaskUrlsPrinted = false;
     while (true) {
       // Check app status every 1 second.
-      Thread.sleep(1000);
+      Thread.sleep(5000);
 
       // Get application report for the appId we are interested in
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
       YarnApplicationState state = report.getYarnApplicationState();
-      if (state != applicationState) {
-        for (StateTransitionListener listener : listeners) {
-          listener.onApplicationStatusChanged(state);
-        }
-      }
+
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
 
+      Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
+      Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
+              .filter(taskInfo ->  !taskInfos.contains(taskInfo))
+              .collect(Collectors.toSet());
+      for (StateTransitionListener listener : listeners) {
+        listener.onTaskInfosReceived(taskInfoDiff);
+      }
+      taskInfos = receivedInfos;
+
       // Query AM for taskInfos if taskInfos is empty.
-      if (amRpcServerInitialized && taskInfos.isEmpty()) {
-        taskInfos = amRpcClient.getTaskInfos();
+      if (amRpcServerInitialized && !isTaskUrlsPrinted) {
         if (!taskInfos.isEmpty()) {
-          if (callbackHandler != null) {
-            callbackHandler.onTaskInfosReceived(ImmutableSet.copyOf(taskInfos));
-          }
           // Print TaskUrls
           new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
+          isTaskUrlsPrinted = true;
         }
       }
 
