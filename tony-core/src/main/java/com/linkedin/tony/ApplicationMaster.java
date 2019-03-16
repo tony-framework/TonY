@@ -1097,6 +1097,7 @@ public class ApplicationMaster {
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
       TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
+      task.setTaskInfo(container);
       TaskInfo taskInfo = task.getTaskInfo();
       taskInfo.setState(TaskStatus.READY);
 

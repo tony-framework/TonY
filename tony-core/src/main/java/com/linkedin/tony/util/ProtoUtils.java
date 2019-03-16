@@ -9,13 +9,13 @@ import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRespo
 
 
 public class ProtoUtils {
-  public static TaskInfo taskUrlProtoToTaskUrl(TaskInfoProto taskInfoProto) {
+  public static TaskInfo taskInfoProtoToTaskInfo(TaskInfoProto taskInfoProto) {
     return new TaskInfo(taskInfoProto.getName(), taskInfoProto.getIndex(), taskInfoProto.getUrl());
   }
 
-  public static TaskInfoProto taskUrlToTaskUrlProto(TaskInfo taskInfo) {
+  public static TaskInfoProto taskInfoToTaskInfoProto(TaskInfo taskInfo) {
     return TaskInfoProto.newBuilder().setName(taskInfo.getName()).setIndex(taskInfo.getIndex())
-        .setUrl(taskInfo.getUrl()).build();
+        .setUrl(taskInfo.getUrl()).setTaskStatus(TaskInfoProto.TaskStatus.values()[taskInfo.getStatus().ordinal()]).build();
   }
 
   private ProtoUtils() { }

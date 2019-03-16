@@ -58,7 +58,7 @@ public class GetTaskInfosResponsePBImpl implements GetTaskInfosResponse {
     if (this._taskInfos != null) {
       return this._taskInfos;
     }
-    return p.getTaskInfosList().stream().map(ProtoUtils::taskUrlProtoToTaskUrl).collect(Collectors.toSet());
+    return p.getTaskInfosList().stream().map(ProtoUtils::taskInfoProtoToTaskInfo).collect(Collectors.toSet());
   }
 
   @Override
@@ -66,7 +66,7 @@ public class GetTaskInfosResponsePBImpl implements GetTaskInfosResponse {
     maybeInitBuilder();
     this._taskInfos = taskInfos;
     builder.clearTaskInfos();
-    builder.addAllTaskInfos(taskInfos.stream().map(ProtoUtils::taskUrlToTaskUrlProto)
+    builder.addAllTaskInfos(taskInfos.stream().map(ProtoUtils::taskInfoToTaskInfoProto)
         .collect(Collectors.toList()));
   }
 }

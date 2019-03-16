@@ -417,6 +417,7 @@ public class TonySession {
     private final int sessionId;
     private String host;
     private int port = -1;
+    private TaskInfo taskInfo;
 
     /**
      * The container the task is running in. Set once a container has been allocated for the task.
@@ -480,10 +481,15 @@ public class TonySession {
      * Returns a {@link TaskInfo} containing the HTTP URL for the task.
      */
     public TaskInfo getTaskInfo() {
-      if (container == null) {
-        return null;
-      }
-      return new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
+      return taskInfo;
+    }
+
+    public void setTaskInfo(Container container) {
+      taskInfo = new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
+    }
+
+    public void setTaskInfo(TaskInfo taskInfo) {
+      this.taskInfo = taskInfo;
     }
 
     TonyTask(String jobName, String taskIndex, int sessionId) {

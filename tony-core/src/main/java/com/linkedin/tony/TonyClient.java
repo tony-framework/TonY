@@ -753,24 +753,26 @@ public class TonyClient implements AutoCloseable {
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
 
-      Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
-      Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
-              .filter(taskInfo ->  !taskInfos.contains(taskInfo))
-              .collect(Collectors.toSet());
-      // If task status is changed, invoke callback for all listeners.
-      if (!taskInfoDiff.isEmpty()) {
-        for (TaskUpdateListener listener : listeners) {
-          listener.onTaskInfosReceived(receivedInfos);
+      if (amRpcClient != null) {
+        Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
+        Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
+                .filter(taskInfo -> !taskInfos.contains(taskInfo))
+                .collect(Collectors.toSet());
+        // If task status is changed, invoke callback for all listeners.
+        if (!taskInfoDiff.isEmpty()) {
+          for (TaskUpdateListener listener : listeners) {
+            listener.onTaskInfosReceived(receivedInfos);
+          }
         }
-      }
-      taskInfos = receivedInfos;
+        taskInfos = receivedInfos;
 
-      // Query AM for taskInfos if taskInfos is empty.
-      if (amRpcServerInitialized && !isTaskUrlsPrinted) {
-        if (!taskInfos.isEmpty()) {
-          // Print TaskUrls
-          new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
-          isTaskUrlsPrinted = true;
+        // Query AM for taskInfos if taskInfos is empty.
+        if (amRpcServerInitialized && !isTaskUrlsPrinted) {
+          if (!taskInfos.isEmpty()) {
+            // Print TaskUrls
+            new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
+            isTaskUrlsPrinted = true;
+          }
         }
       }
 
