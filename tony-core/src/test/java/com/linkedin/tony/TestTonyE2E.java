@@ -133,7 +133,7 @@ public class TestTonyE2E {
   public void testPSWorkerTrainingShouldPass() throws ParseException, IOException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
-        "--executes", "'python check_env_and_venv.py'",
+        "--executes", "python check_env_and_venv.py",
         "--hdfs_classpath", libPath,
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
@@ -258,7 +258,7 @@ public class TestTonyE2E {
     String resources = "tony-core/src/test/resources/test.zip" + ",tony-core/src/test/resources/test2.zip#archive,"
             + libPath;
     client.init(new String[]{
-        "--executes", "'python check_archive_file_localization.py'",
+        "--executes", "python check_archive_file_localization.py",
         "--hdfs_classpath", libPath,
         "--src_dir", "tony-core/src/test/resources/scripts",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
@@ -274,7 +274,7 @@ public class TestTonyE2E {
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
-        "--executes", "'python check_tb_port_set_in_chief_only.py'",
+        "--executes", "python check_tb_port_set_in_chief_only.py",
         "--hdfs_classpath", libPath,
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--conf", "tony.chief.instances=1",
