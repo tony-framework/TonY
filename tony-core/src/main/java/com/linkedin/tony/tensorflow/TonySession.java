@@ -6,6 +6,7 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
@@ -206,7 +207,13 @@ public class TonySession {
       TonyTask[] tasks = entry.getValue();
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
-          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId);
+          String taskCommand = taskCmd;
+          if (tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
+                  tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey())) != null) {
+            taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
+                    tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
+          }
+          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId, taskCommand);
           LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
         }
@@ -415,6 +422,7 @@ public class TonySession {
     private final String jobName;
     private final String taskIndex;
     private final int sessionId;
+    private String taskCommand;
     private String host;
     private int port = -1;
     private TaskInfo taskInfo;
@@ -445,6 +453,10 @@ public class TonySession {
 
     public String getHost() {
       return host;
+    }
+
+    public String getTaskCommand() {
+      return taskCommand;
     }
 
     public Container getContainer() {
@@ -492,10 +504,11 @@ public class TonySession {
       this.taskInfo = taskInfo;
     }
 
-    TonyTask(String jobName, String taskIndex, int sessionId) {
+    TonyTask(String jobName, String taskIndex, int sessionId, String taskCommand) {
       this.jobName = jobName;
       this.taskIndex = taskIndex;
       this.sessionId = sessionId;
+      this.taskCommand = taskCommand;
     }
 
     public void addContainer(Container container) {

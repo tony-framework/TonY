@@ -75,7 +75,7 @@ public class TaskExecutor {
     taskId = jobName + ":" + taskIndex;
 
     String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
-    isChief = isChiefEnvValue == null ? false : Boolean.parseBoolean(isChiefEnvValue);
+    isChief = Boolean.parseBoolean(isChiefEnvValue);
 
     LOG.info("Executor is running task " + jobName + " " + taskIndex);
   }

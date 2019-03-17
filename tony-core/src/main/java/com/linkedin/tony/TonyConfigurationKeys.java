@@ -186,6 +186,26 @@ public class TonyConfigurationKeys {
     return TONY_PREFIX + "containers.resources";
   }
 
+  // Job specific docker image
+  public static String getExecuteCommandKey(String jobName) {
+    return String.format(TONY_APPLICATION_PREFIX + "%s.command", jobName);
+  }
+
+  // Docker images for all containers
+  public static String getContainerExecuteCommandKey() {
+    return DOCKER_PREFIX + "containers.command";
+  }
+
+  // Job specific docker image
+  public static String getDockerImageKey(String jobName) {
+    return String.format(DOCKER_PREFIX + "%s.image", jobName);
+  }
+
+  // Docker images for all containers
+  public static String getContainerDockerKey() {
+    return DOCKER_PREFIX + "containers.image";
+  }
+
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
@@ -199,11 +219,9 @@ public class TonyConfigurationKeys {
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
 
   // Tony with docker configuration
-  public static final String DOCKER_PREFIX = TONY_APPLICATION_PREFIX + "docker.";
+  public static final String DOCKER_PREFIX = TONY_PREFIX + "docker.";
   public static final String DOCKER_ENABLED = DOCKER_PREFIX + "enabled";
   public static final boolean DEFAULT_DOCKER_ENABLED = false;
-
-  public static final String DOCKER_IMAGE = DOCKER_PREFIX + "image";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";

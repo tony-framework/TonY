@@ -86,6 +86,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import py4j.GatewayServer;
 
@@ -719,6 +721,12 @@ public class ApplicationMaster {
     extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
     String taskCommand = baseTaskCommand;
+    if (tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
+            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey())) != null) {
+        taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
+                tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
+    }
+
     LOG.info("Executing command: " + taskCommand);
     int exitCode = Utils.executeShell(taskCommand, workerTimeout, extraEnv);
 
@@ -1094,13 +1102,21 @@ public class ApplicationMaster {
     public void run() {
       // Specify session id in the env to distinguish between different sessions.
       containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
-      Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
+      Map<String, String> containerLaunchEnv = new ConcurrentHashMap<>(containerEnv);
 
       TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
       task.setTaskInfo(container);
       TaskInfo taskInfo = task.getTaskInfo();
       taskInfo.setState(TaskStatus.READY);
 
+      if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
+        String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
+        if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(task.getJobName())) != null) {
+            imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(task.getJobName()));
+        }
+        containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
+        containerEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
+      }
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
       // Add job type specific resources
@@ -1122,11 +1138,11 @@ public class ApplicationMaster {
        */
       String jobName = task.getJobName();
       String taskIndex = task.getTaskIndex();
-      containerShellEnv.put(Constants.JOB_NAME, jobName);
-      containerShellEnv.put(Constants.TASK_INDEX, taskIndex);
-      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
+      containerLaunchEnv.put(Constants.JOB_NAME, jobName);
+      containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
+      containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
       if (session.isChief(jobName, taskIndex)) {
-        containerShellEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
+        containerLaunchEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
       }
 
       List<CharSequence> arguments = new ArrayList<>(5);
@@ -1140,7 +1156,7 @@ public class ApplicationMaster {
       List<String> commands = ImmutableList.of(command.toString());
 
       LOG.info("Constructed command: " + commands);
-      LOG.info("Container environment: " + containerShellEnv);
+      LOG.info("Container environment: " + containerLaunchEnv);
 
       // Set logs to be readable by everyone.
       Map<ApplicationAccessType, String> acls = new HashMap<>(2);
@@ -1151,7 +1167,7 @@ public class ApplicationMaster {
       if (secureMode) {
         tokens = allTokens.duplicate();
       }
-      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerShellEnv,
+      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerLaunchEnv,
                                                                       commands, null, tokens, acls);
 
       String sessionId = String.valueOf(session.sessionId);

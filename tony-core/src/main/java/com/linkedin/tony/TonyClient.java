@@ -395,9 +395,12 @@ public class TonyClient implements AutoCloseable {
     }
 
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
+      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
+      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME)) != null) {
+        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME));
+      }
       if (imagePath == null) {
-        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
         return false;
       } else {
         containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
