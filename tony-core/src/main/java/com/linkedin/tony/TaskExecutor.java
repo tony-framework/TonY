@@ -70,6 +70,8 @@ public class TaskExecutor {
 
   private void setupTaskExecutor() {
     jobName = System.getenv(Constants.JOB_NAME);
+    taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
+            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey(), "exit -1"));
     taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
     taskId = jobName + ":" + taskIndex;
@@ -184,8 +186,6 @@ public class TaskExecutor {
     opts.addOption("am_address", true, "The address to the application master.");
     CommandLine cliParser = new GnuParser().parse(opts, args);
     amAddress = cliParser.getOptionValue("am_address", "");
-    taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
-            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey(), "exit -1"));
     timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,

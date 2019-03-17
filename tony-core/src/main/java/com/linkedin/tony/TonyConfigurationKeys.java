@@ -193,7 +193,7 @@ public class TonyConfigurationKeys {
 
   // Execution command for all containers
   public static String getContainerExecuteCommandKey() {
-    return DOCKER_PREFIX + "containers.command";
+    return TONY_APPLICATION_PREFIX + "containers.command";
   }
 
   // Job specific docker image

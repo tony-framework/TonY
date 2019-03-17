@@ -1081,13 +1081,16 @@ public class ApplicationMaster {
       TaskInfo taskInfo = task.getTaskInfo();
       taskInfo.setState(TaskStatus.READY);
 
+      LOG.info("DOCKER ENABLED: "
+          + tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED));
       if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
         String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
         if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(task.getJobName())) != null) {
             imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(task.getJobName()));
         }
-        containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
-        containerEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
+        LOG.info("Starting " + task.getJobName() + " " + task.getTaskIndex() + " in image: " + imagePath);
+        containerLaunchEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
+        containerLaunchEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
       }
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
