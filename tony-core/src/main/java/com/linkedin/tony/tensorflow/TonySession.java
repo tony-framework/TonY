@@ -57,7 +57,6 @@ public class TonySession {
 
   private FinalApplicationStatus sessionFinalStatus = FinalApplicationStatus.UNDEFINED;
   private String sessionFinalMessage = null;
-  private Map<String, String> shellEnv;
   private String jvmArgs;
   private Map<String, Set<Long>> jobTypeToAllocationIds = new HashMap<String, Set<Long>>();
 
@@ -75,15 +74,7 @@ public class TonySession {
         .append(jvmArgs)
         .append(" com.linkedin.tony.TaskExecutor ")
         .append(" --am_address ")
-        .append(amAddress)
-        .append(" --task_command ")
-        .append(taskCmd);
-    for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
-      cmd.append(" --shell_env ");
-      cmd.append(entry.getKey());
-      cmd.append("=");
-      cmd.append(entry.getValue());
-    }
+        .append(amAddress);
     return cmd.toString();
   }
 
@@ -96,7 +87,6 @@ public class TonySession {
     this.taskCmd = builder.taskCmd;
     this.amAddress = builder.amAddress;
     this.containerRequests = Utils.parseContainerRequests(builder.tonyConf);
-    this.shellEnv = builder.shellEnv;
     this.jvmArgs = builder.jvmArgs;
     this.tonyConf = builder.tonyConf;
 
@@ -377,7 +367,6 @@ public class TonySession {
    */
   public static class Builder {
     private String taskCmd;
-    private Map<String, String> shellEnv;
     private String amAddress;
     private String jvmArgs;
     private Configuration tonyConf;
@@ -388,11 +377,6 @@ public class TonySession {
 
     public Builder setTaskCmd(String taskCmd) {
       this.taskCmd = taskCmd;
-      return this;
-    }
-
-    public Builder setShellEnv(Map<String, String> shellEnv) {
-      this.shellEnv = shellEnv;
       return this;
     }
 

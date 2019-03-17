@@ -224,7 +224,7 @@ public class TonyClient implements AutoCloseable {
 
     // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(this.amMemory, this.taskParams, this.pythonBinaryPath, this.executes, getTokens());
+        createAMContainerSpec(this.amMemory, this.pythonBinaryPath, getTokens());
     appContext.setAMContainerSpec(amSpec);
     String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
     if (nodeLabel != null) {
@@ -301,6 +301,8 @@ public class TonyClient implements AutoCloseable {
 
   private void initOptions() {
     opts = Utils.getCommonOptions();
+    opts.addOption("executes", true, "The file to execute on workers.");
+    opts.addOption("task_params", true, "The task params to pass into python entry point.");
     opts.addOption("shell_env", true, "Environment for shell script, specified as env_key=env_val pairs");
     opts.addOption("container_env", true, "Environment for the worker containers, specified as key=val pairs");
     opts.addOption("conf", true, "User specified configuration, as key=val pairs");
@@ -353,6 +355,10 @@ public class TonyClient implements AutoCloseable {
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
     executes = cliParser.getOptionValue("executes");
+    executes = TonyClient.buildTaskCommand(pythonBinaryPath, executes, taskParams);
+    if (executes != null) {
+      tonyConf.set(TonyConfigurationKeys.getContainerExecuteCommandKey(), executes);
+    }
 
     // src_dir & hdfs_classpath flags are for compatibility.
     srcDir = cliParser.getOptionValue("src_dir");
@@ -431,6 +437,32 @@ public class TonyClient implements AutoCloseable {
 
     return true;
   }
+
+
+  @VisibleForTesting
+  static String buildTaskCommand(String pythonBinaryPath, String execute,
+                                 String taskParams) {
+    if (execute == null) {
+      return null;
+    }
+    String pythonInterpreter = "";
+    if (pythonBinaryPath != null) {
+      if (pythonBinaryPath.startsWith("/") || !new File(Constants.PYTHON_VENV_ZIP).exists()) {
+        pythonInterpreter = pythonBinaryPath;
+      } else {
+        pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
+      }
+    }
+
+    String baseTaskCommand = pythonInterpreter + " " + execute;
+
+    if (taskParams != null) {
+      baseTaskCommand += " " + taskParams;
+    }
+
+    return baseTaskCommand;
+  }
+
 
   /**
    * Add resource if exist to {@code tonyConf}
@@ -560,8 +592,7 @@ public class TonyClient implements AutoCloseable {
     return this.tonyConf;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(long amMemory, String taskParams,
-                                                      String pythonBinaryPath, String executes,
+  public ContainerLaunchContext createAMContainerSpec(long amMemory, String pythonBinaryPath,
                                                       ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
@@ -585,7 +616,7 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
-    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath, executes);
+    String command = TonyClient.buildCommand(amMemory, pythonBinaryPath);
 
     LOG.info("Completed setting up Application Master command " + command);
     amContainer.setCommands(ImmutableList.of(command));
@@ -599,7 +630,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath, String executes) {
+  static String buildCommand(long amMemory, String pythonBinaryPath) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
@@ -610,14 +641,8 @@ public class TonyClient implements AutoCloseable {
     // Set class name
     arguments.add("com.linkedin.tony.ApplicationMaster");
 
-    if (taskParams != null) {
-      arguments.add("--task_params " + "'" + taskParams + "'");
-    }
     if (pythonBinaryPath != null) {
       arguments.add("--python_binary_path " + pythonBinaryPath);
-    }
-    if (executes != null) {
-      arguments.add("--executes " + executes);
     }
     arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDOUT_FILENAME);
     arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDERR_FILENAME);

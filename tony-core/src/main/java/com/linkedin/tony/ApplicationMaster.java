@@ -231,11 +231,7 @@ public class ApplicationMaster {
     String[] containerEnvs = tonyConf.getStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
     containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
 
-    baseTaskCommand = buildTaskCommand(
-        cliParser.getOptionValue("python_binary_path"),
-        cliParser.getOptionValue("executes"),
-        cliParser.getOptionValue("task_params"));
-
+    baseTaskCommand = tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey());
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
                                  TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
     workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
@@ -273,27 +269,6 @@ public class ApplicationMaster {
     return true;
   }
 
-  @VisibleForTesting
-  static String buildTaskCommand(String pythonBinaryPath, String script,
-      String taskParams) {
-    String pythonInterpreter = "";
-    if (pythonBinaryPath != null) {
-      if (pythonBinaryPath.startsWith("/") || !new File(Constants.PYTHON_VENV_ZIP).exists()) {
-        pythonInterpreter = pythonBinaryPath;
-      } else {
-        pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
-      }
-    }
-
-    String baseTaskCommand = pythonInterpreter + " " + script;
-
-    if (taskParams != null) {
-      baseTaskCommand += " " + taskParams;
-    }
-
-    return baseTaskCommand;
-  }
-
   private void buildTensorFlowSession() {
     String taskCommand = "'" + baseTaskCommand + "'";
     LOG.info("Final task command: " + taskCommand);
@@ -301,7 +276,6 @@ public class ApplicationMaster {
     TonySession.Builder builder = new TonySession.Builder()
         .setTaskCmd(taskCommand)
         .setAMAddress(amHostPort)
-        .setShellEnv(shellEnv)
         .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS));

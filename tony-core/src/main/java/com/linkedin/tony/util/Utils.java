@@ -238,10 +238,6 @@ public class Utils {
     // Container environment
     opts.addOption("hdfs_classpath", true, "Path to jars on HDFS for workers.");
 
-    // Execution
-    opts.addOption("task_params", true, "The task params to pass into python entry point.");
-    opts.addOption("executes", true, "The file to execute on workers.");
-
     // Python env
     opts.addOption("python_binary_path", true, "The relative path to python binary.");
     opts.addOption("python_venv", true, "The python virtual environment zip.");
