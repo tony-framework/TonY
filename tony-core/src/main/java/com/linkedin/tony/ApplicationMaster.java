@@ -226,9 +226,9 @@ public class ApplicationMaster {
       return false;
     }
     Map<String, String> envs = System.getenv();
-    String[] shellEnvs = cliParser.getOptionValues("shell_env");
+    String[] shellEnvs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
     shellEnv = Utils.parseKeyValue(shellEnvs);
-    String[] containerEnvs = cliParser.getOptionValues("container_env");
+    String[] containerEnvs = tonyConf.getStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
     containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
 
     baseTaskCommand = buildTaskCommand(

@@ -186,12 +186,12 @@ public class TonyConfigurationKeys {
     return TONY_PREFIX + "containers.resources";
   }
 
-  // Job specific docker image
+  // Job specific execution command
   public static String getExecuteCommandKey(String jobName) {
     return String.format(TONY_APPLICATION_PREFIX + "%s.command", jobName);
   }
 
-  // Docker images for all containers
+  // Execution command for all containers
   public static String getContainerExecuteCommandKey() {
     return DOCKER_PREFIX + "containers.command";
   }
@@ -222,6 +222,10 @@ public class TonyConfigurationKeys {
   public static final String DOCKER_PREFIX = TONY_PREFIX + "docker.";
   public static final String DOCKER_ENABLED = DOCKER_PREFIX + "enabled";
   public static final boolean DEFAULT_DOCKER_ENABLED = false;
+
+  // Environment
+  public static final String CONTAINER_LAUNCH_ENV = TONY_PREFIX + "containers.envs";
+  public static final String EXECUTION_ENV = TONY_PREFIX + "execution.envs";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";

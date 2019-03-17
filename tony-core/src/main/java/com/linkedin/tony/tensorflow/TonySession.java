@@ -186,9 +186,7 @@ public class TonySession {
    * @param allocationRequestId the allocationRequestId which corresponds to an instance of this job
    */
   public void addAllocationId(String jobName, long allocationRequestId) {
-    if (jobTypeToAllocationIds.get(jobName) == null) {
-      jobTypeToAllocationIds.put(jobName, new HashSet<>());
-    }
+    jobTypeToAllocationIds.putIfAbsent(jobName, new HashSet<>());
     jobTypeToAllocationIds.get(jobName).add(allocationRequestId);
     LOG.info(String.format("Job %s with allocationRequestId %d", jobName, allocationRequestId));
   }

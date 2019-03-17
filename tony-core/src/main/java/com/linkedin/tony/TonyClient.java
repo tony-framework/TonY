@@ -27,13 +27,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -307,6 +301,8 @@ public class TonyClient implements AutoCloseable {
 
   private void initOptions() {
     opts = Utils.getCommonOptions();
+    opts.addOption("shell_env", true, "Environment for shell script, specified as env_key=env_val pairs");
+    opts.addOption("container_env", true, "Environment for the worker containers, specified as key=val pairs");
     opts.addOption("conf", true, "User specified configuration, as key=val pairs");
     opts.addOption("conf_file", true, "Name of user specified conf file, on the classpath");
     opts.addOption("src_dir", true, "Name of directory of source files.");
@@ -389,9 +385,19 @@ public class TonyClient implements AutoCloseable {
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
 
+    List<String> executionEnvPair = new ArrayList<>();
+    if (tonyConf.get(TonyConfigurationKeys.EXECUTION_ENV) != null) {
+      String[] envs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
+      executionEnvPair.addAll(Arrays.asList(envs));
+      shellEnv.putAll(Utils.parseKeyValue(envs));
+    }
     if (cliParser.hasOption("shell_env")) {
       String[] envs = cliParser.getOptionValues("shell_env");
+      executionEnvPair.addAll(Arrays.asList(envs));
       shellEnv.putAll(Utils.parseKeyValue(envs));
+    }
+    if (!executionEnvPair.isEmpty()) {
+      tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
     }
 
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
@@ -408,9 +414,19 @@ public class TonyClient implements AutoCloseable {
       }
     }
 
+    List<String> containerEnvPair = new ArrayList<>();
+    if (tonyConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV) != null) {
+      String[] envs = tonyConf.getStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
+      containerEnvPair.addAll(Arrays.asList(envs));
+      containerEnv.putAll(Utils.parseKeyValue(envs));
+    }
     if (cliParser.hasOption("container_env")) {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
+      containerEnvPair.addAll(Arrays.asList(containerEnvs));
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
+    }
+    if (!executionEnvPair.isEmpty()) {
+      tonyConf.setStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV, containerEnvPair.toArray(new String[0]));
     }
 
     return true;
@@ -569,8 +585,7 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
-    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath,
-        executes, shellEnv, containerEnv);
+    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath, executes);
 
     LOG.info("Completed setting up Application Master command " + command);
     amContainer.setCommands(ImmutableList.of(command));
@@ -584,9 +599,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath,
-      String executes, Map<String, String> shellEnv,
-      Map<String, String> containerEnv) {
+  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath, String executes) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
@@ -605,12 +618,6 @@ public class TonyClient implements AutoCloseable {
     }
     if (executes != null) {
       arguments.add("--executes " + executes);
-    }
-    for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
-      arguments.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
-    }
-    for (Map.Entry<String, String> entry : containerEnv.entrySet()) {
-      arguments.add("--container_env " + entry.getKey() + "=" + entry.getValue());
     }
     arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDOUT_FILENAME);
     arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDERR_FILENAME);

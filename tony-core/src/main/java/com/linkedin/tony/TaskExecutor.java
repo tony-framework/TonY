@@ -182,16 +182,15 @@ public class TaskExecutor {
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
-    opts.addOption("task_command", true, "The task command to run.");
-    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
     CommandLine cliParser = new GnuParser().parse(opts, args);
     amAddress = cliParser.getOptionValue("am_address", "");
-    taskCommand = cliParser.getOptionValue("task_command", "exit 0");
+    taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
+            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey(), "exit -1"));
     timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
-    String[] shellEnvs = cliParser.getOptionValues("shell_env");
+    String[] shellEnvs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
     shellEnv = Utils.parseKeyValue(shellEnvs);
     LOG.info("Task command: " + taskCommand);
     framework = MLFramework.valueOf(

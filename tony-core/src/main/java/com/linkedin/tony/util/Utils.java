@@ -236,9 +236,6 @@ public class Utils {
     Options opts = new Options();
 
     // Container environment
-    // examples for env set variables: --shell_env CLASSPATH=ABC --shell_ENV LD_LIBRARY_PATH=DEF
-    opts.addOption("shell_env", true, "Environment for shell script, specified as env_key=env_val pairs");
-    opts.addOption("container_env", true, "Environment for the worker containers, specified as key=val pairs");
     opts.addOption("hdfs_classpath", true, "Path to jars on HDFS for workers.");
 
     // Execution
