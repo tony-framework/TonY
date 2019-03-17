@@ -224,7 +224,7 @@ public class TonyClient implements AutoCloseable {
 
     // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(this.amMemory, this.pythonBinaryPath, getTokens());
+        createAMContainerSpec(this.amMemory, getTokens());
     appContext.setAMContainerSpec(amSpec);
     String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
     if (nodeLabel != null) {
@@ -592,8 +592,7 @@ public class TonyClient implements AutoCloseable {
     return this.tonyConf;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(long amMemory, String pythonBinaryPath,
-                                                      ByteBuffer tokens) throws IOException {
+  public ContainerLaunchContext createAMContainerSpec(long amMemory, ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
     FileSystem fs = FileSystem.get(hdfsConf);
