@@ -581,7 +581,7 @@ public class TonyClient implements AutoCloseable {
 
     // check that we don't request more than the allowed total tasks
     int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, -1);
-    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(req -> req.getNumInstances()).sum();
+    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(TensorFlowContainerRequest::getNumInstances).sum();
     if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
       throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
           + maxTotalInstances + ".");
@@ -616,7 +616,7 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
-    String command = TonyClient.buildCommand(amMemory, pythonBinaryPath);
+    String command = TonyClient.buildCommand(amMemory);
 
     LOG.info("Completed setting up Application Master command " + command);
     amContainer.setCommands(ImmutableList.of(command));
@@ -630,7 +630,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static String buildCommand(long amMemory, String pythonBinaryPath) {
+  static String buildCommand(long amMemory) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
@@ -641,9 +641,6 @@ public class TonyClient implements AutoCloseable {
     // Set class name
     arguments.add("com.linkedin.tony.ApplicationMaster");
 
-    if (pythonBinaryPath != null) {
-      arguments.add("--python_binary_path " + pythonBinaryPath);
-    }
     arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDOUT_FILENAME);
     arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDERR_FILENAME);
     return String.join(" ", arguments);

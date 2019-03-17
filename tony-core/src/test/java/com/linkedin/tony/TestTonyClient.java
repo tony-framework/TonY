@@ -34,16 +34,6 @@ public class TestTonyClient {
   }
 
   @Test
-  public void testBuildCommand() {
-    String command = TonyClient.buildCommand(1000, null, "venv/python",
-        "ls", new HashMap<>(), new HashMap<>());
-    String expected = "{{JAVA_HOME}}/bin/java -Xmx800m -Dyarn.app.container.log.dir=<LOG_DIR> com.linkedin.tony."
-        + "ApplicationMaster --python_binary_path venv/python --executes ls"
-        + " 1><LOG_DIR>/amstdout.log 2><LOG_DIR>/amstderr.log";
-    assertEquals(command, expected);
-  }
-
-  @Test
   public void testValidateTonyConfValidConf() {
     Configuration conf = new Configuration();
     conf.setInt("tony.foo.instances", 2);
