@@ -4,11 +4,11 @@
  */
 package com.linkedin.tony;
 
-import java.io.IOException;
-import java.util.HashMap;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 import static org.testng.Assert.assertEquals;
 

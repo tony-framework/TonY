@@ -24,8 +24,6 @@ public class TestTaskExecutor {
     List<String> listArgs = new ArrayList<>();
     listArgs.add("-am_address");
     listArgs.add("localhost:1234");
-    listArgs.add("-task_command");
-    listArgs.add("'sleep 5'");
     args = listArgs.toArray(new String[listArgs.size()]);
   }
 

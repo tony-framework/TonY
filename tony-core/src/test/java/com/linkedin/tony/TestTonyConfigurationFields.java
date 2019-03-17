@@ -38,6 +38,8 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_DATE);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_URL);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_CHECKSUM);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.EXECUTION_ENV);
   }
 
   @BeforeTest

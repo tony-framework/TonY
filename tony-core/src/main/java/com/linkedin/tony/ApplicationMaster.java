@@ -5,7 +5,6 @@
 package com.linkedin.tony;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.linkedin.tony.models.JobMetadata;
@@ -270,11 +269,10 @@ public class ApplicationMaster {
   }
 
   private void buildTensorFlowSession() {
-    String taskCommand = "'" + baseTaskCommand + "'";
-    LOG.info("Final task command: " + taskCommand);
+    LOG.info("Final task command: " + baseTaskCommand);
 
     TonySession.Builder builder = new TonySession.Builder()
-        .setTaskCmd(taskCommand)
+        .setTaskCmd(baseTaskCommand)
         .setAMAddress(amHostPort)
         .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
