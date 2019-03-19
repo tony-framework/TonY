@@ -433,9 +433,9 @@ public class TonyClient implements AutoCloseable {
    **/
   @VisibleForTesting
   public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
-    Set<String> jobNames = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
-    for (String jobName : jobNames) {
-      String[] resources = tonyConf.getStrings(jobName);
+    Set<String> resourceKeys = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
+    for (String resourceKey : resourceKeys) {
+      String[] resources = tonyConf.getStrings(resourceKey);
       if (resources == null) {
         continue;
       }
@@ -456,15 +456,16 @@ public class TonyClient implements AutoCloseable {
                       new Path(trimmedResource),
                       new Path(trimmedResource).getName(),
                       tonyConf,
-                      fs, LocalResourceType.ARCHIVE, jobName);
+                      fs, LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                       new Path(trimmedResource),
                       new Path(trimmedResource).getName(),
                       tonyConf,
-                      fs, LocalResourceType.FILE, jobName);
+                      fs, LocalResourceType.FILE, resourceKey);
             }
           } else {
+            // file is directory
             File tmpDir = Files.createTempDir();
             tmpDir.deleteOnExit();
             try {
@@ -474,24 +475,24 @@ public class TonyClient implements AutoCloseable {
                   new Path(dest.toString()),
                   new Path(dest.toString()).getName(),
                   tonyConf,
-                  fs, LocalResourceType.ARCHIVE, jobName);
+                  fs, LocalResourceType.ARCHIVE, resourceKey);
             } finally {
               try {
                 FileUtils.deleteDirectory(tmpDir);
               } catch (IOException ex) {
                 // ignore the deletion failure and continue
-                LOG.warn("Failed to delete temp directory " + tmpDir);
+                LOG.warn("Failed to delete temp directory " + tmpDir, ex);
               }
             }
           }
         }
       }
       // Filter out original local file locations
-      resources = tonyConf.getStrings(jobName);
+      resources = tonyConf.getStrings(resourceKey);
       resources = Stream.of(resources).filter((filePath) ->
               new Path(filePath).toUri().getScheme() != null
       ).toArray(String[]::new);
-      tonyConf.setStrings(jobName, resources);
+      tonyConf.setStrings(resourceKey, resources);
     }
 
   }
