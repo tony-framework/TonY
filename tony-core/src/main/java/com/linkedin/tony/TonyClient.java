@@ -475,12 +475,10 @@ public class TonyClient implements AutoCloseable {
                   new Path(dest.toString()).getName(),
                   tonyConf,
                   fs, LocalResourceType.ARCHIVE, jobName);
-            }
-            finally {
+            } finally {
               try {
                 FileUtils.deleteDirectory(tmpDir);
-              }
-              catch (IOException ex) {
+              } catch (IOException ex) {
                 // ignore the deletion failure and continue
                 LOG.warn("Failed to delete temp directory " + tmpDir);
               }
