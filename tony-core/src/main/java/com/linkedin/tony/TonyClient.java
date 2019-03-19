@@ -38,6 +38,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -436,9 +437,9 @@ public class TonyClient implements AutoCloseable {
    **/
   @VisibleForTesting
   public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
-    Set<String> jobNames = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
-    for (String jobName : jobNames) {
-      String[] resources = tonyConf.getStrings(jobName);
+    Set<String> resourceKeys = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
+    for (String resourceKey : resourceKeys) {
+      String[] resources = tonyConf.getStrings(resourceKey);
       if (resources == null) {
         continue;
       }
@@ -459,31 +460,43 @@ public class TonyClient implements AutoCloseable {
                       new Path(trimmedResource),
                       new Path(trimmedResource).getName(),
                       tonyConf,
-                      fs, LocalResourceType.ARCHIVE, jobName);
+                      fs, LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                       new Path(trimmedResource),
                       new Path(trimmedResource).getName(),
                       tonyConf,
-                      fs, LocalResourceType.FILE, jobName);
+                      fs, LocalResourceType.FILE, resourceKey);
             }
           } else {
+            // file is directory
             File tmpDir = Files.createTempDir();
-            Utils.zipFolder(Paths.get(resource), Paths.get(tmpDir.getAbsolutePath(), file.getName()));
-            Utils.uploadFileAndSetConfResources(appResourcesPath,
-                    new Path(trimmedResource),
-                    new Path(trimmedResource).getName(),
-                    tonyConf,
-                    fs, LocalResourceType.ARCHIVE, jobName);
+            tmpDir.deleteOnExit();
+            try {
+              java.nio.file.Path dest = Paths.get(tmpDir.getAbsolutePath(), file.getName());
+              Utils.zipFolder(Paths.get(resource), dest);
+              Utils.uploadFileAndSetConfResources(appResourcesPath,
+                  new Path(dest.toString()),
+                  new Path(dest.toString()).getName(),
+                  tonyConf,
+                  fs, LocalResourceType.ARCHIVE, resourceKey);
+            } finally {
+              try {
+                FileUtils.deleteDirectory(tmpDir);
+              } catch (IOException ex) {
+                // ignore the deletion failure and continue
+                LOG.warn("Failed to delete temp directory " + tmpDir, ex);
+              }
+            }
           }
         }
       }
       // Filter out original local file locations
-      resources = tonyConf.getStrings(jobName);
+      resources = tonyConf.getStrings(resourceKey);
       resources = Stream.of(resources).filter((filePath) ->
               new Path(filePath).toUri().getScheme() != null
       ).toArray(String[]::new);
-      tonyConf.setStrings(jobName, resources);
+      tonyConf.setStrings(resourceKey, resources);
     }
 
   }
