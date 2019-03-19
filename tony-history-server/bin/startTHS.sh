@@ -214,4 +214,4 @@ if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
 fi
 
 # Run THS in the background
-nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart
+nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart &
