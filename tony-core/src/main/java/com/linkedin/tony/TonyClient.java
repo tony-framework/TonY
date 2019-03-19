@@ -40,6 +40,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -465,12 +466,25 @@ public class TonyClient implements AutoCloseable {
             }
           } else {
             File tmpDir = Files.createTempDir();
-            Utils.zipFolder(Paths.get(resource), Paths.get(tmpDir.getAbsolutePath(), file.getName()));
-            Utils.uploadFileAndSetConfResources(appResourcesPath,
-                    new Path(trimmedResource),
-                    new Path(trimmedResource).getName(),
-                    tonyConf,
-                    fs, LocalResourceType.ARCHIVE, jobName);
+            tmpDir.deleteOnExit();
+            try {
+              java.nio.file.Path dest = Paths.get(tmpDir.getAbsolutePath(), file.getName());
+              Utils.zipFolder(Paths.get(resource), dest);
+              Utils.uploadFileAndSetConfResources(appResourcesPath,
+                  new Path(dest.toString()),
+                  new Path(dest.toString()).getName(),
+                  tonyConf,
+                  fs, LocalResourceType.ARCHIVE, jobName);
+            }
+            finally {
+              try {
+                FileUtils.deleteDirectory(tmpDir);
+              }
+              catch (IOException ex) {
+                // ignore the deletion failure and continue
+                LOG.warn("Failed to delete temp directory " + tmpDir);
+              }
+            }
           }
         }
       }
