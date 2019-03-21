@@ -55,7 +55,7 @@ public class TensorFlowClusterPBServiceImpl implements TensorFlowClusterPB {
                                                                            GetTaskInfosRequestProto proto) throws ServiceException {
     GetTaskInfosRequestPBImpl request = new GetTaskInfosRequestPBImpl(proto);
     try {
-      GetTaskInfosResponse response = real.getTaskUrls(request);
+      GetTaskInfosResponse response = real.getTaskInfos(request);
       return ((GetTaskInfosResponsePBImpl) response).getProto();
     } catch (YarnException | IOException e) {
       throw new ServiceException(e);

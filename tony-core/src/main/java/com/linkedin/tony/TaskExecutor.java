@@ -68,25 +68,6 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
-  private void setupTaskExecutor() {
-    jobName = System.getenv(Constants.JOB_NAME);
-    taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
-            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
-    if (taskCommand == null) {
-      LOG.fatal("Task command is empty. Please set tony.application.[jobtype].command " +
-          "or pass --executes in command line");
-      throw new IllegalArgumentException("Task command is empty.");
-    }
-    taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
-    numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
-    taskId = jobName + ":" + taskIndex;
-
-    String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
-    isChief = Boolean.parseBoolean(isChiefEnvValue);
-
-    LOG.info("Executor is running task " + jobName + " " + taskIndex);
-  }
-
   /**
    * We bind to random ports and then release them, and these are the ports used by the task.
    * However, there is the possibility that another process grabs the port between when it's released and used again.
@@ -120,7 +101,6 @@ public class TaskExecutor {
     TaskExecutor executor = new TaskExecutor();
 
     executor.initConfigs(args);
-    executor.setupTaskExecutor();
 
     LOG.info("Setting up Rpc client, connecting to: " + executor.amAddress);
     executor.proxy = ApplicationRpcClient.getInstance(executor.amAddress.split(":")[0],
@@ -186,6 +166,16 @@ public class TaskExecutor {
   }
 
   protected void initConfigs(String[] args) throws Exception {
+    jobName = System.getenv(Constants.JOB_NAME);
+    taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
+    numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
+    taskId = jobName + ":" + taskIndex;
+
+    String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
+    isChief = Boolean.parseBoolean(isChiefEnvValue);
+
+    LOG.info("Executor is running task " + jobName + " " + taskIndex);
+
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
@@ -197,6 +187,13 @@ public class TaskExecutor {
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     String[] shellEnvs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
     shellEnv = Utils.parseKeyValue(shellEnvs);
+    taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
+        tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
+    if (taskCommand == null) {
+      LOG.fatal("Task command is empty. Please set tony.application.[jobtype].command "
+          + "or pass --executes in command line");
+      throw new IllegalArgumentException("Task command is empty.");
+    }
     LOG.info("Task command: " + taskCommand);
     framework = MLFramework.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());

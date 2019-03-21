@@ -6,9 +6,8 @@ package com.linkedin.tony;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.mockito.Spy;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -17,7 +16,6 @@ import java.net.URISyntaxException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.testng.Assert.assertEquals;
 
@@ -74,14 +72,34 @@ public class TestTonyClient {
     TonyClient.validateTonyConf(conf);
   }
 
+  /**
+   * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
+   * to passing tony configuration file. It is critical to make sure all fields in
+   * TonyConfFinal.xml is properly set up.
+   * Adding TestTonyE2E is heavy, this function serves as a simplified lightweight
+   * place to make sure TonyConfFinal is set correctly.
+   */
   @Test
   public void testTonyFinalConf() throws IOException, YarnException, ParseException,
       InterruptedException, URISyntaxException {
     Configuration conf = new Configuration();
     TonyClient client = spy(new TonyClient(conf));
-    client.init(new String[]{});
+    client.init(new String[]{
+        "--executes", "ls",
+        "--shell_env", "TEST1=test",
+        "--container_env", "TEST2=test",
+        "--conf", "tony.application.worker.command=cat"
+    });
+    // Stub actual app submission logic
     doReturn(true).when(client).monitorApplication();
     doNothing().when(client).submitApplication(any());
     client.start();
+    String path = client.processFinalTonyConf();
+    Configuration finalConf = new Configuration();
+    finalConf.addResource(new Path(path));
+    assertEquals(finalConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()), "ls");
+    assertEquals(finalConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV), "TEST2=test");
+    assertEquals(finalConf.get(TonyConfigurationKeys.EXECUTION_ENV), "TEST1=test");
+    assertEquals(finalConf.get(TonyConfigurationKeys.getExecuteCommandKey("worker")), "cat");
   }
 }

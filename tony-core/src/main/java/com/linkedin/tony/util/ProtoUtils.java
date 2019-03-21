@@ -5,12 +5,18 @@
 package com.linkedin.tony.util;
 
 import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosResponseProto.TaskInfoProto;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 
 public class ProtoUtils {
+  private static final Log LOG = LogFactory.getLog(ProtoUtils.class);
   public static TaskInfo taskInfoProtoToTaskInfo(TaskInfoProto taskInfoProto) {
-    return new TaskInfo(taskInfoProto.getName(), taskInfoProto.getIndex(), taskInfoProto.getUrl());
+    TaskInfo taskInfo = new TaskInfo(taskInfoProto.getName(), taskInfoProto.getIndex(), taskInfoProto.getUrl());
+    taskInfo.setState(TaskStatus.values()[taskInfoProto.getTaskStatus().ordinal()]);
+    return taskInfo;
   }
 
   public static TaskInfoProto taskInfoToTaskInfoProto(TaskInfo taskInfo) {

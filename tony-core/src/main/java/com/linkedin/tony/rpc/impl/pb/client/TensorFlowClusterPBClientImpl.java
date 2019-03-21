@@ -69,7 +69,7 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
   }
 
   @Override
-  public GetTaskInfosResponse getTaskUrls(GetTaskInfosRequest request) throws IOException, YarnException {
+  public GetTaskInfosResponse getTaskInfos(GetTaskInfosRequest request) throws IOException, YarnException {
     GetTaskInfosRequestProto requestProto = ((GetTaskInfosRequestPBImpl) request).getProto();
     try {
       return new GetTaskInfosResponsePBImpl(proxy.getTaskInfos(null, requestProto));

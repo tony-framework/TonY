@@ -7,18 +7,27 @@ package com.linkedin.tony;
 import com.linkedin.minitony.cluster.HDFSUtils;
 import com.linkedin.minitony.cluster.MiniCluster;
 import com.linkedin.minitony.cluster.MiniTonyUtils;
-import java.io.IOException;
-import java.nio.file.Files;
+import com.linkedin.tony.client.CallbackHandler;
+import com.linkedin.tony.client.TaskUpdateListener;
+import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS;
@@ -35,7 +44,7 @@ import static com.linkedin.tony.TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS
  *
  * The YARN logs for the test should be in {@code <TonY>/target/MiniTonY}.
  */
-public class TestTonyE2E {
+public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
 
   private MiniCluster cluster;
   private String yarnConf;
@@ -43,6 +52,8 @@ public class TestTonyE2E {
   private Configuration conf = new Configuration();
   private TonyClient client;
   private String libPath;
+  private ApplicationId appId;
+  private Set<TaskInfo> taskInfoSet;
 
   @BeforeClass
   public void doBeforeClass() throws Exception {
@@ -72,11 +83,13 @@ public class TestTonyE2E {
 
   @BeforeMethod
   public void doBeforeMethod() {
+    appId = null;
+    taskInfoSet = null;
     conf = new Configuration();
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    client = new TonyClient(conf);
+    client = new TonyClient(this, conf);
   }
 
   @Test
@@ -305,5 +318,42 @@ public class TestTonyE2E {
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
+  }
+
+  @Test
+  public void testTonyClientCallbackHandler() throws IOException, ParseException {
+    client.init(new String[]{
+        "--src_dir", "tony-core/src/test/resources/scripts",
+        "--executes", "python check_env_and_venv.py",
+        "--hdfs_classpath", libPath,
+        "--shell_env", "ENV_CHECK=ENV_CHECK",
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--python_venv", "tony-core/src/test/resources/test.zip",
+    });
+    client.addListener(this);
+    int exitCode = client.start();
+    List<String> expectedJobs = new ArrayList<>();
+    List<String> actualJobs = new ArrayList<>();
+    expectedJobs.add(Constants.WORKER_JOB_NAME);
+    expectedJobs.add(Constants.PS_JOB_NAME);
+    Assert.assertNotNull(appId);
+    Assert.assertEquals(exitCode, 0);
+    client.removeListener(this);
+    Assert.assertEquals(taskInfoSet.size(), 2);
+    for (TaskInfo taskInfo : taskInfoSet) {
+      actualJobs.add(taskInfo.getName());
+      Assert.assertEquals(taskInfo.getStatus(), TaskStatus.SUCCEEDED);
+    }
+    Assert.assertTrue(actualJobs.containsAll(expectedJobs) && expectedJobs.containsAll(actualJobs));
+  }
+
+  @Override
+  public void onApplicationIdReceived(ApplicationId appId) {
+    this.appId = appId;
+  }
+
+  @Override
+  public void onTaskInfosReceived(Set<TaskInfo> taskInfoSet) {
+    this.taskInfoSet = taskInfoSet;
   }
 }

@@ -71,4 +71,11 @@ public class TaskInfo implements Comparable<TaskInfo> {
   public int hashCode() {
     return Objects.hash(name, index, url, status);
   }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "[TaskInfo] name: %s index: %s url: %s status: %s",
+        this.name, this.index, this.url, this.status.toString());
+  }
 }

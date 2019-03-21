@@ -94,7 +94,7 @@ public class ApplicationRpcClient implements ApplicationRpc {
   @Override
   public Set<TaskInfo> getTaskInfos() throws IOException, YarnException {
     GetTaskInfosResponse response =
-        tensorflow.getTaskUrls(recordFactory.newRecordInstance(GetTaskInfosRequest.class));
+        tensorflow.getTaskInfos(recordFactory.newRecordInstance(GetTaskInfosRequest.class));
     return response.getTaskInfos();
   }
 

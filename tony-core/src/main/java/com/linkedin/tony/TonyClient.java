@@ -150,8 +150,41 @@ public class TonyClient implements AutoCloseable {
     VersionInfo.injectVersionInfo(tonyConf);
   }
 
+  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
+    LOG.info("Starting client..");
+    yarnClient.start();
+    YarnClientApplication app = yarnClient.createApplication();
+    GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
+
+    long maxMem = appResponse.getMaximumResourceCapability().getMemorySize();
+
+    // Truncate resource request to cluster's max resource capability.
+    if (amMemory > maxMem) {
+      LOG.warn("Truncating requested AM memory: " + amMemory + " to cluster's max: " + maxMem);
+      amMemory = maxMem;
+    }
+    int maxVCores = appResponse.getMaximumResourceCapability().getVirtualCores();
+
+    if (amVCores > maxVCores) {
+      LOG.warn("Truncating requested AM vcores: " + amVCores + " to cluster's max: " + maxVCores);
+      amVCores = maxVCores;
+    }
+
+    FileSystem fs = FileSystem.get(hdfsConf);
+    ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
+    appId = appContext.getApplicationId();
+    if (callbackHandler != null) {
+      callbackHandler.onApplicationIdReceived(appId);
+    }
+    appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
+
+    this.tonyFinalConfPath = processFinalTonyConf();
+    submitApplication(appContext);
+    return monitorApplication();
+  }
+
   @VisibleForTesting
-  public void processFinalTonyConf() throws IOException {
+  public String processFinalTonyConf() throws IOException {
     FileSystem fs = FileSystem.get(hdfsConf);
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
@@ -181,15 +214,19 @@ public class TonyClient implements AutoCloseable {
     addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
     processTonyConfResources(tonyConf, fs);
 
-    this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
+    String tonyFinalConf = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
     // Write user's overridden conf to an xml to be localized.
-    OutputStream os = new FileOutputStream(this.tonyFinalConfPath);
-    tonyConf.writeXml(os);
+    try (OutputStream os = new FileOutputStream(tonyFinalConf)) {
+      tonyConf.writeXml(os);
+    } catch (IOException exception) {
+      LOG.error("Failed to write tony final conf to: " + tonyFinalConf, exception);
+    }
+    return tonyFinalConf;
   }
 
   @VisibleForTesting
   public void submitApplication(ApplicationSubmissionContext appContext)
-      throws YarnException, IOException,URISyntaxException {
+      throws YarnException, IOException, URISyntaxException {
 
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
@@ -218,39 +255,6 @@ public class TonyClient implements AutoCloseable {
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
     logTrackingAndRMUrls(report);
-  }
-
-  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
-    LOG.info("Starting client..");
-    yarnClient.start();
-    YarnClientApplication app = yarnClient.createApplication();
-    GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
-
-    long maxMem = appResponse.getMaximumResourceCapability().getMemorySize();
-
-    // Truncate resource request to cluster's max resource capability.
-    if (amMemory > maxMem) {
-      LOG.warn("Truncating requested AM memory: " + amMemory + " to cluster's max: " + maxMem);
-      amMemory = maxMem;
-    }
-    int maxVCores = appResponse.getMaximumResourceCapability().getVirtualCores();
-
-    if (amVCores > maxVCores) {
-      LOG.warn("Truncating requested AM vcores: " + amVCores + " to cluster's max: " + maxVCores);
-      amVCores = maxVCores;
-    }
-
-    FileSystem fs = FileSystem.get(hdfsConf);
-    ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-    appId = appContext.getApplicationId();
-    if (callbackHandler != null) {
-      callbackHandler.onApplicationIdReceived(appId);
-    }
-    appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
-
-    processFinalTonyConf();
-    submitApplication(appContext);
-    return monitorApplication();
   }
 
   /**
@@ -458,16 +462,16 @@ public class TonyClient implements AutoCloseable {
     if (execute == null) {
       return null;
     }
-    String pythonInterpreter = "";
+    String baseTaskCommand = execute;
+    String pythonInterpreter;
     if (pythonBinaryPath != null) {
       if (pythonBinaryPath.startsWith("/") || !new File(Constants.PYTHON_VENV_ZIP).exists()) {
         pythonInterpreter = pythonBinaryPath;
       } else {
         pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
       }
+      baseTaskCommand = pythonInterpreter + " " + execute;
     }
-
-    String baseTaskCommand = pythonInterpreter + " " + execute;
 
     if (taskParams != null) {
       baseTaskCommand += " " + taskParams;
@@ -788,7 +792,7 @@ public class TonyClient implements AutoCloseable {
     boolean isTaskUrlsPrinted = false;
     while (true) {
       // Check app status every 1 second.
-      Thread.sleep(5000);
+      Thread.sleep(1000);
 
       // Get application report for the appId we are interested in
       ApplicationReport report = yarnClient.getApplicationReport(appId);
@@ -803,6 +807,7 @@ public class TonyClient implements AutoCloseable {
         Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
                 .filter(taskInfo -> !taskInfos.contains(taskInfo))
                 .collect(Collectors.toSet());
+        LOG.info(receivedInfos);
         // If task status is changed, invoke callback for all listeners.
         if (!taskInfoDiff.isEmpty()) {
           for (TaskUpdateListener listener : listeners) {

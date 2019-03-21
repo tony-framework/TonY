@@ -19,7 +19,7 @@ import java.io.IOException;
 public interface TensorFlowCluster extends VersionedProtocol {
   long versionID = 1L;
 
-  GetTaskInfosResponse getTaskUrls(GetTaskInfosRequest request) throws IOException, YarnException;
+  GetTaskInfosResponse getTaskInfos(GetTaskInfosRequest request) throws IOException, YarnException;
 
   GetClusterSpecResponse getClusterSpec(GetClusterSpecRequest request)
       throws YarnException, IOException;
