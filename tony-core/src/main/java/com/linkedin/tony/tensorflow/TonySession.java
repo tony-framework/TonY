@@ -255,8 +255,9 @@ public class TonySession {
           }
           task.getTaskInfo().setState(TaskStatus.FAILED);
           setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
+        } else {
+          task.getTaskInfo().setState(TaskStatus.SUCCEEDED);
         }
-        task.getTaskInfo().setState(TaskStatus.SUCCEEDED);
         break;
       default:
         break;

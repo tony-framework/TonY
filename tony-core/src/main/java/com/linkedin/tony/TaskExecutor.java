@@ -71,7 +71,12 @@ public class TaskExecutor {
   private void setupTaskExecutor() {
     jobName = System.getenv(Constants.JOB_NAME);
     taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
-            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey(), "exit -1"));
+            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
+    if (taskCommand == null) {
+      LOG.fatal("Task command is empty. Please set tony.application.[jobtype].command " +
+          "or pass --executes in command line");
+      throw new IllegalArgumentException("Task command is empty.");
+    }
     taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
     taskId = jobName + ":" + taskIndex;

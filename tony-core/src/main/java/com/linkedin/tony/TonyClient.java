@@ -438,7 +438,7 @@ public class TonyClient implements AutoCloseable {
       containerEnvPair.addAll(Arrays.asList(containerEnvs));
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
     }
-    if (!executionEnvPair.isEmpty()) {
+    if (!containerEnv.isEmpty()) {
       tonyConf.setStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV, containerEnvPair.toArray(new String[0]));
     }
 

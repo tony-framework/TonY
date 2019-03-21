@@ -9,6 +9,5 @@ public enum TaskStatus {
     READY,
     RUNNING,
     FAILED,
-    SUCCEEDED;
-    TaskStatus() { }
+    SUCCEEDED
 }
