@@ -128,7 +128,6 @@ public class TonyClient implements AutoCloseable {
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
-  private YarnApplicationState applicationState;
 
   private CallbackHandler callbackHandler;
   private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
@@ -149,6 +148,76 @@ public class TonyClient implements AutoCloseable {
     callbackHandler = handler;
     tonyConf = conf;
     VersionInfo.injectVersionInfo(tonyConf);
+  }
+
+  @VisibleForTesting
+  public void processFinalTonyConf() throws IOException {
+    FileSystem fs = FileSystem.get(hdfsConf);
+    if (srcDir != null) {
+      if (Utils.isArchive(srcDir)) {
+        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
+            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+      } else {
+        Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
+        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
+            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+      }
+    }
+
+    if (pythonVenv != null) {
+      Utils.uploadFileAndSetConfResources(appResourcesPath,
+          new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+    }
+
+
+    URL coreSiteUrl = yarnConf.getResource(Constants.CORE_SITE_CONF);
+    if (coreSiteUrl != null) {
+      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(coreSiteUrl.getPath()),
+          Constants.CORE_SITE_CONF, tonyConf, fs, LocalResourceType.FILE,
+          TonyConfigurationKeys.getContainerResourcesKey());
+    }
+
+    addConfToResources(yarnConf, yarnConfAddress, Constants.YARN_SITE_CONF);
+    addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
+    processTonyConfResources(tonyConf, fs);
+
+    this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
+    // Write user's overridden conf to an xml to be localized.
+    OutputStream os = new FileOutputStream(this.tonyFinalConfPath);
+    tonyConf.writeXml(os);
+  }
+
+  @VisibleForTesting
+  public void submitApplication(ApplicationSubmissionContext appContext)
+      throws YarnException, IOException,URISyntaxException {
+
+    String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
+        TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
+    appContext.setApplicationName(appName);
+    appContext.setApplicationType(APP_TYPE);
+
+    // Set up resource type requirements
+    Resource capability = Resource.newInstance(amMemory, amVCores);
+    Utils.setCapabilityGPU(capability, amGpus);
+    appContext.setResource(capability);
+
+    // Set the queue to which this application is to be submitted in the RM
+    String yarnQueue = tonyConf.get(TonyConfigurationKeys.YARN_QUEUE_NAME,
+        TonyConfigurationKeys.DEFAULT_YARN_QUEUE_NAME);
+    appContext.setQueue(yarnQueue);
+
+    // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
+    ContainerLaunchContext amSpec =
+        createAMContainerSpec(this.amMemory, getTokens());
+    appContext.setAMContainerSpec(amSpec);
+    String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
+    if (nodeLabel != null) {
+      appContext.setNodeLabelExpression(nodeLabel);
+    }
+    LOG.info("Submitting YARN application");
+    yarnClient.submitApplication(appContext);
+    ApplicationReport report = yarnClient.getApplicationReport(appId);
+    logTrackingAndRMUrls(report);
   }
 
   private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
@@ -178,69 +247,9 @@ public class TonyClient implements AutoCloseable {
       callbackHandler.onApplicationIdReceived(appId);
     }
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
-    if (srcDir != null) {
-      if (Utils.isArchive(srcDir)) {
-        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
-                Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
-      } else {
-        Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
-        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
-            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
-      }
-    }
 
-    if (pythonVenv != null) {
-      Utils.uploadFileAndSetConfResources(appResourcesPath,
-              new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
-    }
-
-
-    URL coreSiteUrl = yarnConf.getResource(Constants.CORE_SITE_CONF);
-    if (coreSiteUrl != null) {
-      Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(coreSiteUrl.getPath()),
-          Constants.CORE_SITE_CONF, tonyConf, fs, LocalResourceType.FILE,
-          TonyConfigurationKeys.getContainerResourcesKey());
-    }
-
-    addConfToResources(yarnConf, yarnConfAddress, Constants.YARN_SITE_CONF);
-    addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
-    processTonyConfResources(tonyConf, fs);
-
-    this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
-    // Write user's overridden conf to an xml to be localized.
-    try (OutputStream os = new FileOutputStream(this.tonyFinalConfPath)) {
-      tonyConf.writeXml(os);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to create " + this.tonyFinalConfPath + " conf file. Exiting.", e);
-    }
-
-    String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
-        TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
-    appContext.setApplicationName(appName);
-    appContext.setApplicationType(APP_TYPE);
-
-    // Set up resource type requirements
-    Resource capability = Resource.newInstance(amMemory, amVCores);
-    Utils.setCapabilityGPU(capability, amGpus);
-    appContext.setResource(capability);
-
-    // Set the queue to which this application is to be submitted in the RM
-    String yarnQueue = tonyConf.get(TonyConfigurationKeys.YARN_QUEUE_NAME,
-        TonyConfigurationKeys.DEFAULT_YARN_QUEUE_NAME);
-    appContext.setQueue(yarnQueue);
-
-    // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
-    ContainerLaunchContext amSpec =
-        createAMContainerSpec(this.amMemory, getTokens());
-    appContext.setAMContainerSpec(amSpec);
-    String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
-    if (nodeLabel != null) {
-      appContext.setNodeLabelExpression(nodeLabel);
-    }
-    LOG.info("Submitting YARN application");
-    yarnClient.submitApplication(appContext);
-    ApplicationReport report = yarnClient.getApplicationReport(appId);
-    logTrackingAndRMUrls(report);
+    processFinalTonyConf();
+    submitApplication(appContext);
     return monitorApplication();
   }
 
@@ -324,9 +333,6 @@ public class TonyClient implements AutoCloseable {
 
   public boolean init(String[] args) throws ParseException, IOException {
     CommandLine cliParser = new GnuParser().parse(opts, args, true);
-    if (args.length == 0) {
-      throw new IllegalArgumentException("No args specified for client to initialize");
-    }
 
     if (cliParser.hasOption("help")) {
       printUsage();
@@ -775,7 +781,8 @@ public class TonyClient implements AutoCloseable {
    * @throws YarnException
    * @throws java.io.IOException
    */
-  private boolean monitorApplication()
+  @VisibleForTesting
+  public boolean monitorApplication()
       throws YarnException, IOException, InterruptedException {
 
     boolean isTaskUrlsPrinted = false;

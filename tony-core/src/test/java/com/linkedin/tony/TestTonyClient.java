@@ -6,10 +6,19 @@ package com.linkedin.tony;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
+import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.mockito.Spy;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.testng.Assert.assertEquals;
 
 public class TestTonyClient {
@@ -63,5 +72,16 @@ public class TestTonyClient {
     conf.setInt(TonyConfigurationKeys.getMaxInstancesKey("foo"), 1);
     conf.setInt("tony.foo.instances", 2);
     TonyClient.validateTonyConf(conf);
+  }
+
+  @Test
+  public void testTonyFinalConf() throws IOException, YarnException, ParseException,
+      InterruptedException, URISyntaxException {
+    Configuration conf = new Configuration();
+    TonyClient client = spy(new TonyClient(conf));
+    client.init(new String[]{});
+    doReturn(true).when(client).monitorApplication();
+    doNothing().when(client).submitApplication(any());
+    client.start();
   }
 }
