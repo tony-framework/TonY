@@ -44,10 +44,6 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_DATE);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_URL);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_CHECKSUM);
-
-    // '.' in history.com makes config comparing algorithm think it is a config key, so we ignore it here explicitly
-    // this is fixed in 2.9+
-    configurationPropsToSkipCompare.add(TonyConfigurationKeys.DEFAULT_TONY_HISTORY_HOST);
   }
 
   @BeforeTest

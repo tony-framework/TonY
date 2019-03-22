@@ -4,6 +4,8 @@
  */
 package com.linkedin.tony;
 
+import azkaban.jobtype.HadoopConfigurationInjector;
+import azkaban.utils.Props;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -103,6 +105,7 @@ public class TonyClient implements AutoCloseable {
   private String yarnConfAddress = null;
   private long amMemory;
   private int amVCores;
+  private int amGpus;
   private String taskParams = null;
   private String pythonBinaryPath = null;
   private String pythonVenv = null;
@@ -212,6 +215,7 @@ public class TonyClient implements AutoCloseable {
 
     // Set up resource type requirements
     Resource capability = Resource.newInstance((int) amMemory, amVCores);
+    Utils.setCapabilityGPU(capability, amGpus);
     appContext.setResource(capability);
 
     // Set the queue to which this application is to be submitted in the RM
@@ -327,12 +331,10 @@ public class TonyClient implements AutoCloseable {
     amMemory = Integer.parseInt(Utils.parseMemoryString(amMemoryString));
     amVCores = tonyConf.getInt(TonyConfigurationKeys.AM_VCORES,
         TonyConfigurationKeys.DEFAULT_AM_VCORES);
+    amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
+        TonyConfigurationKeys.DEFAULT_AM_GPUS);
     int amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
         TonyConfigurationKeys.DEFAULT_AM_GPUS);
-    if (amGpus > 0) {
-      LOG.warn("AM_GPUS not allowed on this version AM_GPUS [" + amGpus + "], setting it to 0");
-      amGpus = 0;
-    }
     secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
@@ -373,6 +375,15 @@ public class TonyClient implements AutoCloseable {
                                          + " Specified virtual cores=" + amVCores);
     }
 
+    boolean singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
+        TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
+    if (!singleNode) {
+      if (amGpus > 0) {
+        LOG.warn("It seems you reserved " + amGpus + " GPUs in application master (driver, which doesn't perform "
+            + "training) during distributed training.");
+      }
+    }
+
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
 
@@ -381,8 +392,7 @@ public class TonyClient implements AutoCloseable {
       shellEnv.putAll(Utils.parseKeyValue(envs));
     }
 
-    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      LOG.error("Docker is not supported on this version of Hadoop.");
+    if (!parseDockerConfigs()) {
       return false;
     }
 
@@ -391,6 +401,44 @@ public class TonyClient implements AutoCloseable {
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
     }
 
+    return true;
+  }
+
+  private boolean parseDockerConfigs() {
+    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
+      String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
+      if (imagePath == null) {
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
+        return false;
+      } else {
+        Class containerRuntimeClass;
+        Class dockerRuntimeClass;
+        try {
+          containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
+          dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
+        } catch (ClassNotFoundException e) {
+          LOG.error("Docker runtime classes not found in this version ("
+              + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
+          return false;
+        }
+        if (dockerRuntimeClass != null) {
+          try {
+            String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
+            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_TYPE).get(null);
+            containerEnv.put(envContainerType, "docker");
+            containerEnv.put(envDockerImage, imagePath);
+          } catch (NoSuchFieldException e) {
+            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_TYPE + " not "
+                + "found in " + containerRuntimeClass.getName());
+            return false;
+          } catch (IllegalAccessException e) {
+            LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
+                + Constants.ENV_DOCKER_CONTAINER_TYPE + " fields.");
+            return false;
+          }
+        }
+      }
+    }
     return true;
   }
 
@@ -926,7 +974,7 @@ public class TonyClient implements AutoCloseable {
     int exitCode = 0;
 
     // Adds hadoop-inject.xml as a default resource so Azkaban metadata will be present in the new Configuration created
-    // HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
+    HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
     try (TonyClient client = new TonyClient(new Configuration())) {
       boolean sanityCheck = client.init(args);
       if (!sanityCheck) {

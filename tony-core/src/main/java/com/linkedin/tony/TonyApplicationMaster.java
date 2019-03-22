@@ -138,10 +138,6 @@ public class TonyApplicationMaster {
   private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
 
-  // allocationRequestIds are allocated to tasks sequentially. lastAllocationRequestId
-  // tracks the latest allocationRequestId allocated.
-  private long lastAllocationRequestId = 0;
-
   /** Tony session **/
   private TonySession session = new TonySession(); // Create a dummy session for single node training.
   private TonySession.Builder sessionBuilder;
@@ -189,7 +185,15 @@ public class TonyApplicationMaster {
 
       @Override
       protected void serviceStart() throws Exception {
-        setMonitorInterval(hbInterval * 3);
+        // setMonitorInterval(int) changed to setMonitorInterval(long) in Hadoop 2.9,
+        // so to support both cases, we use reflection
+        int monitorInterval = hbInterval * 3;
+        for (Method m : this.getClass().getDeclaredMethods()) {
+          if (m.getName().equals(Constants.SET_MONITOR_INTERVAL_METHOD)) {
+            m.invoke(this, monitorInterval);
+            break;
+          }
+        }
         setExpireInterval(hbInterval * Math.max(3, maxConsecutiveHBMiss)); // Be at least == monitoring interval
         super.serviceStart();
       }
@@ -934,9 +938,7 @@ public class TonyApplicationMaster {
     Priority priority = Priority.newInstance(request.getPriority());
     Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
     Utils.setCapabilityGPU(capability, request.getGPU());
-    session.addAllocationId(request.getJobName(), lastAllocationRequestId);
-    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority/*,
-        lastAllocationRequestId++*/);
+    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority);
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
   }
@@ -978,19 +980,6 @@ public class TonyApplicationMaster {
     public void onStopContainerError(ContainerId containerId, Throwable t) {
       LOG.error("Failed to stop container " + containerId);
     }
-
-    /*@Override
-    public void onContainerResourceIncreased(ContainerId containerId, Resource resource) { }
-
-    @Override
-    public void onContainerResourceUpdated(ContainerId containerId, Resource resource) { }
-
-    @Override
-    public void onIncreaseContainerResourceError(ContainerId containerId, Throwable t) { }
-
-    @Override
-    public void onUpdateContainerResourceError(ContainerId containerId, Throwable t) { }*/
-
   }
 
   private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
@@ -1054,10 +1043,6 @@ public class TonyApplicationMaster {
         new ContainerLauncher(container).run();
       }
     }
-
-    /*@Override
-    public void onContainersUpdated(List<UpdatedContainer> containers) {
-    }*/
 
     @Override
     public void onShutdownRequest() { }
