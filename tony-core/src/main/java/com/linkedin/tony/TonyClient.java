@@ -4,11 +4,10 @@
  */
 package com.linkedin.tony;
 
-import azkaban.jobtype.HadoopConfigurationInjector;
-import azkaban.utils.Props;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Files;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
@@ -52,6 +51,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -69,12 +69,10 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
-import org.apache.hadoop.yarn.client.util.YarnClientUtils;
+import org.apache.hadoop.yarn.conf.HAUtil;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
@@ -104,7 +102,6 @@ public class TonyClient implements AutoCloseable {
   private String yarnConfAddress = null;
   private long amMemory;
   private int amVCores;
-  private int amGpus;
   private String taskParams = null;
   private String pythonBinaryPath = null;
   private String pythonVenv = null;
@@ -119,6 +116,7 @@ public class TonyClient implements AutoCloseable {
   private String tonyFinalConfPath;
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
+  private ApplicationId appId;
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
@@ -146,7 +144,7 @@ public class TonyClient implements AutoCloseable {
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
 
-    long maxMem = appResponse.getMaximumResourceCapability().getMemorySize();
+    long maxMem = appResponse.getMaximumResourceCapability().getMemory();
 
     // Truncate resource request to cluster's max resource capability.
     if (amMemory > maxMem) {
@@ -162,7 +160,7 @@ public class TonyClient implements AutoCloseable {
 
     FileSystem fs = FileSystem.get(hdfsConf);
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+    appId = appContext.getApplicationId();
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
@@ -206,8 +204,7 @@ public class TonyClient implements AutoCloseable {
     appContext.setApplicationType(APP_TYPE);
 
     // Set up resource type requirements
-    Resource capability = Resource.newInstance(amMemory, amVCores);
-    Utils.setCapabilityGPU(capability, amGpus);
+    Resource capability = Resource.newInstance((int) amMemory, amVCores);
     appContext.setResource(capability);
 
     // Set the queue to which this application is to be submitted in the RM
@@ -227,7 +224,7 @@ public class TonyClient implements AutoCloseable {
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
     logTrackingAndRMUrls(report);
-    return monitorApplication(appId);
+    return monitorApplication();
   }
 
   /**
@@ -262,10 +259,18 @@ public class TonyClient implements AutoCloseable {
         + Utils.buildRMUrl(yarnConf, report.getApplicationId().toString()));
   }
 
-  private void createYarnClient() {
+  private void initHdfsConf() {
     if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
       hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
       hdfsConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.HDFS_SITE_CONF));
+    }
+    if (hdfsConfAddress != null) {
+      hdfsConf.addResource(new Path(hdfsConfAddress));
+    }
+  }
+
+  private void createYarnClient() {
+    if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.CORE_SITE_CONF));
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) + File.separatorChar + Constants.YARN_SITE_CONF));
     }
@@ -273,9 +278,7 @@ public class TonyClient implements AutoCloseable {
     if (this.yarnConfAddress != null) {
       this.yarnConf.addResource(new Path(this.yarnConfAddress));
     }
-    if (this.hdfsConfAddress != null) {
-      this.hdfsConf.addResource(new Path(this.hdfsConfAddress));
-    }
+
     int numRMConnectRetries = tonyConf.getInt(TonyConfigurationKeys.RM_CLIENT_CONNECT_RETRY_MULTIPLIER,
         TonyConfigurationKeys.DEFAULT_RM_CLIENT_CONNECT_RETRY_MULTIPLIER);
     long rmMaxWaitMS = yarnConf.getLong(YarnConfiguration.RESOURCEMANAGER_CONNECT_RETRY_INTERVAL_MS,
@@ -317,8 +320,12 @@ public class TonyClient implements AutoCloseable {
     amMemory = Integer.parseInt(Utils.parseMemoryString(amMemoryString));
     amVCores = tonyConf.getInt(TonyConfigurationKeys.AM_VCORES,
         TonyConfigurationKeys.DEFAULT_AM_VCORES);
-    amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
+    int amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
         TonyConfigurationKeys.DEFAULT_AM_GPUS);
+    if (amGpus > 0) {
+      LOG.warn("AM_GPUS not allowed on this version AM_GPUS [" + amGpus + "], setting it to 0");
+      amGpus = 0;
+    }
     secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
@@ -329,8 +336,11 @@ public class TonyClient implements AutoCloseable {
     LOG.info("TonY heartbeat interval [" + hbInterval + "]");
     LOG.info("TonY max heartbeat misses allowed [" + maxHbMisses + "]");
 
-    yarnConfAddress = tonyConf.get(TonyConfigurationKeys.YARN_CONF_LOCATION);
     hdfsConfAddress = tonyConf.get(TonyConfigurationKeys.HDFS_CONF_LOCATION);
+    yarnConfAddress = tonyConf.get(TonyConfigurationKeys.YARN_CONF_LOCATION);
+    initHdfsConf();
+    createYarnClient();
+
     taskParams = cliParser.getOptionValue("task_params");
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
@@ -340,7 +350,11 @@ public class TonyClient implements AutoCloseable {
     srcDir = cliParser.getOptionValue("src_dir");
 
     // Set hdfsClassPath for all workers
+    // Prepend hdfs:// if missing
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
+    if (hdfsClasspath != null && !hdfsClasspath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
+      hdfsClasspath = FileSystem.getDefaultUri(hdfsConf) + hdfsClasspath;
+    }
     Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath, tonyConf);
 
     if (amMemory < 0) {
@@ -352,14 +366,6 @@ public class TonyClient implements AutoCloseable {
                                          + " Specified virtual cores=" + amVCores);
     }
 
-    boolean singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
-        TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
-    if (!singleNode) {
-      if (amGpus > 0) {
-        LOG.warn("It seems you reserved " + amGpus + " GPUs in application master (driver, which doesn't perform training) during distributed training.");
-      }
-    }
-
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
 
@@ -369,21 +375,15 @@ public class TonyClient implements AutoCloseable {
     }
 
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
-      if (imagePath == null) {
-        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
-        return false;
-      } else {
-        containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
-        containerEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
-      }
+      LOG.error("Docker is not supported on this version of Hadoop.");
+      return false;
     }
 
     if (cliParser.hasOption("container_env")) {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
     }
-    createYarnClient();
+
     return true;
   }
 
@@ -462,7 +462,8 @@ public class TonyClient implements AutoCloseable {
                       fs, LocalResourceType.FILE, jobName);
             }
           } else {
-            Utils.zipFolder(Paths.get(srcDir), Paths.get(file.getName()));
+            File tmpDir = Files.createTempDir();
+            Utils.zipFolder(Paths.get(resource), Paths.get(tmpDir.getAbsolutePath(), file.getName()));
             Utils.uploadFileAndSetConfResources(appResourcesPath,
                     new Path(trimmedResource),
                     new Path(trimmedResource).getName(),
@@ -647,7 +648,7 @@ public class TonyClient implements AutoCloseable {
     } else {
       // Tokens have not been pre-written. We need to grab the tokens ourselves.
       LOG.info("Fetching RM delegation token..");
-      String tokenRenewer = YarnClientUtils.getRmPrincipal(yarnConf);
+      String tokenRenewer = getRmPrincipal(yarnConf);
       if (tokenRenewer == null) {
         throw new RuntimeException("Failed to get RM principal.");
       }
@@ -706,12 +707,11 @@ public class TonyClient implements AutoCloseable {
   /**
    * Monitor the submitted application for completion.
    * Kill application if time expires.
-   * @param appId Application Id of application to be monitored
    * @return true if application completed successfully
    * @throws YarnException
    * @throws java.io.IOException
    */
-  private boolean monitorApplication(ApplicationId appId)
+  private boolean monitorApplication()
       throws YarnException, IOException, InterruptedException {
 
     while (true) {
@@ -749,7 +749,7 @@ public class TonyClient implements AutoCloseable {
         if (System.currentTimeMillis() > (clientStartTime + appTimeout)) {
           LOG.info("Reached client specified timeout for application. Killing application"
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
-          forceKillApplication(appId);
+          forceKillApplication();
           return false;
         }
       }
@@ -779,14 +779,15 @@ public class TonyClient implements AutoCloseable {
   }
 
   /**
-   * Kill a submitted application by sending a call to the ASM
-   * @param appId Application Id to be killed.
+   * Kill a submitted application by sending a call to the RM.
    * @throws YarnException
    * @throws java.io.IOException
    */
-  private void forceKillApplication(ApplicationId appId)
+  public void forceKillApplication()
       throws YarnException, IOException {
-    yarnClient.killApplication(appId);
+    if (appId != null) {
+      yarnClient.killApplication(appId);
+    }
 
   }
 
@@ -816,11 +817,94 @@ public class TonyClient implements AutoCloseable {
     return -1;
   }
 
+  /**
+   * Look up and return the resource manager's principal. This method
+   * automatically does the <code>_HOST</code> replacement in the principal and
+   * correctly handles HA resource manager configurations.
+   *
+   * @param conf the {@link Configuration} file from which to read the
+   * principal
+   * @return the resource manager's principal string or null if the
+   * {@link YarnConfiguration#RM_PRINCIPAL} property is not set in the
+   * {@code conf} parameter
+   * @throws IOException thrown if there's an error replacing the host name
+   */
+  public static String getRmPrincipal(Configuration conf) throws IOException {
+    String principal = conf.get(YarnConfiguration.RM_PRINCIPAL);
+    String prepared = null;
+
+    if (principal != null) {
+      prepared = getRmPrincipal(principal, conf);
+    }
+
+    return prepared;
+  }
+
+  /**
+   * Perform the <code>_HOST</code> replacement in the {@code principal},
+   * Returning the result. Correctly handles HA resource manager configurations.
+   *
+   * @param rmPrincipal the principal string to prepare
+   * @param conf the configuration
+   * @return the prepared principal string
+   * @throws IOException thrown if there's an error replacing the host name
+   */
+  public static String getRmPrincipal(String rmPrincipal, Configuration conf)
+      throws IOException {
+    if (rmPrincipal == null) {
+      throw new IllegalArgumentException("RM principal string is null");
+    }
+
+    if (HAUtil.isHAEnabled(conf)) {
+      conf = getYarnConfWithRmHaId(conf);
+    }
+
+    String hostname = conf.getSocketAddr(
+        YarnConfiguration.RM_ADDRESS,
+        YarnConfiguration.DEFAULT_RM_ADDRESS,
+        YarnConfiguration.DEFAULT_RM_PORT).getHostName();
+
+    return SecurityUtil.getServerPrincipal(rmPrincipal, hostname);
+  }
+
+  /**
+   * Returns a {@link YarnConfiguration} built from the {@code conf} parameter
+   * that is guaranteed to have the {@link YarnConfiguration#RM_HA_ID}
+   * property set.
+   *
+   * @param conf the base configuration
+   * @return a {@link YarnConfiguration} built from the base
+   * {@link Configuration}
+   * @throws IOException thrown if the {@code conf} parameter contains
+   * inconsistent properties
+   */
+  @VisibleForTesting
+  static YarnConfiguration getYarnConfWithRmHaId(Configuration conf)
+      throws IOException {
+    YarnConfiguration yarnConf = new YarnConfiguration(conf);
+
+    if (yarnConf.get(YarnConfiguration.RM_HA_ID) == null) {
+      // If RM_HA_ID is not configured, use the first of RM_HA_IDS.
+      // Any valid RM HA ID should work.
+      String[] rmIds = yarnConf.getStrings(YarnConfiguration.RM_HA_IDS);
+
+      if ((rmIds != null) && (rmIds.length > 0)) {
+        yarnConf.set(YarnConfiguration.RM_HA_ID, rmIds[0]);
+      } else {
+        throw new IOException("RM_HA_IDS property is not set for HA resource "
+            + "manager");
+      }
+    }
+
+    return yarnConf;
+  }
+
+
   public static void main(String[] args) {
     int exitCode = 0;
 
     // Adds hadoop-inject.xml as a default resource so Azkaban metadata will be present in the new Configuration created
-    HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
+    // HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
     try (TonyClient client = new TonyClient(new Configuration())) {
       boolean sanityCheck = client.init(args);
       if (!sanityCheck) {

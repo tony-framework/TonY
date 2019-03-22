@@ -57,8 +57,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
-import static org.apache.hadoop.yarn.api.records.ResourceInformation.*;
-
 
 public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
@@ -166,11 +164,8 @@ public class Utils {
   }
 
   public static void setCapabilityGPU(Resource resource, int gpuCount) {
-    // short-circuit when the GPU count is 0.
-    if (gpuCount <= 0) {
-      return;
-    }
-    resource.setResourceValue(GPU_URI, gpuCount);
+    LOG.warn("Ignoring setCapabilityGPU as it is not supported on Hadoop 2.7");
+    return;
   }
 
   public static String constructContainerUrl(Container container) {
@@ -328,12 +323,18 @@ public class Utils {
           TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
           TonyConfigurationKeys.DEFAULT_GPUS);
+      if (gpus > 0) {
+        LOG.warn("Gpu capability not available in this Hadoop version");
+        gpus = 0;
+      }
+
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
        * scheduling side. See YARN-7631 for details.
        * For now we set the priorities of different task types arbitrarily.
        */
       if (numInstances > 0) {
+        // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName, new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority++));
       }
     }

@@ -192,6 +192,31 @@ public class TonySession {
 
   /**
    * Get a TensorFlow task that hasn't been scheduled.
+   * In the absense of allocationRequestId, we are relying on the fact that each tensorflow job will
+   * have a distinct priority (Ensured in {@link Utils#parseContainerRequests(Configuration)}).
+   * @param priority the priority of the allocated container
+   * @return task to be assigned to this allocation
+   */
+  public synchronized TonyTask getAndInitMatchingTaskByPriority(int priority) {
+    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
+      String jobName = entry.getKey();
+      if (entry.getValue().getPriority() != priority) {
+        LOG.debug("Ignoring jobname {" + jobName + "} as priority doesn't match");
+        continue;
+      }
+      TonyTask[] tasks = jobTasks.get(jobName);
+      for (int i = 0; i < tasks.length; i++) {
+        if (tasks[i] == null) {
+          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId);
+          return tasks[i];
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get a TensorFlow task that hasn't been scheduled.
    * @param allocationRequestId the allocationRequestId of the allocated container
    * @return task to be assigned to this allocation
    */

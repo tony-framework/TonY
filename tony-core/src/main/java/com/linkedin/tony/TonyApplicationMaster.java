@@ -75,7 +75,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.UpdatedContainer;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
@@ -86,6 +85,8 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
+import org.apache.hadoop.yarn.util.UTCClock;
+
 import py4j.GatewayServer;
 
 
@@ -180,7 +181,7 @@ public class TonyApplicationMaster {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
 
-    hbMonitor = new AbstractLivelinessMonitor<TonyTask>("Tony Task liveliness Monitor") {
+    hbMonitor = new AbstractLivelinessMonitor<TonyTask>("Tony Task liveliness Monitor", new UTCClock()) {
       @Override
       protected void expire(TonyTask task) {
         onTaskDeemedDead(task);
@@ -422,7 +423,7 @@ public class TonyApplicationMaster {
     rpcServer = setupRPCService(hostname);
 
     // Init AMRMClient
-    AMRMClientAsync.AbstractCallbackHandler allocListener = new RMCallbackHandler();
+    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
     amRMClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
     amRMClient.init(yarnConf);
     amRMClient.start();
@@ -471,7 +472,7 @@ public class TonyApplicationMaster {
     Path interm = new Path(histFolder, Constants.TONY_HISTORY_INTERMEDIATE);
     try {
       if (!fs.exists(interm)) {
-        LOG.error("Intermediate directory doesn't exist");
+        LOG.error("Intermediate directory doesn't exist [" + interm.toString() + "]");
         return;
       }
     } catch (IOException e) {
@@ -858,12 +859,24 @@ public class TonyApplicationMaster {
      * However, this easily introduces lots of bugs since we'd have 3 places to handle failures - register call, container
      * complete callback and heartbeat.
      * To make things easier, we decide to go back and piggyback on container completion to dictate the execution result
-     * of a task.
-     * Still keep this RPC call here for now.
+     * of a task. However, we use this method to unregister a completed task from the heartbeat monitor to avoid a race
+     * condition where the container complete callback is delayed, too many heartbeats are missed, and the task is
+     * marked as failed.
      */
     @Override
     public String registerExecutionResult(int exitCode, String jobName, String jobIndex, String sessionId) {
       LOG.info("Received result registration request with exit code " + exitCode + " from " + jobName + " " + jobIndex);
+
+      // Unregister task after completion..
+      // Since in the case of asynchronous exec, containers might
+      // end at different times..
+      TonyTask task = session.getTask(jobName + ":" + jobIndex);
+      if (task != null) {
+        LOG.info("Unregistering task [" + task.getId() + "] from Heartbeat monitor..");
+        hbMonitor.unregister(task);
+      } else {
+        LOG.warn("Task " + jobName + " " + jobIndex + " was null!");
+      }
       return "RECEIVED";
     }
 
@@ -919,11 +932,11 @@ public class TonyApplicationMaster {
 
   private AMRMClient.ContainerRequest setupContainerRequestForRM(TensorFlowContainerRequest request) {
     Priority priority = Priority.newInstance(request.getPriority());
-    Resource capability = Resource.newInstance(request.getMemory(), request.getVCores());
+    Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
     Utils.setCapabilityGPU(capability, request.getGPU());
     session.addAllocationId(request.getJobName(), lastAllocationRequestId);
-    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority,
-        lastAllocationRequestId++);
+    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority/*,
+        lastAllocationRequestId++*/);
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
   }
@@ -935,7 +948,7 @@ public class TonyApplicationMaster {
   /**
    * Node manager call back handler
    */
-  static class NMCallbackHandler extends NMClientAsync.AbstractCallbackHandler {
+  static class NMCallbackHandler implements NMClientAsync.CallbackHandler {
     @Override
     public void onContainerStopped(ContainerId containerId) {
       LOG.info("Succeeded to stop container " + containerId);
@@ -966,7 +979,7 @@ public class TonyApplicationMaster {
       LOG.error("Failed to stop container " + containerId);
     }
 
-    @Override
+    /*@Override
     public void onContainerResourceIncreased(ContainerId containerId, Resource resource) { }
 
     @Override
@@ -976,14 +989,16 @@ public class TonyApplicationMaster {
     public void onIncreaseContainerResourceError(ContainerId containerId, Throwable t) { }
 
     @Override
-    public void onUpdateContainerResourceError(ContainerId containerId, Throwable t) { }
+    public void onUpdateContainerResourceError(ContainerId containerId, Throwable t) { }*/
 
   }
 
-  private class RMCallbackHandler extends AMRMClientAsync.AbstractCallbackHandler {
+  private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
       LOG.info("Completed containers: " + completedContainers.size());
+      sleepForTesting();
+
       for (ContainerStatus containerStatus : completedContainers) {
         int exitStatus = containerStatus.getExitStatus();
         LOG.info("ContainerID = " + containerStatus.getContainerId()
@@ -1008,14 +1023,22 @@ public class TonyApplicationMaster {
           if (Utils.isJobTypeTracked(task.getJobName(), tonyConf)) {
             numCompletedTrackedTasks.incrementAndGet();
           }
-
-          // Unregister task after completion..
-          // Since in the case of asynchronous exec, containers might
-          // end at different times..
-          LOG.info("Unregister task [" + task.getId() + "] from Heartbeat monitor..");
-          hbMonitor.unregister(task);
         } else {
           LOG.warn("No task found for container : [" + containerStatus.getContainerId() + "]!");
+        }
+      }
+    }
+
+    /**
+     * For testing purposes to simulate delay of container completion callback.
+     */
+    private void sleepForTesting() {
+      if (System.getenv(Constants.TEST_TASK_COMPLETION_NOTIFICATION_DELAYED) != null) {
+        LOG.info("Sleeping for 1 second to simulate task completion notification delay");
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          LOG.error(e);
         }
       }
     }
@@ -1032,9 +1055,9 @@ public class TonyApplicationMaster {
       }
     }
 
-    @Override
+    /*@Override
     public void onContainersUpdated(List<UpdatedContainer> containers) {
-    }
+    }*/
 
     @Override
     public void onShutdownRequest() { }
@@ -1073,7 +1096,7 @@ public class TonyApplicationMaster {
       containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
       Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
 
-      TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
+      TonyTask task = session.getAndInitMatchingTaskByPriority(container.getPriority().getPriority());
 
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 

@@ -25,7 +25,6 @@
 .vscode/
 build/
 dependency-reduced-pom.xml
-ligradle/
 log/
 out/
 target

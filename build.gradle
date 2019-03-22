@@ -18,7 +18,7 @@ buildscript {
   }
 }
 
-def hadoopVersion = "3.1.1"
+def hadoopVersion = "2.7.3"
 ext.playVersion = "2.6.20"
 ext.scalaVersion = System.getProperty("scala.binary.version", "2.11")
 
@@ -33,7 +33,6 @@ ext.deps = [
     "common": "org.apache.hadoop:hadoop-common:${hadoopVersion}",
     "common_test": "org.apache.hadoop:hadoop-common:${hadoopVersion}:tests",
     "hdfs": "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}",
-    "hdfs_client": "org.apache.hadoop:hadoop-hdfs-client:${hadoopVersion}",
     "hdfs_test": "org.apache.hadoop:hadoop-hdfs:${hadoopVersion}:tests",
     "mapreduce_client_core": "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoopVersion}",
     "mapreduce_client_hs": "org.apache.hadoop:hadoop-mapreduce-client-hs:${hadoopVersion}",
@@ -50,8 +49,8 @@ ext.deps = [
     "avro": "org.apache.avro:avro:1.8.2",
     "awaitility": "org.awaitility:awaitility:2.0.0",
     "commons_io": "commons-io:commons-io:2.4",
-    "guava": "com.google.guava:guava:16.0.1",
-    "guice": "com.google.inject:guice:4.1.0",
+    "guava": "com.google.guava:guava:11.0.2",
+    "guice": "com.google.inject:guice:3.0",
     "jackson_databind": "com.fasterxml.jackson.core:jackson-databind:2.8.3",
     "jackson_dataformat_yaml": "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.6",
     // Only needed by Hadoop test classes
@@ -202,7 +201,8 @@ subprojects {
   }
 
   checkstyle {
-    configFile rootProject.file('config/checkstyle/checkstyle.xml')
+    configDir rootProject.file('ligradle/checkstyle')
+    configFile rootProject.file(new File(configDir.path, 'linkedin-checkstyle.xml'))
     maxWarnings 0
   }
 
@@ -218,7 +218,7 @@ subprojects {
       !it.name.endsWith('.pom')
     }
 
-    excludeFilter = rootProject.file('config/findbugs/findbugsExclude.xml')
+    excludeFilter = rootProject.file('ligradle/findbugs/findbugsExclude.xml')
   }
 }
 
