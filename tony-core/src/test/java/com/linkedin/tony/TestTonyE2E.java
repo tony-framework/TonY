@@ -17,6 +17,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -24,6 +25,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +33,11 @@ import java.util.Set;
 
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.testng.Assert.assertEquals;
 
 
 /**
@@ -345,6 +352,36 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
       Assert.assertEquals(taskInfo.getStatus(), TaskStatus.SUCCEEDED);
     }
     Assert.assertTrue(actualJobs.containsAll(expectedJobs) && expectedJobs.containsAll(actualJobs));
+  }
+
+  /**
+   * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
+   * to passing tony configuration file. It is critical to make sure all fields in
+   * TonyConfFinal.xml is properly set up.
+   * Adding a full e2e TestTonyE2E is heavy, this function serves as a simplified lightweight
+   * place to make sure TonyConfFinal is set correctly.
+   */
+  @Test
+  public void testTonyFinalConf() throws IOException, YarnException, ParseException,
+      InterruptedException, URISyntaxException {
+    TonyClient client = spy(this.client);
+    client.init(new String[]{
+        "--executes", "ls",
+        "--shell_env", "TEST1=test",
+        "--container_env", "TEST2=test",
+        "--conf", "tony.application.worker.command=cat"
+    });
+    // Stub actual app submission logic
+    doReturn(true).when(client).monitorApplication();
+    doNothing().when(client).submitApplication(any());
+    client.start();
+    String path = client.processFinalTonyConf();
+    Configuration finalConf = new Configuration();
+    finalConf.addResource(new Path(path));
+    assertEquals(finalConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()), "ls");
+    assertEquals(finalConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV), "TEST2=test");
+    assertEquals(finalConf.get(TonyConfigurationKeys.EXECUTION_ENV), "TEST1=test");
+    assertEquals(finalConf.get(TonyConfigurationKeys.getExecuteCommandKey("worker")), "cat");
   }
 
   @Override
