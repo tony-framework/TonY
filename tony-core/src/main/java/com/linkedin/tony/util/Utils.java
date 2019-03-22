@@ -166,6 +166,11 @@ public class Utils {
     }
   }
 
+  /**
+   * Uses reflection to set GPU capability if GPU support is available.
+   * @param resource  the resource to set GPU capability on
+   * @param gpuCount  the number of GPUs requested
+   */
   public static void setCapabilityGPU(Resource resource, int gpuCount) {
     // short-circuit when the GPU count is 0.
     if (gpuCount <= 0) {

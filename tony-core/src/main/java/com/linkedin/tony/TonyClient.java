@@ -333,8 +333,6 @@ public class TonyClient implements AutoCloseable {
         TonyConfigurationKeys.DEFAULT_AM_VCORES);
     amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
         TonyConfigurationKeys.DEFAULT_AM_GPUS);
-    int amGpus = tonyConf.getInt(TonyConfigurationKeys.AM_GPUS,
-        TonyConfigurationKeys.DEFAULT_AM_GPUS);
     secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
@@ -404,6 +402,10 @@ public class TonyClient implements AutoCloseable {
     return true;
   }
 
+  /**
+   * Parses Docker related configs and sets the appropriate container environment variables if Docker is available.
+   * Uses reflection to support older versions of Hadoop.
+   */
   private boolean parseDockerConfigs() {
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
       String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);

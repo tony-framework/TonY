@@ -60,10 +60,4 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
   public void testCompareXmlAgainstConfigurationClass() {
     super.testCompareXmlAgainstConfigurationClass();
   }
-
-  /* Base method not available in Hadoop 2.7
-  @Test
-  public void testXmlAgainstDefaultValuesInConfigurationClass() {
-    super.testXmlAgainstDefaultValuesInConfigurationClass();
-  } */
 }
