@@ -305,8 +305,7 @@ public class TonySession {
 
     if (failureCount > 0) {
       setFinalStatus(FinalApplicationStatus.FAILED,
-                     "At least one job task exited with non-zero status, failedCnt="
-                     + failureCount);
+          "At least one job task exited with non-zero status, failedCnt=" + failureCount);
     } else {
       LOG.info("Session completed with no job failures, setting final status SUCCEEDED.");
       setFinalStatus(FinalApplicationStatus.SUCCEEDED, null);
@@ -468,6 +467,11 @@ public class TonySession {
     }
 
     void setExitStatus(int status) {
+      if (status == 0) {
+        taskInfo.setState(TaskStatus.SUCCEEDED);
+      } else {
+        taskInfo.setState(TaskStatus.FAILED);
+      }
       this.completed = true;
       this.exitStatus = status;
     }
