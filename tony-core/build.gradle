@@ -7,8 +7,14 @@ apply plugin: 'com.google.protobuf'
 dependencies {
   compile project(':tony-mini')
 
-  compile deps.azkaban.az_core
-  compile deps.azkaban.az_hadoop_jobtype_plugin
+  compile(deps.azkaban.az_core) {
+    exclude group: 'com.google.guava'
+    exclude group: 'com.google.inject'
+  }
+  compile(deps.azkaban.az_hadoop_jobtype_plugin) {
+    exclude group: 'com.google.guava'
+    exclude group: 'com.google.inject'
+  }
   compile deps.external.avro
   compile deps.external.jackson_databind
   compile deps.external.py4j
