@@ -10,6 +10,17 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 
 public class Constants {
+  // For capatibility with older Hadoop versions
+  public static final String GPU_URI = "yarn.io/gpu";
+  public static final String SET_RESOURCE_VALUE_METHOD = "setResourceValue";
+  public static final String CONTAINER_RUNTIME_CONSTANTS_CLASS =
+      "org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants";
+  public static final String DOCKER_LINUX_CONTAINER_RUNTIME_CLASS =
+      "org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime";
+  public static final String ENV_CONTAINER_TYPE = "ENV_CONTAINER_TYPE";
+  public static final String ENV_DOCKER_CONTAINER_TYPE = "ENV_DOCKER_CONTAINER_TYPE";
+  public static final String SET_MONITOR_INTERVAL_METHOD = "setMonitorInterval";
+
   // File Permission
   public static final FsPermission PERM770 = new FsPermission((short) 0770);
   public static final FsPermission PERM777 = new FsPermission((short) 0777);

@@ -16,6 +16,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -47,6 +49,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -153,7 +156,7 @@ public class Utils {
     zos.close();
   }
 
-  public static void unzipArchive(String src, String dst) throws IOException {
+  public static void unzipArchive(String src, String dst) {
     LOG.info("Unzipping " + src + " to destination " + dst);
     try {
       ZipFile zipFile = new ZipFile(src);
@@ -164,7 +167,21 @@ public class Utils {
   }
 
   public static void setCapabilityGPU(Resource resource, int gpuCount) {
-    LOG.warn("Ignoring setCapabilityGPU as it is not supported on Hadoop 2.7");
+    // short-circuit when the GPU count is 0.
+    if (gpuCount <= 0) {
+      return;
+    }
+    try {
+      Method method = resource.getClass().getMethod(Constants.SET_RESOURCE_VALUE_METHOD, String.class, long.class);
+      method.invoke(resource, Constants.GPU_URI, gpuCount);
+    } catch (NoSuchMethodException nsme) {
+      LOG.error("There is no '" + Constants.SET_RESOURCE_VALUE_METHOD + "' API in this version ("
+          + VersionInfo.getVersion() + ") of YARN", nsme);
+      throw new RuntimeException(nsme);
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      LOG.error("Failed to invoke '" + Constants.SET_RESOURCE_VALUE_METHOD + "' method to set GPU resources", e);
+      throw new RuntimeException(e);
+    }
     return;
   }
 
@@ -323,10 +340,6 @@ public class Utils {
           TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
           TonyConfigurationKeys.DEFAULT_GPUS);
-      if (gpus > 0) {
-        LOG.warn("Gpu capability not available in this Hadoop version");
-        gpus = 0;
-      }
 
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
@@ -335,7 +348,9 @@ public class Utils {
        */
       if (numInstances > 0) {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
-        containerRequests.put(jobName, new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority++));
+        containerRequests.put(jobName,
+            new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
+        priority++;
       }
     }
     return containerRequests;
