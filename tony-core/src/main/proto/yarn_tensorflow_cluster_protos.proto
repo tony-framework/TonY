@@ -19,6 +19,7 @@ message GetTaskInfosResponseProto {
             RUNNING = 2;
             FAILED = 3;
             SUCCEEDED = 4;
+            FINISHED = 5;
         }
         required TaskStatus taskStatus = 4 [default = NEW];
     }

@@ -321,6 +321,12 @@ public class TonySession {
   }
 
   public void setFinalStatus(FinalApplicationStatus status, String message) {
+    for (TonyTask[] tasks : jobTasks.values()) {
+      for (TonyTask task : tasks) {
+        task.getTaskInfo().setState(TaskStatus.FINISHED);
+      }
+
+    }
     sessionFinalStatus = status;
     sessionFinalMessage = message;
   }

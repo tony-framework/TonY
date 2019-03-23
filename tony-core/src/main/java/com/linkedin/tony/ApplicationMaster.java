@@ -268,7 +268,7 @@ public class ApplicationMaster {
     return true;
   }
 
-  private void buildTensorFlowSession() {
+  private void buildTonySession() {
     LOG.info("Final task command: " + baseTaskCommand);
 
     TonySession.Builder builder = new TonySession.Builder()
@@ -510,7 +510,7 @@ public class ApplicationMaster {
       return;
     }
 
-    buildTensorFlowSession();
+    buildTonySession();
     scheduleTasks();
   }
 

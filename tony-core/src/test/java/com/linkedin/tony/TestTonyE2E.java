@@ -349,7 +349,7 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
     Assert.assertEquals(taskInfoSet.size(), 2);
     for (TaskInfo taskInfo : taskInfoSet) {
       actualJobs.add(taskInfo.getName());
-      Assert.assertEquals(taskInfo.getStatus(), TaskStatus.SUCCEEDED);
+      Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
     }
     Assert.assertTrue(actualJobs.containsAll(expectedJobs) && expectedJobs.containsAll(actualJobs));
   }
