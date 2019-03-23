@@ -44,7 +44,6 @@ public class TonySession {
   private static final Log LOG = LogFactory.getLog(TonySession.class);
   private Configuration tonyConf;
 
-  private String taskCmd;
   private String amAddress;
   private Map<String, TensorFlowContainerRequest> containerRequests;
 
@@ -84,7 +83,6 @@ public class TonySession {
   }
 
   private TonySession(Builder builder) {
-    this.taskCmd = builder.taskCmd;
     this.amAddress = builder.amAddress;
     this.containerRequests = Utils.parseContainerRequests(builder.tonyConf);
     this.jvmArgs = builder.jvmArgs;
@@ -195,12 +193,8 @@ public class TonySession {
       TonyTask[] tasks = entry.getValue();
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
-          String taskCommand = taskCmd;
-          if (tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
-                  tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey())) != null) {
-            taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
-                    tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
-          }
+          String taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
+              tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
           tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId, taskCommand);
           LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
@@ -372,18 +366,12 @@ public class TonySession {
    * Builder to compose the TonySession class.
    */
   public static class Builder {
-    private String taskCmd;
     private String amAddress;
     private String jvmArgs;
     private Configuration tonyConf;
 
     public TonySession build() {
       return new TonySession(this);
-    }
-
-    public Builder setTaskCmd(String taskCmd) {
-      this.taskCmd = taskCmd;
-      return this;
     }
 
     public Builder setAMAddress(String amAddress) {
@@ -441,10 +429,6 @@ public class TonySession {
 
     public String getHost() {
       return host;
-    }
-
-    public String getTaskCommand() {
-      return taskCommand;
     }
 
     public Container getContainer() {

@@ -113,7 +113,6 @@ public class ApplicationMaster {
   private int amRetryCount;
   private long workerTimeout;
   private String hdfsClasspath;
-  private String baseTaskCommand;
   private int amPort;
   private ByteBuffer allTokens;
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
@@ -230,7 +229,6 @@ public class ApplicationMaster {
     String[] containerEnvs = tonyConf.getStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
     containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
 
-    baseTaskCommand = tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey());
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
                                  TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
     workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
@@ -269,10 +267,7 @@ public class ApplicationMaster {
   }
 
   private void buildTonySession() {
-    LOG.info("Final task command: " + baseTaskCommand);
-
     TonySession.Builder builder = new TonySession.Builder()
-        .setTaskCmd(baseTaskCommand)
         .setAMAddress(amHostPort)
         .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
@@ -692,13 +687,8 @@ public class ApplicationMaster {
      */
     extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
-    String taskCommand = baseTaskCommand;
-    if (tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
-            tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey())) != null) {
-        taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
+    String taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
                 tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
-    }
-
     LOG.info("Executing command: " + taskCommand);
     int exitCode = Utils.executeShell(taskCommand, workerTimeout, extraEnv);
 
