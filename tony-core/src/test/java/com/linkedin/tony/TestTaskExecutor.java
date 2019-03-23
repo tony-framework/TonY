@@ -38,8 +38,6 @@ public class TestTaskExecutor {
     try (OutputStream os = new FileOutputStream(confFile)) {
       tonyConf.writeXml(os);
     }
-    assertEquals(2000, taskExecutor.tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
-        TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS));
     if (!confFile.delete()) {
       throw new RuntimeException("Failed to delete conf file");
     }
