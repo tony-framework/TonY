@@ -193,9 +193,7 @@ public class TonySession {
       TonyTask[] tasks = entry.getValue();
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
-          String taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(jobName),
-              tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
-          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId, taskCommand);
+          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId);
           LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
         }
@@ -398,7 +396,6 @@ public class TonySession {
     private final String jobName;
     private final String taskIndex;
     private final int sessionId;
-    private String taskCommand;
     private String host;
     private int port = -1;
     private TaskInfo taskInfo;
@@ -477,15 +474,10 @@ public class TonySession {
       taskInfo = new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
-    public void setTaskInfo(TaskInfo taskInfo) {
-      this.taskInfo = taskInfo;
-    }
-
-    TonyTask(String jobName, String taskIndex, int sessionId, String taskCommand) {
+    TonyTask(String jobName, String taskIndex, int sessionId) {
       this.jobName = jobName;
       this.taskIndex = taskIndex;
       this.sessionId = sessionId;
-      this.taskCommand = taskCommand;
     }
 
     public void addContainer(Container container) {
