@@ -8,17 +8,16 @@ import com.linkedin.tony.ClientCallbackHandler;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.rpc.TaskUrl;
 import com.linkedin.tonyproxy.ProxyServer;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,24 +43,37 @@ import static com.linkedin.tony.Constants.*;
  * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
  * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
  */
-public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHandler {
+public class NotebookSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
-  private TonyClient client;
-  private Set<TaskUrl> taskUrlSet;
+  private static class NotebookCallbackHandler implements ClientCallbackHandler {
+    private Set<TaskUrl> taskUrlSet;
 
-  private NotebookSubmitter() {
-    this.client = new TonyClient(new Configuration());
+    Set<TaskUrl> getTaskUrls() {
+      return taskUrlSet;
+    }
+
+    @Override
+    public void onApplicationIdReceived(ApplicationId appId) { }
+
+    @Override
+    public void onTaskUrlsReceived(Set<TaskUrl> taskUrls) {
+      taskUrlSet = taskUrls;
+    }
+  }
+
+  private NotebookCallbackHandler callbackHandler;
+  private TonyClient client;
+
+  public NotebookSubmitter() {
+    callbackHandler = new NotebookCallbackHandler();
+    client = new TonyClient(callbackHandler, new Configuration());
   }
 
   public int submit(String[] args)
-      throws ParseException, URISyntaxException, IOException, InterruptedException, YarnException {
+      throws ParseException, URISyntaxException, IOException, InterruptedException {
     LOG.info("Starting NotebookSubmitter..");
     String jarPath = new File(NotebookSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-    Options opts = Utils.getCommonOptions();
-    opts.addOption("conf", true, "User specified configuration, as key=val pairs");
-    opts.addOption("conf_file", true, "Name of user specified conf file, on the classpath");
-    opts.addOption("src_dir", true, "Name of directory of source files.");
 
     int exitCode = 0;
     Path cachedLibPath;
@@ -80,7 +92,7 @@ public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHa
     updatedArgs[args.length] = "--hdfs_classpath";
     updatedArgs[args.length + 1] = cachedLibPath.toString();
     updatedArgs[args.length + 2] = "--conf";
-    updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + String.valueOf(24 * 60 * 60 * 1000);
+    updatedArgs[args.length + 3] = TonyConfigurationKeys.APPLICATION_TIMEOUT + "=" + (24 * 60 * 60 * 1000);
 
     client.init(updatedArgs);
     Thread clientThread = new Thread(client::start);
@@ -95,14 +107,16 @@ public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHa
     }));
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (taskUrlSet != null) {
-        for (TaskUrl taskUrl : taskUrlSet) {
+      if (callbackHandler.getTaskUrls() != null) {
+        for (TaskUrl taskUrl : callbackHandler.getTaskUrls()) {
           if (taskUrl.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
-            String[] hostPort = taskUrl.getUrl().split(":");
+            URL url = new URL(taskUrl.getUrl());
+            String host = url.getHost();
+            int port = url.getPort();
             ServerSocket localSocket = new ServerSocket(0);
             int localPort = localSocket.getLocalPort();
             localSocket.close();
-            ProxyServer server = new ProxyServer(hostPort[0], Integer.parseInt(hostPort[1]), localPort);
+            ProxyServer server = new ProxyServer(host, port, localPort);
             LOG.info("If you are running NotebookSubmitter in your local box, please open [localhost:" + localPort
                 + "] in your browser to visit the page. Otherwise, if you're running NotebookSubmitter in a remote "
                 + "machine (like a gateway), please run" + " [ssh -L 18888:localhost:" + localPort
@@ -119,17 +133,14 @@ public class NotebookSubmitter extends TonySubmitter implements ClientCallbackHa
     return exitCode;
   }
 
+  public TonyClient getClient() {
+    return client;
+  }
+
   public static void main(String[] args) throws  Exception {
     int exitCode;
     NotebookSubmitter submitter = new NotebookSubmitter();
     exitCode = submitter.submit(args);
     System.exit(exitCode);
   }
-
-  // ClientCallbackHandler callbacks
-  public void onApplicationIdReceived(ApplicationId appId) { }
-  public void onTaskUrlsReceived(Set<TaskUrl> taskUrlSet) {
-    this.taskUrlSet = taskUrlSet;
-  }
-
 }
