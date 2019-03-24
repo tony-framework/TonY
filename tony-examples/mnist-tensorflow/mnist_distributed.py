@@ -179,7 +179,7 @@ def create_model():
 
 def start_tensorboard(logdir):
     tb = tb_program.TensorBoard(plugins=[core_plugin.CorePluginLoader()])
-    port = os.getenv('TB_PORT_ENV_VAR', 6006)
+    port = int(os.getenv(TB_PORT_ENV_VAR, 6006))
     tb.configure(logdir=logdir, port=port)
     tb.launch()
     logging.info("Starting TensorBoard with --logdir=%s" % logdir)
