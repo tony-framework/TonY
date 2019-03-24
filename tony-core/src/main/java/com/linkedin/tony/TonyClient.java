@@ -826,8 +826,8 @@ public class TonyClient implements AutoCloseable {
           for (TaskUpdateListener listener : listeners) {
             listener.onTaskInfosReceived(receivedInfos);
           }
+          taskInfos = receivedInfos;
         }
-        taskInfos = receivedInfos;
 
         // Query AM for taskInfos if taskInfos is empty.
         if (amRpcServerInitialized && !isTaskUrlsPrinted) {
