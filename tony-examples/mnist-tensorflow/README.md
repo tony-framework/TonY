@@ -2,10 +2,11 @@
 
 To run the examples here, you need to:
 
-* build a Python virtual environment with TensorFlow 1.9.0 installed
-* install Hadoop 3.1.1+
+* Build a Python virtual environment with TensorFlow 1.13.1 installed
+* Install Hadoop 3.1.1+
 
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
+
 
 
 ### Building a Python virtual environment with TensorFlow
@@ -19,9 +20,13 @@ tar xf virtualenv-16.0.0.tar.gz
 # Make sure to install using Python 3, as TensorFlow only provides Python 3 artifacts
 python virtualenv-16.0.0/virtualenv.py venv
 . venv/bin/activate
-pip install tensorflow==1.9.0
+pip install tensorflow==1.13.1
 zip -r venv.zip venv
 ```
+
+- TensorFlow version 1.13
+
+**Note:** If you require a past version of TensorFlow and TensorBoard, take a look at [this](https://github.com/linkedin/TonY/issues/42) issue.
 
 
 ### Installing Hadoop

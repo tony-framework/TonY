@@ -28,14 +28,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from tensorboard.plugins.core import core_plugin
 from tensorflow.examples.tutorials.mnist import input_data
-from threading import Thread
 
 import json
 import logging
 import os
 import sys
-import tensorboard.main as tb_main
+
+import tensorboard.program as tb_program
 import tensorflow as tf
 
 # Environment variable containing port to launch TensorBoard on, set by TonY.
@@ -43,12 +44,14 @@ TB_PORT_ENV_VAR = 'TB_PORT'
 
 # Input/output directories
 tf.flags.DEFINE_string('data_dir', '/tmp/tensorflow/mnist/input_data',
-                           'Directory for storing input data')
+                       'Directory for storing input data')
 tf.flags.DEFINE_string('working_dir', '/tmp/tensorflow/mnist/working_dir',
-                           'Directory under which events and output will be stored (in separate subdirectories).')
+                       'Directory under which events and output will be '
+                       'stored (in separate subdirectories).')
 
 # Training parameters
-tf.flags.DEFINE_integer("steps", 1500, "The number of training steps to execute.")
+tf.flags.DEFINE_integer("steps", 1500,
+                        "The number of training steps to execute.")
 tf.flags.DEFINE_integer("batch_size", 64, "The batch size per step.")
 
 FLAGS = tf.flags.FLAGS
@@ -152,12 +155,14 @@ def create_model():
     y_conv, keep_prob = deepnn(x)
 
     with tf.name_scope('loss'):
-        cross_entropy = tf.losses.sparse_softmax_cross_entropy(labels=y_, logits=y_conv)
+        cross_entropy = tf.losses.sparse_softmax_cross_entropy(labels=y_,
+                                                               logits=y_conv)
         cross_entropy = tf.reduce_mean(cross_entropy)
 
     global_step = tf.train.get_or_create_global_step()
     with tf.name_scope('adam_optimizer'):
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy, global_step=global_step)
+        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy,
+                                                           global_step=global_step)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv, 1), y_)
@@ -172,16 +177,12 @@ def create_model():
     return x, y_, keep_prob, global_step, train_step, accuracy, merged
 
 
-def start_tensorboard(checkpoint_dir):
-    FLAGS.logdir = checkpoint_dir
-    if TB_PORT_ENV_VAR in os.environ:
-        FLAGS.port = os.environ[TB_PORT_ENV_VAR]
-
-    tb_thread = Thread(target=tb_main.run_main)
-    tb_thread.daemon = True
-
-    logging.info("Starting TensorBoard with --logdir=" + checkpoint_dir + " in daemon thread...")
-    tb_thread.start()
+def start_tensorboard(logdir):
+    tb = tb_program.TensorBoard(plugins=[core_plugin.CorePluginLoader()])
+    port = os.getenv('TB_PORT_ENV_VAR', 6006)
+    tb.configure(logdir=logdir, port=port)
+    tb.launch()
+    logging.info("Starting TensorBoard with --logdir=%s" % logdir)
 
 
 def main(_):
@@ -207,7 +208,8 @@ def main(_):
         with tf.device(tf.train.replica_device_setter(
                 worker_device="/job:worker/task:%d" % task_index,
                 cluster=cluster)):
-            features, labels, keep_prob, global_step, train_step, accuracy, merged = create_model()
+            features, labels, keep_prob, global_step, train_step, accuracy, \
+            merged = create_model()
 
         if task_index is 0:  # chief worker
             tf.gfile.MakeDirs(FLAGS.working_dir)
@@ -216,9 +218,12 @@ def main(_):
         # The StopAtStepHook handles stopping after running given steps.
         hooks = [tf.train.StopAtStepHook(num_steps=FLAGS.steps)]
 
-        # Filter all connections except that between ps and this worker to avoid hanging issues when
-        # one worker finishes. We are using asynchronous training so there is no need for the workers to communicate.
-        config_proto = tf.ConfigProto(device_filters = ['/job:ps', '/job:worker/task:%d' % task_index])
+        # Filter all connections except that between ps and this worker to
+        # avoid hanging issues when one worker finishes. We are using
+        # asynchronous training so there is no need for the workers to
+        # communicate.
+        config_proto = tf.ConfigProto(
+            device_filters=['/job:ps', '/job:worker/task:%d' % task_index])
 
         with tf.train.MonitoredTrainingSession(master=server.target,
                                                is_chief=(task_index == 0),
@@ -235,12 +240,16 @@ def main(_):
             while not sess.should_stop():
                 batch = mnist.train.next_batch(FLAGS.batch_size)
                 if i % 100 == 0:
-                    step, _, train_accuracy = sess.run([global_step, train_step, accuracy],
-                                                       feed_dict={features: batch[0], labels: batch[1], keep_prob: 1.0})
-                    logging.info('Step %d, training accuracy: %g' % (step, train_accuracy))
+                    step, _, train_accuracy = sess.run(
+                        [global_step, train_step, accuracy],
+                        feed_dict={features: batch[0], labels: batch[1],
+                                   keep_prob: 1.0})
+                    logging.info('Step %d, training accuracy: %g' % (
+                    step, train_accuracy))
                 else:
                     sess.run([global_step, train_step],
-                             feed_dict={features: batch[0], labels: batch[1], keep_prob: 0.5})
+                             feed_dict={features: batch[0], labels: batch[1],
+                                        keep_prob: 0.5})
                 i += 1
 
         logging.info('Done training!')
