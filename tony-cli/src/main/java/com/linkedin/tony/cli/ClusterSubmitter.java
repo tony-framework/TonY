@@ -19,6 +19,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import static com.linkedin.tony.Constants.*;
 
@@ -63,6 +64,14 @@ public class ClusterSubmitter extends TonySubmitter {
         LOG.error("Arguments failed to pass sanity check");
         return -1;
       }
+      // ensure application is killed when this process terminates
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        try {
+          client.forceKillApplication();
+        } catch (YarnException | IOException e) {
+          LOG.error("Failed to kill application during shutdown.", e);
+        }
+      }));
       exitCode = client.start();
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
