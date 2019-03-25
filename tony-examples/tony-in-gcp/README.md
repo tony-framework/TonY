@@ -140,9 +140,9 @@ This is a basic MNIST model, but it serves as a good example of using TonY with 
 
 **Dependencies**
 
-- TensorFlow version 1.9
+- TensorFlow version 1.13.1
 
-**Note:** If you require a more recent TensorFlow and TensorBoard version, take a look at the progress of this issue to be able to upgrade to latest TensorFlow version.
+Note: If you require a different TensorFlow and TensorBoard version, please take a look at existing sample and modify accordingly.
 
 
 **Connect to Cloud Shell**
@@ -219,6 +219,84 @@ You can also track Job status from DataProc Jobs tab: Cloud Console -> Big Data 
 
 ![img](https://i.imgur.com/3XgZI5Z.png)
 
+## Autoscaling
+
+
+Estimating the "right" number of cluster workers (nodes) for a workload is difficult, and a single cluster size for an entire pipeline is often not ideal. User-initiated Cluster Scaling partially addresses this challenge, but requires monitoring cluster utilization and manual intervention.
+
+The Cloud Dataproc AutoscalingPolicies API provides a mechanism for automating cluster resource management and enables cluster autoscaling. An Autoscaling Policy is a reusable configuration that describes how clusters using the autoscaling policy should scale. It defines scaling boundaries, frequency, and aggressiveness to provide fine-grained control over cluster resources throughout cluster lifetime.
+
+Please find a sample below:
+
+```
+# Create Autoscale Policy file:
+
+cat << EOF > autoscale_tony.yaml
+workerConfig:
+  minInstances: 4
+  maxInstances: 10
+secondaryWorkerConfig:
+  minInstances: 0
+  maxInstances: 100
+basicAlgorithm:
+  cooldownPeriod: 2m
+  yarnConfig:
+    scaleUpFactor: 1.0
+    scaleDownFactor: 1.0
+    scaleUpMinWorkerFraction: 1.0
+    scaleDownMinWorkerFraction: 1.0
+    gracefulDecommissionTimeout: 15m
+EOF
+
+# Create Autoscaling policy
+
+gcloud beta dataproc autoscaling-policies import autoscale_tony --source=autoscale_tony.yaml
+
+# Create a cluster
+
+export CLUSTER_NAME=tony-staging-2
+export DATAPROC_VERSION=1.3-deb9
+export ZONE=us-west1-a          # Update your zone/region accordingly
+export BUCKET=tony-staging
+export LOG_BUCKET=tony-staging  # Update your Google Cloud Storage Bucket accordingly
+ 
+gcloud beta dataproc clusters create ${CLUSTER_NAME} \
+--zone $ZONE \
+--master-machine-type n1-standard-4 --master-boot-disk-size 100 \
+--num-workers 4 --worker-machine-type n1-standard-4 --worker-boot-disk-size 200 --image-version ${DATAPROC_VERSION} \
+--initialization-actions gs://tony-staging/tony_latest.sh \
+--scopes https://www.googleapis.com/auth/cloud-platform \
+--autoscaling-policy=autoscale_tony \
+--metadata tf_version=1.13.1 \
+--properties "\
+capacity-scheduler:yarn.scheduler.capacity.resource-calculator=org.apache.hadoop.yarn.util.resource.DominantResourceCalculator,\
+yarn:yarn.log-aggregation-enable=true,\
+yarn:yarn.log-aggregation.retain-seconds=-1,\
+yarn:yarn.nodemanager.remote-app-log-dir=gs://${LOG_BUCKET}/logs,\
+yarn:yarn.resourcemanager.webapp.methods-allowed=ALL"
+
+# Launch multiple jobs
+
+export CLUSTER_NAME=tony-staging-1
+export TONY_JARFILE=gs://tony-staging/tony-cli-0.2.0-all.jar
+
+for i in {1..3}; do
+job_id=`head /dev/urandom | tr -dc A-Z0-9 | head -c 6 ; echo ''`
+gcloud dataproc jobs submit hadoop --cluster ${CLUSTER_NAME} \
+--class com.linkedin.tony.cli.ClusterSubmitter \
+--jars "${TONY_JARFILE}" -- \
+--src_dir=/opt/tony/TonY-samples/jobs/TFJob/src \
+--task_params="--steps 1000 --data_dir gs://tony-staging/tensorflow/data --working_dir /tmp/"${job_id}"/model" \
+--conf_file=/opt/tony/TonY-samples/jobs/TFJob/tony.xml \
+--executes mnist_distributed.py \
+--python_venv=/opt/tony/TonY-samples/deps/tf.zip \
+--python_binary_path=tf/bin/python3.5 &
+sleep 1
+done
+```
+
+Autoscaling documentation [here](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/autoscaling)
+
 
 ## Conclusion
 Deploying TensorFlow on YARN enables you to train models straight from your data infrastructure that lives in HDFS and Cloud Storage.
@@ -226,8 +304,8 @@ Deploying TensorFlow on YARN enables you to train models straight from your data
 
 #### Limitations
 
- - DataProc supports GPU but this has not been tested.
- - Dataproc only supports 2.X. Hadoop version 3 implements GPU isolations.
+ - DataProc supports GPU but need to modify TensorFlow code to use it. Check issue [here](https://github.com/linkedin/TonY/issues/188)
+ - Dataproc only supports 2.X. Hadoop version 3 implements GPU isolation.
 
 #### Troubleshooting
 
@@ -261,6 +339,13 @@ Example
 ```
 http://<Node IP>:8042/logs/userlogs/application_1542587994073_0013/
 ```
+
+Check Application logs
+
+```
+yarn logs -applicationId <App_ID>
+```
+
 
 Check Application status
 
