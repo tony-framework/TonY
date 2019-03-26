@@ -4,5 +4,5 @@
  */
 package com.linkedin.tony.rpc;
 
-public interface GetTaskUrlsRequest {
+public interface GetTaskInfosRequest {
 }

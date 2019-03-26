@@ -4,33 +4,31 @@
  */
 package com.linkedin.tony;
 
+import org.apache.hadoop.conf.Configuration;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.hadoop.conf.Configuration;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
-
-import static org.testng.Assert.*;
 
 
 public class TestTaskExecutor {
   private String[] args;
+
 
   @BeforeTest
   public void setup() {
     List<String> listArgs = new ArrayList<>();
     listArgs.add("-am_address");
     listArgs.add("localhost:1234");
-    listArgs.add("-task_command");
-    listArgs.add("'sleep 5'");
-    args = listArgs.toArray(new String[listArgs.size()]);
+    args = listArgs.toArray(new String[0]);
   }
 
-  @Test
-  public void testTaskExecutorConf() throws Exception {
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testTaskExecutorConfShouldThrowException() throws Exception {
     TaskExecutor taskExecutor = new TaskExecutor();
     Configuration tonyConf = new Configuration(false);
     tonyConf.setInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS, 2000);
@@ -38,11 +36,11 @@ public class TestTaskExecutor {
     try (OutputStream os = new FileOutputStream(confFile)) {
       tonyConf.writeXml(os);
     }
-    taskExecutor.initConfigs(args);
-    assertEquals(2000, taskExecutor.tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
-        TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS));
     if (!confFile.delete()) {
       throw new RuntimeException("Failed to delete conf file");
     }
+    // Should throw exception since we didn't set up Task Command.
+    taskExecutor.initConfigs(args);
   }
+
 }

@@ -8,9 +8,10 @@ import azkaban.jobtype.HadoopConfigurationInjector;
 import azkaban.utils.Props;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.client.CallbackHandler;
+import com.linkedin.tony.client.TaskUpdateListener;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
@@ -26,13 +27,16 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
@@ -126,10 +130,11 @@ public class TonyClient implements AutoCloseable {
   private int hbInterval;
   private int maxHbMisses;
 
-  private ClientCallbackHandler callbackHandler;
+  private CallbackHandler callbackHandler;
+  private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
 
   // For access from CLI.
-  private Set<TaskUrl> taskUrls = new HashSet<>();
+  private Set<TaskInfo> taskInfos = new HashSet<>();
 
   public TonyClient() {
     this(new Configuration(false));
@@ -139,7 +144,7 @@ public class TonyClient implements AutoCloseable {
     this(null, conf);
   }
 
-  public TonyClient(ClientCallbackHandler handler, Configuration conf) {
+  public TonyClient(CallbackHandler handler, Configuration conf) {
     initOptions();
     callbackHandler = handler;
     tonyConf = conf;
@@ -173,10 +178,19 @@ public class TonyClient implements AutoCloseable {
       callbackHandler.onApplicationIdReceived(appId);
     }
     appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
+
+    this.tonyFinalConfPath = processFinalTonyConf();
+    submitApplication(appContext);
+    return monitorApplication();
+  }
+
+  @VisibleForTesting
+  public String processFinalTonyConf() throws IOException {
+    FileSystem fs = FileSystem.get(hdfsConf);
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
         Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
-                Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       } else {
         Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
         Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
@@ -186,7 +200,7 @@ public class TonyClient implements AutoCloseable {
 
     if (pythonVenv != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath,
-              new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+          new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
 
 
@@ -201,13 +215,19 @@ public class TonyClient implements AutoCloseable {
     addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
     processTonyConfResources(tonyConf, fs);
 
-    this.tonyFinalConfPath = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
+    String tonyFinalConf = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
     // Write user's overridden conf to an xml to be localized.
-    try (OutputStream os = new FileOutputStream(this.tonyFinalConfPath)) {
+    try (OutputStream os = new FileOutputStream(tonyFinalConf)) {
       tonyConf.writeXml(os);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to create " + this.tonyFinalConfPath + " conf file. Exiting.", e);
+    } catch (IOException exception) {
+      LOG.error("Failed to write tony final conf to: " + tonyFinalConf, exception);
     }
+    return tonyFinalConf;
+  }
+
+  @VisibleForTesting
+  public void submitApplication(ApplicationSubmissionContext appContext)
+      throws YarnException, IOException, URISyntaxException {
 
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
@@ -224,9 +244,9 @@ public class TonyClient implements AutoCloseable {
         TonyConfigurationKeys.DEFAULT_YARN_QUEUE_NAME);
     appContext.setQueue(yarnQueue);
 
-    // Set the ContainerLaunchContext to describe the Container ith which the TonyApplicationMaster is launched.
+    // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
     ContainerLaunchContext amSpec =
-        createAMContainerSpec(this.amMemory, this.taskParams, this.pythonBinaryPath, this.executes, getTokens());
+        createAMContainerSpec(this.amMemory, getTokens());
     appContext.setAMContainerSpec(amSpec);
     String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
     if (nodeLabel != null) {
@@ -236,7 +256,6 @@ public class TonyClient implements AutoCloseable {
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
     logTrackingAndRMUrls(report);
-    return monitorApplication();
   }
 
   /**
@@ -303,6 +322,10 @@ public class TonyClient implements AutoCloseable {
 
   private void initOptions() {
     opts = Utils.getCommonOptions();
+    opts.addOption("executes", true, "The file to execute on workers.");
+    opts.addOption("task_params", true, "The task params to pass into python entry point.");
+    opts.addOption("shell_env", true, "Environment for shell script, specified as env_key=env_val pairs");
+    opts.addOption("container_env", true, "Environment for the worker containers, specified as key=val pairs");
     opts.addOption("conf", true, "User specified configuration, as key=val pairs");
     opts.addOption("conf_file", true, "Name of user specified conf file, on the classpath");
     opts.addOption("src_dir", true, "Name of directory of source files.");
@@ -315,9 +338,6 @@ public class TonyClient implements AutoCloseable {
 
   public boolean init(String[] args) throws ParseException, IOException {
     CommandLine cliParser = new GnuParser().parse(opts, args, true);
-    if (args.length == 0) {
-      throw new IllegalArgumentException("No args specified for client to initialize");
-    }
 
     if (cliParser.hasOption("help")) {
       printUsage();
@@ -353,6 +373,10 @@ public class TonyClient implements AutoCloseable {
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
     executes = cliParser.getOptionValue("executes");
+    executes = TonyClient.buildTaskCommand(pythonVenv, pythonBinaryPath, executes, taskParams);
+    if (executes != null) {
+      tonyConf.set(TonyConfigurationKeys.getContainerExecuteCommandKey(), executes);
+    }
 
     // src_dir & hdfs_classpath flags are for compatibility.
     srcDir = cliParser.getOptionValue("src_dir");
@@ -385,15 +409,28 @@ public class TonyClient implements AutoCloseable {
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
 
+    List<String> executionEnvPair = new ArrayList<>();
+    if (tonyConf.get(TonyConfigurationKeys.EXECUTION_ENV) != null) {
+      String[] envs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
+      executionEnvPair.addAll(Arrays.asList(envs));
+      shellEnv.putAll(Utils.parseKeyValue(envs));
+    }
     if (cliParser.hasOption("shell_env")) {
       String[] envs = cliParser.getOptionValues("shell_env");
+      executionEnvPair.addAll(Arrays.asList(envs));
       shellEnv.putAll(Utils.parseKeyValue(envs));
+    }
+    if (!executionEnvPair.isEmpty()) {
+      tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
     }
 
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      String imagePath = tonyConf.get(TonyConfigurationKeys.DOCKER_IMAGE);
+      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
+      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME)) != null) {
+        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME));
+      }
       if (imagePath == null) {
-        LOG.error("Docker is enabled but " + TonyConfigurationKeys.DOCKER_IMAGE + " is not set.");
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
         return false;
       } else {
         containerEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
@@ -401,13 +438,49 @@ public class TonyClient implements AutoCloseable {
       }
     }
 
+    List<String> containerEnvPair = new ArrayList<>();
+    if (tonyConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV) != null) {
+      String[] envs = tonyConf.getStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
+      containerEnvPair.addAll(Arrays.asList(envs));
+      containerEnv.putAll(Utils.parseKeyValue(envs));
+    }
     if (cliParser.hasOption("container_env")) {
       String[] containerEnvs = cliParser.getOptionValues("container_env");
+      containerEnvPair.addAll(Arrays.asList(containerEnvs));
       containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
+    }
+    if (!containerEnv.isEmpty()) {
+      tonyConf.setStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV, containerEnvPair.toArray(new String[0]));
     }
 
     return true;
   }
+
+
+  @VisibleForTesting
+  static String buildTaskCommand(String pythonVenv, String pythonBinaryPath, String execute,
+                                 String taskParams) {
+    if (execute == null) {
+      return null;
+    }
+    String baseTaskCommand = execute;
+    String pythonInterpreter;
+    if (pythonBinaryPath != null) {
+      if (pythonBinaryPath.startsWith("/") || pythonVenv == null) {
+        pythonInterpreter = pythonBinaryPath;
+      } else {
+        pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
+      }
+      baseTaskCommand = pythonInterpreter + " " + execute;
+    }
+
+    if (taskParams != null) {
+      baseTaskCommand += " " + taskParams;
+    }
+
+    return baseTaskCommand;
+  }
+
 
   /**
    * Add resource if exist to {@code tonyConf}
@@ -432,7 +505,14 @@ public class TonyClient implements AutoCloseable {
     if (cliParser.hasOption("conf")) {
       String[] confs = cliParser.getOptionValues("conf");
       for (Map.Entry<String, String> cliConf : Utils.parseKeyValue(confs).entrySet()) {
-        tonyConf.set(cliConf.getKey(), cliConf.getValue());
+        String[] existingValue = tonyConf.getStrings(cliConf.getKey());
+        if (existingValue != null && TonyConfigurationKeys.MULTI_VALUE_CONF.contains(cliConf.getKey())) {
+          ArrayList<String> newValues = new ArrayList<>(Arrays.asList(existingValue));
+          newValues.add(cliConf.getValue());
+          tonyConf.setStrings(cliConf.getKey(), newValues.toArray(new String[0]));
+        } else {
+          tonyConf.set(cliConf.getKey(), cliConf.getValue());
+        }
       }
     }
 
@@ -538,7 +618,7 @@ public class TonyClient implements AutoCloseable {
 
     // check that we don't request more than the allowed total tasks
     int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, -1);
-    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(req -> req.getNumInstances()).sum();
+    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(TensorFlowContainerRequest::getNumInstances).sum();
     if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
       throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
           + maxTotalInstances + ".");
@@ -549,9 +629,7 @@ public class TonyClient implements AutoCloseable {
     return this.tonyConf;
   }
 
-  public ContainerLaunchContext createAMContainerSpec(long amMemory, String taskParams,
-                                                      String pythonBinaryPath, String executes,
-                                                      ByteBuffer tokens) throws IOException {
+  public ContainerLaunchContext createAMContainerSpec(long amMemory, ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
     FileSystem fs = FileSystem.get(hdfsConf);
@@ -574,8 +652,7 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
-    String command = TonyClient.buildCommand(amMemory, taskParams, pythonBinaryPath,
-        executes, shellEnv, containerEnv);
+    String command = TonyClient.buildCommand(amMemory);
 
     LOG.info("Completed setting up Application Master command " + command);
     amContainer.setCommands(ImmutableList.of(command));
@@ -589,9 +666,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static String buildCommand(long amMemory, String taskParams, String pythonBinaryPath,
-      String executes, Map<String, String> shellEnv,
-      Map<String, String> containerEnv) {
+  static String buildCommand(long amMemory) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
@@ -600,23 +675,8 @@ public class TonyClient implements AutoCloseable {
     arguments.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     // Set class name
-    arguments.add("com.linkedin.tony.TonyApplicationMaster");
+    arguments.add("com.linkedin.tony.ApplicationMaster");
 
-    if (taskParams != null) {
-      arguments.add("--task_params " + "'" + taskParams + "'");
-    }
-    if (pythonBinaryPath != null) {
-      arguments.add("--python_binary_path " + pythonBinaryPath);
-    }
-    if (executes != null) {
-      arguments.add("--executes " + executes);
-    }
-    for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
-      arguments.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
-    }
-    for (Map.Entry<String, String> entry : containerEnv.entrySet()) {
-      arguments.add("--container_env " + entry.getKey() + "=" + entry.getValue());
-    }
     arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDOUT_FILENAME);
     arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + File.separatorChar + Constants.AM_STDERR_FILENAME);
     return String.join(" ", arguments);
@@ -745,9 +805,11 @@ public class TonyClient implements AutoCloseable {
    * @throws YarnException
    * @throws java.io.IOException
    */
-  private boolean monitorApplication()
+  @VisibleForTesting
+  public boolean monitorApplication()
       throws YarnException, IOException, InterruptedException {
 
+    boolean isTaskUrlsPrinted = false;
     while (true) {
       // Check app status every 1 second.
       Thread.sleep(1000);
@@ -756,18 +818,33 @@ public class TonyClient implements AutoCloseable {
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
       YarnApplicationState state = report.getYarnApplicationState();
+
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
 
-      // Query AM for taskUrls if taskUrls is empty.
-      if (amRpcServerInitialized && taskUrls.isEmpty()) {
-        taskUrls = amRpcClient.getTaskUrls();
-        if (!taskUrls.isEmpty()) {
-          if (callbackHandler != null) {
-            callbackHandler.onTaskUrlsReceived(ImmutableSet.copyOf(taskUrls));
+      if (amRpcClient != null) {
+        Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
+        Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
+                .filter(taskInfo -> !taskInfos.contains(taskInfo))
+                .collect(Collectors.toSet());
+        // If task status is changed, invoke callback for all listeners.
+        if (!taskInfoDiff.isEmpty()) {
+          for (TaskInfo taskInfo : taskInfoDiff) {
+            LOG.info("Tasks Status Updated: " + taskInfo);
           }
-          // Print TaskUrls
-          new TreeSet<>(taskUrls).forEach(task -> Utils.printTaskUrl(task, LOG));
+          for (TaskUpdateListener listener : listeners) {
+            listener.onTaskInfosUpdated(receivedInfos);
+          }
+          taskInfos = receivedInfos;
+        }
+
+        // Query AM for taskInfos if taskInfos is empty.
+        if (amRpcServerInitialized && !isTaskUrlsPrinted) {
+          if (!taskInfos.isEmpty()) {
+            // Print TaskUrls
+            new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
+            isTaskUrlsPrinted = true;
+          }
         }
       }
 
@@ -827,8 +904,9 @@ public class TonyClient implements AutoCloseable {
     }
   }
 
-  public ClientCallbackHandler getCallbackHandler() {
-    return callbackHandler;
+  @VisibleForTesting
+  public CopyOnWriteArrayList<TaskUpdateListener> getListener() {
+    return listeners;
   }
 
   protected ApplicationRpcClient getAMRpcClient() {
@@ -855,6 +933,14 @@ public class TonyClient implements AutoCloseable {
     }
     LOG.error("Application failed to complete successfully");
     return -1;
+  }
+
+  public void addListener(TaskUpdateListener listener) {
+    listeners.add(listener);
+  }
+
+  public void removeListener(TaskUpdateListener listener) {
+    listeners.remove(listener);
   }
 
   public static void main(String[] args) {

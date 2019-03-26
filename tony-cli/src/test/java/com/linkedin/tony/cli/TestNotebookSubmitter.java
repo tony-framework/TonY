@@ -14,6 +14,6 @@ public class TestNotebookSubmitter {
   public void testCallbackHandlerSet() {
     NotebookSubmitter ns = new NotebookSubmitter();
     TonyClient client = ns.getClient();
-    Assert.assertNotNull(client.getCallbackHandler());
+    Assert.assertTrue(client.getListener().size() > 0);
   }
 }

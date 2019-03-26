@@ -4,11 +4,11 @@
  */
 package com.linkedin.tony.cli;
 
-import com.linkedin.tony.ClientCallbackHandler;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.client.TaskUpdateListener;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tonyproxy.ProxyServer;
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +24,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import static com.linkedin.tony.Constants.*;
@@ -46,28 +45,26 @@ import static com.linkedin.tony.Constants.*;
 public class NotebookSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
-  private static class NotebookCallbackHandler implements ClientCallbackHandler {
-    private Set<TaskUrl> taskUrlSet;
+  private static class NotebookUpdateListener implements TaskUpdateListener {
+    private Set<TaskInfo> taskInfos;
 
-    Set<TaskUrl> getTaskUrls() {
-      return taskUrlSet;
+    Set<TaskInfo> getTaskInfos() {
+      return taskInfos;
     }
 
     @Override
-    public void onApplicationIdReceived(ApplicationId appId) { }
-
-    @Override
-    public void onTaskUrlsReceived(Set<TaskUrl> taskUrls) {
-      taskUrlSet = taskUrls;
+    public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet) {
+      this.taskInfos = taskInfoSet;
     }
   }
 
-  private NotebookCallbackHandler callbackHandler;
+  private NotebookUpdateListener listener;
   private TonyClient client;
 
   public NotebookSubmitter() {
-    callbackHandler = new NotebookCallbackHandler();
-    client = new TonyClient(callbackHandler, new Configuration());
+    listener = new NotebookUpdateListener();
+    client = new TonyClient(new Configuration());
+    client.addListener(listener);
   }
 
   public int submit(String[] args)
@@ -107,10 +104,11 @@ public class NotebookSubmitter extends TonySubmitter {
     }));
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (callbackHandler.getTaskUrls() != null) {
-        for (TaskUrl taskUrl : callbackHandler.getTaskUrls()) {
-          if (taskUrl.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
-            URL url = new URL(taskUrl.getUrl());
+      Set<TaskInfo> taskInfos = listener.getTaskInfos();
+      if (taskInfos != null) {
+        for (TaskInfo taskInfo : taskInfos) {
+          if (taskInfo.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
+            URL url = new URL(taskInfo.getUrl());
             String host = url.getHost();
             int port = url.getPort();
             ServerSocket localSocket = new ServerSocket(0);
@@ -143,4 +141,5 @@ public class NotebookSubmitter extends TonySubmitter {
     exitCode = submitter.submit(args);
     System.exit(exitCode);
   }
+
 }
