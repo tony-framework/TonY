@@ -8,8 +8,8 @@ package com.linkedin.tony.rpc.impl;
 import com.linkedin.tony.rpc.Empty;
 import com.linkedin.tony.rpc.GetClusterSpecRequest;
 import com.linkedin.tony.rpc.GetClusterSpecResponse;
-import com.linkedin.tony.rpc.GetTaskUrlsRequest;
-import com.linkedin.tony.rpc.GetTaskUrlsResponse;
+import com.linkedin.tony.rpc.GetTaskInfosRequest;
+import com.linkedin.tony.rpc.GetTaskInfosResponse;
 import com.linkedin.tony.rpc.HeartbeatRequest;
 import com.linkedin.tony.rpc.RegisterExecutionResultRequest;
 import com.linkedin.tony.rpc.RegisterExecutionResultResponse;
@@ -19,7 +19,7 @@ import com.linkedin.tony.rpc.RegisterWorkerSpecRequest;
 import com.linkedin.tony.rpc.RegisterWorkerSpecResponse;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.TensorFlowCluster;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.TaskInfo;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedAction;
@@ -81,10 +81,10 @@ public class ApplicationRpcClient implements ApplicationRpc {
   }
 
   @Override
-  public Set<TaskUrl> getTaskUrls() throws IOException, YarnException {
-    GetTaskUrlsResponse response =
-        tensorflow.getTaskUrls(recordFactory.newRecordInstance(GetTaskUrlsRequest.class));
-    return response.getTaskUrls();
+  public Set<TaskInfo> getTaskInfos() throws IOException, YarnException {
+    GetTaskInfosResponse response =
+        tensorflow.getTaskInfos(recordFactory.newRecordInstance(GetTaskInfosRequest.class));
+    return response.getTaskInfos();
   }
 
   @Override

@@ -9,8 +9,8 @@ import com.google.protobuf.ServiceException;
 import com.linkedin.tony.rpc.Empty;
 import com.linkedin.tony.rpc.GetClusterSpecRequest;
 import com.linkedin.tony.rpc.GetClusterSpecResponse;
-import com.linkedin.tony.rpc.GetTaskUrlsRequest;
-import com.linkedin.tony.rpc.GetTaskUrlsResponse;
+import com.linkedin.tony.rpc.GetTaskInfosRequest;
+import com.linkedin.tony.rpc.GetTaskInfosResponse;
 import com.linkedin.tony.rpc.HeartbeatRequest;
 import com.linkedin.tony.rpc.HeartbeatResponse;
 import com.linkedin.tony.rpc.RegisterExecutionResultRequest;
@@ -24,8 +24,8 @@ import com.linkedin.tony.rpc.TensorFlowClusterPB;
 import com.linkedin.tony.rpc.impl.pb.EmptyPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecResponsePBImpl;
-import com.linkedin.tony.rpc.impl.pb.GetTaskUrlsRequestPBImpl;
-import com.linkedin.tony.rpc.impl.pb.GetTaskUrlsResponsePBImpl;
+import com.linkedin.tony.rpc.impl.pb.GetTaskInfosRequestPBImpl;
+import com.linkedin.tony.rpc.impl.pb.GetTaskInfosResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterExecutionResultRequestPBImpl;
@@ -36,7 +36,7 @@ import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecResponsePBImpl;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetClusterSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskUrlsRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRequestProto;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecRequestProto;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.HeartbeatRequestProto;
 import java.io.Closeable;
@@ -69,10 +69,10 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
   }
 
   @Override
-  public GetTaskUrlsResponse getTaskUrls(GetTaskUrlsRequest request) throws IOException, YarnException {
-    GetTaskUrlsRequestProto requestProto = ((GetTaskUrlsRequestPBImpl) request).getProto();
+  public GetTaskInfosResponse getTaskInfos(GetTaskInfosRequest request) throws IOException, YarnException {
+    GetTaskInfosRequestProto requestProto = ((GetTaskInfosRequestPBImpl) request).getProto();
     try {
-      return new GetTaskUrlsResponsePBImpl(proxy.getTaskUrls(null, requestProto));
+      return new GetTaskInfosResponsePBImpl(proxy.getTaskInfos(null, requestProto));
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       return null;

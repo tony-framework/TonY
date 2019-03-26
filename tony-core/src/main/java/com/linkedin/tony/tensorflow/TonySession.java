@@ -6,8 +6,9 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
-import com.linkedin.tony.rpc.TaskUrl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,7 +30,9 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
-import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.Constants.CHIEF_JOB_NAME;
+import static com.linkedin.tony.Constants.PS_JOB_NAME;
+import static com.linkedin.tony.Constants.WORKER_JOB_NAME;
 
 
 /**
@@ -39,7 +42,6 @@ public class TonySession {
   private static final Log LOG = LogFactory.getLog(TonySession.class);
   private Configuration tonyConf;
 
-  private String taskCmd;
   private String amAddress;
   private Map<String, TensorFlowContainerRequest> containerRequests;
 
@@ -52,7 +54,6 @@ public class TonySession {
 
   private FinalApplicationStatus sessionFinalStatus = FinalApplicationStatus.UNDEFINED;
   private String sessionFinalMessage = null;
-  private Map<String, String> shellEnv;
   private String jvmArgs;
 
   // If the training has finished. This is used to signal AM to stop waiting for other workers to finish and
@@ -69,15 +70,7 @@ public class TonySession {
         .append(jvmArgs)
         .append(" com.linkedin.tony.TaskExecutor ")
         .append(" --am_address ")
-        .append(amAddress)
-        .append(" --task_command ")
-        .append(taskCmd);
-    for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
-      cmd.append(" --shell_env ");
-      cmd.append(entry.getKey());
-      cmd.append("=");
-      cmd.append(entry.getValue());
-    }
+        .append(amAddress);
     return cmd.toString();
   }
 
@@ -87,10 +80,8 @@ public class TonySession {
   }
 
   private TonySession(Builder builder) {
-    this.taskCmd = builder.taskCmd;
     this.amAddress = builder.amAddress;
     this.containerRequests = Utils.parseContainerRequests(builder.tonyConf);
-    this.shellEnv = builder.shellEnv;
     this.jvmArgs = builder.jvmArgs;
     this.tonyConf = builder.tonyConf;
 
@@ -165,7 +156,7 @@ public class TonySession {
   public boolean allTasksScheduled() {
     for (TonyTask[] tasks : jobTasks.values()) {
       for (TonyTask task : tasks) {
-        if (task == null || task.getTaskUrl() == null) {
+        if (task == null || task.getTaskInfo() == null) {
           return false;
         }
       }
@@ -242,7 +233,10 @@ public class TonySession {
           if (isChief(jobName, jobIndex)) {
             trainingFinished = true;
           }
+          task.getTaskInfo().setState(TaskStatus.FAILED);
           setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
+        } else {
+          task.getTaskInfo().setState(TaskStatus.SUCCEEDED);
         }
         break;
       default:
@@ -291,8 +285,7 @@ public class TonySession {
 
     if (failureCount > 0) {
       setFinalStatus(FinalApplicationStatus.FAILED,
-                     "At least one job task exited with non-zero status, failedCnt="
-                     + failureCount);
+          "At least one job task exited with non-zero status, failedCnt=" + failureCount);
     } else {
       LOG.info("Session completed with no job failures, setting final status SUCCEEDED.");
       setFinalStatus(FinalApplicationStatus.SUCCEEDED, null);
@@ -308,6 +301,12 @@ public class TonySession {
   }
 
   public void setFinalStatus(FinalApplicationStatus status, String message) {
+    for (TonyTask[] tasks : jobTasks.values()) {
+      for (TonyTask task : tasks) {
+        task.getTaskInfo().setState(TaskStatus.FINISHED);
+      }
+
+    }
     sessionFinalStatus = status;
     sessionFinalMessage = message;
   }
@@ -353,24 +352,12 @@ public class TonySession {
    * Builder to compose the TonySession class.
    */
   public static class Builder {
-    private String taskCmd;
-    private Map<String, String> shellEnv;
     private String amAddress;
     private String jvmArgs;
     private Configuration tonyConf;
 
     public TonySession build() {
       return new TonySession(this);
-    }
-
-    public Builder setTaskCmd(String taskCmd) {
-      this.taskCmd = taskCmd;
-      return this;
-    }
-
-    public Builder setShellEnv(Map<String, String> shellEnv) {
-      this.shellEnv = shellEnv;
-      return this;
     }
 
     public Builder setAMAddress(String amAddress) {
@@ -399,6 +386,7 @@ public class TonySession {
     private final int sessionId;
     private String host;
     private int port = -1;
+    private TaskInfo taskInfo;
 
     /**
      * The container the task is running in. Set once a container has been allocated for the task.
@@ -454,18 +442,24 @@ public class TonySession {
     }
 
     void setExitStatus(int status) {
+      if (status == 0) {
+        taskInfo.setState(TaskStatus.SUCCEEDED);
+      } else {
+        taskInfo.setState(TaskStatus.FAILED);
+      }
       this.completed = true;
       this.exitStatus = status;
     }
 
     /**
-     * Returns a {@link TaskUrl} containing the HTTP URL for the task.
+     * Returns a {@link TaskInfo} containing the HTTP URL for the task.
      */
-    public TaskUrl getTaskUrl() {
-      if (container == null) {
-        return null;
-      }
-      return new TaskUrl(jobName, taskIndex, Utils.constructContainerUrl(container));
+    public TaskInfo getTaskInfo() {
+      return taskInfo;
+    }
+
+    public void setTaskInfo(Container container) {
+      taskInfo = new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
     TonyTask(String jobName, String taskIndex, int sessionId) {

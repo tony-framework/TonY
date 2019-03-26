@@ -5,7 +5,6 @@
 package com.linkedin.tony;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.linkedin.tony.models.JobMetadata;
@@ -17,7 +16,8 @@ import com.linkedin.tony.events.EventType;
 import com.linkedin.tony.events.Metric;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
@@ -84,14 +84,16 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.UTCClock;
 
 import py4j.GatewayServer;
 
 
-public class TonyApplicationMaster {
-  private static final Log LOG = LogFactory.getLog(TonyApplicationMaster.class);
+public class ApplicationMaster {
+  private static final Log LOG = LogFactory.getLog(ApplicationMaster.class);
 
   /**
    * Metadata + History Server related variables
@@ -112,7 +114,6 @@ public class TonyApplicationMaster {
   private int amRetryCount;
   private long workerTimeout;
   private String hdfsClasspath;
-  private String baseTaskCommand;
   private int amPort;
   private ByteBuffer allTokens;
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
@@ -173,7 +174,7 @@ public class TonyApplicationMaster {
   private volatile boolean taskHasMissesHB = false;
   private Thread mainThread;
 
-  private TonyApplicationMaster() {
+  private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
 
@@ -201,7 +202,7 @@ public class TonyApplicationMaster {
   }
 
   /**
-   * Parse command line options and initialize TonyApplicationMaster
+   * Parse command line options and initialize ApplicationMaster
    * @return whether the initialization is successful or not.
    */
   private boolean init(String[] args) {
@@ -228,15 +229,10 @@ public class TonyApplicationMaster {
       return false;
     }
     Map<String, String> envs = System.getenv();
-    String[] shellEnvs = cliParser.getOptionValues("shell_env");
+    String[] shellEnvs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
     shellEnv = Utils.parseKeyValue(shellEnvs);
-    String[] containerEnvs = cliParser.getOptionValues("container_env");
+    String[] containerEnvs = tonyConf.getStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
     containerEnv.putAll(Utils.parseKeyValue(containerEnvs));
-
-    baseTaskCommand = buildTaskCommand(
-        cliParser.getOptionValue("python_binary_path"),
-        cliParser.getOptionValue("executes"),
-        cliParser.getOptionValue("task_params"));
 
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
                                  TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
@@ -275,35 +271,9 @@ public class TonyApplicationMaster {
     return true;
   }
 
-  @VisibleForTesting
-  static String buildTaskCommand(String pythonBinaryPath, String script,
-      String taskParams) {
-    String pythonInterpreter = "";
-    if (pythonBinaryPath != null) {
-      if (pythonBinaryPath.startsWith("/") || !new File(Constants.PYTHON_VENV_ZIP).exists()) {
-        pythonInterpreter = pythonBinaryPath;
-      } else {
-        pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
-      }
-    }
-
-    String baseTaskCommand = pythonInterpreter + " " + script;
-
-    if (taskParams != null) {
-      baseTaskCommand += " " + taskParams;
-    }
-
-    return baseTaskCommand;
-  }
-
-  private void buildTensorFlowSession() {
-    String taskCommand = "'" + baseTaskCommand + "'";
-    LOG.info("Final task command: " + taskCommand);
-
+  private void buildTonySession() {
     TonySession.Builder builder = new TonySession.Builder()
-        .setTaskCmd(taskCommand)
         .setAMAddress(amHostPort)
-        .setShellEnv(shellEnv)
         .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS));
@@ -312,14 +282,14 @@ public class TonyApplicationMaster {
   }
 
   /**
-   * Entry point of TonyApplicationMaster
+   * Entry point of ApplicationMaster
    * The workflow of a training job in AM
    * prepare -> start -> failed    -> reset -> retry if amRetryCount > 0 otherwise fail the job.
    *                  -> succeeded -> stop -> job succeeded
    * @param args the args from user inputs
    */
   public static void main(String[] args) {
-    TonyApplicationMaster am = new TonyApplicationMaster();
+    ApplicationMaster am = new ApplicationMaster();
     boolean succeeded = am.run(args);
     if (succeeded) {
       LOG.info("Application Master completed successfully. Exiting");
@@ -356,7 +326,7 @@ public class TonyApplicationMaster {
       // Crash AM on purpose during AM crash tests.
       String shouldCrash = System.getenv(Constants.TEST_AM_CRASH);
       if (shouldCrash != null && shouldCrash.equals("true")) {
-        LOG.fatal("Error running TonyApplicationMaster !!");
+        LOG.fatal("Error running ApplicationMaster !!");
         return false;
       }
 
@@ -540,7 +510,7 @@ public class TonyApplicationMaster {
       return;
     }
 
-    buildTensorFlowSession();
+    buildTonySession();
     scheduleTasks();
   }
 
@@ -722,7 +692,8 @@ public class TonyApplicationMaster {
      */
     extraEnv.put("HOME", System.getProperty("user.dir"));
     extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
-    String taskCommand = baseTaskCommand;
+    String taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
+                tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
     LOG.info("Executing command: " + taskCommand);
     int exitCode = Utils.executeShell(taskCommand, workerTimeout, extraEnv);
 
@@ -757,7 +728,7 @@ public class TonyApplicationMaster {
           .values()
           .stream()
           .flatMap(Arrays::stream)
-          .forEach(task -> Utils.printTaskUrl(task.getTaskUrl(), LOG));
+          .forEach(task -> Utils.printTaskUrl(task.getTaskInfo(), LOG));
     }
   }
 
@@ -779,20 +750,20 @@ public class TonyApplicationMaster {
     }
 
     @Override
-    public Set<TaskUrl> getTaskUrls() {
+    public Set<TaskInfo> getTaskInfos() {
       // Special handling for NotebookSubmitter.
       if (singleNode && proxyUrl != null) {
-        HashSet<TaskUrl> additionalTasks = new HashSet<>();
-        additionalTasks.add(new TaskUrl(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
+        HashSet<TaskInfo> additionalTasks = new HashSet<>();
+        additionalTasks.add(new TaskInfo(Constants.DRIVER_JOB_NAME, "0", Utils.constructContainerUrl(
                           Utils.getCurrentHostName() + ":"
                           + System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()), containerId)));
-        additionalTasks.add(new TaskUrl(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
+        additionalTasks.add(new TaskInfo(Constants.NOTEBOOK_JOB_NAME, "0", proxyUrl));
         return additionalTasks;
       }
 
       if (!singleNode && session != null && session.allTasksScheduled()) {
         return session.getTonyTasks().values().stream()
-            .flatMap(tasks -> Arrays.stream(tasks).map(TonyTask::getTaskUrl))
+            .flatMap(tasks -> Arrays.stream(tasks).map(TonyTask::getTaskInfo))
             .collect(Collectors.toSet());
       }
 
@@ -1077,13 +1048,14 @@ public class TonyApplicationMaster {
      * Set up container's launch command and start the container.
      */
     public void run() {
-      // Specify session id in the env to distinguish between different sessions.
-      containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
-      Map<String, String> containerShellEnv = new ConcurrentHashMap<>(containerEnv);
+
 
       TonyTask task = session.getAndInitMatchingTaskByPriority(container.getPriority().getPriority());
-
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
+
+      task.setTaskInfo(container);
+      TaskInfo taskInfo = task.getTaskInfo();
+      taskInfo.setState(TaskStatus.READY);
 
       // Add job type specific resources
       Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
@@ -1097,6 +1069,7 @@ public class TonyApplicationMaster {
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
+      Map<String, String> containerLaunchEnv = new ConcurrentHashMap<>(containerEnv);
       /*
        * Add additional environment vars. We always set job_name task_index & task_num and
        * task_num and TaskExecutor is responsible for setting up the actual shell environment
@@ -1104,12 +1077,14 @@ public class TonyApplicationMaster {
        */
       String jobName = task.getJobName();
       String taskIndex = task.getTaskIndex();
-      containerShellEnv.put(Constants.JOB_NAME, jobName);
-      containerShellEnv.put(Constants.TASK_INDEX, taskIndex);
-      containerShellEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
+      containerLaunchEnv.put(Constants.JOB_NAME, jobName);
+      containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
+      containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
       if (session.isChief(jobName, taskIndex)) {
-        containerShellEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
+        containerLaunchEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
       }
+      // Specify session id in the env to distinguish between different sessions.
+      containerLaunchEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
 
       List<CharSequence> arguments = new ArrayList<>(5);
       arguments.add(session.getTaskCommand());
@@ -1122,7 +1097,7 @@ public class TonyApplicationMaster {
       List<String> commands = ImmutableList.of(command.toString());
 
       LOG.info("Constructed command: " + commands);
-      LOG.info("Container environment: " + containerShellEnv);
+      LOG.info("Container environment: " + containerLaunchEnv);
 
       // Set logs to be readable by everyone.
       Map<ApplicationAccessType, String> acls = new HashMap<>(2);
@@ -1133,7 +1108,7 @@ public class TonyApplicationMaster {
       if (secureMode) {
         tokens = allTokens.duplicate();
       }
-      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerShellEnv,
+      ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerLaunchEnv,
                                                                       commands, null, tokens, acls);
 
       String sessionId = String.valueOf(session.sessionId);
@@ -1141,8 +1116,9 @@ public class TonyApplicationMaster {
           Collections.synchronizedList(new ArrayList<>())
       ).add(container);
 
-      Utils.printTaskUrl(task.getTaskUrl(), LOG);
+      Utils.printTaskUrl(task.getTaskInfo(), LOG);
       nmClientAsync.startContainerAsync(container, ctx);
+      taskInfo.setState(TaskStatus.RUNNING);
     }
   }
 

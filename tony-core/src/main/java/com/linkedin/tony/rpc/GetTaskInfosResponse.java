@@ -7,8 +7,8 @@ package com.linkedin.tony.rpc;
 import java.util.Set;
 
 
-public interface GetTaskUrlsResponse {
-    Set<TaskUrl> getTaskUrls();
+public interface GetTaskInfosResponse {
+    Set<TaskInfo> getTaskInfos();
 
-    void setTaskUrls(Set<TaskUrl> taskUrls);
+    void setTaskInfos(Set<TaskInfo> taskInfos);
 }
