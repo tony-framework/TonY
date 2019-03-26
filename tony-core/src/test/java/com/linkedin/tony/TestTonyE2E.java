@@ -120,7 +120,7 @@ public class TestTonyE2E  {
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
-    conf.set(TonyConfigurationKeys.getContainerResourcesKey(), "tony-core/src/test/resources/test2.zip");
+    conf.set(TonyConfigurationKeys.getContainerResourcesKey(), "tony-core/src/test/resources/common.zip");
     client = new TonyClient(handler, conf);
   }
 
@@ -412,7 +412,7 @@ public class TestTonyE2E  {
 
     // command line arguments should not override tony conf file for values that could have multiple values.
     assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test.zip"));
-    assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test2.zip"));
+    assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("common.zip"));
   }
 
 }
