@@ -505,7 +505,14 @@ public class TonyClient implements AutoCloseable {
     if (cliParser.hasOption("conf")) {
       String[] confs = cliParser.getOptionValues("conf");
       for (Map.Entry<String, String> cliConf : Utils.parseKeyValue(confs).entrySet()) {
-        tonyConf.set(cliConf.getKey(), cliConf.getValue());
+        String[] existingValue = tonyConf.getStrings(cliConf.getKey());
+        if (existingValue != null && TonyConfigurationKeys.MULTI_VALUE_CONF.contains(cliConf.getKey())) {
+          ArrayList<String> newValues = new ArrayList<>(Arrays.asList(existingValue));
+          newValues.add(cliConf.getValue());
+          tonyConf.setStrings(cliConf.getKey(), newValues.toArray(new String[0]));
+        } else {
+          tonyConf.set(cliConf.getKey(), cliConf.getValue());
+        }
       }
     }
 

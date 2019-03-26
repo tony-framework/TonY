@@ -38,6 +38,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 
 /**
@@ -96,6 +97,7 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
+    conf.set(TonyConfigurationKeys.getContainerResourcesKey(), "tony-core/src/test/resources/test2.zip");
     client = new TonyClient(this, conf);
   }
 
@@ -369,7 +371,8 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
         "--executes", "ls",
         "--shell_env", "TEST1=test",
         "--container_env", "TEST2=test",
-        "--conf", "tony.application.worker.command=cat"
+        "--conf", "tony.application.worker.command=cat",
+        "--conf", "tony.containers.resources=tony-core/src/test/resources/test.zip"
     });
     // Stub actual app submission logic
     doReturn(true).when(client).monitorApplication();
@@ -382,6 +385,10 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
     assertEquals(finalConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV), "TEST2=test");
     assertEquals(finalConf.get(TonyConfigurationKeys.EXECUTION_ENV), "TEST1=test");
     assertEquals(finalConf.get(TonyConfigurationKeys.getExecuteCommandKey("worker")), "cat");
+
+    // command line arguments should not override tony conf file for values that could have multiple values.
+    assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test.zip"));
+    assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test2.zip"));
   }
 
   @Override

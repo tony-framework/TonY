@@ -4,6 +4,9 @@
  */
 package com.linkedin.tony;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class TonyConfigurationKeys {
   public enum MLFramework {
     TENSORFLOW,
@@ -234,4 +237,8 @@ public class TonyConfigurationKeys {
   public static final String HDFS_CONF_LOCATION = TONY_APPLICATION_PREFIX + "hdfs-conf-path";
 
   public static final String YARN_CONF_LOCATION = TONY_APPLICATION_PREFIX + "yarn-conf-path";
+
+  // Configurations that can take multiple values.
+  public static final List<String> MULTI_VALUE_CONF = Arrays.asList(CONTAINER_LAUNCH_ENV, EXECUTION_ENV,
+      getContainerResourcesKey());
 }
