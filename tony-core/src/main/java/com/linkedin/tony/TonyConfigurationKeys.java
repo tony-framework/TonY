@@ -5,6 +5,7 @@
 package com.linkedin.tony;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class TonyConfigurationKeys {
@@ -239,6 +240,6 @@ public class TonyConfigurationKeys {
   public static final String YARN_CONF_LOCATION = TONY_APPLICATION_PREFIX + "yarn-conf-path";
 
   // Configurations that can take multiple values.
-  public static final List<String> MULTI_VALUE_CONF = Arrays.asList(CONTAINER_LAUNCH_ENV, EXECUTION_ENV,
-      getContainerResourcesKey());
+  public static final List<String> MULTI_VALUE_CONF = Collections.unmodifiableList(
+      Arrays.asList(CONTAINER_LAUNCH_ENV, EXECUTION_ENV, getContainerResourcesKey()));
 }
