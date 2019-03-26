@@ -52,7 +52,32 @@ import static org.testng.Assert.assertTrue;
  *
  * The YARN logs for the test should be in {@code <TonY>/target/MiniTonY}.
  */
-public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
+public class TestTonyE2E  {
+
+  private static class TestTonyE2EHandler implements CallbackHandler, TaskUpdateListener {
+
+    private ApplicationId appId;
+
+    public ApplicationId getAppId() {
+      return appId;
+    }
+
+    public Set<TaskInfo> getTaskInfoSet() {
+      return taskInfoSet;
+    }
+
+    private Set<TaskInfo> taskInfoSet;
+
+    @Override
+    public void onApplicationIdReceived(ApplicationId appId) {
+      this.appId = appId;
+    }
+
+    @Override
+    public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet) {
+      this.taskInfoSet = taskInfoSet;
+    }
+  }
 
   private MiniCluster cluster;
   private String yarnConf;
@@ -60,8 +85,7 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
   private Configuration conf = new Configuration();
   private TonyClient client;
   private String libPath;
-  private ApplicationId appId;
-  private Set<TaskInfo> taskInfoSet;
+  private TestTonyE2EHandler handler;
 
   @BeforeClass
   public void doBeforeClass() throws Exception {
@@ -91,14 +115,13 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
 
   @BeforeMethod
   public void doBeforeMethod() {
-    appId = null;
-    taskInfoSet = null;
+    handler = new TestTonyE2EHandler();
     conf = new Configuration();
     conf.setBoolean(TonyConfigurationKeys.SECURITY_ENABLED, false);
     conf.set(TonyConfigurationKeys.HDFS_CONF_LOCATION, hdfsConf);
     conf.set(TonyConfigurationKeys.YARN_CONF_LOCATION, yarnConf);
     conf.set(TonyConfigurationKeys.getContainerResourcesKey(), "tony-core/src/test/resources/test2.zip");
-    client = new TonyClient(this, conf);
+    client = new TonyClient(handler, conf);
   }
 
   @Test
@@ -339,20 +362,21 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--python_venv", "tony-core/src/test/resources/test.zip",
     });
-    client.addListener(this);
+    client.addListener(handler);
     int exitCode = client.start();
     List<String> expectedJobs = new ArrayList<>();
     List<String> actualJobs = new ArrayList<>();
     expectedJobs.add(Constants.WORKER_JOB_NAME);
     expectedJobs.add(Constants.PS_JOB_NAME);
-    Assert.assertNotNull(appId);
+    Assert.assertNotNull(handler.appId);
     Assert.assertEquals(exitCode, 0);
-    client.removeListener(this);
-    Assert.assertEquals(taskInfoSet.size(), 2);
-    for (TaskInfo taskInfo : taskInfoSet) {
+    client.removeListener(handler);
+    Assert.assertEquals(handler.getTaskInfoSet().size(), 2);
+    for (TaskInfo taskInfo : handler.getTaskInfoSet()) {
       actualJobs.add(taskInfo.getName());
       Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
     }
+    Assert.assertNotNull(handler.getAppId());
     Assert.assertTrue(actualJobs.containsAll(expectedJobs) && expectedJobs.containsAll(actualJobs));
   }
 
@@ -391,13 +415,4 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
     assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test2.zip"));
   }
 
-  @Override
-  public void onApplicationIdReceived(ApplicationId appId) {
-    this.appId = appId;
-  }
-
-  @Override
-  public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet) {
-    this.taskInfoSet = taskInfoSet;
-  }
 }
