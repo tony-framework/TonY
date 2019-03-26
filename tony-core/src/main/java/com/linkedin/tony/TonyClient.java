@@ -904,8 +904,9 @@ public class TonyClient implements AutoCloseable {
     }
   }
 
-  public ClientCallbackHandler getCallbackHandler() {
-    return callbackHandler;
+  @VisibleForTesting
+  public CopyOnWriteArrayList<TaskUpdateListener> getListener() {
+    return listeners;
   }
 
   protected ApplicationRpcClient getAMRpcClient() {

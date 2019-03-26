@@ -4,13 +4,11 @@
  */
 package com.linkedin.tony.cli;
 
-import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.util.Utils;
 import com.linkedin.tonyproxy.ProxyServer;
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +24,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import static com.linkedin.tony.Constants.*;
@@ -45,34 +42,29 @@ import static com.linkedin.tony.Constants.*;
  * CLASSPATH=$(${HADOOP_HDFS_HOME}/bin/hadoop classpath --glob):./:/home/khu/notebook/tony-cli-0.1.0-all.jar \
  * java com.linkedin.tony.cli.NotebookSubmitter --src_dir bin/ --executes "'bin/linotebook --ip=* $DISABLE_TOKEN'"
  */
-public class NotebookSubmitter extends TonySubmitter implements CallbackHandler, TaskUpdateListener {
+public class NotebookSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(NotebookSubmitter.class);
 
-  private static class NotebookCallbackHandler implements ClientCallbackHandler {
-    private Set<TaskUrl> taskUrlSet;
+  private static class NotebookUpdateListener implements TaskUpdateListener {
+    private Set<TaskInfo> taskInfos;
 
-    Set<TaskUrl> getTaskUrls() {
-      return taskUrlSet;
+    Set<TaskInfo> getTaskInfos() {
+      return taskInfos;
     }
 
     @Override
-    public void onApplicationIdReceived(ApplicationId appId) { }
-
-    @Override
-    public void onTaskUrlsReceived(Set<TaskUrl> taskUrls) {
-      taskUrlSet = taskUrls;
+    public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet) {
+      this.taskInfos = taskInfoSet;
     }
   }
 
-  private NotebookCallbackHandler callbackHandler;
+  private NotebookUpdateListener listener;
   private TonyClient client;
-  private Set<TaskInfo> taskInfoSet;
-
 
   public NotebookSubmitter() {
-    callbackHandler = new NotebookCallbackHandler();
-    client = new TonyClient(callbackHandler, new Configuration());
-    client.addListener(this);
+    listener = new NotebookUpdateListener();
+    client = new TonyClient(new Configuration());
+    client.addListener(listener);
   }
 
   public int submit(String[] args)
@@ -112,8 +104,9 @@ public class NotebookSubmitter extends TonySubmitter implements CallbackHandler,
     }));
     clientThread.start();
     while (clientThread.isAlive()) {
-      if (taskInfoSet != null) {
-        for (TaskInfo taskInfo : taskInfoSet) {
+      Set<TaskInfo> taskInfos = listener.getTaskInfos();
+      if (taskInfos != null) {
+        for (TaskInfo taskInfo : taskInfos) {
           if (taskInfo.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
             URL url = new URL(taskInfo.getUrl());
             String host = url.getHost();
@@ -147,12 +140,6 @@ public class NotebookSubmitter extends TonySubmitter implements CallbackHandler,
     NotebookSubmitter submitter = new NotebookSubmitter();
     exitCode = submitter.submit(args);
     System.exit(exitCode);
-  }
-
-  // CallbackHandler callbacks
-  public void onApplicationIdReceived(ApplicationId appId) { }
-  public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet) {
-    this.taskInfoSet = taskInfoSet;
   }
 
 }
