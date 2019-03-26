@@ -115,7 +115,9 @@ public class NotebookSubmitter extends TonySubmitter implements CallbackHandler,
       if (taskInfoSet != null) {
         for (TaskInfo taskInfo : taskInfoSet) {
           if (taskInfo.getName().equals(Constants.NOTEBOOK_JOB_NAME)) {
-            String[] hostPort = taskInfo.getUrl().split(":");
+            URL url = new URL(taskInfo.getUrl());
+            String host = url.getHost();
+            int port = url.getPort();
             ServerSocket localSocket = new ServerSocket(0);
             int localPort = localSocket.getLocalPort();
             localSocket.close();
