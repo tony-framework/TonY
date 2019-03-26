@@ -397,7 +397,7 @@ public class TestTonyE2E implements CallbackHandler, TaskUpdateListener {
   }
 
   @Override
-  public void onTaskInfosReceived(Set<TaskInfo> taskInfoSet) {
+  public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet) {
     this.taskInfoSet = taskInfoSet;
   }
 }
