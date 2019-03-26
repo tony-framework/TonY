@@ -4,11 +4,11 @@
  */
 package com.linkedin.tony;
 
-import java.io.IOException;
-import java.util.HashMap;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 import static org.testng.Assert.assertEquals;
 
@@ -31,16 +31,6 @@ public class TestTonyClient {
     client.init(args);
     String containerResources = client.getTonyConf().get(TonyConfigurationKeys.getContainerResourcesKey());
     assertEquals(containerResources, "hdfs://example.com:9000/my/hdfs/path");
-  }
-
-  @Test
-  public void testBuildCommand() {
-    String command = TonyClient.buildCommand(1000, null, "venv/python",
-        "ls", new HashMap<>(), new HashMap<>());
-    String expected = "{{JAVA_HOME}}/bin/java -Xmx800m -Dyarn.app.container.log.dir=<LOG_DIR> com.linkedin.tony."
-        + "TonyApplicationMaster --python_binary_path venv/python --executes ls"
-        + " 1><LOG_DIR>/amstdout.log 2><LOG_DIR>/amstderr.log";
-    assertEquals(command, expected);
   }
 
   @Test
@@ -74,4 +64,5 @@ public class TestTonyClient {
     conf.setInt("tony.foo.instances", 2);
     TonyClient.validateTonyConf(conf);
   }
+
 }

@@ -4,6 +4,10 @@
  */
 package com.linkedin.tony;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class TonyConfigurationKeys {
   public enum MLFramework {
     TENSORFLOW,
@@ -186,6 +190,26 @@ public class TonyConfigurationKeys {
     return TONY_PREFIX + "containers.resources";
   }
 
+  // Job specific execution command
+  public static String getExecuteCommandKey(String jobName) {
+    return String.format(TONY_APPLICATION_PREFIX + "%s.command", jobName);
+  }
+
+  // Execution command for all containers
+  public static String getContainerExecuteCommandKey() {
+    return TONY_APPLICATION_PREFIX + "containers.command";
+  }
+
+  // Job specific docker image
+  public static String getDockerImageKey(String jobName) {
+    return String.format(DOCKER_PREFIX + "%s.image", jobName);
+  }
+
+  // Docker images for all containers
+  public static String getContainerDockerKey() {
+    return DOCKER_PREFIX + "containers.image";
+  }
+
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
@@ -199,11 +223,13 @@ public class TonyConfigurationKeys {
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
 
   // Tony with docker configuration
-  public static final String DOCKER_PREFIX = TONY_APPLICATION_PREFIX + "docker.";
+  public static final String DOCKER_PREFIX = TONY_PREFIX + "docker.";
   public static final String DOCKER_ENABLED = DOCKER_PREFIX + "enabled";
   public static final boolean DEFAULT_DOCKER_ENABLED = false;
 
-  public static final String DOCKER_IMAGE = DOCKER_PREFIX + "image";
+  // Environment
+  public static final String CONTAINER_LAUNCH_ENV = TONY_PREFIX + "containers.envs";
+  public static final String EXECUTION_ENV = TONY_PREFIX + "execution.envs";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";
@@ -212,4 +238,8 @@ public class TonyConfigurationKeys {
   public static final String HDFS_CONF_LOCATION = TONY_APPLICATION_PREFIX + "hdfs-conf-path";
 
   public static final String YARN_CONF_LOCATION = TONY_APPLICATION_PREFIX + "yarn-conf-path";
+
+  // Configurations that can take multiple values.
+  public static final List<String> MULTI_VALUE_CONF = Collections.unmodifiableList(
+      Arrays.asList(CONTAINER_LAUNCH_ENV, EXECUTION_ENV, getContainerResourcesKey()));
 }

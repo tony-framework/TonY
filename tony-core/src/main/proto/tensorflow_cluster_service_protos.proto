@@ -9,7 +9,7 @@ option java_generic_services = true;
 import "yarn_tensorflow_cluster_protos.proto";
 
 service TensorFlowClusterService {
-    rpc getTaskUrls (GetTaskUrlsRequestProto) returns (GetTaskUrlsResponseProto);
+    rpc getTaskInfos (GetTaskInfosRequestProto) returns (GetTaskInfosResponseProto);
     rpc getClusterSpec (GetClusterSpecRequestProto) returns (GetClusterSpecResponseProto);
     rpc registerWorkerSpec (RegisterWorkerSpecRequestProto) returns (RegisterWorkerSpecResponseProto);
     rpc registerTensorBoardUrl (RegisterTensorBoardUrlRequestProto) returns (RegisterTensorBoardUrlResponseProto);

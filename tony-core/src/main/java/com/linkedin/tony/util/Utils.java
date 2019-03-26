@@ -10,7 +10,7 @@ import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.rpc.TaskUrl;
+import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -193,8 +193,8 @@ public class Utils {
     }
   }
 
-  public static void printTaskUrl(TaskUrl taskUrl, Log log) {
-    log.info(String.format("Logs for %s %s at: %s", taskUrl.getName(), taskUrl.getIndex(), taskUrl.getUrl()));
+  public static void printTaskUrl(TaskInfo taskInfo, Log log) {
+    log.info(String.format("Logs for %s %s at: %s", taskInfo.getName(), taskInfo.getIndex(), taskInfo.getUrl()));
   }
 
   public static void printTHSUrl(String thsHost, String appId, Log log) {
@@ -230,7 +230,7 @@ public class Utils {
   }
 
   /**
-   * This function is used by TonyApplicationMaster and TonyClient to set up
+   * This function is used by ApplicationMaster and TonyClient to set up
    * common command line arguments.
    * @return Options that contains common options
    */
@@ -238,14 +238,7 @@ public class Utils {
     Options opts = new Options();
 
     // Container environment
-    // examples for env set variables: --shell_env CLASSPATH=ABC --shell_ENV LD_LIBRARY_PATH=DEF
-    opts.addOption("shell_env", true, "Environment for shell script, specified as env_key=env_val pairs");
-    opts.addOption("container_env", true, "Environment for the worker containers, specified as key=val pairs");
     opts.addOption("hdfs_classpath", true, "Path to jars on HDFS for workers.");
-
-    // Execution
-    opts.addOption("task_params", true, "The task params to pass into python entry point.");
-    opts.addOption("executes", true, "The file to execute on workers.");
 
     // Python env
     opts.addOption("python_binary_path", true, "The relative path to python binary.");
