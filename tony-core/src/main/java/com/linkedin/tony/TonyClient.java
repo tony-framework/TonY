@@ -373,7 +373,7 @@ public class TonyClient implements AutoCloseable {
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
     executes = cliParser.getOptionValue("executes");
-    executes = TonyClient.buildTaskCommand(pythonBinaryPath, executes, taskParams);
+    executes = TonyClient.buildTaskCommand(pythonVenv, pythonBinaryPath, executes, taskParams);
     if (executes != null) {
       tonyConf.set(TonyConfigurationKeys.getContainerExecuteCommandKey(), executes);
     }
@@ -458,7 +458,7 @@ public class TonyClient implements AutoCloseable {
 
 
   @VisibleForTesting
-  static String buildTaskCommand(String pythonBinaryPath, String execute,
+  static String buildTaskCommand(String pythonVenv, String pythonBinaryPath, String execute,
                                  String taskParams) {
     if (execute == null) {
       return null;
@@ -466,7 +466,7 @@ public class TonyClient implements AutoCloseable {
     String baseTaskCommand = execute;
     String pythonInterpreter;
     if (pythonBinaryPath != null) {
-      if (pythonBinaryPath.startsWith("/") || !new File(Constants.PYTHON_VENV_ZIP).exists()) {
+      if (pythonBinaryPath.startsWith("/") || pythonVenv == null) {
         pythonInterpreter = pythonBinaryPath;
       } else {
         pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
