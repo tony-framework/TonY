@@ -91,7 +91,7 @@ import org.apache.hadoop.yarn.util.Records;
 public class TonyClient implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TonyClient.class);
 
-  private static final String APP_TYPE = "TonY";
+  private static final String APP_TYPE = "TONY";
 
   // Configurations
   private YarnClient yarnClient;
