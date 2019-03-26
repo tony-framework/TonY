@@ -671,8 +671,8 @@ public class ApplicationMaster {
       int tbPort = tbSocket.getLocalPort();
       extraEnv.put(Constants.TB_PORT, String.valueOf(tbPort));
       String tbUrl = Utils.getCurrentHostName() + ":" + tbPort;
-      proxyUrl = tbUrl;
-      LOG.info("Registering tensorboard url for single node training: " + tbUrl);
+      proxyUrl = Utils.constructUrl(tbUrl);
+      LOG.info("Registering TensorBoard url for single node training: " + tbUrl);
       registerTensorBoardUrlToRM(tbUrl);
       tbSocket.close();
     }

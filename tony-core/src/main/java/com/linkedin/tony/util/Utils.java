@@ -173,13 +173,15 @@ public class Utils {
     resource.setResourceValue(GPU_URI, gpuCount);
   }
 
-  public static String constructContainerUrl(Container container) {
-    try {
-      return String.format(WORKER_LOG_URL_TEMPLATE, container.getNodeHttpAddress(), container.getId(),
-          UserGroupInformation.getCurrentUser().getShortUserName());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+  public static String constructUrl(String urlString) {
+    if (!urlString.startsWith("http")) {
+      return "http://" + urlString;
     }
+    return urlString;
+  }
+
+  public static String constructContainerUrl(Container container) {
+    return constructContainerUrl(container.getNodeHttpAddress(), container.getId());
   }
 
   public static String constructContainerUrl(String nodeAddress, ContainerId containerId) {

@@ -902,7 +902,10 @@ public class TonyClient implements AutoCloseable {
     if (appId != null) {
       yarnClient.killApplication(appId);
     }
+  }
 
+  public ClientCallbackHandler getCallbackHandler() {
+    return callbackHandler;
   }
 
   protected ApplicationRpcClient getAMRpcClient() {
