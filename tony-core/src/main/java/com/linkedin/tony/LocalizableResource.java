@@ -29,7 +29,6 @@ import java.net.URI;
  */
 public class LocalizableResource {
 
-    private static String SEPARATOR = "::";
     private String path;
 
     private boolean isDirectory;
@@ -61,7 +60,7 @@ public class LocalizableResource {
             resourceType = LocalResourceType.ARCHIVE;
             filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
         }
-        String[] tuple = filePath.split(SEPARATOR);
+        String[] tuple = filePath.split(Constants.RESOURCE_DIVIDER);
         if (tuple.length > 2) {
             throw new ParseException("Failed to parse file: " + path);
         }
