@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
@@ -38,6 +39,7 @@ import java.util.zip.ZipOutputStream;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -428,28 +430,23 @@ public class Utils {
     try {
       if (path != null) {
         // Check the format of the path, if the path is of path#archive, we set resource type as ARCHIVE
-        if (path.contains(Constants.ARCHIVE_SUFFIX)) {
-          String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
-          FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
-          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(scFileStatus.getPath().toString())),
-              LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
-              scFileStatus.getLen(), scFileStatus.getModificationTime());
-          resourcesMap.put(scFileStatus.getPath().getName(), resource);
-          return;
-        }
-        FileStatus[] ls = fs.listStatus(new Path(path));
-        for (FileStatus fileStatus : ls) {
-          // We only add first level files.
-          if (fileStatus.isDirectory()) {
-            continue;
+        LocalizableResource localizableResource = new LocalizableResource(path);
+        localizableResource.parse(fs);
+        if (localizableResource.isDirectory()) {
+          Path dirpath = localizableResource.getSourceFilePath();
+          FileStatus[] ls = fs.listStatus(dirpath);
+          for (FileStatus fileStatus : ls) {
+            // We only add first level files.
+            if (fileStatus.isDirectory()) {
+              continue;
+            }
+            addResource(dirpath.toString(), resourcesMap, fs);
           }
-          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(fileStatus.getPath().toString())),
-                                                             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-                                                             fileStatus.getLen(), fileStatus.getModificationTime());
-          resourcesMap.put(fileStatus.getPath().getName(), resource);
+        } else {
+          resourcesMap.put(localizableResource.getLocalFileName(), localizableResource.getLocalResource());
         }
       }
-    } catch (IOException exception) {
+    } catch (IOException | ParseException exception) {
       LOG.error("Failed to add " + path + " to local resources.", exception);
     }
   }
