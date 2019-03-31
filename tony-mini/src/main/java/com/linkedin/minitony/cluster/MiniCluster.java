@@ -52,7 +52,7 @@ public class MiniCluster {
     yarnCluster.start();
     dfsCluster.waitActive();
     yarnClusterConf = yarnCluster.getConfig();
-    hdfsClusterConf = dfsCluster.getNameNode().getConf();
+    hdfsClusterConf = dfsCluster.getConfiguration(0);
     yarnClusterConf.setBoolean("ipc.client.fallback-to-simple-auth-allowed", true);
     hdfsClusterConf.setBoolean("ipc.client.fallback-to-simple-auth-allowed", true);
   }

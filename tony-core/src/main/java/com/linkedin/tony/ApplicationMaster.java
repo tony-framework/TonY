@@ -75,7 +75,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.UpdatedContainer;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
@@ -85,9 +84,9 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime;
-import org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
+import org.apache.hadoop.yarn.util.UTCClock;
+
 import py4j.GatewayServer;
 
 
@@ -138,10 +137,6 @@ public class ApplicationMaster {
   private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
 
-  // allocationRequestIds are allocated to tasks sequentially. lastAllocationRequestId
-  // tracks the latest allocationRequestId allocated.
-  private long lastAllocationRequestId = 0;
-
   /** Tony session **/
   private TonySession session = new TonySession(); // Create a dummy session for single node training.
   private TonySession.Builder sessionBuilder;
@@ -181,7 +176,7 @@ public class ApplicationMaster {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
 
-    hbMonitor = new AbstractLivelinessMonitor<TonyTask>("Tony Task liveliness Monitor") {
+    hbMonitor = new AbstractLivelinessMonitor<TonyTask>("Tony Task liveliness Monitor", new UTCClock()) {
       @Override
       protected void expire(TonyTask task) {
         onTaskDeemedDead(task);
@@ -189,7 +184,15 @@ public class ApplicationMaster {
 
       @Override
       protected void serviceStart() throws Exception {
-        setMonitorInterval(hbInterval * 3);
+        // setMonitorInterval(int) changed to setMonitorInterval(long) in Hadoop 2.9,
+        // so to support both cases, we use reflection
+        int monitorInterval = hbInterval * 3;
+        for (Method m : this.getClass().getDeclaredMethods()) {
+          if (m.getName().equals(Constants.SET_MONITOR_INTERVAL_METHOD)) {
+            m.invoke(this, monitorInterval);
+            break;
+          }
+        }
         setExpireInterval(hbInterval * Math.max(3, maxConsecutiveHBMiss)); // Be at least == monitoring interval
         super.serviceStart();
       }
@@ -392,7 +395,7 @@ public class ApplicationMaster {
     rpcServer = setupRPCService(hostname);
 
     // Init AMRMClient
-    AMRMClientAsync.AbstractCallbackHandler allocListener = new RMCallbackHandler();
+    AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
     amRMClient = AMRMClientAsync.createAMRMClientAsync(1000, allocListener);
     amRMClient.init(yarnConf);
     amRMClient.start();
@@ -441,7 +444,7 @@ public class ApplicationMaster {
     Path interm = new Path(histFolder, Constants.TONY_HISTORY_INTERMEDIATE);
     try {
       if (!fs.exists(interm)) {
-        LOG.error("Intermediate directory doesn't exist");
+        LOG.error("Intermediate directory doesn't exist [" + interm.toString() + "]");
         return;
       }
     } catch (IOException e) {
@@ -902,11 +905,9 @@ public class ApplicationMaster {
 
   private AMRMClient.ContainerRequest setupContainerRequestForRM(TensorFlowContainerRequest request) {
     Priority priority = Priority.newInstance(request.getPriority());
-    Resource capability = Resource.newInstance(request.getMemory(), request.getVCores());
+    Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
     Utils.setCapabilityGPU(capability, request.getGPU());
-    session.addAllocationId(request.getJobName(), lastAllocationRequestId);
-    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority,
-        lastAllocationRequestId++);
+    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority);
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
   }
@@ -918,7 +919,7 @@ public class ApplicationMaster {
   /**
    * Node manager call back handler
    */
-  static class NMCallbackHandler extends NMClientAsync.AbstractCallbackHandler {
+  static class NMCallbackHandler implements NMClientAsync.CallbackHandler {
     @Override
     public void onContainerStopped(ContainerId containerId) {
       LOG.info("Succeeded to stop container " + containerId);
@@ -948,22 +949,9 @@ public class ApplicationMaster {
     public void onStopContainerError(ContainerId containerId, Throwable t) {
       LOG.error("Failed to stop container " + containerId);
     }
-
-    @Override
-    public void onContainerResourceIncreased(ContainerId containerId, Resource resource) { }
-
-    @Override
-    public void onContainerResourceUpdated(ContainerId containerId, Resource resource) { }
-
-    @Override
-    public void onIncreaseContainerResourceError(ContainerId containerId, Throwable t) { }
-
-    @Override
-    public void onUpdateContainerResourceError(ContainerId containerId, Throwable t) { }
-
   }
 
-  private class RMCallbackHandler extends AMRMClientAsync.AbstractCallbackHandler {
+  private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
       LOG.info("Completed containers: " + completedContainers.size());
@@ -1026,10 +1014,6 @@ public class ApplicationMaster {
     }
 
     @Override
-    public void onContainersUpdated(List<UpdatedContainer> containers) {
-    }
-
-    @Override
     public void onShutdownRequest() { }
 
     @Override
@@ -1062,27 +1046,14 @@ public class ApplicationMaster {
      * Set up container's launch command and start the container.
      */
     public void run() {
-      // Specify session id in the env to distinguish between different sessions.
-      containerEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
-      Map<String, String> containerLaunchEnv = new ConcurrentHashMap<>(containerEnv);
 
-      TonyTask task = session.getAndInitMatchingTask(container.getAllocationRequestId());
+
+      TonyTask task = session.getAndInitMatchingTaskByPriority(container.getPriority().getPriority());
+      Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
+
       task.setTaskInfo(container);
       TaskInfo taskInfo = task.getTaskInfo();
       taskInfo.setState(TaskStatus.READY);
-
-      LOG.info("DOCKER ENABLED: "
-          + tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED));
-      if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-        String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
-        if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(task.getJobName())) != null) {
-            imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(task.getJobName()));
-        }
-        LOG.info("Starting " + task.getJobName() + " " + task.getTaskIndex() + " in image: " + imagePath);
-        containerLaunchEnv.put(ContainerRuntimeConstants.ENV_CONTAINER_TYPE, "docker");
-        containerLaunchEnv.put(DockerLinuxContainerRuntime.ENV_DOCKER_CONTAINER_IMAGE, imagePath);
-      }
-      Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
       // Add job type specific resources
       Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
@@ -1096,6 +1067,7 @@ public class ApplicationMaster {
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
+      Map<String, String> containerLaunchEnv = new ConcurrentHashMap<>(containerEnv);
       /*
        * Add additional environment vars. We always set job_name task_index & task_num and
        * task_num and TaskExecutor is responsible for setting up the actual shell environment
@@ -1109,6 +1081,8 @@ public class ApplicationMaster {
       if (session.isChief(jobName, taskIndex)) {
         containerLaunchEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
       }
+      // Specify session id in the env to distinguish between different sessions.
+      containerLaunchEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
 
       List<CharSequence> arguments = new ArrayList<>(5);
       arguments.add(session.getTaskCommand());
