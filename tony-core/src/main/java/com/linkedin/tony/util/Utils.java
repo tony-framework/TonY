@@ -38,6 +38,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.SimpleFileVisitor;
@@ -56,9 +59,28 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import static org.apache.hadoop.yarn.api.records.ResourceInformation.GPU_URI;
-
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
+import org.apache.commons.cli.Options;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.VersionInfo;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 
 public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
@@ -155,7 +177,7 @@ public class Utils {
     zos.close();
   }
 
-  public static void unzipArchive(String src, String dst) throws IOException {
+  public static void unzipArchive(String src, String dst) {
     LOG.info("Unzipping " + src + " to destination " + dst);
     try {
       ZipFile zipFile = new ZipFile(src);
@@ -165,12 +187,28 @@ public class Utils {
     }
   }
 
+  /**
+   * Uses reflection to set GPU capability if GPU support is available.
+   * @param resource  the resource to set GPU capability on
+   * @param gpuCount  the number of GPUs requested
+   */
   public static void setCapabilityGPU(Resource resource, int gpuCount) {
     // short-circuit when the GPU count is 0.
     if (gpuCount <= 0) {
       return;
     }
-    resource.setResourceValue(GPU_URI, gpuCount);
+    try {
+      Method method = resource.getClass().getMethod(Constants.SET_RESOURCE_VALUE_METHOD, String.class, long.class);
+      method.invoke(resource, Constants.GPU_URI, gpuCount);
+    } catch (NoSuchMethodException nsme) {
+      LOG.error("There is no '" + Constants.SET_RESOURCE_VALUE_METHOD + "' API in this version ("
+          + VersionInfo.getVersion() + ") of YARN", nsme);
+      throw new RuntimeException(nsme);
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      LOG.error("Failed to invoke '" + Constants.SET_RESOURCE_VALUE_METHOD + "' method to set GPU resources", e);
+      throw new RuntimeException(e);
+    }
+    return;
   }
 
   public static String constructUrl(String urlString) {
@@ -323,13 +361,17 @@ public class Utils {
           TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
           TonyConfigurationKeys.DEFAULT_GPUS);
+
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
        * scheduling side. See YARN-7631 for details.
        * For now we set the priorities of different task types arbitrarily.
        */
       if (numInstances > 0) {
-        containerRequests.put(jobName, new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority++));
+        // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
+        containerRequests.put(jobName,
+            new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
+        priority++;
       }
     }
     return containerRequests;

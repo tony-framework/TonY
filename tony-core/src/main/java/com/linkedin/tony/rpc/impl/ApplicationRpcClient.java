@@ -21,16 +21,16 @@ import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.TensorFlowCluster;
 import com.linkedin.tony.rpc.TaskInfo;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.security.PrivilegedAction;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.retry.RetryPolicies;
 import org.apache.hadoop.io.retry.RetryPolicy;
 import org.apache.hadoop.io.retry.RetryProxy;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.client.RMProxy;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -65,19 +65,8 @@ public class ApplicationRpcClient implements ApplicationRpc {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    RetryPolicy retryPolicy;
-    try {
-      // Hadoop 2.9+ method
-      retryPolicy = RMProxy.createRetryPolicy(conf, false);
-    } catch (NoSuchMethodError nsme) {
-      // Hadoop 2.7 method
-      try {
-        Method method = RMProxy.class.getMethod("createRetryPolicy", Configuration.class);
-        retryPolicy = (RetryPolicy) method.invoke(null, conf);
-      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-        throw new RuntimeException(e);
-      }
-    }
+    RetryPolicy retryPolicy = RetryPolicies.retryUpToMaximumCountWithFixedSleep(
+            10, 2000, TimeUnit.MILLISECONDS);
     this.tensorflow = getProxy(conf, rpc, ugi, address, TensorFlowCluster.class, retryPolicy);
   }
 
