@@ -76,8 +76,11 @@ public class Constants {
   public static final String AM_STDERR_FILENAME = "amstderr.log";
 
   public static final String HDFS_SITE_CONF = "hdfs-site.xml";
-  public static final String YARN_SITE_CONF = "yarn-site.xml";
+  public static final String HDFS_DEFAULT_CONF = "hdfs-default.xml";
+  public static final String YARN_SITE_CONF = YarnConfiguration.YARN_SITE_CONFIGURATION_FILE;
+  public static final String YARN_DEFAULT_CONF = "yarn-default.xml";
   public static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
+  public static final String CORE_DEFAULT_CONF = "core-default.xml";
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
   public static final String TONY_SITE_CONF = "tony-site.xml";
   public static final String TONY_CONF_DIR = "TONY_CONF_DIR";

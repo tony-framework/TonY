@@ -19,6 +19,7 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.SimpleFileVisitor;
@@ -548,20 +549,32 @@ public class Utils {
   }
 
   public static void initYarnConf(Configuration yarnConf) {
-    if (new File(Constants.CORE_SITE_CONF).exists()) {
-      yarnConf.addResource(new Path(Constants.CORE_SITE_CONF));
-    }
-    if (new File(Constants.YARN_SITE_CONF).exists()) {
-      yarnConf.addResource(new Path(Constants.YARN_SITE_CONF));
-    }
+    addCoreConfs(yarnConf);
+    addComponentConfs(yarnConf, Constants.YARN_DEFAULT_CONF, Constants.YARN_SITE_CONF);
   }
 
   public static void initHdfsConf(Configuration hdfsConf) {
-    if (new File(Constants.CORE_SITE_CONF).exists()) {
-      hdfsConf.addResource(new Path(Constants.CORE_SITE_CONF));
+    addCoreConfs(hdfsConf);
+    addComponentConfs(hdfsConf, Constants.HDFS_DEFAULT_CONF, Constants.HDFS_SITE_CONF);
+  }
+
+  private static void addCoreConfs(Configuration conf) {
+    URL coreDefault = Utils.class.getClassLoader().getResource(Constants.CORE_DEFAULT_CONF);
+    if (coreDefault != null) {
+      conf.addResource(coreDefault);
     }
-    if (new File(Constants.HDFS_SITE_CONF).exists()) {
-      hdfsConf.addResource(new Path(Constants.HDFS_SITE_CONF));
+    if (new File(Constants.CORE_SITE_CONF).exists()) {
+      conf.addResource(new Path(Constants.CORE_SITE_CONF));
+    }
+  }
+
+  private static void addComponentConfs(Configuration conf, String defaultConfName, String siteConfName) {
+    URL defaultConf = Utils.class.getClassLoader().getResource(defaultConfName);
+    if (defaultConf != null) {
+      conf.addResource(defaultConf);
+    }
+    if (new File(siteConfName).exists()) {
+      conf.addResource(new Path(siteConfName));
     }
   }
 
