@@ -4,6 +4,8 @@
  */
 package com.linkedin.tony;
 
+import java.util.HashSet;
+
 import org.apache.hadoop.conf.TestConfigurationFieldsBase;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -18,6 +20,9 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     // Set error modes
     errorIfMissingConfigProps = true;
     errorIfMissingXmlProps = true;
+
+    xmlPropsToSkipCompare = xmlPropsToSkipCompare == null ? new HashSet<>() : xmlPropsToSkipCompare;
+    configurationPropsToSkipCompare = configurationPropsToSkipCompare == null ? new HashSet<>() : configurationPropsToSkipCompare;
 
     // We don't explicitly declare constants for these, since the configured TensorFlow job names
     // are determined at runtime. But we still need default values for them in tony-default.xml.
@@ -55,10 +60,5 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
   @Test
   public void testCompareXmlAgainstConfigurationClass() {
     super.testCompareXmlAgainstConfigurationClass();
-  }
-
-  @Test
-  public void testXmlAgainstDefaultValuesInConfigurationClass() {
-    super.testXmlAgainstDefaultValuesInConfigurationClass();
   }
 }

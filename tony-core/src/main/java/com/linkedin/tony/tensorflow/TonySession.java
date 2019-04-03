@@ -9,6 +9,13 @@ import com.linkedin.tony.Constants;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -22,16 +29,6 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.linkedin.tony.Constants.CHIEF_JOB_NAME;
 import static com.linkedin.tony.Constants.PS_JOB_NAME;
@@ -58,7 +55,6 @@ public class TonySession {
   private FinalApplicationStatus sessionFinalStatus = FinalApplicationStatus.UNDEFINED;
   private String sessionFinalMessage = null;
   private String jvmArgs;
-  private Map<String, Set<Long>> jobTypeToAllocationIds = new HashMap<String, Set<Long>>();
 
   // If the training has finished. This is used to signal AM to stop waiting for other workers to finish and
   // go straight to the cleaning phase.
@@ -170,32 +166,23 @@ public class TonySession {
   }
 
   /**
-   * Associate an allocationRequestId to a TensorFlow job.
-   * @param jobName the TensorFlow job name
-   * @param allocationRequestId the allocationRequestId which corresponds to an instance of this job
-   */
-  public void addAllocationId(String jobName, long allocationRequestId) {
-    jobTypeToAllocationIds.putIfAbsent(jobName, new HashSet<>());
-    jobTypeToAllocationIds.get(jobName).add(allocationRequestId);
-    LOG.info(String.format("Job %s with allocationRequestId %d", jobName, allocationRequestId));
-  }
-
-  /**
    * Get a TensorFlow task that hasn't been scheduled.
-   * @param allocationRequestId the allocationRequestId of the allocated container
+   * In the absence of allocationRequestId, we are relying on the fact that each tensorflow job will
+   * have a distinct priority (Ensured in {@link Utils#parseContainerRequests(Configuration)}).
+   * @param priority the priority of the allocated container
    * @return task to be assigned to this allocation
    */
-  public synchronized TonyTask getAndInitMatchingTask(long allocationRequestId) {
-    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
+  public synchronized TonyTask getAndInitMatchingTaskByPriority(int priority) {
+    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
       String jobName = entry.getKey();
-      if (!jobTypeToAllocationIds.get(jobName).contains(allocationRequestId)) {
+      if (entry.getValue().getPriority() != priority) {
+        LOG.debug("Ignoring jobname {" + jobName + "} as priority doesn't match");
         continue;
       }
-      TonyTask[] tasks = entry.getValue();
+      TonyTask[] tasks = jobTasks.get(jobName);
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
           tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId);
-          LOG.info(String.format("Matched job %s with allocationRequestId %d", jobName, allocationRequestId));
           return tasks[i];
         }
       }

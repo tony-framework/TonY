@@ -10,6 +10,17 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 
 public class Constants {
+  // For capatibility with older Hadoop versions
+  public static final String GPU_URI = "yarn.io/gpu";
+  public static final String SET_RESOURCE_VALUE_METHOD = "setResourceValue";
+  public static final String CONTAINER_RUNTIME_CONSTANTS_CLASS =
+      "org.apache.hadoop.yarn.server.nodemanager.containermanager.runtime.ContainerRuntimeConstants";
+  public static final String DOCKER_LINUX_CONTAINER_RUNTIME_CLASS =
+      "org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime";
+  public static final String ENV_CONTAINER_TYPE = "ENV_CONTAINER_TYPE";
+  public static final String ENV_DOCKER_CONTAINER_TYPE = "ENV_DOCKER_CONTAINER_TYPE";
+  public static final String SET_MONITOR_INTERVAL_METHOD = "setMonitorInterval";
+
   // File Permission
   public static final FsPermission PERM770 = new FsPermission((short) 0770);
   public static final FsPermission PERM777 = new FsPermission((short) 0777);
@@ -65,8 +76,11 @@ public class Constants {
   public static final String AM_STDERR_FILENAME = "amstderr.log";
 
   public static final String HDFS_SITE_CONF = "hdfs-site.xml";
-  public static final String YARN_SITE_CONF = "yarn-site.xml";
+  public static final String HDFS_DEFAULT_CONF = "hdfs-default.xml";
+  public static final String YARN_SITE_CONF = YarnConfiguration.YARN_SITE_CONFIGURATION_FILE;
+  public static final String YARN_DEFAULT_CONF = "yarn-default.xml";
   public static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
+  public static final String CORE_DEFAULT_CONF = "core-default.xml";
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
   public static final String TONY_SITE_CONF = "tony-site.xml";
   public static final String TONY_CONF_DIR = "TONY_CONF_DIR";

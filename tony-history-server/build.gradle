@@ -32,7 +32,6 @@ dependencies {
   play project(':tony-core')
   play deps.external.play_guice
   play deps.external.play_logback
-  play deps.hadoop.hdfs_client
   play deps.hadoop.common
   play deps.hadoop.yarn_api
 
