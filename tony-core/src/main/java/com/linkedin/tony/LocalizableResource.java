@@ -36,6 +36,8 @@ public class LocalizableResource {
   private Path sourceFilePath;
   private String localFileName;
 
+  private LocalizableResource() { }
+
   public boolean isDirectory() {
     return isDirectory;
   }
@@ -48,15 +50,17 @@ public class LocalizableResource {
     return localFileName;
   }
 
-  public LocalizableResource(String path) {
+  public LocalizableResource(String path, FileSystem fs) throws ParseException, IOException  {
     this.path = path;
+      this.parse(fs);
   }
-  public void parse(FileSystem fs) throws ParseException, IOException {
+
+  private void parse(FileSystem fs) throws ParseException, IOException {
     String filePath = path;
     resourceType = LocalResourceType.FILE;
-    if (path.endsWith(Constants.ARCHIVE_SUFFIX)) {
+    if (path.toLowerCase().endsWith(Constants.ARCHIVE_SUFFIX)) {
         resourceType = LocalResourceType.ARCHIVE;
-        filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
+        filePath = path.substring(0, path.length() - Constants.ARCHIVE_SUFFIX.length());
     }
 
     String[] tuple = filePath.split(Constants.RESOURCE_DIVIDER);

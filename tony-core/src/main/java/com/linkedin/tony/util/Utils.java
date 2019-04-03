@@ -448,8 +448,7 @@ public class Utils {
     try {
       if (path != null) {
         // Check the format of the path, if the path is of path#archive, we set resource type as ARCHIVE
-        LocalizableResource localizableResource = new LocalizableResource(path);
-        localizableResource.parse(fs);
+        LocalizableResource localizableResource = new LocalizableResource(path, fs);
         if (localizableResource.isDirectory()) {
           Path dirpath = localizableResource.getSourceFilePath();
           FileStatus[] ls = fs.listStatus(dirpath);
