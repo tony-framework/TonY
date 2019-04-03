@@ -8,39 +8,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.net.URL;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,11 +32,34 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
@@ -182,7 +181,7 @@ public class Utils {
       method.invoke(resource, Constants.GPU_URI, gpuCount);
     } catch (NoSuchMethodException nsme) {
       LOG.error("There is no '" + Constants.SET_RESOURCE_VALUE_METHOD + "' API in this version ("
-          + VersionInfo.getVersion() + ") of YARN", nsme);
+              + VersionInfo.getVersion() + ") of YARN", nsme);
       throw new RuntimeException(nsme);
     } catch (IllegalAccessException | InvocationTargetException e) {
       LOG.error("Failed to invoke '" + Constants.SET_RESOURCE_VALUE_METHOD + "' method to set GPU resources", e);
@@ -205,7 +204,7 @@ public class Utils {
   public static String constructContainerUrl(String nodeAddress, ContainerId containerId) {
     try {
       return String.format(WORKER_LOG_URL_TEMPLATE, nodeAddress, containerId,
-                           UserGroupInformation.getCurrentUser().getShortUserName());
+              UserGroupInformation.getCurrentUser().getShortUserName());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -217,7 +216,7 @@ public class Utils {
 
   public static void printTHSUrl(String thsHost, String appId, Log log) {
     log.info(
-        String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
+            String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
   }
 
   /**
@@ -307,7 +306,7 @@ public class Utils {
   }
 
   public static void addEnvironmentForResource(LocalResource resource, FileSystem fs, String envPrefix,
-      Map<String, String> env) throws IOException {
+                                               Map<String, String> env) throws IOException {
     Path resourcePath = new Path(fs.getHomeDirectory(), resource.getResource().getFile());
     FileStatus resourceStatus = fs.getFileStatus(resourcePath);
     long resourceLength = resourceStatus.getLen();
@@ -327,20 +326,20 @@ public class Utils {
    */
   public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-        .map(Utils::getTaskType)
-        .collect(Collectors.toSet());
+            .map(Utils::getTaskType)
+            .collect(Collectors.toSet());
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
     for (String jobName : jobNames) {
       int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName),
-          TonyConfigurationKeys.getDefaultInstances(jobName));
+              TonyConfigurationKeys.getDefaultInstances(jobName));
       String memoryString = conf.get(TonyConfigurationKeys.getMemoryKey(jobName),
-          TonyConfigurationKeys.DEFAULT_MEMORY);
+              TonyConfigurationKeys.DEFAULT_MEMORY);
       long memory = Long.parseLong(parseMemoryString(memoryString));
       int vCores = conf.getInt(TonyConfigurationKeys.getVCoresKey(jobName),
-          TonyConfigurationKeys.DEFAULT_VCORES);
+              TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
-          TonyConfigurationKeys.DEFAULT_GPUS);
+              TonyConfigurationKeys.DEFAULT_GPUS);
 
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
@@ -350,7 +349,7 @@ public class Utils {
       if (numInstances > 0) {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName,
-            new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
+                new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
         priority++;
       }
     }
@@ -385,11 +384,11 @@ public class Utils {
       IOUtils.closeQuietly(raf);
     }
     return fileSignature == 0x504B0304 // zip
-           || fileSignature == 0x504B0506 // zip
-           || fileSignature == 0x504B0708 // zip
-           || fileSignature == 0x74657374 // tar
-           || fileSignature == 0x75737461 // tar
-           || (fileSignature & 0xFFFF0000) == 0x1F8B0000; // tar.gz
+            || fileSignature == 0x504B0506 // zip
+            || fileSignature == 0x504B0708 // zip
+            || fileSignature == 0x74657374 // tar
+            || fileSignature == 0x75737461 // tar
+            || (fileSignature & 0xFFFF0000) == 0x1F8B0000; // tar.gz
   }
 
   public static boolean renameFile(String oldName, String newName) {
@@ -402,7 +401,7 @@ public class Utils {
     ObjectMapper mapper = new ObjectMapper();
     try {
       Map<String, List<String>> spec =
-          mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+              mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
       TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
       return mapper.writeValueAsString(tfConfig);
     } catch (IOException ioe) {
@@ -450,28 +449,22 @@ public class Utils {
     try {
       if (path != null) {
         // Check the format of the path, if the path is of path#archive, we set resource type as ARCHIVE
-        if (path.contains(Constants.ARCHIVE_SUFFIX)) {
-          String filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
-          FileStatus scFileStatus = fs.getFileStatus(new Path(filePath));
-          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(scFileStatus.getPath().toString())),
-              LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE,
-              scFileStatus.getLen(), scFileStatus.getModificationTime());
-          resourcesMap.put(scFileStatus.getPath().getName(), resource);
-          return;
-        }
-        FileStatus[] ls = fs.listStatus(new Path(path));
-        for (FileStatus fileStatus : ls) {
-          // We only add first level files.
-          if (fileStatus.isDirectory()) {
-            continue;
+        LocalizableResource localizableResource = new LocalizableResource(path, fs);
+        if (localizableResource.isDirectory()) {
+          Path dirpath = localizableResource.getSourceFilePath();
+          FileStatus[] ls = fs.listStatus(dirpath);
+          for (FileStatus fileStatus : ls) {
+            // We only add first level files.
+            if (fileStatus.isDirectory()) {
+              continue;
+            }
+            addResource(fileStatus.getPath().toString(), resourcesMap, fs);
           }
-          LocalResource resource = LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(URI.create(fileStatus.getPath().toString())),
-                                                             LocalResourceType.FILE, LocalResourceVisibility.PRIVATE,
-                                                             fileStatus.getLen(), fileStatus.getModificationTime());
-          resourcesMap.put(fileStatus.getPath().getName(), resource);
+        } else {
+          resourcesMap.put(localizableResource.getLocalFileName(), localizableResource.toLocalResource());
         }
       }
-    } catch (IOException exception) {
+    } catch (IOException | ParseException exception) {
       LOG.error("Failed to add " + path + " to local resources.", exception);
     }
   }
@@ -491,7 +484,7 @@ public class Utils {
   public static String parseClusterSpecForPytorch(String clusterSpec) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, List<String>> clusterSpecMap =
-        objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+            objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
     String chiefWorkerAddress = clusterSpecMap.get(Constants.WORKER_JOB_NAME).get(0);
     if (chiefWorkerAddress == null) {
       LOG.error("Failed to get chief worker address from cluster spec.");
