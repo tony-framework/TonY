@@ -180,7 +180,7 @@ public class Utils {
       method.invoke(resource, Constants.GPU_URI, gpuCount);
     } catch (NoSuchMethodException nsme) {
       LOG.error("There is no '" + Constants.SET_RESOURCE_VALUE_METHOD + "' API in this version ("
-          + VersionInfo.getVersion() + ") of YARN", nsme);
+              + VersionInfo.getVersion() + ") of YARN", nsme);
       throw new RuntimeException(nsme);
     } catch (IllegalAccessException | InvocationTargetException e) {
       LOG.error("Failed to invoke '" + Constants.SET_RESOURCE_VALUE_METHOD + "' method to set GPU resources", e);
@@ -203,7 +203,7 @@ public class Utils {
   public static String constructContainerUrl(String nodeAddress, ContainerId containerId) {
     try {
       return String.format(WORKER_LOG_URL_TEMPLATE, nodeAddress, containerId,
-                           UserGroupInformation.getCurrentUser().getShortUserName());
+              UserGroupInformation.getCurrentUser().getShortUserName());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -215,7 +215,7 @@ public class Utils {
 
   public static void printTHSUrl(String thsHost, String appId, Log log) {
     log.info(
-        String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
+            String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
   }
 
   /**
@@ -305,7 +305,7 @@ public class Utils {
   }
 
   public static void addEnvironmentForResource(LocalResource resource, FileSystem fs, String envPrefix,
-      Map<String, String> env) throws IOException {
+                                               Map<String, String> env) throws IOException {
     Path resourcePath = new Path(fs.getHomeDirectory(), resource.getResource().getFile());
     FileStatus resourceStatus = fs.getFileStatus(resourcePath);
     long resourceLength = resourceStatus.getLen();
@@ -325,20 +325,20 @@ public class Utils {
    */
   public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-        .map(Utils::getTaskType)
-        .collect(Collectors.toSet());
+            .map(Utils::getTaskType)
+            .collect(Collectors.toSet());
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
     for (String jobName : jobNames) {
       int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName),
-          TonyConfigurationKeys.getDefaultInstances(jobName));
+              TonyConfigurationKeys.getDefaultInstances(jobName));
       String memoryString = conf.get(TonyConfigurationKeys.getMemoryKey(jobName),
-          TonyConfigurationKeys.DEFAULT_MEMORY);
+              TonyConfigurationKeys.DEFAULT_MEMORY);
       long memory = Long.parseLong(parseMemoryString(memoryString));
       int vCores = conf.getInt(TonyConfigurationKeys.getVCoresKey(jobName),
-          TonyConfigurationKeys.DEFAULT_VCORES);
+              TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
-          TonyConfigurationKeys.DEFAULT_GPUS);
+              TonyConfigurationKeys.DEFAULT_GPUS);
 
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
@@ -348,7 +348,7 @@ public class Utils {
       if (numInstances > 0) {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName,
-            new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
+                new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
         priority++;
       }
     }
@@ -383,11 +383,11 @@ public class Utils {
       IOUtils.closeQuietly(raf);
     }
     return fileSignature == 0x504B0304 // zip
-           || fileSignature == 0x504B0506 // zip
-           || fileSignature == 0x504B0708 // zip
-           || fileSignature == 0x74657374 // tar
-           || fileSignature == 0x75737461 // tar
-           || (fileSignature & 0xFFFF0000) == 0x1F8B0000; // tar.gz
+            || fileSignature == 0x504B0506 // zip
+            || fileSignature == 0x504B0708 // zip
+            || fileSignature == 0x74657374 // tar
+            || fileSignature == 0x75737461 // tar
+            || (fileSignature & 0xFFFF0000) == 0x1F8B0000; // tar.gz
   }
 
   public static boolean renameFile(String oldName, String newName) {
@@ -400,7 +400,7 @@ public class Utils {
     ObjectMapper mapper = new ObjectMapper();
     try {
       Map<String, List<String>> spec =
-          mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+              mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
       TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
       return mapper.writeValueAsString(tfConfig);
     } catch (IOException ioe) {
@@ -461,7 +461,7 @@ public class Utils {
             addResource(fileStatus.getPath().toString(), resourcesMap, fs);
           }
         } else {
-          resourcesMap.put(localizableResource.getLocalFileName(), localizableResource.getLocalResource());
+          resourcesMap.put(localizableResource.getLocalFileName(), localizableResource.toLocalResource());
         }
       }
     } catch (IOException | ParseException exception) {
@@ -484,7 +484,7 @@ public class Utils {
   public static String parseClusterSpecForPytorch(String clusterSpec) throws IOException {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, List<String>> clusterSpecMap =
-        objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+            objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
     String chiefWorkerAddress = clusterSpecMap.get(Constants.WORKER_JOB_NAME).get(0);
     if (chiefWorkerAddress == null) {
       LOG.error("Failed to get chief worker address from cluster spec.");

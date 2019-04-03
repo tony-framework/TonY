@@ -23,68 +23,67 @@ import java.net.URI;
  *
  * SOURCE_FILE_PATH: location of the file to be localized to containers. This could be either local resources or remote
  *                   resources.
- * FILE_IN_CONTAINER: optional, default to source file name. If specified, source_file_path will be localized as name
+ * PATH_IN_CONTAINER: optional, default to source file name. If specified, source_file_path will be localized as name
  *                   file_in_container in container.
  * ARCHIVE: if #archive is put at the end, the file will be uploaded as ARCHIVE type and unzipped upon localization.
  */
 public class LocalizableResource {
+  private String path;
 
-    private String path;
+  private boolean isDirectory;
+  private LocalResourceType resourceType;
+  private FileStatus sourceFileStatus;
+  private Path sourceFilePath;
+  private String localFileName;
 
-    private boolean isDirectory;
-    private LocalResourceType resourceType;
-    private FileStatus sourceFileStatus;
-    private Path sourceFilePath;
-    private String localFileName;
+  public boolean isDirectory() {
+    return isDirectory;
+  }
 
-    public boolean isDirectory() {
-        return isDirectory;
+  public Path getSourceFilePath() {
+    return sourceFilePath;
+  }
+
+  public String getLocalFileName() {
+    return localFileName;
+  }
+
+  public LocalizableResource(String path) {
+    this.path = path;
+  }
+  public void parse(FileSystem fs) throws ParseException, IOException {
+    String filePath = path;
+    resourceType = LocalResourceType.FILE;
+    if (path.endsWith(Constants.ARCHIVE_SUFFIX)) {
+        resourceType = LocalResourceType.ARCHIVE;
+        filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
     }
 
-    public Path getSourceFilePath() {
-        return sourceFilePath;
+    String[] tuple = filePath.split(Constants.RESOURCE_DIVIDER);
+    if (tuple.length > 2) {
+        throw new ParseException("Failed to parse file: " + path);
     }
 
-    public String getLocalFileName() {
-        return localFileName;
+    sourceFilePath = new Path(tuple[0]);
+    sourceFileStatus = fs.getFileStatus(sourceFilePath);
+    localFileName = sourceFilePath.getName();
+
+    if (tuple.length == 2) {
+        localFileName = tuple[1];
     }
-
-    public LocalizableResource(String path) {
-        this.path = path;
+    if (sourceFileStatus.isDirectory()) {
+        isDirectory = true;
     }
+  }
 
-    public void parse(FileSystem fs) throws ParseException, IOException {
-        String filePath = path;
-        resourceType = LocalResourceType.FILE;
-        if (path.contains(Constants.ARCHIVE_SUFFIX)) {
-            resourceType = LocalResourceType.ARCHIVE;
-            filePath = path.replace(Constants.ARCHIVE_SUFFIX, "");
-        }
-        String[] tuple = filePath.split(Constants.RESOURCE_DIVIDER);
-        if (tuple.length > 2) {
-            throw new ParseException("Failed to parse file: " + path);
-        }
-
-        sourceFilePath = new Path(tuple[0]);
-        sourceFileStatus = fs.getFileStatus(sourceFilePath);
-        localFileName = sourceFilePath.getName();
-        if (tuple.length == 2) {
-            localFileName = tuple[1];
-        }
-
-        if (sourceFileStatus.isDirectory()) {
-            isDirectory = true;
-        }
+  public LocalResource toLocalResource() {
+    if (isDirectory) {
+        throw new RuntimeException("Resource is directory and cannot be converted to LocalResource.");
     }
-
-    public LocalResource getLocalResource() {
-        if (isDirectory) {
-            return null;
-        }
-        return LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(
-                URI.create(sourceFileStatus.getPath().toString())),
-                resourceType, LocalResourceVisibility.PRIVATE,
-                sourceFileStatus.getLen(), sourceFileStatus.getModificationTime());
-    }
+    return LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(
+      URI.create(sourceFileStatus.getPath().toString())),
+      resourceType, LocalResourceVisibility.PRIVATE,
+      sourceFileStatus.getLen(), sourceFileStatus.getModificationTime());
+  }
 
 }
