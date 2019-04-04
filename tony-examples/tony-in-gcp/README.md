@@ -49,14 +49,15 @@ export ZONE=us-west1-a
 gcloud dataproc clusters create ${CLUSTER_NAME} --bucket ${BUCKET} \
 --subnet default \
 --zone $ZONE \
---master-machine-type n1-standard-4 --master-boot-disk-size 100 \
---num-workers 2 --worker-machine-type n1-standard-4 --worker-boot-disk-size 200 --image-version ${DATAPROC_VERSION} \
+--master-machine-type n1-standard-4 \
+--num-workers 2 --worker-machine-type n1-standard-4 \
+--image-version ${DATAPROC_VERSION} \
 --initialization-actions gs://dataproc-initialization-actions/tony/tony.sh
 ```
 
 When creating a Cloud Dataproc cluster, you can specify in your TonY [initialization actions](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions) script that Cloud Dataproc should run on all nodes in your Cloud Dataproc cluster immediately after the cluster is set up. 
 
-Note: Use Cloud Dataproc version 1.3-deb9, which is supported for this deployment. Cloud Dataproc version 1.3-deb9 provides Hadoop version 2.9.0. Check this [version list](https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-release-1.3) for details.
+Note: Use Cloud Dataproc version 1.3-deb9, which is supported for this deployment. Cloud Dataproc version 1.3-deb9 provides Hadoop version 2.9.2. Check this [version list](https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-release-1.3) for details.
 
 Once your cluster is created. You can verify that under Cloud Console > Big Data > Cloud Dataproc > Clusters, that cluster installation is completed and your cluster’s status is Running. 
 
@@ -219,12 +220,12 @@ You can also track Job status from DataProc Jobs tab: Cloud Console -> Big Data 
 
 ![img](https://i.imgur.com/3XgZI5Z.png)
 
-## Autoscaling
+## Dataproc Autoscaling
 
 
 Estimating the "right" number of cluster workers (nodes) for a workload is difficult, and a single cluster size for an entire pipeline is often not ideal. User-initiated Cluster Scaling partially addresses this challenge, but requires monitoring cluster utilization and manual intervention.
 
-The Cloud Dataproc AutoscalingPolicies API provides a mechanism for automating cluster resource management and enables cluster autoscaling. An Autoscaling Policy is a reusable configuration that describes how clusters using the autoscaling policy should scale. It defines scaling boundaries, frequency, and aggressiveness to provide fine-grained control over cluster resources throughout cluster lifetime.
+The Cloud Dataproc Autoscaling Policies API provides a mechanism for automating cluster resource management and enables cluster autoscaling. An Autoscaling Policy is a reusable configuration that describes how clusters using the autoscaling policy should scale. It defines scaling boundaries, frequency, and aggressiveness to provide fine-grained control over cluster resources throughout cluster lifetime.
 
 Please find a sample below:
 
@@ -254,7 +255,7 @@ gcloud beta dataproc autoscaling-policies import autoscale_tony --source=autosca
 
 # Create a cluster
 
-export CLUSTER_NAME=tony-staging-2
+export CLUSTER_NAME=tony-staging-1
 export DATAPROC_VERSION=1.3-deb9
 export ZONE=us-west1-a          # Update your zone/region accordingly
 export BUCKET=tony-staging
@@ -262,8 +263,9 @@ export LOG_BUCKET=tony-staging  # Update your Google Cloud Storage Bucket accord
  
 gcloud beta dataproc clusters create ${CLUSTER_NAME} \
 --zone $ZONE \
---master-machine-type n1-standard-4 --master-boot-disk-size 100 \
---num-workers 4 --worker-machine-type n1-standard-4 --worker-boot-disk-size 200 --image-version ${DATAPROC_VERSION} \
+--master-machine-type n1-standard-4 \
+--num-workers 4 --worker-machine-type n1-standard-4 \
+--image-version ${DATAPROC_VERSION} \
 --initialization-actions gs://tony-staging/tony_latest.sh \
 --scopes https://www.googleapis.com/auth/cloud-platform \
 --autoscaling-policy=autoscale_tony \
@@ -278,9 +280,9 @@ yarn:yarn.resourcemanager.webapp.methods-allowed=ALL"
 # Launch multiple jobs
 
 export CLUSTER_NAME=tony-staging-1
-export TONY_JARFILE=gs://tony-staging/tony-cli-0.2.0-all.jar
+export TONY_JARFILE=gs://tony-staging/tony-cli-0.3.1-all.jar
 
-for i in {1..3}; do
+for i in {1..10}; do
 job_id=`head /dev/urandom | tr -dc A-Z0-9 | head -c 6 ; echo ''`
 gcloud dataproc jobs submit hadoop --cluster ${CLUSTER_NAME} \
 --class com.linkedin.tony.cli.ClusterSubmitter \
@@ -295,6 +297,8 @@ sleep 1
 done
 ```
 
+![wgkTVK](https://i.makeagif.com/media/4-04-2019/wgkTVK.gif)
+
 Autoscaling documentation [here](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/autoscaling)
 
 
@@ -305,7 +309,7 @@ Deploying TensorFlow on YARN enables you to train models straight from your data
 #### Limitations
 
  - DataProc supports GPU but need to modify TensorFlow code to use it. Check issue [here](https://github.com/linkedin/TonY/issues/188)
- - Dataproc only supports 2.X. Hadoop version 3 implements GPU isolation.
+ - Dataproc only supports 2.X. Hadoop version 3.1 implements GPU isolation.
 
 #### Troubleshooting
 
@@ -345,7 +349,6 @@ Check Application logs
 ```
 yarn logs -applicationId <App_ID>
 ```
-
 
 Check Application status
 
