@@ -296,6 +296,7 @@ gcloud dataproc jobs submit hadoop --cluster ${CLUSTER_NAME} \
 sleep 1
 done
 ```
+In the following image, you can observe multiple TensorFlow jobs, launched in Dataproc, YARN Resource Manager detects not enough memory is available and spins off new workers, after workers complete their task, Dataproc extra workers are shutdown.
 
 ![wgkTVK](https://i.makeagif.com/media/4-04-2019/wgkTVK.gif)
 
