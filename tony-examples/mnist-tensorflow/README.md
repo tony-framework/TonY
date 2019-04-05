@@ -69,7 +69,7 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 
 ### Running MNIST Keras example:
 
-Once you've installed Hadoop and built your Python virtual environment zip, you can run Keras example as follows*:
+You could also alternative try this MNIST Keras example:
 
 ```
 gradlew :tony-cli:build
