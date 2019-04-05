@@ -184,7 +184,10 @@ def _get_session_config_from_env_var():
 
     tf_config = json.loads(os.environ.get('TF_CONFIG', '{}'))
 
-    # GPU limit: Use as workaround if not using Hadoop 3.1
+    # GPU limit: TensorFlow by default allocates all GPU memory:
+    # If multiple workers run in same host you may see OOM errors:
+    # Use as workaround if not using Hadoop 3.1
+    # Change percentage accordingly:
     # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
 
     if (tf_config and 'task' in tf_config and 'type' in tf_config['task'] and
