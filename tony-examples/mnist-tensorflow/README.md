@@ -8,7 +8,6 @@ To run the examples here, you need to:
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
 
 
-
 ### Building a Python virtual environment with TensorFlow
 
 TonY requires a Python virtual environment zip with TensorFlow and any needed Python libraries already installed.
@@ -24,7 +23,9 @@ pip install tensorflow==1.13.1
 zip -r venv.zip venv
 ```
 
-- TensorFlow version 1.13
+### TensorFlow version: 
+
+ - Version 1.13.1
 
 **Note:** If you require a past version of TensorFlow and TensorBoard, take a look at [this](https://github.com/linkedin/TonY/issues/42) issue.
 
