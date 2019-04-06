@@ -8,7 +8,6 @@ To run the examples here, you need to:
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
 
 
-
 ### Building a Python virtual environment with TensorFlow
 
 TonY requires a Python virtual environment zip with TensorFlow and any needed Python libraries already installed.
@@ -24,7 +23,9 @@ pip install tensorflow==1.13.1
 zip -r venv.zip venv
 ```
 
-- TensorFlow version 1.13
+### TensorFlow version: 
+
+ - Version 1.13.1
 
 **Note:** If you require a past version of TensorFlow and TensorBoard, take a look at [this](https://github.com/linkedin/TonY/issues/42) issue.
 
@@ -50,7 +51,7 @@ If your Hadoop cluster is not running with security enabled (e.g.: for local tes
 For the instructions below, we assume this file is named `tony-test.xml`.
 
 
-### Running an example
+### Running MNIST Tensorflow example:
 
 Once you've installed Hadoop and built your Python virtual environment zip, you can run an example as follows:
 
@@ -61,6 +62,25 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 --python_venv=/path/to/venv.zip \
 --src_dir=/path/to/TonY/tony-examples/mnist-tensorflow \
 --executes=mnist_distributed.py \ # relative path inside src/
+--task_params="--steps 1000 --data_dir /tmp/data --working_dir /tmp/model" \ # You can use your HDFS path here.
 --conf_file=/path/to/tony-test.xml \
---python_binary_path=bin/python # relative path inside venv.zip
+--python_binary_path=venv/bin/python # relative path inside venv.zip
 ```
+
+### Running MNIST Keras example:
+
+You could also alternative try this MNIST Keras example:
+
+```
+gradlew :tony-cli:build
+
+java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all.jar com.linkedin.tony.cli.ClusterSubmitter \
+--python_venv=/path/to/venv.zip \
+--src_dir=/path/to/TonY/tony-examples/mnist-tensorflow \
+--executes=mnist_keras_distributed.py \ # relative path inside src/
+--task_params="--working-dir /tmp/model" \ # You can use your HDFS path here.
+--conf_file=/path/to/tony-test.xml \
+--python_binary_path=venv/bin/python # relative path inside venv.zip
+```
+
+*We have tested this example with 1 Parameter Server (4GB RAM + 1 vCPU)  + 2 Workers (4GB RAM + 1 vCPU)
