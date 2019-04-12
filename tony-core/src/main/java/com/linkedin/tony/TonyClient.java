@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -82,6 +84,8 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_MAX_TOTAL_INSTANCES;
 
 
 /**
@@ -632,13 +636,21 @@ public class TonyClient implements AutoCloseable {
   }
 
   /**
-   * Validates that the configuration does not request more task instances than allowed for a given task type
-   * or more than the max total instances allowed across all task types. Throws a {@link RuntimeException}
+   * Validates that the configuration does not violate any limits. Throws a {@link RuntimeException}
    * if any limits are exceeded.
    * @param tonyConf  the configuration to validate
    */
   @VisibleForTesting
   static void validateTonyConf(Configuration tonyConf) {
+    enforceTaskInstanceLimits(tonyConf);
+    enforceResourceLimits(tonyConf);
+  }
+
+  /**
+   * Enforces that the number of tasks requested does not exceed the max allowed. Throws a {@link RuntimeException}
+   * if any limits are exceeded.
+   */
+  private static void enforceTaskInstanceLimits(Configuration tonyConf) {
     Map<String, TensorFlowContainerRequest> containerRequestMap = Utils.parseContainerRequests(tonyConf);
 
     // check that we don't request more than the max allowed for any task type
@@ -652,11 +664,50 @@ public class TonyClient implements AutoCloseable {
     }
 
     // check that we don't request more than the allowed total tasks
-    int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, -1);
+    int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES, DEFAULT_MAX_TOTAL_INSTANCES);
     int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(TensorFlowContainerRequest::getNumInstances).sum();
     if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
       throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
           + maxTotalInstances + ".");
+    }
+  }
+
+  /**
+   * Enforces that the number of resources requested does not exceed the max allowed. Throws a {@link RuntimeException}
+   * if any limits are exceeded.
+   */
+  private static void enforceResourceLimits(Configuration tonyConf) {
+    Set<String> jobTypes = Utils.getAllJobTypes(tonyConf);
+
+    // Iterate over all max-total-X resource limits
+    for (Map.Entry<String, String> entry
+        : tonyConf.getValByRegex(TonyConfigurationKeys.MAX_TOTAL_RESOURCES_REGEX).entrySet()) {
+      String maxResourceKey = entry.getKey();
+      long maxResourceValue = Long.parseLong(entry.getValue());
+      if (maxResourceValue >= 0) {
+        Pattern pattern = Pattern.compile(TonyConfigurationKeys.MAX_TOTAL_RESOURCES_REGEX);
+        Matcher matcher = pattern.matcher(maxResourceKey);
+        if (matcher.matches()) {
+          String resource = matcher.group(1);
+
+          // Iterate over all jobtypes and sum up requested X resources.
+          // For each jobtype, amount requested is (num X per instance * num instances).
+          long totalRequested = 0;
+          for (String jobType : jobTypes) {
+            int instances = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(jobType), TonyConfigurationKeys.getDefaultInstances(jobType));
+            String value = tonyConf.get(TonyConfigurationKeys.getResourceKey(jobType, resource), null);
+            if (value != null) {
+              long amountPerTask = resource.equals(Constants.MEMORY) ? Long.parseLong(Utils.parseMemoryString(value)) : Long.parseLong(value);
+              totalRequested += amountPerTask * instances;
+            }
+          }
+
+          if (totalRequested > maxResourceValue) {
+            throw new RuntimeException("Total amount of " + resource + " (" + totalRequested + ") requested exceeds " + "maximum allowed of "
+                + maxResourceValue);
+          }
+        }
+      }
     }
   }
 

@@ -124,5 +124,10 @@ public class Constants {
   // Module relative path
   public static final String TONY_CORE_SRC = "./tony-core/src/";
 
+  // YARN resources
+  public static final String MEMORY = "memory";
+  public static final String VCORES = "vcores";
+  public static final String GPUS = "gpus";
+
   private Constants() { }
 }

@@ -44,14 +44,14 @@ public class TestTonyClient {
   @Test
   public void testValidateTonyConfZeroInstances() {
     Configuration conf = new Configuration();
-    conf.setInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, 0);
+    conf.setInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES, 0);
     TonyClient.validateTonyConf(conf);
   }
 
   @Test(expectedExceptions = RuntimeException.class)
   public void testValidateTonyConfTooManyTotalInstances() {
     Configuration conf = new Configuration();
-    conf.setInt(TonyConfigurationKeys.TONY_MAX_TOTAL_INSTANCES, 3);
+    conf.setInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES, 3);
     conf.setInt("tony.foo.instances", 2);
     conf.setInt("tony.bar.instances", 2);
     TonyClient.validateTonyConf(conf);
@@ -65,4 +65,43 @@ public class TestTonyClient {
     TonyClient.validateTonyConf(conf);
   }
 
+  /**
+   * 10 GPUs total requested, max is 5. Conf validation should fail.
+   */
+  @Test(expectedExceptions = RuntimeException.class,
+      expectedExceptionsMessageRegExp = ".*amount of " + Constants.GPUS + ".*requested exceeds.*")
+  public void testValidateTonyConfTooManyGpus() {
+    Configuration conf = new Configuration();
+    conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 10);
+    conf.setInt(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS), 5);
+    TonyClient.validateTonyConf(conf);
+  }
+
+  /**
+   * 6 GPUs requested (1 each for the 3 workers and 1 each for the 3 ps), max total is 5. Validation should fail.
+   */
+  @Test(expectedExceptions = RuntimeException.class,
+      expectedExceptionsMessageRegExp = ".*amount of " + Constants.GPUS + ".*requested exceeds.*")
+  public void testValidateTonyConfTooManyGpusAcrossAllTasks() {
+    Configuration conf = new Configuration();
+    conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
+    conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.PS_JOB_NAME, Constants.GPUS), 1);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 3);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.PS_JOB_NAME), 3);
+    conf.setInt(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS), 5);
+    TonyClient.validateTonyConf(conf);
+  }
+
+  /**
+   * 5 GPUs requested, max total is 10. Validation should pass.
+   */
+  @Test
+  public void testValidateTonyConfRequestedGpusUnderLimit() {
+    Configuration conf = new Configuration();
+    conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 5);
+    conf.setInt(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS), 10);
+    TonyClient.validateTonyConf(conf);
+  }
 }

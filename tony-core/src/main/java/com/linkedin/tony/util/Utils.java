@@ -325,20 +325,18 @@ public class Utils {
    * @return map from configured job name to its corresponding resource request
    */
   public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
-    Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-            .map(Utils::getTaskType)
-            .collect(Collectors.toSet());
+    Set<String> jobNames = getAllJobTypes(conf);
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
     for (String jobName : jobNames) {
       int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName),
               TonyConfigurationKeys.getDefaultInstances(jobName));
-      String memoryString = conf.get(TonyConfigurationKeys.getMemoryKey(jobName),
+      String memoryString = conf.get(TonyConfigurationKeys.getResourceKey(jobName, Constants.MEMORY),
               TonyConfigurationKeys.DEFAULT_MEMORY);
       long memory = Long.parseLong(parseMemoryString(memoryString));
-      int vCores = conf.getInt(TonyConfigurationKeys.getVCoresKey(jobName),
+      int vCores = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.VCORES),
               TonyConfigurationKeys.DEFAULT_VCORES);
-      int gpus = conf.getInt(TonyConfigurationKeys.getGPUsKey(jobName),
+      int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
 
       /* The priority of different task types MUST be different.
@@ -354,6 +352,12 @@ public class Utils {
       }
     }
     return containerRequests;
+  }
+
+  public static Set<String> getAllJobTypes(Configuration conf) {
+    return conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
+        .map(Utils::getTaskType)
+        .collect(Collectors.toSet());
   }
 
   /**

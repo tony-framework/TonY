@@ -46,6 +46,7 @@ test {
 
 test.dependsOn(setupHdfsLib)
 
+def generatedSourcesDir = file('src/generated/main/java')
 sourceSets {
   main {
     proto {
@@ -55,7 +56,7 @@ sourceSets {
     }
 
     java {
-      srcDirs += ['src/generated/main/java']
+      srcDirs += [generatedSourcesDir]
     }
   }
 }
@@ -77,3 +78,9 @@ clean {
 // The `generateProto` task is dynamically generated and is not available at configuration time,
 // so we need to refer to it by a string name here
 ideaModule.dependsOn 'generateProto'
+idea {
+  module {
+    sourceDirs += generatedSourcesDir
+    generatedSourceDirs += generatedSourcesDir
+  }
+}
