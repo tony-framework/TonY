@@ -74,7 +74,7 @@
   <property>
     <name>tony.task.max-total-gpus</name>
     <value>-1</value>
-    <description>Maximum number of GPUs that can be requested across all tasks.</description>
+    <description>Maximum number of GPUs that can be requested across all tasks. -1 means no limit.</description>
   </property>
 
   <property>
