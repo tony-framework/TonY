@@ -36,6 +36,7 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.VCORES));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourcesKey(Constants.WORKER_JOB_NAME));
+    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS));
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_VERSION);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_REVISION);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TONY_VERSION_INFO_BRANCH);
