@@ -85,8 +85,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_MAX_TOTAL_INSTANCES;
-
 
 /**
  * User entry point to submit tensorflow job.
@@ -664,7 +662,8 @@ public class TonyClient implements AutoCloseable {
     }
 
     // check that we don't request more than the allowed total tasks
-    int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES, DEFAULT_MAX_TOTAL_INSTANCES);
+    int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES,
+        TonyConfigurationKeys.DEFAULT_MAX_TOTAL_INSTANCES);
     int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(TensorFlowContainerRequest::getNumInstances).sum();
     if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
       throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
