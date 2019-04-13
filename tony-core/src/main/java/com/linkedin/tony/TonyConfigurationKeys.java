@@ -112,7 +112,8 @@ public class TonyConfigurationKeys {
   /**
    * Max total number of task instances that can be requested across all task types.
    */
-  public static final String TONY_MAX_TOTAL_INSTANCES = TONY_TASK_PREFIX + "max-total-instances";
+  public static final String MAX_TOTAL_INSTANCES = TONY_TASK_PREFIX + "max-total-instances";
+  public static final int DEFAULT_MAX_TOTAL_INSTANCES = -1;
 
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
@@ -140,6 +141,7 @@ public class TonyConfigurationKeys {
 
   // Keys/default values for configurable TensorFlow job names
   public static final String INSTANCES_REGEX = "tony\\.([a-z]+)\\.instances";
+  public static final String MAX_TOTAL_RESOURCES_REGEX = TONY_TASK_PREFIX + "max-total-([a-z]+)";
   public static final String RESOURCES_REGEX = "tony\\.([a-z]+)\\.resources";
   public static final String DEFAULT_MEMORY = "2g";
   public static final int DEFAULT_VCORES = 1;
@@ -168,16 +170,12 @@ public class TonyConfigurationKeys {
     }
   }
 
-  public static String getMemoryKey(String jobName) {
-    return String.format(TONY_PREFIX + "%s.memory", jobName);
+  public static String getResourceKey(String jobName, String resource) {
+    return String.format(TONY_PREFIX + "%s.%s", jobName, resource);
   }
 
-  public static String getVCoresKey(String jobName) {
-    return String.format(TONY_PREFIX + "%s.vcores", jobName);
-  }
-
-  public static String getGPUsKey(String jobName) {
-    return String.format(TONY_PREFIX + "%s.gpus", jobName);
+  public static String getMaxTotalResourceKey(String resource) {
+    return String.format(TONY_TASK_PREFIX + "max-total-%s", resource);
   }
 
   // Job specific resources

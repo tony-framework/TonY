@@ -72,6 +72,12 @@
   </property>
 
   <property>
+    <name>tony.task.max-total-gpus</name>
+    <value>-1</value>
+    <description>Maximum number of GPUs that can be requested across all tasks. -1 means no limit.</description>
+  </property>
+
+  <property>
     <description>JVM opts for each TaskExecutor.</description>
     <name>tony.task.executor.jvm.opts</name>
     <value>-Xmx1536m</value>
