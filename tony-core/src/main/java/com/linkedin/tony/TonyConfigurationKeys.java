@@ -11,7 +11,8 @@ import java.util.List;
 public class TonyConfigurationKeys {
   public enum MLFramework {
     TENSORFLOW,
-    PYTORCH
+    PYTORCH,
+    HOROVOD
   }
 
   private TonyConfigurationKeys() {
