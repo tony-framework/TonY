@@ -127,7 +127,7 @@ public class TaskExecutor {
     LOG.info("Successfully registered and got cluster spec: " + executor.clusterSpec);
 
     switch (executor.framework) {
-      case TENSORFLOW: {
+      case TENSORFLOW:
         LOG.info("Setting up TensorFlow job...");
         // Set up py4j
         GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
@@ -138,8 +138,7 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
         executor.shellEnv.put(Constants.TF_CONFIG, Utils.constructTFConfig(executor.clusterSpec, executor.jobName, executor.taskIndex));
         break;
-      }
-      case PYTORCH: {
+      case PYTORCH:
         LOG.info("Setting up PyTorch job...");
         String initMethod = Utils.parseClusterSpecForPytorch(executor.clusterSpec);
         if (initMethod == null) {
@@ -150,7 +149,10 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
         executor.shellEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
-      }
+      case HOROVOD:
+        // No extra environment variables needed; horovodrun takes care of setup.
+        // Setting TF_CONFIG causes problems if "chief" isn't set.
+        break;
       default:
         throw new RuntimeException("Unsupported executor framework: " + executor.framework);
     }
