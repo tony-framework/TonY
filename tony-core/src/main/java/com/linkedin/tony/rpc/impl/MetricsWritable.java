@@ -24,8 +24,16 @@ public class MetricsWritable implements Writable {
   // Required for serialization
   public MetricsWritable() { }
 
-  public MetricsWritable(MetricWritable[] metrics) {
-    this.metrics = metrics;
+  public MetricsWritable(int numMetrics) {
+    this.metrics = new MetricWritable[numMetrics];
+  }
+
+  public MetricWritable getMetric(int index) {
+    return metrics[index];
+  }
+
+  public void setMetric(int index, MetricWritable metric) {
+    metrics[index] = metric;
   }
 
   public List<Metric> getMetricsAsList() {
