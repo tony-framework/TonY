@@ -300,7 +300,7 @@ public class TestTonyE2E  {
   public void testTonyResourcesFlag() throws ParseException, IOException {
     conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
-    String resources = "tony-core/src/test/resources/test.zip" + ",tony-core/src/test/resources/test2.zip#archive,"
+    String resources = "tony-core/src/test/resources/test.zip::test20.zip" + ",tony-core/src/test/resources/test2.zip#archive,"
             + libPath;
     client.init(new String[]{
         "--executes", "python check_archive_file_localization.py",
