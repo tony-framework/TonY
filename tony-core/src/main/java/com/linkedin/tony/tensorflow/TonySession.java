@@ -42,7 +42,6 @@ public class TonySession {
   private static final Log LOG = LogFactory.getLog(TonySession.class);
   private Configuration tonyConf;
 
-  private String amAddress;
   private Map<String, TensorFlowContainerRequest> containerRequests;
 
   // sessionId to distinguish different sessions. Currently used to distinguish
@@ -68,9 +67,7 @@ public class TonySession {
     StringBuilder cmd = new StringBuilder();
     cmd.append("$JAVA_HOME/bin/java ")
         .append(jvmArgs)
-        .append(" com.linkedin.tony.TaskExecutor ")
-        .append(" --am_address ")
-        .append(amAddress);
+        .append(" com.linkedin.tony.TaskExecutor");
     return cmd.toString();
   }
 
@@ -80,7 +77,6 @@ public class TonySession {
   }
 
   private TonySession(Builder builder) {
-    this.amAddress = builder.amAddress;
     this.containerRequests = Utils.parseContainerRequests(builder.tonyConf);
     this.jvmArgs = builder.jvmArgs;
     this.tonyConf = builder.tonyConf;
@@ -352,17 +348,11 @@ public class TonySession {
    * Builder to compose the TonySession class.
    */
   public static class Builder {
-    private String amAddress;
     private String jvmArgs;
     private Configuration tonyConf;
 
     public TonySession build() {
       return new TonySession(this);
-    }
-
-    public Builder setAMAddress(String amAddress) {
-      this.amAddress = amAddress;
-      return this;
     }
 
     public Builder setTaskExecutorJVMArgs(String jvmArgs) {
@@ -374,7 +364,6 @@ public class TonySession {
       this.tonyConf = tonyConf;
       return this;
     }
-
   }
 
   /**

@@ -73,6 +73,8 @@ public class Constants {
   public static final String PYTHON_VENV_DIR = "venv";
   public static final String TASK_PARAM_KEY = "MODEL_PARAMS";
 
+  public static final String AM_HOST = "AM_HOST";
+  public static final String AM_PORT = "AM_PORT";
   public static final String AM_STDOUT_FILENAME = "amstdout.log";
   public static final String AM_STDERR_FILENAME = "amstderr.log";
 
@@ -128,6 +130,13 @@ public class Constants {
   public static final String MEMORY = "memory";
   public static final String VCORES = "vcores";
   public static final String GPUS = "gpus";
+
+  // pid environment variable set by YARN
+  public static final String JVM_PID = "JVM_PID";
+
+  // Metrics
+  public static final String METRICS_RPC_PORT = "METRICS_RPC_PORT";
+  public static final String MAX_MEMORY_BYTES = "MAX_MEMORY_BYTES";
 
   private Constants() { }
 }

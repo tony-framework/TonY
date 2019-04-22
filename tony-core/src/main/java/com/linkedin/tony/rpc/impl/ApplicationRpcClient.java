@@ -31,7 +31,6 @@ import org.apache.hadoop.io.retry.RetryPolicies;
 import org.apache.hadoop.io.retry.RetryPolicy;
 import org.apache.hadoop.io.retry.RetryProxy;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
@@ -72,10 +71,6 @@ public class ApplicationRpcClient implements ApplicationRpc {
 
   private static <T> T getProxy(final Configuration conf, final YarnRPC rpc, final UserGroupInformation user,
       final InetSocketAddress serverAddress, final Class<T> protocol, RetryPolicy retryPolicy) {
-    YarnClient client = YarnClient.createYarnClient();
-    client.init(conf);
-    client.start();
-
     T proxy = user.doAs((PrivilegedAction<T>) () -> (T) rpc.getProxy(protocol, serverAddress, conf));
     return (T) RetryProxy.create(protocol, proxy, retryPolicy);
   }

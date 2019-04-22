@@ -119,11 +119,14 @@ public class TonyConfigurationKeys {
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
-  public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval";
+  public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval-ms";
   public static final int DEFAULT_TASK_HEARTBEAT_INTERVAL_MS = 1000;
 
   public static final String TASK_MAX_MISSED_HEARTBEATS = TONY_TASK_PREFIX + "max-missed-heartbeats";
   public static final int DEFAULT_TASK_MAX_MISSED_HEARTBEATS = 25;
+
+  public static final String TASK_METRICS_UPDATE_INTERVAL_MS = TONY_TASK_PREFIX + "metrics-interval-ms";
+  public static final int DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS = 5000;
 
   // AM configurations
   public static final String AM_PREFIX = TONY_PREFIX + "am.";

@@ -85,7 +85,7 @@
 
   <property>
     <description>Frequency, in milliseconds, for which TaskExecutors should heartbeat with AM.</description>
-    <name>tony.task.heartbeat-interval</name>
+    <name>tony.task.heartbeat-interval-ms</name>
     <value>1000</value>
   </property>
 
@@ -93,6 +93,12 @@
     <description>How many missed heartbeats before declaring a TaskExecutor dead.</description>
     <name>tony.task.max-missed-heartbeats</name>
     <value>25</value>
+  </property>
+
+  <property>
+    <description>Frequency, in milliseconds, for which TaskExecutors should report metrics to the AM.</description>
+    <name>tony.task.metrics-interval-ms</name>
+    <value>5000</value>
   </property>
 
   <!-- AM configurations -->

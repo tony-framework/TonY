@@ -5,27 +5,14 @@
 package com.linkedin.tony;
 
 import org.apache.hadoop.conf.Configuration;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class TestTaskExecutor {
-  private String[] args;
-
-
-  @BeforeTest
-  public void setup() {
-    List<String> listArgs = new ArrayList<>();
-    listArgs.add("-am_address");
-    listArgs.add("localhost:1234");
-    args = listArgs.toArray(new String[0]);
-  }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testTaskExecutorConfShouldThrowException() throws Exception {
@@ -40,7 +27,7 @@ public class TestTaskExecutor {
       throw new RuntimeException("Failed to delete conf file");
     }
     // Should throw exception since we didn't set up Task Command.
-    taskExecutor.initConfigs(args);
+    taskExecutor.initConfigs();
   }
 
 }

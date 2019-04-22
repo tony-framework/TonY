@@ -105,6 +105,10 @@ subprojects {
         exclude(dependency('com.sun.jersey:'))
         exclude(dependency('com.sun.jersey.contribs:'))
         exclude(dependency('org.apache.hadoop:'))
+        exclude(dependency('org.apache.hive:'))
+        exclude(dependency('org.apache.pig:'))
+        exclude(dependency('org.apache.spark:'))
+        exclude(dependency('org.spark-project:'))
       }
       zip64 true
     }

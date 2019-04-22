@@ -5,8 +5,9 @@
 package com.linkedin.tony;
 
 
+import com.linkedin.tony.rpc.MetricsRpc;
+import com.linkedin.tony.rpc.TensorFlowClusterPB;
 import java.lang.annotation.Annotation;
-
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Stable;
 import org.apache.hadoop.conf.Configuration;
@@ -16,11 +17,11 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.security.token.TokenInfo;
 import org.apache.hadoop.security.token.TokenSelector;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSelector;
-import com.linkedin.tony.rpc.TensorFlowClusterPB;
+
 
 @Public
 @Stable
-public class TFClientSecurityInfo extends SecurityInfo {
+public class TonyClientAMSecurityInfo extends SecurityInfo {
 
   @Override
   public KerberosInfo getKerberosInfo(Class<?> protocol, Configuration conf) {
@@ -29,7 +30,7 @@ public class TFClientSecurityInfo extends SecurityInfo {
 
   @Override
   public TokenInfo getTokenInfo(Class<?> protocol, Configuration conf) {
-    if (!protocol.equals(TensorFlowClusterPB.class)) {
+    if (!protocol.equals(TensorFlowClusterPB.class) && !protocol.equals(MetricsRpc.class)) {
       return null;
     }
 
@@ -40,8 +41,7 @@ public class TFClientSecurityInfo extends SecurityInfo {
       }
 
       @Override
-      public Class<? extends TokenSelector<? extends TokenIdentifier>>
-      value() {
+      public Class<? extends TokenSelector<? extends TokenIdentifier>> value() {
         return ClientToAMTokenSelector.class;
       }
     };

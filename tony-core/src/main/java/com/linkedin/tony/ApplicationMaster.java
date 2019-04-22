@@ -7,16 +7,18 @@ package com.linkedin.tony;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.linkedin.tony.events.TaskFinished;
 import com.linkedin.tony.models.JobMetadata;
 import com.linkedin.tony.events.ApplicationFinished;
 import com.linkedin.tony.events.ApplicationInited;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.events.EventHandler;
 import com.linkedin.tony.events.EventType;
-import com.linkedin.tony.events.Metric;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
+import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.rpc.impl.MetricsRpcServer;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
@@ -36,7 +38,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,11 +53,13 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -81,7 +84,7 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
@@ -146,7 +149,7 @@ public class ApplicationMaster {
   private Configuration hdfsConf;
 
   /** Cluster spec **/
-  private ApplicationRpcServer rpcServer;
+  private ApplicationRpcServer applicationRpcServer;
 
   /** Set to false when testing locally / running in insecure cluster **/
   private boolean secureMode;
@@ -162,8 +165,11 @@ public class ApplicationMaster {
 
   /** Lifecycle control **/
   private long appTimeout;
-
   private volatile boolean clientSignalToStop = false; // client signal to stop
+
+  /** Metrics and events **/
+  private MetricsRpcServer metricsRpcServer;
+  private EventHandler eventHandler;
 
   /** HeartBeat monitor **/
   private final AbstractLivelinessMonitor<TonyTask> hbMonitor;
@@ -261,6 +267,8 @@ public class ApplicationMaster {
       return false;
     }
 
+    eventHandler = new EventHandler(historyFs, eventQueue);
+
     try {
       user = UserGroupInformation.getCurrentUser().getShortUserName();
     } catch (IOException e) {
@@ -271,7 +279,6 @@ public class ApplicationMaster {
 
   private void buildTonySession() {
     TonySession.Builder builder = new TonySession.Builder()
-        .setAMAddress(amHostPort)
         .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS));
@@ -286,7 +293,7 @@ public class ApplicationMaster {
    *                  -> succeeded -> stop -> job succeeded
    * @param args the args from user inputs
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     ApplicationMaster am = new ApplicationMaster();
     boolean succeeded = am.run(args);
     if (succeeded) {
@@ -298,7 +305,7 @@ public class ApplicationMaster {
     }
   }
 
-  private boolean run(String[] args) {
+  private boolean run(String[] args) throws IOException {
     long started = System.currentTimeMillis();
     if (!init(args)) {
       return false;
@@ -309,7 +316,6 @@ public class ApplicationMaster {
     }
 
     mainThread = Thread.currentThread();
-    EventHandler eventHandlerThread = new EventHandler(historyFs, eventQueue);
     // Set up the builder with parameters that don't change
     JobMetadata.Builder metadataBuilder = new JobMetadata.Builder()
         .setId(appIdString)
@@ -317,8 +323,8 @@ public class ApplicationMaster {
         .setStarted(started)
         .setUser(user);
     JobMetadata metadata = metadataBuilder.build();
-    eventHandlerThread.setUpThread(jobDir, metadata);
-    eventHandlerThread.start();
+    eventHandler.setUpThread(jobDir, metadata);
+    eventHandler.start();
     boolean succeeded;
     do {
       // Crash AM on purpose during AM crash tests.
@@ -329,7 +335,9 @@ public class ApplicationMaster {
       }
 
       try {
-        eventHandlerThread.emitEvent(constructEvent("APPLICATION_INITED"));
+        eventHandler.emitEvent(new Event(EventType.APPLICATION_INITED,
+            new ApplicationInited(appIdString, (int) numTotalTrackedTasks, Utils.getCurrentHostName()),
+            System.currentTimeMillis()));
         start();
       } catch (Exception e) {
         LOG.error("Exception when we're starting TonyAM", e);
@@ -351,39 +359,23 @@ public class ApplicationMaster {
     stop();
     long completed = System.currentTimeMillis();
     printTaskUrls();
-    eventHandlerThread.emitEvent(constructEvent("APPLICATION_FINISHED"));
+    eventHandler.emitEvent(new Event(EventType.APPLICATION_FINISHED,
+        new ApplicationFinished(appIdString, (int) numTotalTrackedTasks,
+            (int) (numTotalTrackedTasks - numCompletedTrackedTasks.get()), new ArrayList<>()),
+        System.currentTimeMillis()));
     metadata = metadataBuilder
         .setCompleted(completed)
         .setStatus(succeeded ? Constants.SUCCEEDED : Constants.FAILED)
         .build();
-    eventHandlerThread.stop(jobDir, metadata);
+    eventHandler.stop(jobDir, metadata);
 
     return succeeded;
-  }
-
-  private Event constructEvent(String type) {
-    Event event = new Event();
-    event.setTimestamp(System.currentTimeMillis());
-    switch (type) {
-      case "APPLICATION_INITED":
-        event.setType(EventType.APPLICATION_INITED);
-        event.setEvent(new ApplicationInited(appIdString, (int) numTotalTrackedTasks, Utils.getCurrentHostName()));
-        return event;
-      case "APPLICATION_FINISHED":
-        event.setType(EventType.APPLICATION_FINISHED);
-        List<Metric> metrics = new ArrayList<>();
-        int numFailedTasks = (int) numTotalTrackedTasks - numCompletedTrackedTasks.get();
-        event.setEvent(new ApplicationFinished(appIdString, (int) numTotalTrackedTasks, numFailedTasks, metrics));
-        return event;
-      default:
-        return null;
-    }
   }
 
   /**
    * Prepare the application master. This part is shared across different retries.
    */
-  private boolean prepare() {
+  private boolean prepare() throws IOException {
     LOG.info("Preparing application master..");
 
     containerListener = createNMCallbackHandler();
@@ -391,8 +383,20 @@ public class ApplicationMaster {
     nmClientAsync.init(yarnConf);
     nmClientAsync.start();
 
-    String hostname = Utils.getCurrentHostName();
-    rpcServer = setupRPCService(hostname);
+    // Setup application RPC server
+    String amHostname = Utils.getCurrentHostName();
+    applicationRpcServer = setupRPCService(amHostname);
+    containerEnv.put(Constants.AM_HOST, amHostname);
+    containerEnv.put(Constants.AM_PORT, Integer.toString(amPort));
+
+    // Setup metrics RPC server.
+    ServerSocket rpcSocket = new ServerSocket(0);
+    int metricsRpcPort = rpcSocket.getLocalPort();
+    rpcSocket.close();
+    metricsRpcServer = new MetricsRpcServer();
+    RPC.Builder metricsServerBuilder = new RPC.Builder(yarnConf).setProtocol(MetricsRpc.class)
+        .setInstance(metricsRpcServer).setPort(metricsRpcPort);
+    containerEnv.put(Constants.METRICS_RPC_PORT, Integer.toString(metricsRpcPort));
 
     // Init AMRMClient
     AMRMClientAsync.CallbackHandler allocListener = new RMCallbackHandler();
@@ -402,23 +406,32 @@ public class ApplicationMaster {
 
     RegisterApplicationMasterResponse response;
     try {
-      response = amRMClient.registerApplicationMaster(hostname, amPort, null);
-      amHostPort = hostname + ":" + amPort;
-      LOG.info("RPC server running at: " + amHostPort);
-      if (secureMode) {
-        ClientToAMTokenIdentifier identifier =
-            new ClientToAMTokenIdentifier(appAttemptID, user);
-        byte[] secret = response.getClientToAMTokenMasterKey().array();
-        ClientToAMTokenSecretManager secretManager = new ClientToAMTokenSecretManager(appAttemptID, secret);
-        Token<? extends TokenIdentifier> token = new Token<>(identifier, secretManager);
-        token.setService(new Text(amHostPort));
-        rpcServer.setSecretManager(secretManager);
-        UserGroupInformation.getCurrentUser().addToken(token);
-        setupContainerCredentials();
-      }
-    } catch (Exception e) {
+      response = amRMClient.registerApplicationMaster(amHostname, amPort, null);
+      amHostPort = amHostname + ":" + amPort;
+    } catch (YarnException e) {
       LOG.error("Exception while preparing AM", e);
       return false;
+    }
+
+    if (secureMode) {
+      // Set up secret manager for RPC servers
+      ClientToAMTokenIdentifier identifier = new ClientToAMTokenIdentifier(appAttemptID, user);
+      byte[] secret = response.getClientToAMTokenMasterKey().array();
+      ClientToAMTokenSecretManager secretManager = new ClientToAMTokenSecretManager(appAttemptID, secret);
+      applicationRpcServer.setSecretManager(secretManager);
+      metricsServerBuilder.setSecretManager(secretManager);
+
+      // create token for application RPC server
+      Token<? extends TokenIdentifier> tensorflowClusterToken = new Token<>(identifier, secretManager);
+      tensorflowClusterToken.setService(new Text(amHostPort));
+      UserGroupInformation.getCurrentUser().addToken(tensorflowClusterToken);
+
+      // create token for metrics RPC server
+      Token<? extends TokenIdentifier> metricsToken = new Token<>(identifier, secretManager);
+      metricsToken.setService(new Text(amHostname + ":" + metricsRpcPort));
+      UserGroupInformation.getCurrentUser().addToken(metricsToken);
+
+      setupContainerCredentials();
     }
 
     try {
@@ -429,8 +442,18 @@ public class ApplicationMaster {
       return false;
     }
 
-    rpcServer.start();
+    LOG.info("Starting application RPC server at: " + amHostPort);
+    applicationRpcServer.start();
+
+    LOG.info("Starting metrics RPC server at: " + amHostname + ":" + metricsRpcPort);
+    RPC.Server metricsServer = metricsServerBuilder.build();
+    if (yarnConf.getBoolean(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, false)) {
+      metricsServer.refreshServiceAclWithLoadedConfiguration(yarnConf, new TonyPolicyProvider());
+    }
+    metricsServer.start();
+
     hbMonitor.start();
+
     return true;
   }
 
@@ -546,7 +569,7 @@ public class ApplicationMaster {
 
     numCompletedTrackedTasks.set(0);
     numRequestedContainers.set(0);
-    rpcServer.reset();
+    applicationRpcServer.reset();
     session.sessionId += 1;
   }
 
@@ -889,14 +912,6 @@ public class ApplicationMaster {
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
-    Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
-    while (iter.hasNext()) {
-      Token<?> token = iter.next();
-      LOG.info(token);
-      if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
-        iter.remove();
-      }
-    }
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
     String submitterUserName = System.getenv(ApplicationConstants.Environment.USER.name());
     UserGroupInformation submitterUgi = UserGroupInformation.createRemoteUser(submitterUserName);
@@ -981,6 +996,12 @@ public class ApplicationMaster {
           if (Utils.isJobTypeTracked(task.getJobName(), tonyConf)) {
             numCompletedTrackedTasks.incrementAndGet();
           }
+
+          eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
+              new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+                  task.getTaskInfo().getStatus().toString(),
+                  metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex()))),
+              System.currentTimeMillis()));
         } else {
           LOG.warn("No task found for container : [" + containerStatus.getContainerId() + "]!");
         }

@@ -6,10 +6,12 @@ package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.io.HdfsAvroFileSplitReader;
+import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.List;
@@ -17,13 +19,11 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.Options;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import py4j.GatewayServer;
@@ -42,14 +42,24 @@ public class TaskExecutor {
 
   @VisibleForTesting
   protected Configuration tonyConf = new Configuration(false);
+
   private ServerSocket rpcSocket;
   private int rpcPort;
+
   private ServerSocket tbSocket;
   private int tbPort;
+
   private ServerSocket gatewayServerSocket;
   private int gatewayServerPort;
+
   private int timeOut;
-  private String amAddress;
+  private String amHost;
+  private int amPort;
+
+  private MetricsRpc metricsProxy;
+  private int metricsRPCPort;
+  private int metricsIntervalMs;
+
   private String taskCommand;
   private String clusterSpec;
   private String jobName;
@@ -62,7 +72,7 @@ public class TaskExecutor {
   private ApplicationRpcClient proxy;
   private Map<String, String> shellEnv = new HashMap<>();
   private int hbInterval;
-  private final ScheduledExecutorService hbExec = Executors.newScheduledThreadPool(1);
+  private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
 
@@ -96,30 +106,27 @@ public class TaskExecutor {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] unused) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = new TaskExecutor();
 
-    executor.initConfigs(args);
+    executor.initConfigs();
+    extractResources();
 
-    LOG.info("Setting up Rpc client, connecting to: " + executor.amAddress);
-    executor.proxy = ApplicationRpcClient.getInstance(executor.amAddress.split(":")[0],
-        Integer.parseInt(executor.amAddress.split(":")[1]), executor.yarnConf);
+    LOG.info("Setting up application RPC client, connecting to: " + executor.amHost + ":" + executor.amPort);
+    executor.proxy = ApplicationRpcClient.getInstance(executor.amHost, executor.amPort, executor.yarnConf);
+
+    LOG.info("Setting up metrics RPC client, connecting to: " + executor.amHost + ":" + executor.metricsRPCPort);
+    executor.metricsProxy = RPC.getProxy(MetricsRpc.class, RPC.getProtocolVersion(MetricsRpc.class),
+            new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
+    executor.scheduledThreadPool.scheduleAtFixedRate(
+        new TaskMonitor(executor.jobName, executor.taskIndex, executor.yarnConf, executor.metricsProxy),
+        0,
+        executor.metricsIntervalMs,
+        TimeUnit.MILLISECONDS);
 
     executor.setupPorts();
-
-    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
-      LOG.info("Unpacking src directory..");
-      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
-    }
-    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
-      LOG.info("Unpacking Python virtual environment.. ");
-      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
-    } else {
-      LOG.info("No virtual environment uploaded.");
-    }
-
-    executor.clusterSpec = executor.registerAndGetClusterSpec(executor.amAddress);
+    executor.clusterSpec = executor.registerAndGetClusterSpec();
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
       throw new Exception("Failed to register worker with AM.");
@@ -167,22 +174,20 @@ public class TaskExecutor {
     System.exit(exitCode);
   }
 
-  protected void initConfigs(String[] args) throws Exception {
+  protected void initConfigs() {
     jobName = System.getenv(Constants.JOB_NAME);
     taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
     taskId = jobName + ":" + taskIndex;
+    LOG.info("Executor is running task " + taskId);
 
     String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
     isChief = Boolean.parseBoolean(isChiefEnvValue);
 
-    LOG.info("Executor is running task " + jobName + " " + taskIndex);
+    amHost = System.getenv(Constants.AM_HOST);
+    amPort = Integer.parseInt(System.getenv(Constants.AM_PORT));
 
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
-    Options opts = new Options();
-    opts.addOption("am_address", true, "The address to the application master.");
-    CommandLine cliParser = new GnuParser().parse(opts, args);
-    amAddress = cliParser.getOptionValue("am_address", "");
     timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
@@ -200,21 +205,37 @@ public class TaskExecutor {
     framework = MLFramework.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
+    metricsRPCPort = Integer.parseInt(System.getenv(Constants.METRICS_RPC_PORT));
+    metricsIntervalMs = tonyConf.getInt(TonyConfigurationKeys.TASK_METRICS_UPDATE_INTERVAL_MS,
+        TonyConfigurationKeys.DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS);
+
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
   }
 
-  private String registerAndGetClusterSpec(String amAddress) {
-    LOG.info("Application Master address : " + amAddress);
+  private static void extractResources() {
+    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
+      LOG.info("Unpacking src directory..");
+      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
+    }
+    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
+      LOG.info("Unpacking Python virtual environment.. ");
+      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
+    } else {
+      LOG.info("No virtual environment uploaded.");
+    }
+  }
+
+  private String registerAndGetClusterSpec() {
     ContainerId containerId = ContainerId.fromString(System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name()));
     String hostName = Utils.getCurrentHostName();
     LOG.info("ContainerId is: " + containerId + " HostName is: " + hostName);
 
     // Start the Heartbeater..
-    hbExec.scheduleAtFixedRate(new Heartbeater(),
+    scheduledThreadPool.scheduleAtFixedRate(new Heartbeater(),
         0, hbInterval, TimeUnit.MILLISECONDS);
 
-    LOG.info("Connecting to " + amAddress + " to register worker spec: " + jobName + " " + taskIndex + " "
+    LOG.info("Connecting to " + amHost + ":" + amPort + " to register worker spec: " + jobName + " " + taskIndex + " "
              + hostName + ":" + rpcPort);
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
