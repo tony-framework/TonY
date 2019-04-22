@@ -5,14 +5,11 @@
 package com.linkedin.tony;
 
 import org.apache.hadoop.conf.Configuration;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class TestTaskExecutor {
