@@ -42,6 +42,14 @@ public class LocalizableResource {
     return isDirectory;
   }
 
+  public boolean isLocalFile() {
+    return new Path(path).toUri().getScheme() == null;
+  }
+
+  public boolean isArchive() {
+    return resourceType == LocalResourceType.ARCHIVE;
+  }
+
   public Path getSourceFilePath() {
     return sourceFilePath;
   }

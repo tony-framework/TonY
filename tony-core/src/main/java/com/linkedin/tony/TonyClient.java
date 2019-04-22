@@ -152,7 +152,7 @@ public class TonyClient implements AutoCloseable {
     VersionInfo.injectVersionInfo(tonyConf);
   }
 
-  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
+  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException, ParseException {
     LOG.info("Starting client..");
     yarnClient.start();
     YarnClientApplication app = yarnClient.createApplication();
@@ -186,7 +186,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  public String processFinalTonyConf() throws IOException {
+  public String processFinalTonyConf() throws IOException, ParseException {
     FileSystem fs = FileSystem.get(hdfsConf);
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
@@ -568,7 +568,7 @@ public class TonyClient implements AutoCloseable {
    *  address of the uploaded file.
    **/
   @VisibleForTesting
-  public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
+  public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException, ParseException {
     Set<String> resourceKeys = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
     for (String resourceKey : resourceKeys) {
       String[] resources = tonyConf.getStrings(resourceKey);
@@ -576,29 +576,29 @@ public class TonyClient implements AutoCloseable {
         continue;
       }
       for (String resource: resources) {
+        LocalizableResource lr = new LocalizableResource(resource, fs);
         // If it is local file, we upload to remote fs first
-        if (new Path(resource).toUri().getScheme() == null) {
-          boolean isArchiveFormat = resource.contains(Constants.ARCHIVE_SUFFIX);
-          String trimmedResource = resource.replace(Constants.ARCHIVE_SUFFIX, "");
-          File file = new File(trimmedResource);
+        if (lr.isLocalFile()) {
+          File file = new File(lr.getLocalFileName());
+          String localFileName = lr.getLocalFileName();
           if (!file.exists()) {
-            LOG.fatal(trimmedResource + " doesn't exist in local filesystem");
-            throw new IOException(trimmedResource + " doesn't exist in local filesystem.");
+            LOG.fatal(localFileName + " doesn't exist in local filesystem");
+            throw new IOException(localFileName + " doesn't exist in local filesystem.");
           }
           if (file.isFile()) {
             // If it is archive format, set it as ARCHIVE format.
-            if (isArchiveFormat) {
+            if (lr.isArchive()) {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
-                      new Path(trimmedResource),
-                      new Path(trimmedResource).getName(),
-                      tonyConf,
-                      fs, LocalResourceType.ARCHIVE, resourceKey);
+                  new Path(localFileName),
+                  new Path(localFileName).getName(),
+                  tonyConf,
+                  fs, LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
-                      new Path(trimmedResource),
-                      new Path(trimmedResource).getName(),
-                      tonyConf,
-                      fs, LocalResourceType.FILE, resourceKey);
+                  new Path(localFileName),
+                  new Path(localFileName).getName(),
+                  tonyConf,
+                  fs, LocalResourceType.FILE, resourceKey);
             }
           } else {
             // file is directory
@@ -1008,7 +1008,7 @@ public class TonyClient implements AutoCloseable {
     boolean result;
     try {
       result = run();
-    } catch (IOException | InterruptedException | URISyntaxException | YarnException e) {
+    } catch (IOException | InterruptedException | URISyntaxException | YarnException | ParseException e) {
       LOG.fatal("Failed to run TonyClient", e);
       result = false;
     }
