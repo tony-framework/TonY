@@ -5,6 +5,7 @@
 package com.linkedin.tony;
 
 import org.apache.commons.cli.ParseException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -76,8 +77,14 @@ public class LocalizableResource {
         throw new ParseException("Failed to parse file: " + path);
     }
 
+    FileSystem localFs = FileSystem.getLocal(new Configuration());
     sourceFilePath = new Path(tuple[0]);
-    sourceFileStatus = fs.getFileStatus(sourceFilePath);
+
+    if (isLocalFile()) {
+      sourceFileStatus = localFs.getFileStatus(sourceFilePath);
+    } else {
+      sourceFileStatus = fs.getFileStatus(sourceFilePath);
+    }
     localFileName = sourceFilePath.getName();
 
     if (tuple.length == 2) {
@@ -90,7 +97,10 @@ public class LocalizableResource {
 
   public LocalResource toLocalResource() {
     if (isDirectory) {
-        throw new RuntimeException("Resource is directory and cannot be converted to LocalResource.");
+      throw new RuntimeException("Resource is directory and cannot be converted to LocalResource.");
+    }
+    if (isLocalFile()) {
+      throw new RuntimeException("Resource is local and cannot be converted to LocalResource.");
     }
     return LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(
       URI.create(sourceFileStatus.getPath().toString())),
