@@ -72,10 +72,6 @@ public class ApplicationRpcClient implements ApplicationRpc {
 
   private static <T> T getProxy(final Configuration conf, final YarnRPC rpc, final UserGroupInformation user,
       final InetSocketAddress serverAddress, final Class<T> protocol, RetryPolicy retryPolicy) {
-    YarnClient client = YarnClient.createYarnClient();
-    client.init(conf);
-    client.start();
-
     T proxy = user.doAs((PrivilegedAction<T>) () -> (T) rpc.getProxy(protocol, serverAddress, conf));
     return (T) RetryProxy.create(protocol, proxy, retryPolicy);
   }

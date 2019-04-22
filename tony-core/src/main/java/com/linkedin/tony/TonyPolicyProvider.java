@@ -4,16 +4,20 @@
  */
 package com.linkedin.tony;
 
+import com.linkedin.tony.rpc.MetricsRpc;
+import com.linkedin.tony.rpc.TensorFlowCluster;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.authorize.Service;
-import com.linkedin.tony.rpc.TensorFlowCluster;
 
 /**
  * PolicyProvider for Client to AM protocol.
  **/
-public class TFPolicyProvider extends PolicyProvider {
+public class TonyPolicyProvider extends PolicyProvider {
     @Override
     public Service[] getServices() {
-        return new Service[]{new Service("security.tf.client-am-protocol.acl", TensorFlowCluster.class)};
+        return new Service[]{
+            new Service("tony.cluster", TensorFlowCluster.class),
+            new Service("tony.metrics", MetricsRpc.class)
+        };
     }
 }

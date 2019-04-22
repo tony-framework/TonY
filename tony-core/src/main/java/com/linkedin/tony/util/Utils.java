@@ -513,10 +513,12 @@ public class Utils {
     }
   }
 
+  public static String[] getUntrackedJobTypes(Configuration conf) {
+    return conf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES, TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
+  }
+
   public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
-    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES,
-            TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
-    return !Arrays.asList(ignoredJobTypes).contains(taskName);
+    return !Arrays.asList(getUntrackedJobTypes(tonyConf)).contains(taskName);
   }
 
   public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,

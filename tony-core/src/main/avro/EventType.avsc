@@ -1,5 +1,5 @@
 {
   "namespace": "com.linkedin.tony.events",
   "type": "enum", "name": "EventType",
-  "symbols": [ "APPLICATION_INITED", "APPLICATION_FINISHED" ]
+  "symbols": [ "APPLICATION_INITED", "APPLICATION_FINISHED", "TASK_FINISHED" ]
 }

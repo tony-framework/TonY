@@ -129,5 +129,12 @@ public class Constants {
   public static final String VCORES = "vcores";
   public static final String GPUS = "gpus";
 
+  // pid environment variable set by YARN
+  public static final String JVM_PID = "JVM_PID";
+
+  // Metrics
+  public static final String METRICS_RPC_PORT = "METRICS_RPC_PORT";
+  public static final String MAX_MEMORY_BYTES = "MAX_MEMORY_BYTES";
+
   private Constants() { }
 }

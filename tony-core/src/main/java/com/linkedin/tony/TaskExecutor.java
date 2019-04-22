@@ -6,10 +6,14 @@ package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.io.HdfsAvroFileSplitReader;
+import com.linkedin.tony.rpc.MetricWritable;
+import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.rpc.impl.MetricsWritable;
 import com.linkedin.tony.util.Utils;
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.List;
@@ -24,8 +28,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.CORE_SITE_CONF;
@@ -42,14 +48,24 @@ public class TaskExecutor {
 
   @VisibleForTesting
   protected Configuration tonyConf = new Configuration(false);
+
   private ServerSocket rpcSocket;
   private int rpcPort;
+
   private ServerSocket tbSocket;
   private int tbPort;
+
   private ServerSocket gatewayServerSocket;
   private int gatewayServerPort;
+
   private int timeOut;
-  private String amAddress;
+  private String amHost;
+  private int amPort;
+
+  private MetricsRpc metricsProxy;
+  private int metricsRPCPort;
+  private int metricsIntervalMs;
+
   private String taskCommand;
   private String clusterSpec;
   private String jobName;
@@ -62,7 +78,7 @@ public class TaskExecutor {
   private ApplicationRpcClient proxy;
   private Map<String, String> shellEnv = new HashMap<>();
   private int hbInterval;
-  private final ScheduledExecutorService hbExec = Executors.newScheduledThreadPool(1);
+  private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
 
@@ -101,25 +117,19 @@ public class TaskExecutor {
     TaskExecutor executor = new TaskExecutor();
 
     executor.initConfigs(args);
+    extractResources();
 
-    LOG.info("Setting up Rpc client, connecting to: " + executor.amAddress);
-    executor.proxy = ApplicationRpcClient.getInstance(executor.amAddress.split(":")[0],
-        Integer.parseInt(executor.amAddress.split(":")[1]), executor.yarnConf);
+    LOG.info("Setting up application RPC client, connecting to: " + executor.amHost + ":" + executor.amPort);
+    executor.proxy = ApplicationRpcClient.getInstance(executor.amHost, executor.amPort, executor.yarnConf);
+
+    LOG.info("Setting up metrics RPC client, connecting to: " + executor.amHost + ":" + executor.metricsRPCPort);
+    executor.metricsProxy = RPC.getProxy(MetricsRpc.class, RPC.getProtocolVersion(MetricsRpc.class),
+            new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
+    executor.scheduledThreadPool.scheduleAtFixedRate(executor.new TaskMonitor(),
+        0, executor.metricsIntervalMs, TimeUnit.MILLISECONDS);
 
     executor.setupPorts();
-
-    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
-      LOG.info("Unpacking src directory..");
-      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
-    }
-    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
-      LOG.info("Unpacking Python virtual environment.. ");
-      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
-    } else {
-      LOG.info("No virtual environment uploaded.");
-    }
-
-    executor.clusterSpec = executor.registerAndGetClusterSpec(executor.amAddress);
+    executor.clusterSpec = executor.registerAndGetClusterSpec();
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
       throw new Exception("Failed to register worker with AM.");
@@ -182,7 +192,12 @@ public class TaskExecutor {
     Options opts = new Options();
     opts.addOption("am_address", true, "The address to the application master.");
     CommandLine cliParser = new GnuParser().parse(opts, args);
-    amAddress = cliParser.getOptionValue("am_address", "");
+
+    String amAddress = cliParser.getOptionValue("am_address", "");
+    String[] parts = amAddress.split(":");
+    amHost = parts[0];
+    amPort = Integer.parseInt(parts[1]);
+
     timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
@@ -200,21 +215,37 @@ public class TaskExecutor {
     framework = MLFramework.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
+    metricsRPCPort = Integer.parseInt(System.getenv(Constants.METRICS_RPC_PORT));
+    metricsIntervalMs = tonyConf.getInt(TonyConfigurationKeys.TASK_METRICS_UPDATE_INTERVAL_MS,
+        TonyConfigurationKeys.DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS);
+
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
   }
 
-  private String registerAndGetClusterSpec(String amAddress) {
-    LOG.info("Application Master address : " + amAddress);
+  private static void extractResources() {
+    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
+      LOG.info("Unpacking src directory..");
+      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
+    }
+    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
+      LOG.info("Unpacking Python virtual environment.. ");
+      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
+    } else {
+      LOG.info("No virtual environment uploaded.");
+    }
+  }
+
+  private String registerAndGetClusterSpec() {
     ContainerId containerId = ContainerId.fromString(System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name()));
     String hostName = Utils.getCurrentHostName();
     LOG.info("ContainerId is: " + containerId + " HostName is: " + hostName);
 
     // Start the Heartbeater..
-    hbExec.scheduleAtFixedRate(new Heartbeater(),
+    scheduledThreadPool.scheduleAtFixedRate(new Heartbeater(),
         0, hbInterval, TimeUnit.MILLISECONDS);
 
-    LOG.info("Connecting to " + amAddress + " to register worker spec: " + jobName + " " + taskIndex + " "
+    LOG.info("Connecting to " + amHost + ":" + amPort + " to register worker spec: " + jobName + " " + taskIndex + " "
              + hostName + ":" + rpcPort);
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
@@ -278,6 +309,48 @@ public class TaskExecutor {
         } else {
           LOG.warn("Will retry heartbeat..");
         }
+      }
+    }
+  }
+
+  /**
+   * Monitors the task and reports metrics to the AM.
+   */
+  private class TaskMonitor implements Runnable {
+    private ResourceCalculatorProcessTree resourceCalculator;
+
+    private MetricWritable[] metrics = new MetricWritable[]{
+        new MetricWritable(Constants.MAX_MEMORY_BYTES, -1d)
+    };
+    private MetricsWritable metricsWritable = new MetricsWritable(metrics);
+
+    private final int MAX_MEMORY_BYTES_INDEX = 0;
+
+    private TaskMonitor() {
+      String pid = System.getenv(Constants.JVM_PID);
+      LOG.info("Task pid is: " + pid);
+      resourceCalculator = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, null, yarnConf);
+    }
+
+    @Override
+    public void run() {
+      refreshMetrics();
+      try {
+        metricsProxy.updateMetrics(jobName, taskIndex, metricsWritable);
+      } catch (Exception e) {
+        LOG.error("Encountered exception updating metrics", e);
+      }
+    }
+
+    private void refreshMetrics() {
+      resourceCalculator.updateProcessTree();
+      refreshMaxMemoryBytes();
+    }
+
+    private void refreshMaxMemoryBytes() {
+      double memoryBytes = resourceCalculator.getRssMemorySize();
+      if (memoryBytes > metrics[MAX_MEMORY_BYTES_INDEX].getValue()) {
+        metrics[MAX_MEMORY_BYTES_INDEX].setValue(memoryBytes);
       }
     }
   }
