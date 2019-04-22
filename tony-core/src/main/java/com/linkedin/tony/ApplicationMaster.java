@@ -445,11 +445,11 @@ public class ApplicationMaster {
     LOG.info("Starting application RPC server at: " + amHostPort);
     applicationRpcServer.start();
 
+    LOG.info("Starting metrics RPC server at: " + amHostname + ":" + metricsRpcPort);
     RPC.Server metricsServer = metricsServerBuilder.build();
     if (yarnConf.getBoolean(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, false)) {
       metricsServer.refreshServiceAclWithLoadedConfiguration(yarnConf, new TonyPolicyProvider());
     }
-    LOG.info("Starting metrics RPC server at: " + amHostname + ":" + metricsRpcPort);
     metricsServer.start();
 
     hbMonitor.start();
