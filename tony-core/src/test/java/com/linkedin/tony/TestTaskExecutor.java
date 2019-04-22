@@ -40,7 +40,7 @@ public class TestTaskExecutor {
       throw new RuntimeException("Failed to delete conf file");
     }
     // Should throw exception since we didn't set up Task Command.
-    taskExecutor.initConfigs(args);
+    taskExecutor.initConfigs();
   }
 
 }
