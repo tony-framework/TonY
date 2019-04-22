@@ -15,6 +15,9 @@ import java.util.stream.Collectors;
 import org.apache.hadoop.io.Writable;
 
 
+/**
+ * For serializing an array of {@link MetricWritable} over the wire.
+ */
 public class MetricsWritable implements Writable {
   private MetricWritable[] metrics;
 

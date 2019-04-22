@@ -73,6 +73,8 @@ public class Constants {
   public static final String PYTHON_VENV_DIR = "venv";
   public static final String TASK_PARAM_KEY = "MODEL_PARAMS";
 
+  public static final String AM_HOST = "AM_HOST";
+  public static final String AM_PORT = "AM_PORT";
   public static final String AM_STDOUT_FILENAME = "amstdout.log";
   public static final String AM_STDERR_FILENAME = "amstderr.log";
 

@@ -279,7 +279,6 @@ public class ApplicationMaster {
 
   private void buildTonySession() {
     TonySession.Builder builder = new TonySession.Builder()
-        .setAMAddress(amHostPort)
         .setTonyConf(tonyConf)
         .setTaskExecutorJVMArgs(tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JVM_OPTS,
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS));
@@ -387,6 +386,8 @@ public class ApplicationMaster {
     // Setup application RPC server
     String amHostname = Utils.getCurrentHostName();
     applicationRpcServer = setupRPCService(amHostname);
+    containerEnv.put(Constants.AM_HOST, amHostname);
+    containerEnv.put(Constants.AM_PORT, Integer.toString(amPort));
 
     // Setup metrics RPC server.
     ServerSocket rpcSocket = new ServerSocket(0);

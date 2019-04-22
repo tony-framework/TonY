@@ -6,10 +6,8 @@ package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.io.HdfsAvroFileSplitReader;
-import com.linkedin.tony.rpc.MetricWritable;
 import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
-import com.linkedin.tony.rpc.impl.MetricsWritable;
 import com.linkedin.tony.util.Utils;
 import java.io.File;
 import java.io.IOException;
@@ -31,7 +29,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import py4j.GatewayServer;
 
 import static com.linkedin.tony.Constants.CORE_SITE_CONF;
@@ -112,11 +109,11 @@ public class TaskExecutor {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] unused) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = new TaskExecutor();
 
-    executor.initConfigs(args);
+    executor.initConfigs();
     extractResources();
 
     LOG.info("Setting up application RPC client, connecting to: " + executor.amHost + ":" + executor.amPort);
@@ -125,8 +122,11 @@ public class TaskExecutor {
     LOG.info("Setting up metrics RPC client, connecting to: " + executor.amHost + ":" + executor.metricsRPCPort);
     executor.metricsProxy = RPC.getProxy(MetricsRpc.class, RPC.getProtocolVersion(MetricsRpc.class),
             new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
-    executor.scheduledThreadPool.scheduleAtFixedRate(executor.new TaskMonitor(),
-        0, executor.metricsIntervalMs, TimeUnit.MILLISECONDS);
+    executor.scheduledThreadPool.scheduleAtFixedRate(
+        new TaskMonitor(executor.jobName, executor.taskIndex, executor.yarnConf, executor.metricsProxy),
+        0,
+        executor.metricsIntervalMs,
+        TimeUnit.MILLISECONDS);
 
     executor.setupPorts();
     executor.clusterSpec = executor.registerAndGetClusterSpec();
@@ -177,27 +177,20 @@ public class TaskExecutor {
     System.exit(exitCode);
   }
 
-  protected void initConfigs(String[] args) throws Exception {
+  protected void initConfigs() {
     jobName = System.getenv(Constants.JOB_NAME);
     taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
     taskId = jobName + ":" + taskIndex;
+    LOG.info("Executor is running task " + taskId);
 
     String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
     isChief = Boolean.parseBoolean(isChiefEnvValue);
 
-    LOG.info("Executor is running task " + jobName + " " + taskIndex);
+    amHost = System.getenv(Constants.AM_HOST);
+    amPort = Integer.parseInt(System.getenv(Constants.AM_PORT));
 
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
-    Options opts = new Options();
-    opts.addOption("am_address", true, "The address to the application master.");
-    CommandLine cliParser = new GnuParser().parse(opts, args);
-
-    String amAddress = cliParser.getOptionValue("am_address", "");
-    String[] parts = amAddress.split(":");
-    amHost = parts[0];
-    amPort = Integer.parseInt(parts[1]);
-
     timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
@@ -309,48 +302,6 @@ public class TaskExecutor {
         } else {
           LOG.warn("Will retry heartbeat..");
         }
-      }
-    }
-  }
-
-  /**
-   * Monitors the task and reports metrics to the AM.
-   */
-  private class TaskMonitor implements Runnable {
-    private ResourceCalculatorProcessTree resourceCalculator;
-
-    private MetricWritable[] metrics = new MetricWritable[]{
-        new MetricWritable(Constants.MAX_MEMORY_BYTES, -1d)
-    };
-    private MetricsWritable metricsWritable = new MetricsWritable(metrics);
-
-    private final int MAX_MEMORY_BYTES_INDEX = 0;
-
-    private TaskMonitor() {
-      String pid = System.getenv(Constants.JVM_PID);
-      LOG.info("Task pid is: " + pid);
-      resourceCalculator = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, null, yarnConf);
-    }
-
-    @Override
-    public void run() {
-      refreshMetrics();
-      try {
-        metricsProxy.updateMetrics(jobName, taskIndex, metricsWritable);
-      } catch (Exception e) {
-        LOG.error("Encountered exception updating metrics", e);
-      }
-    }
-
-    private void refreshMetrics() {
-      resourceCalculator.updateProcessTree();
-      refreshMaxMemoryBytes();
-    }
-
-    private void refreshMaxMemoryBytes() {
-      double memoryBytes = resourceCalculator.getRssMemorySize();
-      if (memoryBytes > metrics[MAX_MEMORY_BYTES_INDEX].getValue()) {
-        metrics[MAX_MEMORY_BYTES_INDEX].setValue(memoryBytes);
       }
     }
   }
