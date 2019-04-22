@@ -35,6 +35,8 @@ public class LocalizableResource {
   private LocalResourceType resourceType;
   private FileStatus sourceFileStatus;
   private Path sourceFilePath;
+
+  // The file path inside the container.
   private String localFileName;
 
   private LocalizableResource() { }
@@ -62,6 +64,11 @@ public class LocalizableResource {
   public LocalizableResource(String path, FileSystem fs) throws ParseException, IOException  {
     this.path = path;
       this.parse(fs);
+  }
+
+  public void updateSourcePath(String sourcePath, FileSystem fs) throws IOException, ParseException {
+    path = sourcePath;
+    parse(fs);
   }
 
   private void parse(FileSystem fs) throws ParseException, IOException {

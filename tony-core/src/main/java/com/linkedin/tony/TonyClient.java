@@ -579,24 +579,24 @@ public class TonyClient implements AutoCloseable {
         LocalizableResource lr = new LocalizableResource(resource, fs);
         // If it is local file, we upload to remote fs first
         if (lr.isLocalFile()) {
-          File file = new File(lr.getLocalFileName());
-          String localFileName = lr.getLocalFileName();
+          Path localFilePath = lr.getSourceFilePath();
+          File file = new File(localFilePath.toString());
           if (!file.exists()) {
-            LOG.fatal(localFileName + " doesn't exist in local filesystem");
-            throw new IOException(localFileName + " doesn't exist in local filesystem.");
+            LOG.fatal(localFilePath + " doesn't exist in local filesystem");
+            throw new IOException(localFilePath + " doesn't exist in local filesystem.");
           }
           if (file.isFile()) {
             // If it is archive format, set it as ARCHIVE format.
             if (lr.isArchive()) {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
-                  new Path(localFileName),
-                  new Path(localFileName).getName(),
+                  localFilePath,
+                  lr.getLocalFileName(),
                   tonyConf,
                   fs, LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
-                  new Path(localFileName),
-                  new Path(localFileName).getName(),
+                  localFilePath,
+                  lr.getLocalFileName(),
                   tonyConf,
                   fs, LocalResourceType.FILE, resourceKey);
             }
@@ -609,7 +609,7 @@ public class TonyClient implements AutoCloseable {
               Utils.zipFolder(Paths.get(resource), dest);
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                   new Path(dest.toString()),
-                  new Path(dest.toString()).getName(),
+                  lr.getLocalFileName(),
                   tonyConf,
                   fs, LocalResourceType.ARCHIVE, resourceKey);
             } finally {
