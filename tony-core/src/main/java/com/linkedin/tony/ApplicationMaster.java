@@ -1029,7 +1029,8 @@ public class ApplicationMaster {
         LOG.info("Launching a task in container"
             + ", containerId = " + container.getId()
             + ", containerNode = " + container.getNodeId().getHost() + ":" + container.getNodeId().getPort()
-            + ", resourceRequest = " + container.getResource());
+            + ", resourceRequest = " + container.getResource()
+            + ", priority = " + container.getPriority());
         new ContainerLauncher(container).run();
       }
     }
@@ -1067,8 +1068,6 @@ public class ApplicationMaster {
      * Set up container's launch command and start the container.
      */
     public void run() {
-
-
       TonyTask task = session.getAndInitMatchingTaskByPriority(container.getPriority().getPriority());
       Preconditions.checkNotNull(task, "Task was null! Nothing to schedule.");
 
