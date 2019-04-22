@@ -16,16 +16,6 @@ import java.util.List;
 
 
 public class TestTaskExecutor {
-  private String[] args;
-
-
-  @BeforeTest
-  public void setup() {
-    List<String> listArgs = new ArrayList<>();
-    listArgs.add("-am_address");
-    listArgs.add("localhost:1234");
-    args = listArgs.toArray(new String[0]);
-  }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testTaskExecutorConfShouldThrowException() throws Exception {
