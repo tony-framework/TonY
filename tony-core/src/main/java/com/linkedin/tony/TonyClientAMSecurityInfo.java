@@ -21,7 +21,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSelector;
 
 @Public
 @Stable
-public class TonyClientSecurityInfo extends SecurityInfo {
+public class TonyClientAMSecurityInfo extends SecurityInfo {
 
   @Override
   public KerberosInfo getKerberosInfo(Class<?> protocol, Configuration conf) {
