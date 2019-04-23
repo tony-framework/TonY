@@ -590,13 +590,13 @@ public class TonyClient implements AutoCloseable {
             if (lr.isArchive()) {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                   localFilePath,
-                  lr.getLocalFileName(),
+                  lr.getLocalizedFileName(),
                   tonyConf,
                   fs, LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                   localFilePath,
-                  lr.getLocalFileName(),
+                  lr.getLocalizedFileName(),
                   tonyConf,
                   fs, LocalResourceType.FILE, resourceKey);
             }
@@ -609,7 +609,7 @@ public class TonyClient implements AutoCloseable {
               Utils.zipFolder(Paths.get(resource), dest);
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                   new Path(dest.toString()),
-                  lr.getLocalFileName(),
+                  lr.getLocalizedFileName(),
                   tonyConf,
                   fs, LocalResourceType.ARCHIVE, resourceKey);
             } finally {

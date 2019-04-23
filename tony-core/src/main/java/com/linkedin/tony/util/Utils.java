@@ -465,7 +465,7 @@ public class Utils {
             addResource(fileStatus.getPath().toString(), resourcesMap, fs);
           }
         } else {
-          resourcesMap.put(localizableResource.getLocalFileName(), localizableResource.toLocalResource());
+          resourcesMap.put(localizableResource.getLocalizedFileName(), localizableResource.toLocalResource());
         }
       }
     } catch (IOException | ParseException exception) {
