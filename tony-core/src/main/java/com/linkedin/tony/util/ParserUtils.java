@@ -6,6 +6,7 @@ package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.models.JobConfig;
@@ -61,6 +62,11 @@ public class ParserUtils {
    */
   @VisibleForTesting
   public static boolean isValidHistFileName(String fileName, String jobIdRegex) {
+    if (Strings.isNullOrEmpty(fileName)) {
+      LOG.error("No filename provided!");
+      return false;
+    }
+
     String histFileNoExt = fileName.substring(0, fileName.indexOf('.'));
     String[] metadataArr = histFileNoExt.split("-");
     if (metadataArr.length < 3) {
@@ -83,46 +89,62 @@ public class ParserUtils {
   }
 
   /**
-   * Get the name of the jhist file
+   * Returns the full path of the latest (by start time) jhist file in {@code jobFolderPath}.
    * @param fs FileSystem object.
-   * @param jobFolderPath Path object of job directory.
+   * @param jobFolderPath Path of job directory.
    * @return the name of the jhist file or empty string if error occurs.
    */
-  @VisibleForTesting
-  static String getJhistFileName(FileSystem fs, Path jobFolderPath) {
-    String[] jobFilesArr;
+  private static String getJhistFilePath(FileSystem fs, Path jobFolderPath) {
     try {
       // We want to have both running jobs and completed jobs
       // so we can't use endsWith() but rather contains() to filter
-      jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
+      List<String> histFilePaths = Arrays.stream(fs.listStatus(jobFolderPath))
           .filter(f -> f.getPath().toString().contains(Constants.HISTFILE_SUFFIX))
-          .map(f -> f.getPath().toString())
-          .toArray(String[]::new);
-      Preconditions.checkArgument(jobFilesArr.length == 1);
+          .map(f -> f.getPath().toString()).collect(Collectors.toList());
+      if (histFilePaths.isEmpty()) {
+        LOG.warn("No history files found in " + jobFolderPath);
+        return "";
+      }
+
+      // There may be multiple jhist files if there were multiple AM attempts.
+      // We should use the one with the latest start time.
+      histFilePaths.sort((filePath1, filePath2) -> {
+        long startTime1 = Long.parseLong(HdfsUtils.getLastComponent(filePath1).split("-")[1]);
+        long startTime2 = Long.parseLong(HdfsUtils.getLastComponent(filePath2).split("-")[1]);
+        long difference = startTime1 - startTime2;
+        if (difference < 0) {
+          return -1;
+        } else if (difference > 0) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+      return histFilePaths.get(histFilePaths.size() - 1);
     } catch (IOException e) {
       LOG.error("Failed to scan " + jobFolderPath, e);
       return "";
     }
-    return jobFilesArr[0];
   }
 
   /**
-   * Assuming that there's only 1 jhist file in {@code jobFolderPath},
-   * this function parses metadata and return a {@code JobMetadata} object.
+   * Parses the latest (by start time) jhist file in {@code jobFolderPath} and returns a {@code JobMetadata} object
+   * for the jhist file.
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
    * @param jobIdRegex Regular expression string to validate metadata.
-   * @return a {@code JobMetadata} object.
+   * @return a {@code JobMetadata} object or {@code null} if a jhist file could not be found or an error occurred
+   * during processing.
    */
   public static JobMetadata parseMetadata(FileSystem fs, YarnConfiguration yarnConf, Path jobFolderPath, String jobIdRegex) {
     if (!pathExists(fs, jobFolderPath)) {
       return null;
     }
 
-    String histFileName = HdfsUtils.getJobId(getJhistFileName(fs, jobFolderPath));
+    String histFileName = HdfsUtils.getLastComponent(getJhistFilePath(fs, jobFolderPath));
     if (!isValidHistFileName(histFileName, jobIdRegex)) {
       // this should never happen unless user rename the history file
-      LOG.error("Metadata isn't valid");
+      LOG.warn("Invalid history file name " + histFileName);
       return null;
     }
 
@@ -180,18 +202,17 @@ public class ParserUtils {
   }
 
   /**
-   * Assuming that there's only 1 jhist file in {@code jobFolderPath},
-   * this function parses the jhist and return a list of {@code JobEvent} objects.
+   * Parses the newest (by start time) jhist file in {@code jobFolderPath}, and returns a list of {@link Event}s
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
-   * @return a list of {@code JobEvent} objects.
+   * @return a list of {@link Event} objects.
    */
   public static List<Event> parseEvents(FileSystem fs, Path jobFolderPath) {
     if (!pathExists(fs, jobFolderPath)) {
       return Collections.emptyList();
     }
 
-    String jhistFile = getJhistFileName(fs, jobFolderPath);
+    String jhistFile = getJhistFilePath(fs, jobFolderPath);
     if (jhistFile.isEmpty()) {
       return Collections.emptyList();
     }

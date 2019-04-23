@@ -120,7 +120,9 @@ public class EventHandler extends Thread {
   private void moveInProgressToFinal() {
     try {
       LOG.info("Moving " + inProgressHistFile + " to " + finalHistFile + ".");
-      myFs.rename(inProgressHistFile, finalHistFile);
+      if (!myFs.rename(inProgressHistFile, finalHistFile)) {
+        LOG.error("Failed to move " + inProgressHistFile + " to " + finalHistFile);
+      }
     } catch (IOException e) {
       LOG.error("Failed to rename to jhist file", e);
     }
