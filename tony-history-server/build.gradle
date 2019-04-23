@@ -28,15 +28,20 @@ model {
   }
 }
 
+//configurations.all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+
 dependencies {
   play project(':tony-core')
+  play deps.external.httpclient
   play deps.external.play_guice
   play deps.external.play_logback
+  play deps.external.scala_compiler
   play deps.hadoop.common
   play deps.hadoop.yarn_api
 
   playTest deps.external.assertj
   playTest deps.external.awaitility
+  playTest deps.external.httpclient
   playTest deps.external.junit
   playTest deps.external.mockito
 }

@@ -3,6 +3,7 @@ apply plugin: 'java'
 dependencies {
   compile deps.external.avro
   compile deps.external.guava
+  compile deps.external.httpclient
   compile deps.external.jackson_databind
   compile deps.external.jackson_dataformat_yaml
   compile deps.external.objenesis
