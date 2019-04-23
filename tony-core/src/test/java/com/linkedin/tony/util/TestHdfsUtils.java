@@ -15,8 +15,13 @@ import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 
 public class TestHdfsUtils {
@@ -123,7 +128,7 @@ public class TestHdfsUtils {
   public void testGetJobFoldersEmptyHistoryFolder() {
     Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/emptyHistFolder");
 
-    assertEquals(HdfsUtils.getJobFolders(fs, histFolder, "job*"), new ArrayList<Path>());
+    assertTrue(HdfsUtils.getJobDirs(fs, histFolder, "job*").isEmpty());
   }
 
   @Test
@@ -133,12 +138,10 @@ public class TestHdfsUtils {
     List<Path> expectedRes = new ArrayList<>();
 
     for (int i = 1; i < 6; ++i) {
-      StringBuilder sb = new StringBuilder();
-      sb.append("file:").append(System.getProperty("user.dir"));
-      sb.append("/tony-core/src/test/resources/typicalHistFolder/job").append(i);
-      expectedRes.add(new Path(sb.toString()));
+      String sb = "file:" + System.getProperty("user.dir") + "/tony-core/src/test/resources/typicalHistFolder/job" + i;
+      expectedRes.add(new Path(sb));
     }
-    List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
+    List<Path> actualRes = HdfsUtils.getJobDirs(fs, histFolder, regex);
     Collections.sort(actualRes);
 
     assertEquals(actualRes, expectedRes);
@@ -150,10 +153,7 @@ public class TestHdfsUtils {
     Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/nestedHistFolder");
     String regex = "^job.*";
     List<Path> expectedRes = new ArrayList<>();
-    StringBuilder sb = new StringBuilder();
-    sb.append("file:").append(System.getProperty("user.dir"));
-    sb.append("/tony-core/src/test/resources/nestedHistFolder/");
-    String baseDir = sb.toString();
+    String baseDir = "file:" + System.getProperty("user.dir") + "/tony-core/src/test/resources/nestedHistFolder/";
 
     expectedRes.add(new Path(baseDir, "2018/01/02/job0"));
     expectedRes.add(new Path(baseDir, "2018/01/01/job1"));
@@ -162,8 +162,8 @@ public class TestHdfsUtils {
     expectedRes.add(new Path(baseDir, "2017/07/job4"));
     expectedRes.add(new Path(baseDir, "2017/07/job5"));
 
-    List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
-    Collections.sort(actualRes, (o1, o2) -> {
+    List<Path> actualRes = HdfsUtils.getJobDirs(fs, histFolder, regex);
+    actualRes.sort((o1, o2) -> {
       String job1 = HdfsUtils.getLastComponent(o1.toString());
       String job2 = HdfsUtils.getLastComponent(o2.toString());
       return job1.charAt(job1.length() - 1) - job2.charAt(job2.length() - 1);
@@ -180,8 +180,8 @@ public class TestHdfsUtils {
     String regex = "job*";
 
     when(mockFs.listStatus(histFolder)).thenThrow(new IOException("IO Excpt"));
-    List<Path> actualRes = HdfsUtils.getJobFolders(mockFs, histFolder, regex);
+    Path actualRes = HdfsUtils.getJobDirPath(mockFs, histFolder, regex);
 
-    assertEquals(actualRes.size(), 0);
+    assertNotNull(actualRes);
   }
 }

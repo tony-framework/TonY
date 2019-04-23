@@ -44,14 +44,13 @@ public class JobEventPageController extends Controller {
       return ok(views.html.event.render(listOfEvents));
     }
 
-    if (!getJobFolders(myFs, interm, jobId).isEmpty()) {
+    // If intermediate directory exists for this job, it is still running.
+    if (getJobDirPath(myFs, interm, jobId) != null) {
       return internalServerError("Cannot display events because job is still running");
     }
 
-    List<Path> jobFolder = getJobFolders(myFs, finished, jobId);
-    // There should only be 1 folder since jobId is unique
-    Preconditions.checkArgument(jobFolder.size() == 1);
-    listOfEvents = mapEventToJobEvent(parseEvents(myFs, jobFolder.get(0)));
+    Path jobFolder = getJobDirPath(myFs, finished, jobId);
+    listOfEvents = mapEventToJobEvent(parseEvents(myFs, jobFolder));
     if (listOfEvents.isEmpty()) {
       LOG.error("Failed to fetch list of events");
       return internalServerError("Failed to fetch events");
