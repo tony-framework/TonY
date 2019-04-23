@@ -11,13 +11,6 @@ dependencies {
   compile(deps.external.avro) {
     exclude group: 'org.slf4j'
   }
-
-  compile(deps.azkaban.az_core) {
-    exclude group: 'com.google.guava'
-    exclude group: 'com.google.inject'
-  }
-  compile(deps.azkaban.az_hadoop_jobtype_plugin) { transitive = false }
-  compile deps.external.avro
   compile deps.external.httpclient
   compile deps.external.jackson_databind
   compile deps.external.py4j

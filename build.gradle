@@ -153,9 +153,6 @@ subprojects {
     }
   }
 
-  // To avoid conflicts with Play's logback logging
-  configurations.all*.exclude group: 'org.slf4j'
-
   publishing {
     publications {
       mavenJava(MavenPublication) {
