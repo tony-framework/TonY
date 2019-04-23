@@ -19,10 +19,12 @@ log_root.addHandler(ch)
 files = os.listdir("./")
 for name in files:
     logging.info(name)
-if not os.path.isfile('./test.zip'):
-    logging.error('test.zip doesn\'t exist')
+if not os.path.isfile('./common.zip'):
+    logging.error('common.zip doesn\'t exist')
     exit(-1)
-
+if not os.path.isfile('./test20.zip'):
+    logging.error('test20.zip doesn\'t exist')
+    exit(-1)
 if not os.path.isfile('./test2.zip/123.xml'):
     logging.error('123.xml doesn\'t exist')
     exit(-1)
