@@ -17,20 +17,20 @@ public class TestLocalizableResource {
   @Test
   public void testLocalResourceParsing() throws IOException, ParseException {
     FileSystem fs = FileSystem.get(new Configuration());
-    LocalizableResource resource = new LocalizableResource("tony-core/src/test/resources/test.zip", fs);
+    LocalizableResource resource = new LocalizableResource("hdfs://tony-core/src/test/resources/test.zip", fs);
     Assert.assertNotNull(resource.toLocalResource().getResource());
     Assert.assertEquals(resource.getLocalFileName(), "test.zip");
 
-    LocalizableResource resource2 = new LocalizableResource("tony-core/src/test/resources/test.zip::ok.123", fs);
+    LocalizableResource resource2 = new LocalizableResource("hdfs://tony-core/src/test/resources/test.zip::ok.123", fs);
     Assert.assertNotNull(resource2.toLocalResource().getResource());
     Assert.assertEquals(resource2.getLocalFileName(), "ok.123");
 
-    LocalizableResource resource3 = new LocalizableResource("tony-core/src/test/resources/test.zip::ok#archive", fs);
+    LocalizableResource resource3 = new LocalizableResource("hdfs://tony-core/src/test/resources/test.zip::ok#archive", fs);
     Assert.assertNotNull(resource3.toLocalResource().getResource());
     Assert.assertSame(resource3.toLocalResource().getType(), LocalResourceType.ARCHIVE);
     Assert.assertEquals(resource3.getLocalFileName(), "ok");
 
-    LocalizableResource resource4 = new LocalizableResource("tony-core/src/test/resources/test.zip#archive", fs);
+    LocalizableResource resource4 = new LocalizableResource("hdfs://tony-core/src/test/resources/test.zip#archive", fs);
     Assert.assertNotNull(resource4.toLocalResource().getResource());
     Assert.assertSame(resource4.toLocalResource().getType(), LocalResourceType.ARCHIVE);
     Assert.assertEquals(resource4.getLocalFileName(), "test.zip");

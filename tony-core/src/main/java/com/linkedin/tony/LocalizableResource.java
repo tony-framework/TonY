@@ -66,11 +66,6 @@ public class LocalizableResource {
       this.parse(fs);
   }
 
-  public void updateSourcePath(String sourcePath, FileSystem fs) throws IOException, ParseException {
-    path = sourcePath;
-    parse(fs);
-  }
-
   private void parse(FileSystem fs) throws ParseException, IOException {
     String filePath = path;
     resourceType = LocalResourceType.FILE;
@@ -105,9 +100,6 @@ public class LocalizableResource {
   public LocalResource toLocalResource() {
     if (isDirectory) {
       throw new RuntimeException("Resource is directory and cannot be converted to LocalResource.");
-    }
-    if (isLocalFile()) {
-      throw new RuntimeException("Resource is local and cannot be converted to LocalResource.");
     }
     return LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(
       URI.create(sourceFileStatus.getPath().toString())),
