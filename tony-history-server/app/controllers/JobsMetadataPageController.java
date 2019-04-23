@@ -109,11 +109,11 @@ public class JobsMetadataPageController extends Controller {
       return internalServerError("Failed to initialize file system in " + this.getClass());
     }
 
-    FileStatus[] jobDirs;
+    FileStatus[] jobDirs = new FileStatus[0];
     try {
       jobDirs = myFs.listStatus(interm);
     } catch (IOException e) {
-      return internalServerError("Failed to list files in " + interm + ": " + e);
+      LOG.error("Failed to list files in " + interm, e);
     }
     if (jobDirs.length > 0) {
       Map<String, Date> jobsModTime = new HashMap<>();
