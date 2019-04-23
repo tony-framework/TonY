@@ -19,7 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
@@ -174,14 +174,12 @@ public class TestHdfsUtils {
   }
 
   @Test
-  public void testGetJobFoldersThrowsException() throws IOException {
+  public void testGetJobFoldersHandlesIOException() throws IOException {
     Path histFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder");
     FileSystem mockFs = mock(FileSystem.class);
     String regex = "job*";
 
     when(mockFs.listStatus(histFolder)).thenThrow(new IOException("IO Excpt"));
-    Path actualRes = HdfsUtils.getJobDirPath(mockFs, histFolder, regex);
-
-    assertNotNull(actualRes);
+    assertNull(HdfsUtils.getJobDirPath(mockFs, histFolder, regex));
   }
 }
