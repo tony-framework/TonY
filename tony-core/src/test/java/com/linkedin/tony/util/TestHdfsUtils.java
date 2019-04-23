@@ -116,8 +116,8 @@ public class TestHdfsUtils {
     Path filePath1 = new Path(Constants.TONY_CORE_SRC + "test/resources/job1");
     Path filePath2 = new Path(Constants.TONY_CORE_SRC + "test/resources/app2/");
 
-    assertEquals("job1", HdfsUtils.getJobId(filePath1.toString()));
-    assertEquals("app2", HdfsUtils.getJobId(filePath2.toString()));
+    assertEquals("job1", HdfsUtils.getLastComponent(filePath1.toString()));
+    assertEquals("app2", HdfsUtils.getLastComponent(filePath2.toString()));
   }
 
   @Test
@@ -125,7 +125,7 @@ public class TestHdfsUtils {
     Path filePath = mock(Path.class);
     when(filePath.toString()).thenReturn("");
 
-    assertEquals(HdfsUtils.getJobId(filePath.toString()), "");
+    assertEquals(HdfsUtils.getLastComponent(filePath.toString()), "");
   }
 
   @Test
@@ -195,8 +195,8 @@ public class TestHdfsUtils {
 
     List<Path> actualRes = HdfsUtils.getJobFolders(fs, histFolder, regex);
     Collections.sort(actualRes, (o1, o2) -> {
-      String job1 = HdfsUtils.getJobId(o1.toString());
-      String job2 = HdfsUtils.getJobId(o2.toString());
+      String job1 = HdfsUtils.getLastComponent(o1.toString());
+      String job2 = HdfsUtils.getLastComponent(o2.toString());
       return job1.charAt(job1.length() - 1) - job2.charAt(job2.length() - 1);
     });
 

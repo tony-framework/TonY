@@ -5,6 +5,7 @@
 package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -89,12 +90,12 @@ public class HdfsUtils {
   }
 
   /**
-   * Extract the job id portion from the file path string.
+   * Extract the last component of a file path.
    * @param path file path string.
-   * @return job id
+   * @return the last component of a path
    */
-  public static String getJobId(String path) {
-    if (path == null) {
+  public static String getLastComponent(String path) {
+    if (Strings.isNullOrEmpty(path)) {
       return "";
     }
     String[] folderLayers = path.split("/");
@@ -110,7 +111,7 @@ public class HdfsUtils {
    */
   @VisibleForTesting
   public static boolean isJobFolder(Path p, String regex) {
-    return p != null && getJobId(p.toString()).matches(regex);
+    return p != null && getLastComponent(p.toString()).matches(regex);
   }
 
   /**
