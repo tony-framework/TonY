@@ -20,13 +20,17 @@ buildscript {
 
 def hadoopVersion = "2.7.3"
 ext.playVersion = "2.6.20"
-ext.scalaVersion = System.getProperty("scala.binary.version", "2.11")
+ext.scalaVersionFull = System.getProperty("scala.binary.version", "2.11.12")
+ext.scalaVersion = scalaVersionFull
+if (ext.scalaVersionFull.split("\\.").length == 3) {
+  ext.scalaVersion = ext.scalaVersionFull.substring(0, ext.scalaVersionFull.lastIndexOf('.'))
+}
 
 ext.deps = [
   azkaban: [
     "az_core": "com.linkedin.azkaban:az-core:3.58.0",
-    "azkaban_common": "com.linkedin.azkaban:azkaban-common:3.58.0",
     "az_hadoop_jobtype_plugin": "com.linkedin.azkaban:az-hadoop-jobtype-plugin:3.58.0",
+    "azkaban_common": "com.linkedin.azkaban:azkaban-common:3.58.0",
     "azkaban_hadoop_security_plugin": "com.linkedin.azkaban:azkaban-hadoop-security-plugin:3.58.0"
   ],
   hadoop: [
@@ -51,6 +55,7 @@ ext.deps = [
     "commons_io": "commons-io:commons-io:2.4",
     "guava": "com.google.guava:guava:11.0.2",
     "guice": "com.google.inject:guice:3.0",
+    "httpclient": "org.apache.httpcomponents:httpclient:4.5.3",
     "jackson_databind": "com.fasterxml.jackson.core:jackson-databind:2.8.3",
     "jackson_dataformat_yaml": "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.6",
     // Only needed by Hadoop test classes
@@ -62,6 +67,8 @@ ext.deps = [
     "play_guice": "com.typesafe.play:play-guice_$scalaVersion:$playVersion",
     "play_logback": "com.typesafe.play:play-logback_$scalaVersion:$playVersion",
     "py4j": "net.sf.py4j:py4j:0.8.2.1",
+    "scala_compiler": "org.scala-lang:scala-compiler:$scalaVersionFull",
+    "slf4j_api": "org.slf4j:slf4j-api:1.7.25",
     "sshd": "org.apache.sshd:sshd-core:1.1.0",
     "testng": "org.testng:testng:6.4",
     "text": "org.apache.commons:commons-text:1.4",

@@ -2,6 +2,7 @@ apply plugin: 'java'
 
 dependencies {
   compile project(':tony-core')
+  compile project(':tony-mini')
   compile project(':tony-proxy')
   testCompile deps.external.mockito
 }

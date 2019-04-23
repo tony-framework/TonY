@@ -5,33 +5,33 @@ apply plugin: 'java'
 apply plugin: 'com.google.protobuf'
 
 dependencies {
-  compile project(':tony-mini')
-
-  compile(deps.azkaban.az_core) {
-    exclude group: 'com.google.guava'
-    exclude group: 'com.google.inject'
+  compile(deps.azkaban.az_core) { transitive = false }
+  compile(deps.azkaban.az_hadoop_jobtype_plugin) { transitive = false }
+  compile(deps.azkaban.azkaban_common) { transitive = false }
+  compile(deps.external.avro) {
+    exclude group: 'org.slf4j'
   }
-  compile(deps.azkaban.az_hadoop_jobtype_plugin) {
-    exclude group: 'com.google.guava'
-    exclude group: 'com.google.inject'
-  }
-  compile deps.external.avro
+  compile deps.external.httpclient
   compile deps.external.jackson_databind
   compile deps.external.py4j
   compile deps.external.text
   compile deps.external.zip4j
-  compile deps.hadoop.common
+  compile(deps.hadoop.common) {
+    exclude group: 'org.slf4j'
+  }
   compile deps.hadoop.hdfs
   compile deps.hadoop.yarn_api
   compile deps.hadoop.yarn_client
   compile deps.hadoop.yarn_common
 
+  testCompile project(':tony-mini')
   testCompile deps.external.avro
   testCompile deps.external.testng
   testCompile deps.external.mockito
 
   // Only needed by Hadoop test classes
   testRuntime deps.external.junit
+  testRuntime deps.external.slf4j_api
 }
 
 task setupHdfsLib(type: Copy) {

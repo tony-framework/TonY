@@ -30,28 +30,6 @@ import org.apache.hadoop.fs.Path;
  */
 public class HdfsUtils {
   private static final Log LOG = LogFactory.getLog(ParserUtils.class);
-  private static final FileStatus[] NO_FILES = {};
-
-  /**
-   * Scan {@code dir} and return a list of files/directories.
-   * @param fs FileSystem object.
-   * @param dir Path of the directory.
-   * @return an array of FileStatus objects representing files/directories in {@code dir}.
-   * Note: result could be an empty array if there {@code dir} is empty.
-   */
-  public static FileStatus[] scanDir(FileSystem fs, Path dir) {
-    String errorMsg;
-    if (dir == null) {
-      return NO_FILES;
-    }
-    try {
-      return fs.listStatus(dir);
-    } catch (IOException e) {
-      errorMsg = "Failed to list files in " + dir;
-      LOG.error(errorMsg, e);
-    }
-    return NO_FILES;
-  }
 
   /**
    * Check to see if HDFS path exists.
