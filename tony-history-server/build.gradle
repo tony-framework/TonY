@@ -30,7 +30,6 @@ model {
 
 dependencies {
   play project(':tony-core')
-  play deps.external.httpclient
   play deps.external.play_guice
   play deps.external.play_logback
   play deps.external.scala_compiler
@@ -39,7 +38,6 @@ dependencies {
 
   playTest deps.external.assertj
   playTest deps.external.awaitility
-  playTest deps.external.httpclient
   playTest deps.external.junit
   playTest deps.external.mockito
 }
