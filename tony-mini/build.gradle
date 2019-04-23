@@ -1,5 +1,8 @@
 apply plugin: 'java'
 
+// To work around conflicts with Play's logback when running tony-history-server tests in IntelliJ
+configurations.all*.exclude group: 'org.slf4j'
+
 dependencies {
   compile deps.external.avro
   compile deps.external.guava

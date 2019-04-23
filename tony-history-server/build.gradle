@@ -28,6 +28,9 @@ model {
   }
 }
 
+// To work around conflicts with Play's logback when running tony-history-server tests in IntelliJ
+configurations.all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+
 dependencies {
   play project(':tony-core')
   play deps.external.play_guice

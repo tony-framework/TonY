@@ -26,12 +26,11 @@ if (ext.scalaVersionFull.split("\\.").length == 3) {
   ext.scalaVersion = ext.scalaVersionFull.substring(0, ext.scalaVersionFull.lastIndexOf('.'))
 }
 
-
 ext.deps = [
   azkaban: [
     "az_core": "com.linkedin.azkaban:az-core:3.58.0",
-    "azkaban_common": "com.linkedin.azkaban:azkaban-common:3.58.0",
     "az_hadoop_jobtype_plugin": "com.linkedin.azkaban:az-hadoop-jobtype-plugin:3.58.0",
+    "azkaban_common": "com.linkedin.azkaban:azkaban-common:3.58.0",
     "azkaban_hadoop_security_plugin": "com.linkedin.azkaban:azkaban-hadoop-security-plugin:3.58.0"
   ],
   hadoop: [
@@ -69,6 +68,7 @@ ext.deps = [
     "play_logback": "com.typesafe.play:play-logback_$scalaVersion:$playVersion",
     "py4j": "net.sf.py4j:py4j:0.8.2.1",
     "scala_compiler": "org.scala-lang:scala-compiler:$scalaVersionFull",
+    "slf4j_api": "org.slf4j:slf4j-api:1.7.25",
     "sshd": "org.apache.sshd:sshd-core:1.1.0",
     "testng": "org.testng:testng:6.4",
     "text": "org.apache.commons:commons-text:1.4",
@@ -152,9 +152,6 @@ subprojects {
       exclude group: "org.apache.hadoop"
     }
   }
-
-  // To avoid conflicts with Play's logback logging
-  configurations.all*.exclude group: 'org.slf4j'
 
   publishing {
     publications {
