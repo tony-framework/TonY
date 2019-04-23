@@ -96,7 +96,7 @@ public class JobsMetadataPageController extends Controller {
       FileStatus[] jobDirs) {
     for (FileStatus dir : jobDirs) {
       Path jobFolderPath = dir.getPath();
-      String jid = HdfsUtils.getJobId(jobFolderPath.toString());
+      String jid = HdfsUtils.getLastComponent(jobFolderPath.toString());
       jobsFiles.putIfAbsent(jid, jobFolderPath);
       jobsModTime.putIfAbsent(jid, new Date(dir.getModificationTime()));
     }
@@ -123,16 +123,14 @@ public class JobsMetadataPageController extends Controller {
     listOfJobDirs.addAll(getJobFolders(myFs, interm, JOB_FOLDER_REGEX));
 
     for (Path jobDir : listOfJobDirs) {
-      jobId = getJobId(jobDir.toString());
+      jobId = getLastComponent(jobDir.toString());
       tmpMetadata = cache.getIfPresent(jobId);
       if (tmpMetadata == null || tmpMetadata.getStatus().equals(Constants.RUNNING)) {
-        try {
-          tmpMetadata = parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
-          cache.put(jobId, tmpMetadata);
-        } catch (Exception e) {
-          LOG.error("Couldn't parse " + jobDir, e);
+        tmpMetadata = parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
+        if (tmpMetadata == null) {
           continue;
         }
+        cache.put(jobId, tmpMetadata);
       }
       listOfMetadata.add(tmpMetadata);
     }
