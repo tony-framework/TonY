@@ -92,7 +92,7 @@ public class ParserUtils {
    * Returns the full path of the latest (by start time) jhist file in {@code jobFolderPath}.
    * @param fs FileSystem object.
    * @param jobFolderPath Path of job directory.
-   * @return the name of the jhist file or empty string if error occurs.
+   * @return the full path of the jhist file or {@code null} if an error occurs or no history file is found.
    */
   private static String getJhistFilePath(FileSystem fs, Path jobFolderPath) {
     try {
@@ -103,7 +103,7 @@ public class ParserUtils {
           .map(f -> f.getPath().toString()).collect(Collectors.toList());
       if (histFilePaths.isEmpty()) {
         LOG.warn("No history files found in " + jobFolderPath);
-        return "";
+        return null;
       }
 
       // There may be multiple jhist files if there were multiple AM attempts.
@@ -123,7 +123,7 @@ public class ParserUtils {
       return histFilePaths.get(histFilePaths.size() - 1);
     } catch (IOException e) {
       LOG.error("Failed to scan " + jobFolderPath, e);
-      return "";
+      return null;
     }
   }
 
@@ -141,7 +141,12 @@ public class ParserUtils {
       return null;
     }
 
-    String histFileName = HdfsUtils.getLastComponent(getJhistFilePath(fs, jobFolderPath));
+    String jhistFilePath = getJhistFilePath(fs, jobFolderPath);
+    if (Strings.isNullOrEmpty(jhistFilePath)) {
+      return null;
+    }
+
+    String histFileName = HdfsUtils.getLastComponent(jhistFilePath);
     if (!isValidHistFileName(histFileName, jobIdRegex)) {
       // this should never happen unless user rename the history file
       LOG.warn("Invalid history file name " + histFileName);
@@ -213,7 +218,7 @@ public class ParserUtils {
     }
 
     String jhistFile = getJhistFilePath(fs, jobFolderPath);
-    if (jhistFile.isEmpty()) {
+    if (Strings.isNullOrEmpty(jhistFile)) {
       return Collections.emptyList();
     }
 
@@ -222,13 +227,13 @@ public class ParserUtils {
     try (InputStream in = fs.open(historyFile)) {
       DatumReader<Event> datumReader = new SpecificDatumReader<>(Event.class);
       try (DataFileStream<Event> avroFileStream = new DataFileStream<>(in, datumReader)) {
-        Event record = null;
+        Event record;
         while (avroFileStream.hasNext()) {
-          record = avroFileStream.next(record);
+          record = avroFileStream.next(null);
           events.add(record);
         }
       } catch (IOException e) {
-        LOG.error("Failed to read events from " + historyFile);
+        LOG.error("Failed to read events from " + historyFile, e);
       }
     } catch (IOException e) {
       LOG.error("Failed to open history file", e);

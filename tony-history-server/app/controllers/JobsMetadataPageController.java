@@ -122,8 +122,8 @@ public class JobsMetadataPageController extends Controller {
       moveIntermToFinished(myFs, jobsModTime, jobsFiles);
     }
 
-    List<Path> listOfJobDirs = new ArrayList<>(getJobFolders(myFs, finished, JOB_FOLDER_REGEX));
-    listOfJobDirs.addAll(getJobFolders(myFs, interm, JOB_FOLDER_REGEX));
+    List<Path> listOfJobDirs = getJobDirs(myFs, finished, JOB_FOLDER_REGEX);
+    listOfJobDirs.addAll(getJobDirs(myFs, interm, JOB_FOLDER_REGEX));
 
     for (Path jobDir : listOfJobDirs) {
       jobId = getLastComponent(jobDir.toString());

@@ -30,11 +30,11 @@ public class JobConfigPageController extends Controller {
     finished = requirements.getFinishedDir();
   }
 
-  private List<JobConfig> getAndStoreConfigs(String jobId, List<Path> jobDirs) {
-    if (jobDirs.isEmpty()) {
+  private List<JobConfig> getAndStoreConfigs(String jobId, Path jobDir) {
+    if (jobDir == null) {
       return Collections.emptyList();
     }
-    List<JobConfig> listOfConfigs = parseConfig(myFs, jobDirs.get(0));
+    List<JobConfig> listOfConfigs = parseConfig(myFs, jobDir);
     if (listOfConfigs.isEmpty()) {
       return Collections.emptyList();
     }
@@ -53,12 +53,12 @@ public class JobConfigPageController extends Controller {
       return ok(views.html.config.render(listOfConfigs));
     }
 
-    listOfConfigs = getAndStoreConfigs(jobId, getJobFolders(myFs, interm, jobId));
+    listOfConfigs = getAndStoreConfigs(jobId, getJobDirPath(myFs, interm, jobId));
     if (!listOfConfigs.isEmpty()) {
       return ok(views.html.config.render(listOfConfigs));
     }
 
-    listOfConfigs = getAndStoreConfigs(jobId, getJobFolders(myFs, finished, jobId));
+    listOfConfigs = getAndStoreConfigs(jobId, getJobDirPath(myFs, finished, jobId));
     if (!listOfConfigs.isEmpty()) {
       return ok(views.html.config.render(listOfConfigs));
     }
