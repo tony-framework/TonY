@@ -153,6 +153,11 @@ subprojects {
     }
   }
 
+  // To avoid conflicts with Play's logback logging
+  configurations.all*.exclude group: 'org.slf4j'
+  //configurations.all*.exclude group: 'org.apache.httpcomponents', module: 'httpclient', version: '4.1.2'
+  //configurations.all*.exclude group: 'org.apache.httpcomponents', module: 'httpclient', version: '4.2.5'
+
   publishing {
     publications {
       mavenJava(MavenPublication) {
