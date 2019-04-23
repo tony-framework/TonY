@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -49,18 +50,15 @@ public class JobsMetadataPageController extends Controller {
   }
 
   private boolean jobInProgress(FileSystem fs, Path jobDir) {
-    FileStatus[] jobFiles;
     try {
-      jobFiles = fs.listStatus(jobDir);
-      for (FileStatus file : jobFiles) {
-        if (file.getPath().toString().endsWith(Constants.INPROGRESS)) {
-          return true;
-        }
-      }
+      // If there is a file ending in ".jhist" (NOT ".jhist.inprogress"), the job is no longer in progress.
+      // Otherwise, it is considered in progress.
+      return !Arrays.stream(fs.listStatus(jobDir))
+          .anyMatch(fileStatus -> fileStatus.getPath().toString().endsWith(Constants.HISTFILE_SUFFIX));
     } catch (IOException e) {
-      LOG.error("Couldn't list files in " + jobDir, e);
+      LOG.error("Encountered exception reading " + jobDir, e);
+      return false;
     }
-    return false;
   }
 
   private void moveIntermToFinished(FileSystem fs, Map<String, Date> jobsModTime,
@@ -111,7 +109,12 @@ public class JobsMetadataPageController extends Controller {
       return internalServerError("Failed to initialize file system in " + this.getClass());
     }
 
-    FileStatus[] jobDirs = HdfsUtils.scanDir(myFs, interm);
+    FileStatus[] jobDirs;
+    try {
+      jobDirs = myFs.listStatus(interm);
+    } catch (IOException e) {
+      return internalServerError("Failed to list files in " + interm + ": " + e);
+    }
     if (jobDirs.length > 0) {
       Map<String, Date> jobsModTime = new HashMap<>();
       Map<String, Path> jobsFiles = new HashMap<>();
