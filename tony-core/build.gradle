@@ -10,7 +10,6 @@ dependencies {
   compile(deps.azkaban.az_core) {
     exclude group: 'com.google.guava'
     exclude group: 'com.google.inject'
-//    exclude group: 'org.slf4j'
   }
   compile(deps.azkaban.az_hadoop_jobtype_plugin) { transitive = false }
   compile deps.external.avro
@@ -19,9 +18,7 @@ dependencies {
   compile deps.external.py4j
   compile deps.external.text
   compile deps.external.zip4j
-  compile(deps.hadoop.common) {
-//    exclude group: 'org.slf4j'
-  }
+  compile deps.hadoop.common
   compile deps.hadoop.hdfs
   compile deps.hadoop.yarn_api
   compile deps.hadoop.yarn_client
