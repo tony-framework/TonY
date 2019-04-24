@@ -8,8 +8,8 @@ import play.test.Helpers;
 import play.test.TestBrowser;
 import play.test.WithBrowser;
 
-import static org.junit.Assert.*;
-import static play.test.Helpers.*;
+import static org.junit.Assert.assertTrue;
+import static play.test.Helpers.fakeApplication;
 
 
 public class BrowserTest extends WithBrowser {
@@ -29,6 +29,6 @@ public class BrowserTest extends WithBrowser {
   @Test
   public void test() {
     browser.goTo("http://localhost:" + play.api.test.Helpers.testServerPort());
-    assertTrue(browser.pageSource().contains("TonY History Server"));
+    assertTrue(browser.pageSource().contains("TonY Portal"));
   }
 }

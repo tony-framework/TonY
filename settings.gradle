@@ -6,7 +6,7 @@ rootProject.name = 'tony'
  */
 rootProject.name = 'tony'
 
-def modules = ['tony-azkaban', 'tony-core', 'tony-cli', 'tony-mini', 'tony-proxy', 'tony-history-server']
+def modules = ['tony-azkaban', 'tony-core', 'tony-cli', 'tony-mini', 'tony-proxy', 'tony-portal']
 
 modules.each { module ->
   if (!file(module).directory) {
