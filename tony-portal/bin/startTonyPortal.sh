@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 ###########################################################################################################
-# NAME: startTHS.sh
+# NAME: startTonyPortal.sh
 #
 # DESCRIPTION:
 # This is a modified version of the `playBinary` script that was generated after `gradle dist`.
@@ -16,7 +16,7 @@
 # NOTES: This script should only be run when it's in the distribution zip/tar.
 # Examples: after `gradle dist` from root, unzip the zip/tar in $root/build/distributions, then run:
 # ```
-# $ <tony-root>/build/distributions/startTHS.sh
+# $ <tony-root>/build/distributions/startTonyPortal.sh
 # ```
 #
 #
@@ -45,7 +45,7 @@ cd "`dirname \"$PRG\"`/.." >/dev/null
 APP_HOME="`pwd -P`"
 cd "$SAVED" >/dev/null
 
-APP_NAME="tony-history-server"
+APP_NAME="tony-portal"
 APP_BASE_NAME=`basename "$0"`
 
 # Use the maximum available, or set MAX_FD != -1 to use that value.
@@ -86,7 +86,7 @@ esac
 # We parse tony-site.xml and set properties using -D instead.
 cp $APP_HOME/conf/application.example.conf $APP_HOME/conf/application.conf
 
-CLASSPATH="$APP_HOME/lib/tony-history-server.jar:$APP_HOME/conf"
+CLASSPATH="$APP_HOME/lib/tony-portal.jar:$APP_HOME/conf"
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
@@ -213,5 +213,5 @@ if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
   cd "$(dirname "$0")"
 fi
 
-# Run THS in the background
+# Run TonY Portal in the background
 nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart &

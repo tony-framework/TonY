@@ -939,8 +939,9 @@ public class TonyClient implements AutoCloseable {
             + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
         // Set amRpcClient to null so client does not try to connect to it after completion.
         amRpcClient = null;
-        String histHost = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_HOST, TonyConfigurationKeys.DEFAULT_TONY_HISTORY_HOST);
-        Utils.printTHSUrl(histHost, appId.toString(), LOG);
+        String tonyPortalUrl =
+            tonyConf.get(TonyConfigurationKeys.TONY_PORTAL_URL, TonyConfigurationKeys.DEFAULT_TONY_PORTAL_URL);
+        Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
         return FinalApplicationStatus.SUCCEEDED == dsStatus;
       }
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 ###########################################################################################################
-# NAME: stopTHS.sh
+# NAME: stopTonyPortal.sh
 #
 # DESCRIPTION:
-# This script stops the Tony History Server (THS) process.
+# This script stops the Tony Portal process.
 #
 #
 # INPUT:
@@ -31,4 +31,4 @@ fi
 
 kill -9 $PID
 
-rm $RUNNING_PID_PATH # So we can run startTHS.sh again
+rm $RUNNING_PID_PATH # So we can run startTonyPortal.sh again

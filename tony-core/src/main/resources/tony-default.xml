@@ -218,9 +218,9 @@
   <!--All the configurations below should be set in $TONY_CONF_DIR/tony-site.xml-->
   <property>
     <description>
-      Hostname of history server
+      URL of the TonY Portal
     </description>
-    <name>tony.history.host</name>
+    <name>tony.portal.url</name>
     <value>https://localhost:19886</value>
   </property>
 
@@ -320,13 +320,5 @@
     </description>
     <name>tony.secret.key</name>
     <value>changeme</value>
-  </property>
-
-  <property>
-    <description>
-      Number of times the AM tries append the event to buffer (Avro's DataWriter).
-    </description>
-    <name>tony.history.maxAppends</name>
-    <value>3</value>
   </property>
 </configuration>
