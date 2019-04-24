@@ -214,9 +214,8 @@ public class Utils {
     log.info(String.format("Logs for %s %s at: %s", taskInfo.getName(), taskInfo.getIndex(), taskInfo.getUrl()));
   }
 
-  public static void printTHSUrl(String thsHost, String appId, Log log) {
-    log.info(
-            String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
+  public static void printTonyPortalUrl(String portalUrl, String appId, Log log) {
+    log.info(String.format("Link for %s's events/metrics: %s/%s/%s", appId, portalUrl, Constants.JOBS_SUFFIX, appId));
   }
 
   /**

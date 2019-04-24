@@ -43,8 +43,8 @@ public class TonyConfigurationKeys {
   public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
   public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
 
-  public static final String TONY_HISTORY_CACHE_MAX_ENTRIES = TONY_PREFIX + "history.cache.max-entries";
-  public static final String DEFAULT_TONY_HISTORY_CACHE_MAX_ENTRIES = "1000";
+  public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
+  public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "1000";
 
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
   public static final String DEFAULT_TONY_KEYTAB_USER = "user";
@@ -75,11 +75,8 @@ public class TonyConfigurationKeys {
   public static final String TONY_SECRET_KEY = TONY_PREFIX + "secret.key";
   public static final String DEFAULT_TONY_SECRET_KEY = "changeme";
 
-  public static final String TONY_HISTORY_MAX_APPEND = TONY_PREFIX + "history.maxAppends";
-  public static final int DEFAULT_TONY_HISTORY_MAX_APPEND = 3;
-
-  public static final String TONY_HISTORY_HOST = TONY_PREFIX + "history.host";
-  public static final String DEFAULT_TONY_HISTORY_HOST = "https://localhost:" + DEFAULT_TONY_HTTPS_PORT;
+  public static final String TONY_PORTAL_URL = TONY_PREFIX + "portal.url";
+  public static final String DEFAULT_TONY_PORTAL_URL = "https://localhost:" + DEFAULT_TONY_HTTPS_PORT;
 
   // Application configurations
   public static final String YARN_QUEUE_NAME = TONY_PREFIX + "yarn.queue";
