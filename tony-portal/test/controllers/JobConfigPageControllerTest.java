@@ -5,8 +5,8 @@ import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.test.WithApplication;
 
-import static org.junit.Assert.*;
-import static play.mvc.Http.Status.*;
+import static org.junit.Assert.assertEquals;
+import static play.mvc.Http.Status.OK;
 
 
 public class JobConfigPageControllerTest extends WithApplication {

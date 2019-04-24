@@ -8,8 +8,8 @@ import play.test.Helpers;
 import play.test.TestBrowser;
 import play.test.WithBrowser;
 
-import static org.junit.Assert.*;
-import static play.test.Helpers.*;
+import static org.junit.Assert.assertTrue;
+import static play.test.Helpers.fakeApplication;
 
 
 public class BrowserTest extends WithBrowser {

@@ -8,7 +8,7 @@ import play.mvc.Http;
 import play.mvc.Result;
 import play.test.WithApplication;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static play.mvc.Http.Status.OK;
 import static play.test.Helpers.GET;
 import static play.test.Helpers.route;
