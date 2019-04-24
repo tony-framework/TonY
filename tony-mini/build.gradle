@@ -10,7 +10,6 @@ dependencies {
   compile deps.external.jackson_databind
   compile deps.external.jackson_dataformat_yaml
   compile deps.external.objenesis
-  compile deps.external.py4j
   compile deps.external.sshd
   compile deps.hadoop.common
   compile deps.hadoop.common_test
