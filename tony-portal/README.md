@@ -59,14 +59,14 @@ to set up your own `tony-site.xml`. If needed, run
 export TONY_CONF_DIR=/path/to/tony/config/folder`
 ```
 5. `cd tony-portal-*`
-6. Run `bin/startTHS.sh`. See [script](./startTHS.sh) for more details.
+6. Run `bin/startTonyPortal.sh`. See [script](./startTonyPortal.sh) for more details.
 
 Steps (1) and (2) can also be done together by running the `./buildAndDeploy.sh` script
 (see [Deployment](#deployment) section below).
 
-To stop the THS, run
+To stop the TonY Portal, run
 ```
-bin/stopTHS.sh
+bin/stopTonyPortal.sh
 ```
 
 

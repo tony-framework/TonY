@@ -41,8 +41,8 @@ public class CacheWrapper {
   @Inject
   public CacheWrapper(Config appConf) {
     int maxCacheSz = Integer.parseInt(
-        ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_HISTORY_CACHE_MAX_ENTRIES,
-            TonyConfigurationKeys.DEFAULT_TONY_HISTORY_CACHE_MAX_ENTRIES));
+        ConfigUtils.fetchConfigIfExists(appConf, TonyConfigurationKeys.TONY_PORTAL_CACHE_MAX_ENTRIES,
+            TonyConfigurationKeys.DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES));
     metadataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
     configCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
     eventCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();

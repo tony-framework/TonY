@@ -250,10 +250,10 @@
 
   <property>
     <description>
-      Maximum (approximate) number of cache entries THS
+      Maximum (approximate) number of cache entries TonY Portal
       will store for each cache (config, metadata, event)
     </description>
-    <name>tony.history.cache.max-entries</name>
+    <name>tony.portal.cache.max-entries</name>
     <value>1000</value>
   </property>
 

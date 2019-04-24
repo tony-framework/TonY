@@ -7,7 +7,7 @@
 #
 #
 # INPUT:
-# $1 - path of RUNNING_PID of THS (Optional. Default to current folder)
+# $1 - path of RUNNING_PID of TonY Portal (Optional. Default to current folder)
 #
 #
 # EXIT CODE:
