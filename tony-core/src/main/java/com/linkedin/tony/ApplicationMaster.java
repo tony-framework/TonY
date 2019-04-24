@@ -90,8 +90,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.UTCClock;
 
-import py4j.GatewayServer;
-
 
 public class ApplicationMaster {
   private static final Log LOG = LogFactory.getLog(ApplicationMaster.class);
@@ -684,13 +682,6 @@ public class ApplicationMaster {
       Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
     }
 
-    ServerSocket gatewayServerSocket = new ServerSocket(0);
-    int gatewayServerPort = gatewayServerSocket.getLocalPort();
-    // Set up py4j
-    GatewayServer pyServer = new GatewayServer(this, gatewayServerPort);
-    gatewayServerSocket.close();
-    pyServer.start();
-
     HashMap<String, String> extraEnv = new HashMap<>(shellEnv);
     if (singleNode) {
       ServerSocket tbSocket = new ServerSocket(0);
@@ -712,7 +703,6 @@ public class ApplicationMaster {
      * set it to user.dir (root of this container's address).
      */
     extraEnv.put("HOME", System.getProperty("user.dir"));
-    extraEnv.put(Constants.PY4JGATEWAY, String.valueOf(gatewayServerPort));
     String taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
                 tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
     LOG.info("Executing command: " + taskCommand);

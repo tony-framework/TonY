@@ -55,7 +55,6 @@ public class Constants {
   public static final String JOB_NAME = "JOB_NAME";
   public static final String SESSION_ID = "SESSION_ID";
   public static final String PREPROCESSING_JOB = "PREPROCESSING_JOB";
-  public static final String PY4JGATEWAY = "PY4J_GATEWAY_PORT";
 
   // Environment variables for resource localization
   public static final String TONY_CONF_PREFIX = "TONY_CONF";

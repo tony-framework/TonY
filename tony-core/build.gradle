@@ -13,7 +13,6 @@ dependencies {
   }
   compile deps.external.httpclient
   compile deps.external.jackson_databind
-  compile deps.external.py4j
   compile deps.external.text
   compile deps.external.zip4j
   compile(deps.hadoop.common) {

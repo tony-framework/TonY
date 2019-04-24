@@ -66,7 +66,6 @@ ext.deps = [
     "objenesis": "org.objenesis:objenesis:2.6",
     "play_guice": "com.typesafe.play:play-guice_$scalaVersion:$playVersion",
     "play_logback": "com.typesafe.play:play-logback_$scalaVersion:$playVersion",
-    "py4j": "net.sf.py4j:py4j:0.8.2.1",
     "scala_compiler": "org.scala-lang:scala-compiler:$scalaVersionFull",
     "slf4j_api": "org.slf4j:slf4j-api:1.7.25",
     "sshd": "org.apache.sshd:sshd-core:1.1.0",

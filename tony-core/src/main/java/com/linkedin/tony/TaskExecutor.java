@@ -5,7 +5,6 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.io.HdfsAvroFileSplitReader;
 import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,9 +24,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import py4j.GatewayServer;
 
-import static com.linkedin.tony.Constants.CORE_SITE_CONF;
 import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 
 /**
@@ -48,9 +44,6 @@ public class TaskExecutor {
 
   private ServerSocket tbSocket;
   private int tbPort;
-
-  private ServerSocket gatewayServerSocket;
-  private int gatewayServerPort;
 
   private int timeOut;
   private String amHost;
@@ -88,11 +81,6 @@ public class TaskExecutor {
     this.rpcPort = this.rpcSocket.getLocalPort();
     this.rpcSocket.close();
     LOG.info("Reserved rpcPort: " + this.rpcPort);
-
-    this.gatewayServerSocket = new ServerSocket(0);
-    this.gatewayServerPort = this.gatewayServerSocket.getLocalPort();
-    this.gatewayServerSocket.close();
-    LOG.info("Reserved py4j gatewayServerPort: " + this.gatewayServerPort);
 
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
@@ -136,10 +124,6 @@ public class TaskExecutor {
     switch (executor.framework) {
       case TENSORFLOW:
         LOG.info("Setting up TensorFlow job...");
-        // Set up py4j
-        GatewayServer pyServer = new GatewayServer(executor, executor.gatewayServerPort);
-        pyServer.start();
-        executor.shellEnv.put(Constants.PY4JGATEWAY, String.valueOf(executor.gatewayServerPort));
         executor.shellEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
         executor.shellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
         executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
@@ -302,27 +286,6 @@ public class TaskExecutor {
       }
     }
   }
-
-  // Start region TonyDataFeed
-
-  // TODO : currently requires caller (tf job) to provide the path to read
-  // maybe a better abstraction if task executor itself figures this out (if
-  // possible at all.)
-  @SuppressWarnings("unused")
-  public HdfsAvroFileSplitReader getHdfsAvroFileSplitReader(List<String> readPaths)
-      throws IOException {
-    return getHdfsAvroFileSplitReader(readPaths, true);
-  }
-
-  public HdfsAvroFileSplitReader getHdfsAvroFileSplitReader(List<String> readPaths,
-                                                            boolean useRandomShuffle)
-      throws IOException {
-    Configuration hdfsConf = new Configuration(false);
-    hdfsConf.addResource(new Path(CORE_SITE_CONF));
-    return new HdfsAvroFileSplitReader(hdfsConf, readPaths, this.taskIndex,
-        this.numTasks, useRandomShuffle);
-  }
-  // End region TonyDataFeed
 
   private void skewAndHangIfTesting() {
     String skewInstr = System.getenv(Constants.TEST_TASK_EXECUTOR_SKEW);
