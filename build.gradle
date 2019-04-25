@@ -108,6 +108,7 @@ subprojects {
     shadowJar {
       mergeServiceFiles()
       dependencies {
+        exclude(dependency('com.google.guava:'))
         exclude(dependency('com.sun.jersey:'))
         exclude(dependency('com.sun.jersey.contribs:'))
         exclude(dependency('org.apache.hadoop:'))
@@ -115,7 +116,6 @@ subprojects {
         exclude(dependency('org.apache.pig:'))
         exclude(dependency('org.apache.spark:'))
         exclude(dependency('org.spark-project:'))
-        exclude(dependency('com.google.guava:'))
       }
       zip64 true
     }
