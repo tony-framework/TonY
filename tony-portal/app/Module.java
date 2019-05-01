@@ -15,5 +15,6 @@ public class Module extends AbstractModule {
     bind(Configuration.class).asEagerSingleton();
     bind(Requirements.class).asEagerSingleton();
     bind(CacheWrapper.class).asEagerSingleton();
+    // add module for moving files from intermediate to finished
   }
 }
