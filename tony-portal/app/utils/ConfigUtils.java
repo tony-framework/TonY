@@ -26,5 +26,12 @@ public class ConfigUtils {
     return value;
   }
 
+  public static int fetchIntConfigIfExists(Config conf, String key, int defaultVal) {
+    if (conf.hasPath(key)) {
+      return conf.getInt(key);
+    }
+    return defaultVal;
+  }
+
   private ConfigUtils() { }
 }

@@ -23,15 +23,15 @@ import utils.ConfigUtils;
 public class Requirements {
   private static final Logger.ALogger LOG = Logger.of(Requirements.class);
 
-  private static String keytabUser;
-  private static String keytabLocation;
+  private String keytabUser;
+  private String keytabLocation;
 
-  private static FileSystem histFs;
-  private static Path histFolder;
-  private static Path interm;
-  private static Path finished;
+  private FileSystem histFs;
+  private Path histFolder;
+  private Path interm;
+  private Path finished;
 
-  public static FileSystem getFileSystem() {
+  public FileSystem getFileSystem() {
     return histFs;
   }
 
@@ -42,7 +42,7 @@ public class Requirements {
         errorMsg = dir + " doesn't exist";
         LOG.warn(errorMsg);
         LOG.info("Creating " + dir);
-        Utils.createDir(myFs, dir, perm);
+        Utils.createDirIfNotExists(myFs, dir, perm);
       }
     } catch (IOException e) {
       errorMsg = "Failed to check " + dir + " existence";
@@ -104,11 +104,11 @@ public class Requirements {
     createDirIfNotExists(histFs, finished, Constants.PERM770);
   }
 
-  public static Path getFinishedDir() {
+  public Path getFinishedDir() {
     return finished;
   }
 
-  public static Path getIntermDir() {
+  public Path getIntermDir() {
     return interm;
   }
 }

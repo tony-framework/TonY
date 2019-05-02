@@ -33,15 +33,20 @@ public class TonyConfigurationKeys {
 
   public static final String OTHER_NAMENODES_TO_ACCESS = TONY_PREFIX + "other.namenodes";
 
-  // History folder configuration
-  public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
+  // History-related configuration
+  public static final String TONY_HISTORY_PREFIX = TONY_PREFIX + "history.";
+
+  public static final String TONY_HISTORY_LOCATION = TONY_HISTORY_PREFIX + "location";
   public static final String DEFAULT_TONY_HISTORY_LOCATION = "/path/to/tony-history";
 
-  public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
+  public static final String TONY_HISTORY_INTERMEDIATE = TONY_HISTORY_PREFIX + "intermediate";
   public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = DEFAULT_TONY_HISTORY_LOCATION + "/intermediate";
 
-  public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
+  public static final String TONY_HISTORY_FINISHED = TONY_HISTORY_PREFIX + "finished";
   public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
+
+  public static final String TONY_HISTORY_MOVER_INTERVAL_MS = TONY_HISTORY_PREFIX + "mover-interval-ms";
+  public static final int DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS = 5 * 60 * 1000;
 
   public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
   public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "1000";

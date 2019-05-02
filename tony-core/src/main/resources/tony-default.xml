@@ -249,6 +249,13 @@
   </property>
 
   <property>
+    <name>tony.history.mover-interval-ms</name>
+    <value>300000</value>
+    <description>Frequency at which to scan the intermediate directory for completed jobs to move to the
+    finished directory.</description>
+  </property>
+
+  <property>
     <description>
       Maximum (approximate) number of cache entries TonY Portal
       will store for each cache (config, metadata, event)

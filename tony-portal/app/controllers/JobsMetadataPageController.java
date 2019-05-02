@@ -49,57 +49,6 @@ public class JobsMetadataPageController extends Controller {
     finished = requirements.getFinishedDir();
   }
 
-  private boolean jobInProgress(FileSystem fs, Path jobDir) {
-    try {
-      // If there is a file ending in ".jhist" (NOT ".jhist.inprogress"), the job is no longer in progress.
-      // Otherwise, it is considered in progress.
-      return !Arrays.stream(fs.listStatus(jobDir))
-          .anyMatch(fileStatus -> fileStatus.getPath().toString().endsWith(Constants.HISTFILE_SUFFIX));
-    } catch (IOException e) {
-      LOG.error("Encountered exception reading " + jobDir, e);
-      return false;
-    }
-  }
-
-  private void moveIntermToFinished(FileSystem fs, Map<String, Date> jobsModTime,
-      Map<String, Path> jobFolders) {
-    jobsModTime.forEach((id, date) -> {
-      Path source = jobFolders.get(id);
-      if (jobInProgress(fs, source)) {
-        return;
-      }
-
-      StringBuilder path = new StringBuilder(finished.toString());
-      LocalDate ldate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-      String[] directories = {
-          Integer.toString(ldate.getYear()),
-          String.format("%02d", ldate.getMonthValue()),
-          String.format("%02d", ldate.getDayOfMonth())
-      };
-      for (String dir : directories) {
-        path.append("/").append(dir);
-        Utils.createDir(fs, new Path(path.toString()), Constants.PERM770);
-      }
-
-      Path dest = new Path(path.toString());
-      try {
-        fs.rename(source, dest);
-      } catch (IOException e) {
-        LOG.error("Failed to move files from intermediate to finished", e);
-      }
-    });
-  }
-
-  private void storeJobData(Map<String, Date> jobsModTime, Map<String, Path> jobsFiles,
-      FileStatus[] jobDirs) {
-    for (FileStatus dir : jobDirs) {
-      Path jobFolderPath = dir.getPath();
-      String jid = HdfsUtils.getLastComponent(jobFolderPath.toString());
-      jobsFiles.putIfAbsent(jid, jobFolderPath);
-      jobsModTime.putIfAbsent(jid, new Date(dir.getModificationTime()));
-    }
-  }
-
   public Result index() {
     List<JobMetadata> listOfMetadata = new ArrayList<>();
     JobMetadata tmpMetadata;
@@ -107,19 +56,6 @@ public class JobsMetadataPageController extends Controller {
 
     if (myFs == null) {
       return internalServerError("Failed to initialize file system in " + this.getClass());
-    }
-
-    FileStatus[] jobDirs = new FileStatus[0];
-    try {
-      jobDirs = myFs.listStatus(interm);
-    } catch (IOException e) {
-      LOG.error("Failed to list files in " + interm, e);
-    }
-    if (jobDirs.length > 0) {
-      Map<String, Date> jobsModTime = new HashMap<>();
-      Map<String, Path> jobsFiles = new HashMap<>();
-      storeJobData(jobsModTime, jobsFiles, jobDirs);
-      moveIntermToFinished(myFs, jobsModTime, jobsFiles);
     }
 
     List<Path> listOfJobDirs = getJobDirs(myFs, finished, JOB_FOLDER_REGEX);

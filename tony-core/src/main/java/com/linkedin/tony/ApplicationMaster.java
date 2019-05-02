@@ -476,7 +476,7 @@ public class ApplicationMaster {
     jobDir = new Path(interm, appId);
     // set to `tony` group by default
     // due to inherited permission from parent folder
-    Utils.createDir(fs, jobDir, Constants.PERM770);
+    Utils.createDirIfNotExists(fs, jobDir, Constants.PERM770);
   }
 
   /**
