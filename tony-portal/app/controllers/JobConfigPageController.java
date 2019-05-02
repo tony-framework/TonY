@@ -12,8 +12,8 @@ import org.apache.hadoop.fs.Path;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import static com.linkedin.tony.util.HdfsUtils.*;
-import static com.linkedin.tony.util.ParserUtils.*;
+import static com.linkedin.tony.util.HdfsUtils.getJobDirPath;
+import static com.linkedin.tony.util.ParserUtils.parseConfig;
 
 
 public class JobConfigPageController extends Controller {
@@ -26,7 +26,7 @@ public class JobConfigPageController extends Controller {
   public JobConfigPageController(Requirements requirements, CacheWrapper cacheWrapper) {
     myFs = requirements.getFileSystem();
     cache = cacheWrapper.getConfigCache();
-    interm = requirements.getIntermDir();
+    interm = requirements.getIntermediateDir();
     finished = requirements.getFinishedDir();
   }
 
@@ -48,17 +48,20 @@ public class JobConfigPageController extends Controller {
       return internalServerError("Failed to initialize file system in " + this.getClass());
     }
 
+    // Check cache
     listOfConfigs = cache.getIfPresent(jobId);
     if (listOfConfigs != null) {
       return ok(views.html.config.render(listOfConfigs));
     }
 
-    listOfConfigs = getAndStoreConfigs(jobId, getJobDirPath(myFs, interm, jobId));
+    // Check finished dir
+    listOfConfigs = getAndStoreConfigs(jobId, getJobDirPath(myFs, finished, jobId));
     if (!listOfConfigs.isEmpty()) {
       return ok(views.html.config.render(listOfConfigs));
     }
 
-    listOfConfigs = getAndStoreConfigs(jobId, getJobDirPath(myFs, finished, jobId));
+    // Check intermediate dir
+    listOfConfigs = getAndStoreConfigs(jobId, getJobDirPath(myFs, interm, jobId));
     if (!listOfConfigs.isEmpty()) {
       return ok(views.html.config.render(listOfConfigs));
     }

@@ -1,25 +1,20 @@
 package controllers;
 
 import cache.CacheWrapper;
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.util.HdfsUtils;
+import com.linkedin.tony.util.ParserUtils;
 import hadoop.Requirements;
 import java.util.List;
 import javax.inject.Inject;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import play.Logger;
-import play.Logger.ALogger;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import static com.linkedin.tony.util.HdfsUtils.*;
-import static com.linkedin.tony.util.ParserUtils.*;
-
 
 public class JobEventPageController extends Controller {
-  private static final ALogger LOG = Logger.of(JobEventPageController.class);
   private FileSystem myFs;
   private Cache<String, List<JobEvent>> cache;
   private Path interm;
@@ -29,7 +24,7 @@ public class JobEventPageController extends Controller {
   public JobEventPageController(Requirements requirements, CacheWrapper cacheWrapper) {
     myFs = requirements.getFileSystem();
     cache = cacheWrapper.getEventCache();
-    interm = requirements.getIntermDir();
+    interm = requirements.getIntermediateDir();
     finished = requirements.getFinishedDir();
   }
 
@@ -39,23 +34,26 @@ public class JobEventPageController extends Controller {
       return internalServerError("Failed to initialize file system in " + this.getClass());
     }
 
+    // Check cache
     listOfEvents = cache.getIfPresent(jobId);
     if (listOfEvents != null) {
       return ok(views.html.event.render(listOfEvents));
     }
 
-    // If intermediate directory exists for this job, it is still running.
-    if (getJobDirPath(myFs, interm, jobId) != null) {
+    // Check finished dir
+    Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
+    if (jobFolder != null) {
+      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder));
+      cache.put(jobId, listOfEvents);
+      return ok(views.html.event.render(listOfEvents));
+    }
+
+    // Check intermediate dir
+    jobFolder = HdfsUtils.getJobDirPath(myFs, interm, jobId);
+    if (jobFolder != null) {
       return internalServerError("Cannot display events because job is still running");
     }
 
-    Path jobFolder = getJobDirPath(myFs, finished, jobId);
-    listOfEvents = mapEventToJobEvent(parseEvents(myFs, jobFolder));
-    if (listOfEvents.isEmpty()) {
-      LOG.error("Failed to fetch list of events");
-      return internalServerError("Failed to fetch events");
-    }
-    cache.put(jobId, listOfEvents);
-    return ok(views.html.event.render(listOfEvents));
+    return internalServerError("Failed to fetch events");
   }
 }
