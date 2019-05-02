@@ -20,7 +20,7 @@ public class CacheWrapper {
    * - key: job ID (application_[0-9]+_[0-9]+)
    * - value: JobMetadata object containing all the metadata of the jobs (user, status, etc.)
    */
-  private static Cache<String, JobMetadata> metadataCache;
+  private Cache<String, JobMetadata> metadataCache;
 
   /**
    * configCache
@@ -28,7 +28,7 @@ public class CacheWrapper {
    * - value: List of JobConfig objects. Each JobConfig object
    * represents a {@code property} (name-val-source-final) in config.xml
    */
-  private static Cache<String, List<JobConfig>> configCache;
+  private Cache<String, List<JobConfig>> configCache;
 
   /**
    * eventCache
@@ -36,7 +36,7 @@ public class CacheWrapper {
    * - value: List of JobEvent objects. Each JobEvent object
    * represents an Event in job's jhist
    */
-  private static Cache<String, List<JobEvent>> eventCache;
+  private Cache<String, List<JobEvent>> eventCache;
 
   @Inject
   public CacheWrapper(Config appConf) {
@@ -48,15 +48,15 @@ public class CacheWrapper {
     eventCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
   }
 
-  public static Cache<String, JobMetadata> getMetadataCache() {
+  public Cache<String, JobMetadata> getMetadataCache() {
     return metadataCache;
   }
 
-  public static Cache<String, List<JobConfig>> getConfigCache() {
+  public Cache<String, List<JobConfig>> getConfigCache() {
     return configCache;
   }
 
-  public static Cache<String, List<JobEvent>> getEventCache() {
+  public Cache<String, List<JobEvent>> getEventCache() {
     return eventCache;
   }
 }

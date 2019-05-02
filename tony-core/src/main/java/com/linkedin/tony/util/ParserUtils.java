@@ -14,9 +14,12 @@ import com.linkedin.tony.models.JobEvent;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
@@ -94,7 +97,7 @@ public class ParserUtils {
    * @param jobFolderPath Path of job directory.
    * @return the full path of the jhist file or {@code null} if an error occurs or no history file is found.
    */
-  private static String getJhistFilePath(FileSystem fs, Path jobFolderPath) {
+  public static String getJhistFilePath(FileSystem fs, Path jobFolderPath) {
     try {
       // We want to have both running jobs and completed jobs
       // so we can't use endsWith() but rather contains() to filter
@@ -125,6 +128,17 @@ public class ParserUtils {
       LOG.error("Failed to scan " + jobFolderPath, e);
       return null;
     }
+  }
+
+  /**
+   * Returns the completed time portion of a jhist file name as a {@link long}.
+   * Assumes the jhist file name is valid and represents a completed job.
+   */
+  public static long getCompletedTimeFromJhistFileName(String jhistFileName) {
+    if (jhistFileName.lastIndexOf("/") >= 0) {
+      jhistFileName = jhistFileName.substring(jhistFileName.lastIndexOf("/") + 1);
+    }
+    return Long.parseLong(jhistFileName.split("-")[2]);
   }
 
   /**
@@ -243,6 +257,18 @@ public class ParserUtils {
 
   public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
     return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
+  }
+
+  /**
+   * Given a {@link Date}, returns a "yyyy/mm/dd" string representation in the system time zone.
+   */
+  public static String getYearMonthDayDirectory(Date date) {
+    StringBuilder dirString = new StringBuilder();
+    LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    dirString.append(localDate.getYear());
+    dirString.append(Path.SEPARATOR).append(String.format("%02d", localDate.getMonthValue()));
+    dirString.append(Path.SEPARATOR).append(String.format("%02d", localDate.getDayOfMonth()));
+    return dirString.toString();
   }
 
   private ParserUtils() { }

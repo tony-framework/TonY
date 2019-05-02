@@ -500,7 +500,7 @@ public class Utils {
     String warningMsg;
     try {
       if (!fs.exists(dir)) {
-        fs.mkdirs(dir);
+        fs.mkdirs(dir, permission);
         fs.setPermission(dir, permission);
         return;
       }
