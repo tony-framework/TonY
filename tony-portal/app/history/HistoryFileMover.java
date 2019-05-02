@@ -35,8 +35,11 @@ public class HistoryFileMover {
     finishedDir = requirements.getFinishedDir();
 
     ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
+    long moverIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
+        TonyConfigurationKeys.TONY_HISTORY_MOVER_INTERVAL_MS,
+        TonyConfigurationKeys.DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS);
 
-    LOG.info("Starting background history file mover thread, will run every 5 minutes.");
+    LOG.info("Starting background history file mover thread, will run every " + moverIntervalMs + " milliseconds.");
     scheduledThreadPool.scheduleAtFixedRate(() -> {
       FileStatus[] jobDirs = null;
       try {
@@ -47,8 +50,7 @@ public class HistoryFileMover {
       if (jobDirs != null) {
         moveIntermediateToFinished(fs, jobDirs);
       }
-    }, 0, ConfigUtils.fetchIntConfigIfExists(appConf, TonyConfigurationKeys.TONY_HISTORY_MOVER_INTERVAL_MS,
-        TonyConfigurationKeys.DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS), TimeUnit.MILLISECONDS);
+    }, 0, moverIntervalMs, TimeUnit.MILLISECONDS);
   }
 
   private void moveIntermediateToFinished(FileSystem fs, FileStatus[] jobDirs) {
