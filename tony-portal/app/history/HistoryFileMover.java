@@ -69,7 +69,7 @@ public class HistoryFileMover {
         // to compensate.
         path.append(Path.SEPARATOR).append(source.getName());
       }
-      Utils.createDir(fs, new Path(path.toString()), Constants.PERM770);
+      Utils.createDirIfNotExists(fs, new Path(path.toString()), Constants.PERM770);
 
       Path dest = new Path(path.toString());
       LOG.info("Moving " + source + " to " + dest);

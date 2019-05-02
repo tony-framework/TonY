@@ -42,7 +42,7 @@ public class Requirements {
         errorMsg = dir + " doesn't exist";
         LOG.warn(errorMsg);
         LOG.info("Creating " + dir);
-        Utils.createDir(myFs, dir, perm);
+        Utils.createDirIfNotExists(myFs, dir, perm);
       }
     } catch (IOException e) {
       errorMsg = "Failed to check " + dir + " existence";

@@ -496,7 +496,7 @@ public class Utils {
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
   }
 
-  public static void createDir(FileSystem fs, Path dir, FsPermission permission) {
+  public static void createDirIfNotExists(FileSystem fs, Path dir, FsPermission permission) {
     String warningMsg;
     try {
       if (!fs.exists(dir)) {
