@@ -1,16 +1,14 @@
 package history;
 
-//import com.google.common.io.Files;
+import cache.CacheWrapper;
 import com.google.common.io.Files;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.ParserUtils;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 import hadoop.Requirements;
 import java.io.File;
 import java.io.IOException;
-import java.util.Calendar;
 import java.util.Date;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,6 +30,9 @@ public class HistoryFileMoverTest {
 
   @Mock
   Requirements reqs;
+
+  @Mock
+  CacheWrapper cacheWrapper;
 
   private static File tempDir;
   private static File intermediateDir;
@@ -64,11 +65,11 @@ public class HistoryFileMoverTest {
 
     when(config.hasPath(TonyConfigurationKeys.TONY_HISTORY_MOVER_INTERVAL_MS)).thenReturn(false);
     when(reqs.getFileSystem()).thenReturn(FileSystem.getLocal(new Configuration()));
-    when(reqs.getIntermDir()).thenReturn(new Path(intermediateDir.getAbsolutePath()));
+    when(reqs.getIntermediateDir()).thenReturn(new Path(intermediateDir.getAbsolutePath()));
     when(reqs.getFinishedDir()).thenReturn(new Path(finishedDir.getAbsolutePath()));
 
     // start mover
-    new HistoryFileMover(config, reqs);
+    new HistoryFileMover(config, reqs, cacheWrapper);
     Thread.sleep(250);
 
     // verify application directory was moved

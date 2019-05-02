@@ -49,7 +49,7 @@ public class TonyConfigurationKeys {
   public static final int DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS = 5 * 60 * 1000;
 
   public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
-  public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "1000";
+  public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "10000";
 
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
   public static final String DEFAULT_TONY_KEYTAB_USER = "user";

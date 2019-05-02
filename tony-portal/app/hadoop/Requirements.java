@@ -108,7 +108,7 @@ public class Requirements {
     return finished;
   }
 
-  public Path getIntermDir() {
+  public Path getIntermediateDir() {
     return interm;
   }
 }

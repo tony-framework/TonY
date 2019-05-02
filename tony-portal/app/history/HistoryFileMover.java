@@ -1,5 +1,6 @@
 package history;
 
+import cache.CacheWrapper;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.ParserUtils;
@@ -27,12 +28,14 @@ public class HistoryFileMover {
   private final FileSystem fs;
   private final Path intermediateDir;
   private final Path finishedDir;
+  private final CacheWrapper cacheWrapper;
 
   @Inject
-  public HistoryFileMover(Config appConf, Requirements requirements) {
+  public HistoryFileMover(Config appConf, Requirements requirements, CacheWrapper cacheWrapper) {
     fs = requirements.getFileSystem();
-    intermediateDir = requirements.getIntermDir();
+    intermediateDir = requirements.getIntermediateDir();
     finishedDir = requirements.getFinishedDir();
+    this.cacheWrapper = cacheWrapper;
 
     ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
     long moverIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
@@ -56,6 +59,7 @@ public class HistoryFileMover {
   private void moveIntermediateToFinished(FileSystem fs, FileStatus[] jobDirs) {
     for (FileStatus jobDir : jobDirs) {
       String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
+      cacheWrapper.updateCaches(jobDir.getPath());
       if (jobInProgress(jhistFilePath)) {
         return;
       }
