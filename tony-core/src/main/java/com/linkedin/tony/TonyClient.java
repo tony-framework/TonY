@@ -92,8 +92,6 @@ import org.apache.hadoop.yarn.util.Records;
 public class TonyClient implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TonyClient.class);
 
-  private static final String APP_TYPE = "TONY";
-
   // Configurations
   private YarnClient yarnClient;
   private HdfsConfiguration hdfsConf = new HdfsConfiguration();
@@ -233,7 +231,7 @@ public class TonyClient implements AutoCloseable {
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
     appContext.setApplicationName(appName);
-    appContext.setApplicationType(APP_TYPE);
+    appContext.setApplicationType(Constants.APP_TYPE);
 
     // Set up resource type requirements
     Resource capability = Resource.newInstance((int) amMemory, amVCores);

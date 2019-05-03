@@ -114,6 +114,7 @@ public class Constants {
   public static final String TONY_HISTORY_INTERMEDIATE = "intermediate";
 
   // Configuration related constants
+  public static final String APP_TYPE = "TONY";
   // Name of the file containing all configuration keys and their default values
   public static final String TONY_DEFAULT_XML = "tony-default.xml";
   // Default file name of user-provided configuration file

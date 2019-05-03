@@ -183,7 +183,7 @@ public class ParserUtils {
       return Collections.emptyList();
     }
 
-    Path configFilePath = new Path(jobFolderPath, "config.xml");
+    Path configFilePath = new Path(jobFolderPath, Constants.TONY_FINAL_XML);
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     List<JobConfig> configs = new ArrayList<>();
 
