@@ -489,7 +489,7 @@ public class ApplicationMaster {
     if (jobDir == null) {
       return;
     }
-    Path configFile = new Path(jobDir, "config.xml");
+    Path configFile = new Path(jobDir, Constants.TONY_FINAL_XML);
     try (FSDataOutputStream out = fs.create(configFile)) {
       tonyConf.writeXml(out);
     } catch (IOException e) {
