@@ -173,7 +173,7 @@ public class ParserUtils {
 
   /**
    * Assuming that there's only 1 config file in {@code jobFolderPath},
-   * this function parses the config file and return a list of {@code JobConfig} objects.
+   * this function parses the config file and returns a list of {@code JobConfig} objects.
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
    * @return a list of {@code JobConfig} objects.
