@@ -191,7 +191,7 @@ public class ParserUtils {
         configFilePath = new Path(jobFolderPath, "config.xml");
       }
     } catch (IOException e) {
-      LOG.error("Encountered exception while checking existence of " + configFilePath);
+      LOG.error("Encountered exception while checking existence of " + configFilePath, e);
     }
 
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
