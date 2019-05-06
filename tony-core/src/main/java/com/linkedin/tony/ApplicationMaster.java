@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.linkedin.tony.events.TaskFinished;
+import com.linkedin.tony.events.TaskStarted;
 import com.linkedin.tony.models.JobMetadata;
 import com.linkedin.tony.events.ApplicationFinished;
 import com.linkedin.tony.events.ApplicationInited;
@@ -1127,6 +1128,10 @@ public class ApplicationMaster {
       Utils.printTaskUrl(task.getTaskInfo(), LOG);
       nmClientAsync.startContainerAsync(container, ctx);
       taskInfo.setState(TaskStatus.RUNNING);
+      eventHandler.emitEvent(new Event(EventType.TASK_STARTED,
+          new TaskStarted(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+              container.getNodeHttpAddress().split(":")[0]),
+          System.currentTimeMillis()));
     }
   }
 

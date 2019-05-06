@@ -17,12 +17,14 @@ import javax.inject.Singleton;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import play.Logger;
 import utils.ConfigUtils;
 
 
 
 @Singleton
 public class CacheWrapper {
+  private static final Logger.ALogger LOG = Logger.of(CacheWrapper.class);
   private static final String JOB_FOLDER_REGEX = "^application_\\d+_\\d+$";
 
   private final YarnConfiguration yarnConf;
@@ -67,7 +69,7 @@ public class CacheWrapper {
     finishedDir = reqs.getFinishedDir();
     intermediateDir = reqs.getIntermediateDir();
 
-    initializeCaches();
+    initializeCachesAsync();
   }
 
   public Cache<String, JobMetadata> getMetadataCache() {
@@ -94,9 +96,13 @@ public class CacheWrapper {
     eventCache.put(jobId, events);
   }
 
-  private void initializeCaches() {
-    List<Path> listOfJobDirs = HdfsUtils.getJobDirs(myFs, finishedDir, JOB_FOLDER_REGEX);
-    listOfJobDirs.addAll(HdfsUtils.getJobDirs(myFs, intermediateDir, JOB_FOLDER_REGEX));
-    listOfJobDirs.forEach(this::updateCaches);
+  private void initializeCachesAsync() {
+    new Thread(() -> {
+      LOG.info("Starting background initialization of caches.");
+      List<Path> listOfJobDirs = HdfsUtils.getJobDirs(myFs, finishedDir, JOB_FOLDER_REGEX);
+      listOfJobDirs.addAll(HdfsUtils.getJobDirs(myFs, intermediateDir, JOB_FOLDER_REGEX));
+      listOfJobDirs.forEach(this::updateCaches);
+      LOG.info("Done with background initialization of caches.");
+    }).start();
   }
 }

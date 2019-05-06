@@ -1,0 +1,10 @@
+{
+  "namespace": "com.linkedin.tony.events",
+  "type": "record",
+  "name": "TaskStarted",
+  "fields": [
+    {"name": "taskType", "type": "string"},
+    {"name": "taskIndex", "type": "int"},
+    {"name": "host", "type": "string"}
+  ]
+}
