@@ -4,7 +4,7 @@
   "name": "Event",
   "fields": [
     {"name": "type", "type": "EventType"},
-    {"name": "event", "type": [ "ApplicationInited", "ApplicationFinished", "TaskFinished" ]},
+    {"name": "event", "type": [ "ApplicationInited", "ApplicationFinished", "TaskStarted", "TaskFinished" ]},
     {"name": "timestamp", "type": "long"}
   ]
 }

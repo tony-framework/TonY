@@ -172,8 +172,8 @@ public class ParserUtils {
   }
 
   /**
-   * Assuming that there's only 1 config.xml file in {@code jobFolderPath},
-   * this function parses config.xml and return a list of {@code JobConfig} objects.
+   * Assuming that there's only 1 config file in {@code jobFolderPath},
+   * this function parses the config file and returns a list of {@code JobConfig} objects.
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
    * @return a list of {@code JobConfig} objects.
@@ -184,6 +184,16 @@ public class ParserUtils {
     }
 
     Path configFilePath = new Path(jobFolderPath, Constants.TONY_FINAL_XML);
+    try {
+      if (!fs.exists(configFilePath)) {
+        // For backward-compatibility
+        // Remove once everyone is using open-source tony-0.3.5+
+        configFilePath = new Path(jobFolderPath, "config.xml");
+      }
+    } catch (IOException e) {
+      LOG.error("Encountered exception while checking existence of " + configFilePath, e);
+    }
+
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     List<JobConfig> configs = new ArrayList<>();
 
