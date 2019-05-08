@@ -65,7 +65,7 @@ public class HistoryFileMover {
       cacheWrapper.updateCaches(jobDir.getPath());
       String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
       if (jhistFilePath == null || jobInProgress(jhistFilePath)) {
-        return;
+        continue;
       }
 
       Path source = new Path(jhistFilePath).getParent();
