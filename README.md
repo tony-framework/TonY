@@ -23,6 +23,31 @@ This will automatically run tests, if want to build without running tests, run:
 
 The jar required to run TonY will be located in `./tony-cli/build/libs/`.
 
+## Publishing (for admins)
+
+Follow [this guide](https://blog.sonatype.com/2010/01/how-to-generate-pgp-signatures-with-maven/) to generate a key pair using GPG. Publish your public key.
+
+Create a Nexus account at https://oss.sonatype.org/ and request access to publish to com.linkedin.tony. Here's an example Jira ticket: https://issues.sonatype.org/browse/OSSRH-47350.
+
+Configure your `~/.gradle/gradle.properties` file:
+
+```
+# signing plugin uses these
+signing.keyId=...
+signing.secretKeyRingFile=/home/<ldap>/.gnupg/secring.gpg
+signing.password=...
+
+# maven repo credentials
+mavenUser=...
+mavenPassword=...
+
+# gradle-nexus-staging-plugin uses these
+nexusUsername=<sameAsMavenUser>
+nexusPassword=<sameAsMavenPassword>
+```
+
+Now you can publish and release artifacts by running `./gradlew publish closeAndReleaseRepository`.
+
 ## Usage
 
 TonY is a Java library, so it is as simple as running a Java program. There are two ways to launch your deep learning jobs with TonY:
