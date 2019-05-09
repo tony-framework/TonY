@@ -277,7 +277,9 @@ public class Utils {
     String executablePath = taskCommand.trim().split(" ")[0];
     File executable = new File(executablePath);
     if (!executable.canExecute()) {
-      executable.setExecutable(true);
+      if (!executable.setExecutable(true)) {
+        LOG.error("Failed to make " + executable + " executable");
+      }
     }
 
     // Used for running unit tests in build boxes without Hadoop environment.

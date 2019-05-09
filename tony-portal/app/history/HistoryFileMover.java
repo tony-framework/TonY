@@ -51,17 +51,21 @@ public class HistoryFileMover {
         LOG.error("Failed to list files in " + intermediateDir, e);
       }
       if (jobDirs != null) {
-        moveIntermediateToFinished(fs, jobDirs);
+        try {
+          moveIntermediateToFinished(fs, jobDirs);
+        } catch (Exception e) {
+          LOG.error("Encountered exception while moving history directories", e);
+        }
       }
     }, 0, moverIntervalMs, TimeUnit.MILLISECONDS);
   }
 
   private void moveIntermediateToFinished(FileSystem fs, FileStatus[] jobDirs) {
     for (FileStatus jobDir : jobDirs) {
-      String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
       cacheWrapper.updateCaches(jobDir.getPath());
-      if (jobInProgress(jhistFilePath)) {
-        return;
+      String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
+      if (jhistFilePath == null || jobInProgress(jhistFilePath)) {
+        continue;
       }
 
       Path source = new Path(jhistFilePath).getParent();
