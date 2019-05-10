@@ -25,6 +25,12 @@
   </property>
 
   <property>
+    <description>Tags of your YARN application.</description>
+    <name>tony.application.tags</name>
+    <value></value>
+  </property>
+
+  <property>
     <description>YARN partition which this application should run in.</description>
     <name>tony.application.node-label</name>
   </property>

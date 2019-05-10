@@ -104,4 +104,16 @@ public class TestTonyClient {
     conf.setInt(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS), 10);
     TonyClient.validateTonyConf(conf);
   }
+
+  @Test
+  public void testTonyApplicatonTags() throws Exception {
+    final String applicationTags = "flow_id:1,exec_id:0,proj_name:demo";
+    String[] args = { "-conf",
+        TonyConfigurationKeys.APPLICATION_TAGS + "=" + applicationTags };
+    TonyClient client = new TonyClient();
+    client.init(args);
+    assertEquals(
+        applicationTags,
+        client.getTonyConf().get(TonyConfigurationKeys.APPLICATION_TAGS));
+  }
 }

@@ -4,15 +4,22 @@
  */
 package com.linkedin.tony.azkaban;
 
+import azkaban.flow.CommonJobProperties;
+import azkaban.utils.FileIOUtils;
+import azkaban.utils.Props;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
-import azkaban.utils.FileIOUtils;
-import azkaban.utils.Props;
 import java.io.File;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -57,10 +64,44 @@ public class TestTonyJob {
       }
     };
     String args = tonyJob.getMainArguments();
-    Assert.assertTrue(new File(tonyJob.getWorkingDirectory(), "_tony-conf-test_tony_job/tony.xml").exists());
     Assert.assertTrue(args.contains(TonyJobArg.HDFS_CLASSPATH.tonyParamName + " hdfs://nn:8020"));
     Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E2=e2"));
     Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E1=e1"));
+  }
+
+  /**
+   * Check if the flow level information is passed to the tony job through configuration.
+   */
+  @Test
+  public void testFlowInfoPropagation() {
+    final Props jobProps = new Props();
+    jobProps.put(TonyJobArg.HDFS_CLASSPATH.azPropName, "hdfs://nn:8020");
+    jobProps.put(CommonJobProperties.PROJECT_NAME, "unit_test");
+    jobProps.put(CommonJobProperties.FLOW_ID, "1");
+    jobProps.put(CommonJobProperties.EXEC_ID, "0");
+
+    final TonyJob tonyJob = new TonyJob("test_tony_job", new Props(), jobProps, log) {
+      @Override
+      public String getWorkingDirectory() {
+        return System.getProperty("java.io.tmpdir");
+      }
+    };
+
+    Configuration conf = tonyJob.getTonyJobConf();
+    Set<String> values = new HashSet<>(
+        conf.getStringCollection(TonyJob.TONY_APPLICATION_TAGS));
+    values.remove("");
+
+    Map<String, String> parsedTags = new HashMap<>();
+    for (String value : values) {
+      String[] pair = value.split(":");
+      Assert.assertTrue(pair.length == 2);
+      parsedTags.put(pair[0], pair[1]);
+    }
+
+    Assert.assertEquals(parsedTags.get(CommonJobProperties.EXEC_ID), "0");
+    Assert.assertEquals(parsedTags.get(CommonJobProperties.FLOW_ID), "1");
+    Assert.assertEquals(parsedTags.get(CommonJobProperties.PROJECT_NAME), "unit_test");
   }
 
   @Test

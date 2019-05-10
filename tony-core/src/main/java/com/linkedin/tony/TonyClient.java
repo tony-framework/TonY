@@ -114,6 +114,7 @@ public class TonyClient implements AutoCloseable {
   private String pythonBinaryPath = null;
   private String pythonVenv = null;
   private String srcDir = null;
+  private Set<String> applicationTags;
   private String hdfsClasspath = null;
   private String executes;
   private long appTimeout;
@@ -232,6 +233,9 @@ public class TonyClient implements AutoCloseable {
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
     appContext.setApplicationName(appName);
     appContext.setApplicationType(Constants.APP_TYPE);
+    if (!applicationTags.isEmpty()) {
+      appContext.setApplicationTags(applicationTags);
+    }
 
     // Set up resource type requirements
     Resource capability = Resource.newInstance((int) amMemory, amVCores);
@@ -379,6 +383,9 @@ public class TonyClient implements AutoCloseable {
 
     // src_dir & hdfs_classpath flags are for compatibility.
     srcDir = cliParser.getOptionValue("src_dir");
+
+    applicationTags = new HashSet<>(
+        tonyConf.getStringCollection(TonyConfigurationKeys.APPLICATION_TAGS));
 
     // Set hdfsClassPath for all workers
     // Prepend hdfs:// if missing
