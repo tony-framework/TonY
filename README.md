@@ -10,7 +10,7 @@ machine learning jobs reliably and flexibly.
 
 ## Compatibility Notes
 
-It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with Hadoop 2.9.1(https://hadoop.apache.org/docs/r2.9.1/) and above. If you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
+It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with [Hadoop 2.7.4](https://hadoop.apache.org/docs/r2.7.4/) and above. If you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
 
 ## Build
 
