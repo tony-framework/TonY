@@ -397,7 +397,7 @@ public class TestTonyE2E  {
         "--executes", "ls",
         "--shell_env", "TEST1=test",
         "--container_env", "TEST2=test",
-        "--conf", "tony.application.worker.command=cat",
+        "--conf", "tony.worker.command=cat",
         "--conf", "tony.containers.resources=tony-core/src/test/resources/test.zip"
     });
     // Stub actual app submission logic
