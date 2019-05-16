@@ -198,12 +198,12 @@ public class TonyConfigurationKeys {
 
   // Job specific execution command
   public static String getExecuteCommandKey(String jobName) {
-    return String.format(TONY_APPLICATION_PREFIX + "%s.command", jobName);
+    return String.format(TONY_PREFIX + "%s.command", jobName);
   }
 
   // Execution command for all containers
   public static String getContainerExecuteCommandKey() {
-    return TONY_APPLICATION_PREFIX + "containers.command";
+    return TONY_PREFIX + "containers.command";
   }
 
   // Job specific docker image
