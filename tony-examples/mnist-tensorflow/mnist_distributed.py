@@ -28,7 +28,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorboard.plugins.core import core_plugin
 from tensorflow.examples.tutorials.mnist import input_data
 
 import json
@@ -178,7 +177,7 @@ def create_model():
 
 
 def start_tensorboard(logdir):
-    tb = tb_program.TensorBoard(plugins=[core_plugin.CorePluginLoader()])
+    tb = tb_program.TensorBoard()
     port = int(os.getenv(TB_PORT_ENV_VAR, 6006))
     tb.configure(logdir=logdir, port=port)
     tb.launch()
