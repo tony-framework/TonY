@@ -205,6 +205,14 @@ Below are examples to run distributed deep learning jobs with TonY:
 - [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
 - [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
 - [TonY in Google Cloud Platform](https://github.com/linkedin/TonY/tree/master/tony-examples/tony-in-gcp)
+- [TonY in Azkaban video](https://youtu.be/DM89y8BGFaY)
+
+## More information
+
+For more information about TonY, check out the following:
+- [TonY OpML '19 paper](https://arxiv.org/abs/1904.01631)
+- [TonY LinkedIn Engineering blog post](https://engineering.linkedin.com/blog/2018/09/open-sourcing-tony--native-support-of-tensorflow-on-hadoop)
+
 
 ## FAQ
 
