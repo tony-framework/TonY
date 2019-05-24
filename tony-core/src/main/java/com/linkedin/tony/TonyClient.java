@@ -480,16 +480,16 @@ public class TonyClient implements AutoCloseable {
         if (dockerRuntimeClass != null) {
           try {
             String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
-            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_TYPE).get(null);
+            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_IMAGE).get(null);
             containerEnv.put(envContainerType, "docker");
             containerEnv.put(envDockerImage, imagePath);
           } catch (NoSuchFieldException e) {
-            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_TYPE + " not "
+            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
                 + "found in " + containerRuntimeClass.getName());
             return false;
           } catch (IllegalAccessException e) {
             LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
-                + Constants.ENV_DOCKER_CONTAINER_TYPE + " fields.");
+                + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.");
             return false;
           }
         }
