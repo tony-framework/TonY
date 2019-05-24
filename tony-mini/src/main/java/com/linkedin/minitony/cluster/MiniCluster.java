@@ -7,6 +7,7 @@ package com.linkedin.minitony.cluster;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -42,6 +43,7 @@ public class MiniCluster {
   public void start() throws Exception {
     YarnConfiguration yarnConf = new YarnConfiguration();
     yarnConf.setInt(YarnConfiguration.RM_SCHEDULER_MINIMUM_ALLOCATION_MB, 256);
+    yarnConf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_TOKEN_SERVICE_USE_IP, false);
     yarnConf.setClass(YarnConfiguration.RM_SCHEDULER,
                       FifoScheduler.class, ResourceScheduler.class);
     HdfsConfiguration hdfsConf = new HdfsConfiguration();

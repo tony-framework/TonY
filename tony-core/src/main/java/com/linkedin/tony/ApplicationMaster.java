@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -404,10 +405,12 @@ public class ApplicationMaster {
     amRMClient.start();
 
     RegisterApplicationMasterResponse response;
+    String hostNameOrIpFromTokenConf = "";
     try {
+      hostNameOrIpFromTokenConf = Utils.getHostNameOrIpFromTokenConf(yarnConf);
       response = amRMClient.registerApplicationMaster(amHostname, amPort, null);
-      amHostPort = amHostname + ":" + amPort;
-    } catch (YarnException e) {
+      amHostPort = hostNameOrIpFromTokenConf + ":" + amPort;
+    } catch (YarnException | SocketException e) {
       LOG.error("Exception while preparing AM", e);
       return false;
     }
@@ -427,7 +430,7 @@ public class ApplicationMaster {
 
       // create token for metrics RPC server
       Token<? extends TokenIdentifier> metricsToken = new Token<>(identifier, secretManager);
-      metricsToken.setService(new Text(amHostname + ":" + metricsRpcPort));
+      metricsToken.setService(new Text(hostNameOrIpFromTokenConf + ":" + metricsRpcPort));
       UserGroupInformation.getCurrentUser().addToken(metricsToken);
 
       setupContainerCredentials();
