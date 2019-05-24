@@ -262,6 +262,18 @@
   </property>
 
   <property>
+    <name>tony.history.retention-sec</name>
+    <value>2592000</value>
+    <description>How many seconds to retain history files for. Default is 30 days.</description>
+  </property>
+
+  <property>
+    <name>tony.history.purger-interval-ms</name>
+    <value>21600000</value>
+    <description>Frequency at which to run the purger thread. Default is 6 hours.</description>
+  </property>
+
+  <property>
     <description>
       Maximum (approximate) number of cache entries TonY Portal
       will store for each cache (config, metadata, event)

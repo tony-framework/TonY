@@ -28,6 +28,9 @@ model {
   }
 }
 
+// To avoid conflicts with Play's logback binding
+configurations.all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+
 dependencies {
   play project(':tony-core')
   play deps.external.play_guice
