@@ -12,14 +12,14 @@ import org.junit.Assert;
 import org.junit.Test;
 
 
-public class HistoryFileCleanerTest {
+public class HistoryFilePurgerTest {
   @Test
-  public void testCleanFinished() throws IOException {
+  public void testPurgeFinished() throws IOException {
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     File finishedDir = setupFinishedDir();
     LocalDate cutOffDate = LocalDate.of(2019, 4, 28);
 
-    HistoryFileCleaner.cleanFinishedDir(localFs, new Path(finishedDir.getPath()), cutOffDate);
+    HistoryFilePurger.purgeFinishedDir(localFs, new Path(finishedDir.getPath()), cutOffDate);
 
     // verify cleaning
     Assert.assertFalse(new File(finishedDir, "2018").exists());
@@ -33,12 +33,12 @@ public class HistoryFileCleanerTest {
   }
 
   @Test
-  public void testCleanIntermediate() throws IOException {
+  public void testPurgeIntermediate() throws IOException {
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     File intermediateDir = setupIntermediateDir();
     LocalDate cutOffDate = LocalDate.of(2019, 4, 28);
 
-    HistoryFileCleaner.cleanIntermediateDir(localFs, new Path(intermediateDir.getPath()), cutOffDate);
+    HistoryFilePurger.purgeIntermediateDir(localFs, new Path(intermediateDir.getPath()), cutOffDate);
 
     Assert.assertEquals(2, intermediateDir.listFiles().length);
     Assert.assertTrue(new File(intermediateDir, "application_123_2").exists());

@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,11 +23,11 @@ import utils.ConfigUtils;
 
 
 @Singleton
-public class HistoryFileCleaner {
-  private static final Logger.ALogger LOG = Logger.of(HistoryFileCleaner.class);
+public class HistoryFilePurger {
+  private static final Logger.ALogger LOG = Logger.of(HistoryFilePurger.class);
 
   @Inject
-  public HistoryFileCleaner(Config appConf, Requirements requirements) {
+  public HistoryFilePurger(Config appConf, Requirements requirements) {
     FileSystem fs = requirements.getFileSystem();
     Path intermediateDir = requirements.getIntermediateDir();
     Path finishedDir = requirements.getFinishedDir();
@@ -37,29 +36,29 @@ public class HistoryFileCleaner {
         TonyConfigurationKeys.DEFAULT_TONY_HISTORY_RETENTION_SECONDS);
 
     ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
-    long cleanerIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
-        TonyConfigurationKeys.TONY_HISTORY_CLEANER_INTERVAL_MS,
-        TonyConfigurationKeys.DEFAULT_TONY_HISTORY_CLEANER_INTERVAL_MS);
+    long purgerIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
+        TonyConfigurationKeys.TONY_HISTORY_PURGER_INTERVAL_MS,
+        TonyConfigurationKeys.DEFAULT_TONY_HISTORY_PURGER_INTERVAL_MS);
 
     LOG.info("Retention period is " + retentionSec + " seconds");
-    LOG.info("Starting background history file cleaner thread, will run every " + cleanerIntervalMs + " milliseconds.");
+    LOG.info("Starting background history file purger thread, will run every " + purgerIntervalMs + " milliseconds.");
     scheduledThreadPool.scheduleAtFixedRate(() -> {
       LocalDate cutOffDate = LocalDateTime.now().minusSeconds(retentionSec).toLocalDate();
-      LOG.info("Removing all history files older than " + cutOffDate);
+      LOG.info("Purging all history files older than " + cutOffDate);
       try {
-        cleanFinishedDir(fs, finishedDir, cutOffDate);
-        cleanIntermediateDir(fs, intermediateDir, cutOffDate);
+        purgeFinishedDir(fs, finishedDir, cutOffDate);
+        purgeIntermediateDir(fs, intermediateDir, cutOffDate);
       } catch (Exception e) {
-        LOG.error("Encountered exception while cleaning history directories", e);
+        LOG.error("Encountered exception while purging history directories", e);
       }
-    }, 0, cleanerIntervalMs, TimeUnit.MILLISECONDS);
+    }, 0, purgerIntervalMs, TimeUnit.MILLISECONDS);
   }
 
   /**
    * Deletes all year/month/day directories in the finished dir prior to the cutoff date.
    */
   @VisibleForTesting
-  static void cleanFinishedDir(FileSystem fs, Path finishedDir, LocalDate cutOffDate) throws IOException {
+  static void purgeFinishedDir(FileSystem fs, Path finishedDir, LocalDate cutOffDate) throws IOException {
     FileStatus[] yearDirs = fs.listStatus(finishedDir, path -> path.getName().matches("\\d{4}"));
     for (FileStatus yearDir : yearDirs) {
       int year = Integer.parseInt(yearDir.getPath().getName());
@@ -95,7 +94,7 @@ public class HistoryFileCleaner {
    * Delete all jobs in the intermediate dir that started before the cut-off date.
    */
   @VisibleForTesting
-  static void cleanIntermediateDir(FileSystem fs, Path intermediateDir, LocalDate cutOffDate)
+  static void purgeIntermediateDir(FileSystem fs, Path intermediateDir, LocalDate cutOffDate)
       throws IOException {
     FileStatus[] jobDirs = fs.listStatus(intermediateDir);
     for (FileStatus jobDir : jobDirs) {

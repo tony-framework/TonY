@@ -10,7 +10,7 @@ import org.apache.hadoop.conf.TestConfigurationFieldsBase;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
+public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {d
 
   @Override
   public void initializeMemberVariables() {

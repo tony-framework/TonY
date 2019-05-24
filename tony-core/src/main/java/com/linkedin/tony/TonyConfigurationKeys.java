@@ -52,9 +52,9 @@ public class TonyConfigurationKeys {
   public static final String TONY_HISTORY_RETENTION_SECONDS = TONY_HISTORY_PREFIX + "retention-sec";
   public static final int DEFAULT_TONY_HISTORY_RETENTION_SECONDS = 30 * 24 * 60 * 60;
 
-  // How frequently to run the cleaner thread
-  public static final String TONY_HISTORY_CLEANER_INTERVAL_MS = TONY_HISTORY_PREFIX + "cleaner-interval-ms";
-  public static final int DEFAULT_TONY_HISTORY_CLEANER_INTERVAL_MS = 6 * 60 * 60 * 1000;
+  // How frequently to run the purger thread
+  public static final String TONY_HISTORY_PURGER_INTERVAL_MS = TONY_HISTORY_PREFIX + "purger-interval-ms";
+  public static final int DEFAULT_TONY_HISTORY_PURGER_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
   public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
   public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "10000";
