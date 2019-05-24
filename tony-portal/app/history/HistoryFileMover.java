@@ -69,17 +69,17 @@ public class HistoryFileMover {
       }
 
       Path source = new Path(jhistFilePath).getParent();
-      StringBuilder path = new StringBuilder(finishedDir.toString());
+      StringBuilder destString = new StringBuilder(finishedDir.toString());
       Date endDate = new Date(ParserUtils.getCompletedTimeFromJhistFileName(jhistFilePath));
-      path.append(Path.SEPARATOR).append(ParserUtils.getYearMonthDayDirectory(endDate));
+      destString.append(Path.SEPARATOR).append(ParserUtils.getYearMonthDayDirectory(endDate));
       if (fs.getScheme().equals("file")) {
-        // On Mac, local filesystem will copy contents of source dir to dest dir, so we have to append the dir name
-        // to compensate.
-        path.append(Path.SEPARATOR).append(source.getName());
+        // Local filesystem will copy contents of source dir to dest dir, so we have to append the source dir name
+        // to the dest dir to compensate.
+        destString.append(Path.SEPARATOR).append(source.getName());
       }
-      Utils.createDirIfNotExists(fs, new Path(path.toString()), Constants.PERM770);
+      Utils.createDirIfNotExists(fs, new Path(destString.toString()), Constants.PERM770);
 
-      Path dest = new Path(path.toString());
+      Path dest = new Path(destString.toString());
       LOG.info("Moving " + source + " to " + dest);
       try {
         fs.rename(source, dest);

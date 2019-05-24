@@ -28,6 +28,7 @@
 # OCT 31 2018 PHAT TRAN - Updated APP_NAME constant
 # NOV 22 2018 PHAT TRAN - Fetched Play + Hadoop config from tony-site.xml
 ############################################################################################################
+set -ex
 PRG="$0"
 
 # Need this for relative symlinks.
@@ -86,7 +87,7 @@ esac
 # We parse tony-site.xml and set properties using -D instead.
 cp $APP_HOME/conf/application.example.conf $APP_HOME/conf/application.conf
 
-CLASSPATH="$APP_HOME/lib/tony-portal.jar:$APP_HOME/conf"
+CLASSPATH="$APP_HOME/lib/*:$APP_HOME/conf"
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then

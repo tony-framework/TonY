@@ -2,6 +2,7 @@ import cache.CacheWrapper;
 import com.google.inject.AbstractModule;
 import hadoop.Configuration;
 import hadoop.Requirements;
+import history.HistoryFileCleaner;
 import history.HistoryFileMover;
 
 
@@ -17,5 +18,6 @@ public class Module extends AbstractModule {
     bind(Requirements.class).asEagerSingleton();
     bind(CacheWrapper.class).asEagerSingleton();
     bind(HistoryFileMover.class).asEagerSingleton();
+    bind(HistoryFileCleaner.class).asEagerSingleton();
   }
 }
