@@ -215,4 +215,6 @@ if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
 fi
 
 # Run TonY Portal in the background
-nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart &
+# Redirect all standard streams to prevent hanging when run over SSH.
+# See https://en.wikipedia.org/wiki/Nohup#Overcoming_hanging for details.
+nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart 2>&1 > nohup.out < /dev/null &
