@@ -21,10 +21,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -34,6 +36,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,6 +44,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -304,6 +309,24 @@ public class Utils {
 
   public static String getCurrentHostName() {
     return System.getenv(ApplicationConstants.Environment.NM_HOST.name());
+  }
+
+  public static String getHostNameOrIpFromTokenConf(Configuration conf)
+      throws YarnException, SocketException {
+    boolean useIp = conf.getBoolean(
+        CommonConfigurationKeys.HADOOP_SECURITY_TOKEN_SERVICE_USE_IP,
+        CommonConfigurationKeys.HADOOP_SECURITY_TOKEN_SERVICE_USE_IP_DEFAULT);
+    String hostName =
+        System.getenv(ApplicationConstants.Environment.NM_HOST.name());
+    if (useIp) {
+      InetAddress ip = NetUtils.getLocalInetAddress(hostName);
+      if (ip == null) {
+        throw new YarnException("Can't resolve the ip of " + hostName);
+      }
+      return ip.getHostAddress();
+    } else {
+      return hostName;
+    }
   }
 
   public static void addEnvironmentForResource(LocalResource resource, FileSystem fs, String envPrefix,
