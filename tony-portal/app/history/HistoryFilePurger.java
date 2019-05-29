@@ -39,11 +39,15 @@ public class HistoryFilePurger {
     long purgerIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
         TonyConfigurationKeys.TONY_HISTORY_PURGER_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TONY_HISTORY_PURGER_INTERVAL_MS);
+    String finishedDirTimeZone = ConfigUtils.fetchConfigIfExists(appConf,
+        TonyConfigurationKeys.TONY_HISTORY_FINISHED_DIR_TIMEZONE,
+        TonyConfigurationKeys.DEFAULT_TONY_HISTORY_FINISHED_DIR_TIMEZONE);
+    ZoneId zoneId = ZoneId.of(finishedDirTimeZone);
 
     LOG.info("Retention period is " + retentionSec + " seconds");
     LOG.info("Starting background history file purger thread, will run every " + purgerIntervalMs + " milliseconds.");
     scheduledThreadPool.scheduleAtFixedRate(() -> {
-      LocalDate cutOffDate = LocalDateTime.now().minusSeconds(retentionSec).toLocalDate();
+      LocalDate cutOffDate = LocalDateTime.now(zoneId).minusSeconds(retentionSec).toLocalDate();
       LOG.info("Purging all history files older than " + cutOffDate);
       try {
         purgeFinishedDir(fs, finishedDir, cutOffDate);

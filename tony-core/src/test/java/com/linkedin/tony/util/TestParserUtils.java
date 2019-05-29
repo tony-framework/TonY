@@ -8,7 +8,10 @@ import com.linkedin.tony.Constants;
 import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -117,5 +120,20 @@ public class TestParserUtils {
 
     List<JobConfig> loc = ParserUtils.parseConfig(mockFs, jobFolder);
     assertEquals(0, loc.size());
+  }
+
+  @Test
+  public void testGetYearMonthDayDirectory() {
+    Instant instant = Instant.ofEpochMilli(1559155036000L);
+    Date date = Date.from(instant);
+    ZoneId utc = ZoneId.of("UTC");
+    ZoneId gmt6 = ZoneId.of("GMT+6");
+    String expectedUTCDirectoryStr = "2019/05/29";
+    String expectedGMT6DirectoryStr = "2019/05/30";
+
+    String actualUTCDirectoryStr = ParserUtils.getYearMonthDayDirectory(date, utc);
+    String actualGMT6DirectoryStr = ParserUtils.getYearMonthDayDirectory(date, gmt6);
+    assertEquals(actualUTCDirectoryStr, expectedUTCDirectoryStr);
+    assertEquals(actualGMT6DirectoryStr, expectedGMT6DirectoryStr);
   }
 }

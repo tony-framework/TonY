@@ -270,11 +270,11 @@ public class ParserUtils {
   }
 
   /**
-   * Given a {@link Date}, returns a "yyyy/mm/dd" string representation in the system time zone.
+   * Given a {@link Date} and {@link ZoneId}, returns a "yyyy/mm/dd" string representation in the time zone specified.
    */
-  public static String getYearMonthDayDirectory(Date date) {
+  public static String getYearMonthDayDirectory(Date date, ZoneId zoneId) {
     StringBuilder dirString = new StringBuilder();
-    LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    LocalDate localDate = date.toInstant().atZone(zoneId).toLocalDate();
     dirString.append(localDate.getYear());
     dirString.append(Path.SEPARATOR).append(String.format("%02d", localDate.getMonthValue()));
     dirString.append(Path.SEPARATOR).append(String.format("%02d", localDate.getDayOfMonth()));

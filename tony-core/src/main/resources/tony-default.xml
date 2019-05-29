@@ -274,6 +274,12 @@
   </property>
 
   <property>
+    <name>tony.history.finished-dir-timezone</name>
+    <value>UTC</value>
+    <description>ZoneId used to create/purge finished directory in /yyyy/MM/dd format.</description>
+  </property>
+
+  <property>
     <description>
       Maximum (approximate) number of cache entries TonY Portal
       will store for each cache (config, metadata, event)
