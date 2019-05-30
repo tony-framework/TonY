@@ -3,10 +3,11 @@
 ![tony-logo-small](https://user-images.githubusercontent.com/544734/57793050-45b3ff00-76f5-11e9-8cc0-8ebb830b6e78.png)
 
 TonY is a framework to _natively_ run deep learning jobs on [Apache Hadoop](http://hadoop.apache.org/).
-It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow) and [PyTorch](https://github.com/pytorch/pytorch).
+It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow), [PyTorch](https://github.com/pytorch/pytorch), and [Horovod](https://github.com/horovod/horovod).
 TonY enables running either single node or distributed
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
-machine learning jobs reliably and flexibly.
+machine learning jobs reliably and flexibly. For a quick overview of TonY and comparisons to other frameworks, please see
+[this presentation](https://www.slideshare.net/ssuser72f42a/scaling-deep-learning-on-hadoop-at-linkedin).
 
 ## Compatibility Notes
 
@@ -210,6 +211,7 @@ Below are examples to run distributed deep learning jobs with TonY:
 ## More information
 
 For more information about TonY, check out the following:
+- [TonY presentation at DataWorks Summit '19 in Washington, D.C.](https://www.slideshare.net/ssuser72f42a/scaling-deep-learning-on-hadoop-at-linkedin)
 - [TonY OpML '19 paper](https://arxiv.org/abs/1904.01631)
 - [TonY LinkedIn Engineering blog post](https://engineering.linkedin.com/blog/2018/09/open-sourcing-tony--native-support-of-tensorflow-on-hadoop)
 
