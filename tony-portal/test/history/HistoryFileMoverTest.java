@@ -9,6 +9,7 @@ import com.typesafe.config.Config;
 import hadoop.Requirements;
 import java.io.File;
 import java.io.IOException;
+import java.time.ZoneId;
 import java.util.Date;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -64,6 +65,7 @@ public class HistoryFileMoverTest {
     }
 
     when(config.hasPath(TonyConfigurationKeys.TONY_HISTORY_MOVER_INTERVAL_MS)).thenReturn(false);
+    when(config.getString(TonyConfigurationKeys.TONY_HISTORY_FINISHED_DIR_TIMEZONE)).thenReturn("UTC");
     when(reqs.getFileSystem()).thenReturn(FileSystem.getLocal(new Configuration()));
     when(reqs.getIntermediateDir()).thenReturn(new Path(intermediateDir.getAbsolutePath()));
     when(reqs.getFinishedDir()).thenReturn(new Path(finishedDir.getAbsolutePath()));
@@ -74,7 +76,9 @@ public class HistoryFileMoverTest {
 
     // verify application directory was moved
     Date endDate = new Date(endTime);
-    File finalDir = new File(finishedDir, ParserUtils.getYearMonthDayDirectory(endDate) + Path.SEPARATOR + appId);
+    ZoneId zoneId = ZoneId.of("UTC");
+    File finalDir = new File(finishedDir,
+        ParserUtils.getYearMonthDayDirectory(endDate, zoneId) + Path.SEPARATOR + appId);
     Assert.assertFalse(appDir.exists());
     Assert.assertTrue(finalDir.isDirectory());
   }

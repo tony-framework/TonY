@@ -8,6 +8,7 @@ import com.linkedin.tony.util.Utils;
 import com.typesafe.config.Config;
 import hadoop.Requirements;
 import java.io.IOException;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,6 +42,12 @@ public class HistoryFileMover {
     long moverIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
         TonyConfigurationKeys.TONY_HISTORY_MOVER_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS);
+    String finishedDirTimeZone = ConfigUtils.fetchConfigIfExists(appConf,
+        TonyConfigurationKeys.TONY_HISTORY_FINISHED_DIR_TIMEZONE,
+        TonyConfigurationKeys.DEFAULT_TONY_HISTORY_FINISHED_DIR_TIMEZONE);
+
+    // Throws DateTimeException or ZoneRulesException given wrong TimeZone format.
+    ZoneId zoneId = ZoneId.of(finishedDirTimeZone);
 
     LOG.info("Starting background history file mover thread, will run every " + moverIntervalMs + " milliseconds.");
     scheduledThreadPool.scheduleAtFixedRate(() -> {
@@ -52,7 +59,7 @@ public class HistoryFileMover {
       }
       if (jobDirs != null) {
         try {
-          moveIntermediateToFinished(fs, jobDirs);
+          moveIntermediateToFinished(fs, jobDirs, zoneId);
         } catch (Exception e) {
           LOG.error("Encountered exception while moving history directories", e);
         }
@@ -60,7 +67,7 @@ public class HistoryFileMover {
     }, 0, moverIntervalMs, TimeUnit.MILLISECONDS);
   }
 
-  private void moveIntermediateToFinished(FileSystem fs, FileStatus[] jobDirs) {
+  private void moveIntermediateToFinished(FileSystem fs, FileStatus[] jobDirs, ZoneId zoneId) {
     for (FileStatus jobDir : jobDirs) {
       cacheWrapper.updateCaches(jobDir.getPath());
       String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
@@ -71,7 +78,7 @@ public class HistoryFileMover {
       Path source = new Path(jhistFilePath).getParent();
       StringBuilder destString = new StringBuilder(finishedDir.toString());
       Date endDate = new Date(ParserUtils.getCompletedTimeFromJhistFileName(jhistFilePath));
-      destString.append(Path.SEPARATOR).append(ParserUtils.getYearMonthDayDirectory(endDate));
+      destString.append(Path.SEPARATOR).append(ParserUtils.getYearMonthDayDirectory(endDate, zoneId));
       if (fs.getScheme().equals("file")) {
         // Local filesystem will copy contents of source dir to dest dir, so we have to append the source dir name
         // to the dest dir to compensate.
