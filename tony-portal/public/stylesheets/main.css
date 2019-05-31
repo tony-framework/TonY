@@ -990,7 +990,6 @@ dd.error {
 }
 
 img.resize {
-  width: 44.8px;
-  height: 74.18px;
-  float: left;
+  width: 70px;
+  // height will scale proportionally
 }
