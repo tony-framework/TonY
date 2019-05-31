@@ -604,7 +604,7 @@ public class ApplicationMaster {
       }
 
       if (preprocessExitCode != 0) {
-        LOG.info("Preprocess failed with exit code: " + preprocessExitCode);
+        LOG.error("Preprocess failed with exit code: " + preprocessExitCode);
         break;
       }
 
@@ -614,7 +614,7 @@ public class ApplicationMaster {
       }
 
       if (this.taskHasMissesHB) {
-        LOG.info("Application failed due to missed heartbeats");
+        LOG.error("Application failed due to missed heartbeats");
         break;
       }
 
@@ -1139,11 +1139,8 @@ public class ApplicationMaster {
   }
 
   private void onTaskDeemedDead(TonyTask task) {
-    LOG.info("Task with id [" + task.getId() + "] has missed"
-        + " [" + maxConsecutiveHBMiss + "] heartbeats.. Ending application !!");
-    // TODO: figure out what is the right thing to do here..
-    // TODO: For the time being, we just kill the job..
-    String msg = "Task with id [" + task.getId() + "] deemed dead!!";
+    String msg = "Task with id [" + task.getId() + "] has missed"
+        + " [" + maxConsecutiveHBMiss + "] heartbeats. Ending application!";
     LOG.error(msg);
     taskHasMissesHB = true;
     session.setFinalStatus(FinalApplicationStatus.FAILED, msg);
