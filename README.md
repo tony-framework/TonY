@@ -168,7 +168,7 @@ Then you can launch your job:
 
     $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob" \
                 com.linkedin.tony.cli.ClusterSubmitter \
-                -executes models/mnist_distributed.py \ # relative path to the src directory.
+                -executes models/mnist_distributed.py \ # relative path to model program inside the src_dir
                 -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output \
                 -python_venv my-venv.zip \
                 -python_binary_path Python/bin/python \  # relative path to the Python binary inside the my-venv.zip
