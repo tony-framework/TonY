@@ -209,10 +209,19 @@ public class ParserUtils {
         if (property.getNodeType() == Node.ELEMENT_NODE) {
           Element p = (Element) property;
           JobConfig jobConf = new JobConfig();
-          jobConf.setName(p.getElementsByTagName("name").item(0).getTextContent());
-          jobConf.setValue(p.getElementsByTagName("value").item(0).getTextContent());
-          jobConf.setFinal(p.getElementsByTagName("final").item(0).getTextContent().equals("true"));
-          jobConf.setSource(p.getElementsByTagName("source").item(0).getTextContent());
+          String name = getNodeElementText(p, "name");
+          String value = getNodeElementText(p, "value");
+          if (name == null || value == null) {
+            LOG.warn("Found config with null name or value. Name = " + name + ", value = " + value);
+            continue;
+          }
+          jobConf.setName(name);
+          jobConf.setValue(value);
+          String finalText = getNodeElementText(p, "final");
+          if (finalText != null && finalText.equalsIgnoreCase("true")) {
+            jobConf.setFinal(true);
+          }
+          jobConf.setSource(getNodeElementText(p, "source"));
           configs.add(jobConf);
         }
       }
@@ -228,6 +237,16 @@ public class ParserUtils {
     }
     LOG.debug("Successfully parsed config");
     return configs;
+  }
+
+  private static String getNodeElementText(Element node, String tagName) {
+    if (node != null) {
+      NodeList nodeList = node.getElementsByTagName(tagName);
+      if (nodeList.getLength() > 0) {
+        return nodeList.item(0).getTextContent();
+      }
+    }
+    return null;
   }
 
   /**
