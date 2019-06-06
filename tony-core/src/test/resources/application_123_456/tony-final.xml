@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+  <!-- some configs are missing subelements -->
+  <property>
+    <!-- missing everything -->
+  </property>
+  <property>
+    <name>fookey</name>
+    <value>fooval</value>
+    <!-- missing final -->
+    <source>source</source>
+  </property>
+  <property>
+    <name>barkey</name>
+    <value>barval</value>
+    <!-- missing source and final -->
+  </property>
+  <property>
+    <name>key_only</name>
+    <!-- missing value, source, and final -->
+  </property>
+  <property>
+    <value>value_only</value>
+    <!-- missing name, source, and final -->
+  </property>
+  <property>
+    <!-- has all fields -->
+    <name>bazkey</name>
+    <value>bazval</value>
+    <final>true</final>
+    <source>bazsource</source>
+  </property>
+</configuration>
