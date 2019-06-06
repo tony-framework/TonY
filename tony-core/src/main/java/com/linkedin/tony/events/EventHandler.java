@@ -48,6 +48,7 @@ public class EventHandler extends Thread {
     try {
       out = myFs.create(inProgressHistFile);
       dataFileWriter.create(Event.SCHEMA$, out);
+      LOG.info("Writing events to " + inProgressHistFile);
     } catch (IOException e) {
       LOG.error("Failed to set up writer", e);
     }
