@@ -21,7 +21,7 @@ public class ConfigUtils {
     try {
       value = conf.getString(key);
     } catch (ConfigException.Missing e) {
-      LOG.error("Failed to fetch value for `" + key + "`. Use `" + defaultVal + "` instead.", e);
+      LOG.warn("Failed to fetch value for `" + key + "`. Using `" + defaultVal + "` instead.", e);
     }
     return value;
   }

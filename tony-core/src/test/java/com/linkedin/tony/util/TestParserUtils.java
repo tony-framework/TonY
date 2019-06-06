@@ -20,10 +20,18 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
+
 
 public class TestParserUtils {
+  private static final ClassLoader CLASSLOADER = TestParserUtils.class.getClassLoader();
+
   private static FileSystem fs = null;
   private YarnConfiguration yarnConf = new YarnConfiguration();
 
@@ -110,6 +118,13 @@ public class TestParserUtils {
     assertEquals(actual.get(0).getValue(), expected.get(0).getValue());
     assertEquals(actual.get(0).isFinal(), expected.get(0).isFinal());
     assertEquals(actual.get(0).getSource(), expected.get(0).getSource());
+  }
+
+  @Test
+  public void testConfigMissingElements() {
+    Path jobFolder = new Path(CLASSLOADER.getResource("application_123_456").getFile());
+    List<JobConfig> actualConfigs = ParserUtils.parseConfig(fs, jobFolder);
+    assertEquals(actualConfigs.size(), 3);
   }
 
   @Test
