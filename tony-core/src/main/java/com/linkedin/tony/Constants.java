@@ -137,6 +137,13 @@ public class Constants {
   // Metrics
   public static final String METRICS_RPC_PORT = "METRICS_RPC_PORT";
   public static final String MAX_MEMORY_BYTES = "MAX_MEMORY_BYTES";
+  public static final String AVG_MEMORY_BYTES = "AVG_MEMORY_BYTES";
+  public static final String MAX_GPU_UTILIZATION = "MAX_GPU_UTILIZATION";
+  public static final String AVG_GPU_UTILIZATION = "AVG_GPU_UTILIZATION";
+  public static final String MAX_FB_MEMORY_USAGE = "MAX_FB_MEMORY_USAGE";
+  public static final String AVG_FB_MEMORY_USAGE = "AVG_FB_MEMORY_USAGE";
+
+  public static final int MAX_REPEATED_GPU_ERROR_ALLOWED = 10;
 
   private Constants() { }
 }

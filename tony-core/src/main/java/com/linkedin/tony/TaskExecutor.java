@@ -108,7 +108,7 @@ public class TaskExecutor {
     executor.metricsProxy = RPC.getProxy(MetricsRpc.class, RPC.getProtocolVersion(MetricsRpc.class),
             new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
     executor.scheduledThreadPool.scheduleAtFixedRate(
-        new TaskMonitor(executor.jobName, executor.taskIndex, executor.yarnConf, executor.metricsProxy),
+        new TaskMonitor(executor.jobName, executor.taskIndex, executor.yarnConf, executor.tonyConf, executor.metricsProxy),
         0,
         executor.metricsIntervalMs,
         TimeUnit.MILLISECONDS);

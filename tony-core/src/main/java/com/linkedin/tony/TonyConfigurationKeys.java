@@ -231,6 +231,7 @@ public class TonyConfigurationKeys {
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
   public static final int DEFAULT_WORKER_TIMEOUT = 0;
+  public static final String WORKER_GPUS = WORKER_PREFIX + "gpus";
 
   // Job types that we don't wait to finish
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
@@ -247,6 +248,8 @@ public class TonyConfigurationKeys {
   // Environment
   public static final String CONTAINER_LAUNCH_ENV = TONY_PREFIX + "containers.envs";
   public static final String EXECUTION_ENV = TONY_PREFIX + "execution.envs";
+  public static final String GPU_PATH_TO_EXEC = TONY_PREFIX + "gpu-exec-path";
+  public static final String DEFAULT_GPU_PATH_TO_EXEC = "nvidia-smi";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";
