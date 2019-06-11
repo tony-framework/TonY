@@ -39,23 +39,23 @@ public class TestTaskMonitor {
 
   @Test
   public void testSetAvgMetrics() {
-    taskMonitor.setAvgMetrics(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX, 0.1);
+    taskMonitor.setAvgMetrics(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX, 0.1);
     taskMonitor.numRefreshes++;
-    taskMonitor.setAvgMetrics(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX, 0.3);
+    taskMonitor.setAvgMetrics(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX, 0.3);
     taskMonitor.numRefreshes++;
-    taskMonitor.setAvgMetrics(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX, 0.5);
+    taskMonitor.setAvgMetrics(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX, 0.5);
     MetricsWritable metrics = taskMonitor.getMetrics();
-    Assert.assertEquals(metrics.getMetric(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX).getValue(), 0.3);
+    Assert.assertEquals(metrics.getMetric(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX).getValue(), 0.3);
   }
 
   @Test
   public void testSetMaxMetrics() {
-    taskMonitor.setMaxMetrics(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX, 0.1);
+    taskMonitor.setMaxMetrics(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX, 0.1);
     taskMonitor.numRefreshes++;
-    taskMonitor.setMaxMetrics(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX, 0.4);
+    taskMonitor.setMaxMetrics(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX, 0.4);
     taskMonitor.numRefreshes++;
-    taskMonitor.setMaxMetrics(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX, 0.2);
+    taskMonitor.setMaxMetrics(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX, 0.2);
     MetricsWritable metrics = taskMonitor.getMetrics();
-    Assert.assertEquals(metrics.getMetric(TaskMonitor.AVG_FB_MEMORY_USAGE_INDEX).getValue(), 0.4);
+    Assert.assertEquals(metrics.getMetric(TaskMonitor.AVG_GPU_MEMORY_USAGE_INDEX).getValue(), 0.4);
   }
 }
