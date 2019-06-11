@@ -11,6 +11,7 @@ import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.MetricsWritable;
 import com.linkedin.tony.util.gpu.GpuDeviceInformation;
 import com.linkedin.tony.util.gpu.GpuDiscoverer;
+import com.linkedin.tony.util.gpu.GpuInfoException;
 import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -133,17 +134,15 @@ class TaskMonitor implements Runnable {
       setAvgMetrics(AVG_GPU_UTILIZATION_INDEX, avgGpuUtilization);
       setMaxMetrics(MAX_FB_MEMORY_USAGE_INDEX, maxFBMemoryUsage);
       setAvgMetrics(AVG_FB_MEMORY_USAGE_INDEX, avgFBMemoryUsage);
-    } catch (Exception e) {
+    } catch (GpuInfoException e) {
       // Follow YARN's GPUDiscoverer mechanism of capping number of gpu metrics query
       if (gpuDiscoverer.getNumOfErrorExecutionSinceLastSucceed() >= Constants.MAX_REPEATED_GPU_ERROR_ALLOWED) {
-        String msg = "Failed to collect GPU metrics, this is not a GPU machine";
-        LOG.warn(msg);
+        LOG.warn("Failed to collect GPU metrics", e);
         isGpuMachine = false;
+        return;
       }
 
-      String msg =
-          "Failed to collect GPU metrics at " + numRefreshes + 1 + "th run, exception message:" + e.getMessage();
-      LOG.warn(msg);
+      LOG.warn("Failed to collect GPU metrics at " + numRefreshes + 1 + "th run, retry...", e);
     }
   }
 

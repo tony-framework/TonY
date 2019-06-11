@@ -138,9 +138,13 @@ public class Constants {
   public static final String METRICS_RPC_PORT = "METRICS_RPC_PORT";
   public static final String MAX_MEMORY_BYTES = "MAX_MEMORY_BYTES";
   public static final String AVG_MEMORY_BYTES = "AVG_MEMORY_BYTES";
+  // Maximum percent of time one or more kernels was executing on GPU
   public static final String MAX_GPU_UTILIZATION = "MAX_GPU_UTILIZATION";
+  // Average across GPUs of percent of time one or more kernels was executing on GPU
   public static final String AVG_GPU_UTILIZATION = "AVG_GPU_UTILIZATION";
+  // Maximum total on-board frame buffer memory used
   public static final String MAX_FB_MEMORY_USAGE = "MAX_FB_MEMORY_USAGE";
+  // Average across GPUs of on-board frame buffer memory used
   public static final String AVG_FB_MEMORY_USAGE = "AVG_FB_MEMORY_USAGE";
 
   public static final int MAX_REPEATED_GPU_ERROR_ALLOWED = 10;
