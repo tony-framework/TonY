@@ -33,14 +33,14 @@ class TaskMonitor implements Runnable {
 
   public static final List<String> METRICS_TO_COLLECT = ImmutableList.of(Constants.MAX_MEMORY_BYTES,
       Constants.AVG_MEMORY_BYTES, Constants.MAX_GPU_UTILIZATION, Constants.AVG_GPU_UTILIZATION,
-      Constants.MAX_FB_MEMORY_USAGE, Constants.AVG_FB_MEMORY_USAGE);
+      Constants.MAX_GPU_MEMORY_USAGE, Constants.AVG_GPU_MEMORY_USAGE);
 
   public static final int MAX_MEMORY_BYTES_INDEX = 0;
   public static final int AVG_MEMORY_BYTES_INDEX = 1;
   public static final int MAX_GPU_UTILIZATION_INDEX = 2;
   public static final int AVG_GPU_UTILIZATION_INDEX = 3;
-  public static final int MAX_FB_MEMORY_USAGE_INDEX = 4;
-  public static final int AVG_FB_MEMORY_USAGE_INDEX = 5;
+  public static final int MAX_GPU_MEMORY_USAGE_INDEX = 4;
+  public static final int AVG_GPU_MEMORY_USAGE_INDEX = 5;
 
   private Boolean isGpuMachine;
 
@@ -119,21 +119,21 @@ class TaskMonitor implements Runnable {
           .mapToDouble(x -> x.getGpuUtilizations().getOverallGpuUtilization())
           .average()
           .getAsDouble();
-      double maxFBMemoryUsage = gpuInfo.getGpus().stream()
+      double maxGpuMemoryUsage = gpuInfo.getGpus().stream()
           .mapToDouble((x ->
-              ((double) x.getGpuMemoryUsage().getUsedMemoryMiB() / x.getGpuMemoryUsage().getTotalMemoryMiB())))
+              ((double) x.getGpuMemoryUsage().getUsedMemoryMiB() / x.getGpuMemoryUsage().getTotalMemoryMiB() * 100)))
           .max()
           .getAsDouble();
-      double avgFBMemoryUsage = gpuInfo.getGpus().stream()
+      double avgGpuMemoryUsage = gpuInfo.getGpus().stream()
           .mapToDouble((x ->
-              ((double) x.getGpuMemoryUsage().getUsedMemoryMiB() / x.getGpuMemoryUsage().getTotalMemoryMiB())))
+              ((double) x.getGpuMemoryUsage().getUsedMemoryMiB() / x.getGpuMemoryUsage().getTotalMemoryMiB() * 100)))
           .average()
           .getAsDouble();
 
       setMaxMetrics(MAX_GPU_UTILIZATION_INDEX, maxGpuUtilization);
       setAvgMetrics(AVG_GPU_UTILIZATION_INDEX, avgGpuUtilization);
-      setMaxMetrics(MAX_FB_MEMORY_USAGE_INDEX, maxFBMemoryUsage);
-      setAvgMetrics(AVG_FB_MEMORY_USAGE_INDEX, avgFBMemoryUsage);
+      setMaxMetrics(MAX_GPU_MEMORY_USAGE_INDEX, maxGpuMemoryUsage);
+      setAvgMetrics(AVG_GPU_MEMORY_USAGE_INDEX, avgGpuMemoryUsage);
     } catch (GpuInfoException e) {
       // Follow YARN's GPUDiscoverer mechanism of capping number of gpu metrics query
       if (gpuDiscoverer.getNumOfErrorExecutionSinceLastSucceed() >= Constants.MAX_REPEATED_GPU_ERROR_ALLOWED) {
@@ -142,7 +142,7 @@ class TaskMonitor implements Runnable {
         return;
       }
 
-      LOG.warn("Failed to collect GPU metrics at " + numRefreshes + 1 + "th run, retry...", e);
+      LOG.warn("Failed to collect GPU metrics at " + (numRefreshes+1) + "th run, retry...", e);
     }
   }
 
