@@ -231,7 +231,6 @@ public class TonyConfigurationKeys {
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
   public static final int DEFAULT_WORKER_TIMEOUT = 0;
-  public static final String WORKER_GPUS = WORKER_PREFIX + "gpus";
 
   // Job types that we don't wait to finish
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";

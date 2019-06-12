@@ -33,14 +33,17 @@ class TaskMonitor implements Runnable {
 
   public static final List<String> METRICS_TO_COLLECT = ImmutableList.of(Constants.MAX_MEMORY_BYTES,
       Constants.AVG_MEMORY_BYTES, Constants.MAX_GPU_UTILIZATION, Constants.AVG_GPU_UTILIZATION,
-      Constants.MAX_GPU_MEMORY_USAGE, Constants.AVG_GPU_MEMORY_USAGE);
+      Constants.MAX_GPU_FB_MEMORY_USAGE, Constants.AVG_GPU_FB_MEMORY_USAGE,
+      Constants.MAX_GPU_MAIN_MEMORY_USAGE, Constants.AVG_GPU_MAIN_MEMORY_USAGE);
 
   public static final int MAX_MEMORY_BYTES_INDEX = 0;
   public static final int AVG_MEMORY_BYTES_INDEX = 1;
   public static final int MAX_GPU_UTILIZATION_INDEX = 2;
   public static final int AVG_GPU_UTILIZATION_INDEX = 3;
-  public static final int MAX_GPU_MEMORY_USAGE_INDEX = 4;
-  public static final int AVG_GPU_MEMORY_USAGE_INDEX = 5;
+  public static final int MAX_GPU_FB_MEMORY_USAGE_INDEX = 4;
+  public static final int AVG_GPU_FB_MEMORY_USAGE_INDEX = 5;
+  public static final int MAX_GPU_MAIN_MEMORY_USAGE_INDEX = 6;
+  public static final int AVG_GPU_MAIN_MEMORY_USAGE_INDEX = 7;
 
   private Boolean isGpuMachine;
 
@@ -70,15 +73,16 @@ class TaskMonitor implements Runnable {
   }
 
   @VisibleForTesting
-  protected void initMetrics() {
+  void initMetrics() {
     for (int i = 0; i < METRICS_TO_COLLECT.size(); i++) {
       metrics.setMetric(i, new MetricWritable(METRICS_TO_COLLECT.get(i), -1d));
     }
   }
 
   private boolean checkIsGpuMachine(Configuration conf) {
-    int numWorkerGpus = conf.getInt(TonyConfigurationKeys.WORKER_GPUS, 0);
-    LOG.info("Number of Gpus requested: " + numWorkerGpus);
+    int numWorkerGpus = conf.getInt(
+        TonyConfigurationKeys.getResourceKey("worker", "gpus"), 0);
+    LOG.info("Number of GPUs requested: " + numWorkerGpus);
     return numWorkerGpus > 0;
   }
 
@@ -119,21 +123,33 @@ class TaskMonitor implements Runnable {
           .mapToDouble(x -> x.getGpuUtilizations().getOverallGpuUtilization())
           .average()
           .getAsDouble();
-      double maxGpuMemoryUsage = gpuInfo.getGpus().stream()
+      double maxGpuFBMemoryUsage = gpuInfo.getGpus().stream()
           .mapToDouble((x ->
-              ((double) x.getGpuMemoryUsage().getUsedMemoryMiB() / x.getGpuMemoryUsage().getTotalMemoryMiB() * 100)))
+              ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
           .max()
           .getAsDouble();
-      double avgGpuMemoryUsage = gpuInfo.getGpus().stream()
+      double avgGpuFBMemoryUsage = gpuInfo.getGpus().stream()
           .mapToDouble((x ->
-              ((double) x.getGpuMemoryUsage().getUsedMemoryMiB() / x.getGpuMemoryUsage().getTotalMemoryMiB() * 100)))
+              ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
+          .average()
+          .getAsDouble();
+      double maxGpuMainMemoryUsage = gpuInfo.getGpus().stream()
+          .mapToDouble((x ->
+              ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB() * 100)))
+          .max()
+          .getAsDouble();
+      double avgGpuMainMemoryUsage = gpuInfo.getGpus().stream()
+          .mapToDouble((x ->
+              ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB() * 100)))
           .average()
           .getAsDouble();
 
       setMaxMetrics(MAX_GPU_UTILIZATION_INDEX, maxGpuUtilization);
       setAvgMetrics(AVG_GPU_UTILIZATION_INDEX, avgGpuUtilization);
-      setMaxMetrics(MAX_GPU_MEMORY_USAGE_INDEX, maxGpuMemoryUsage);
-      setAvgMetrics(AVG_GPU_MEMORY_USAGE_INDEX, avgGpuMemoryUsage);
+      setMaxMetrics(MAX_GPU_FB_MEMORY_USAGE_INDEX, maxGpuFBMemoryUsage);
+      setAvgMetrics(AVG_GPU_FB_MEMORY_USAGE_INDEX, avgGpuFBMemoryUsage);
+      setMaxMetrics(MAX_GPU_MAIN_MEMORY_USAGE_INDEX, maxGpuMainMemoryUsage);
+      setAvgMetrics(AVG_GPU_MAIN_MEMORY_USAGE_INDEX, avgGpuMainMemoryUsage);
     } catch (GpuInfoException e) {
       // Follow YARN's GPUDiscoverer mechanism of capping number of gpu metrics query
       if (gpuDiscoverer.getNumOfErrorExecutionSinceLastSucceed() >= Constants.MAX_REPEATED_GPU_ERROR_ALLOWED) {
@@ -147,14 +163,14 @@ class TaskMonitor implements Runnable {
   }
 
   @VisibleForTesting
-  protected void setAvgMetrics(int metricIndex, double newMetricValue) {
+  void setAvgMetrics(int metricIndex, double newMetricValue) {
     MetricWritable metric = metrics.getMetric(metricIndex);
     metric.setValue((metric.getValue() * numRefreshes + newMetricValue) / (numRefreshes + 1));
     metrics.setMetric(metricIndex, metric);
   }
 
   @VisibleForTesting
-  protected void setMaxMetrics(int metricIndex, double newMetricValue) {
+  void setMaxMetrics(int metricIndex, double newMetricValue) {
     MetricWritable metric = metrics.getMetric(metricIndex);
     if (newMetricValue > metric.getValue()) {
       metric.setValue(newMetricValue);
@@ -163,7 +179,7 @@ class TaskMonitor implements Runnable {
   }
 
   @VisibleForTesting
-  protected MetricsWritable getMetrics() {
+  MetricsWritable getMetrics() {
     return this.metrics;
   }
 }

@@ -41,7 +41,8 @@ public class PerGpuDeviceInformation {
   private int minorNumber = -1;
 
   private PerGpuUtilizations gpuUtilizations;
-  private PerGpuMemoryUsage gpuMemoryUsage;
+  private PerGpuFBMemoryUsage gpuFBMemoryUsage;
+  private PerGpuMainMemoryUsage gpuMainMemoryUsage;
 
   /**
    * Convert formats like "34 C", "75.6 %" to float.
@@ -127,14 +128,22 @@ public class PerGpuDeviceInformation {
   }
 
   @XmlElement(name = "fb_memory_usage")
-  public PerGpuMemoryUsage getGpuMemoryUsage() {
-    return gpuMemoryUsage;
+  public PerGpuFBMemoryUsage getGpuFBMemoryUsage() {
+    return gpuFBMemoryUsage;
   }
 
-  public void setGpuMemoryUsage(PerGpuMemoryUsage gpuMemoryUsage) {
-    this.gpuMemoryUsage = gpuMemoryUsage;
+  @XmlElement(name = "bar1_memory_usage")
+  public PerGpuMainMemoryUsage getGpuMainMemoryUsage() {
+    return gpuMainMemoryUsage;
   }
 
+  public void setGpuFBMemoryUsage(PerGpuFBMemoryUsage gpuFBMemoryUsage) {
+    this.gpuFBMemoryUsage = gpuFBMemoryUsage;
+  }
+
+  public void setGpuMainMemoryUsage(PerGpuMainMemoryUsage gpuMainMemoryUsage) {
+    this.gpuMainMemoryUsage = gpuMainMemoryUsage;
+  }
 
   @Override
   public String toString() {
@@ -142,9 +151,14 @@ public class PerGpuDeviceInformation {
     sb.append("ProductName=").append(productName).append(", MinorNumber=")
         .append(minorNumber);
 
-    if (getGpuMemoryUsage() != null) {
-      sb.append(", TotalMemory=").append(
-          getGpuMemoryUsage().getTotalMemoryMiB()).append("MiB");
+    if (getGpuFBMemoryUsage() != null) {
+      sb.append(", FBMemory=").append(
+          getGpuFBMemoryUsage().getTotalMemoryMiB()).append("MiB");
+    }
+
+    if (getGpuMainMemoryUsage() != null) {
+      sb.append(", Bar1Memory=").append(
+          getGpuMainMemoryUsage().getTotalMemoryMiB()).append("MiB");
     }
 
     if (getGpuUtilizations() != null) {

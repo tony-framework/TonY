@@ -142,9 +142,10 @@ public class GpuDiscoverer {
     }
 
     // Validate file existence
-     File binaryPath = new File(pathToExecutable);
+    File binaryPath = new File(pathToExecutable);
 
     if (!binaryPath.exists()) {
+      LOG.warn("Failed to locate binary at: " + binaryPath.getAbsolutePath());
       // When binary not exist, use default setting.
       boolean found = false;
       for (String dir : DEFAULT_BINARY_SEARCH_DIRS) {

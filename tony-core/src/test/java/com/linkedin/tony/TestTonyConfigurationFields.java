@@ -47,7 +47,6 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.EXECUTION_ENV);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.GPU_PATH_TO_EXEC);
-    configurationPropsToSkipCompare.add(TonyConfigurationKeys.WORKER_GPUS);
   }
 
   @BeforeTest
