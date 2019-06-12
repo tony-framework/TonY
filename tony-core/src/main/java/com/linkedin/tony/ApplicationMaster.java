@@ -679,7 +679,7 @@ public class ApplicationMaster {
   private int doPreprocessingJob() throws Exception {
 
     // Unzip the sources folder & venv if exists.
-    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
+    if (new File(Constants.PYTHON_VENV_ZIP).exists() && new File(Constants.PYTHON_VENV_ZIP).isFile()) {
       Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
     }
     if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {

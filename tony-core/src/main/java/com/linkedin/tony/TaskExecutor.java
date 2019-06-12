@@ -202,7 +202,7 @@ public class TaskExecutor {
       LOG.info("Unpacking src directory..");
       Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
     }
-    if (new File(Constants.PYTHON_VENV_ZIP).exists()) {
+    if (new File(Constants.PYTHON_VENV_ZIP).exists() && new File(Constants.PYTHON_VENV_ZIP).isFile()) {
       LOG.info("Unpacking Python virtual environment.. ");
       Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
     } else {
