@@ -99,7 +99,7 @@ public class TaskExecutor {
     TaskExecutor executor = new TaskExecutor();
 
     executor.initConfigs();
-    extractResources();
+    Utils.extractResources();
 
     LOG.info("Setting up application RPC client, connecting to: " + executor.amHost + ":" + executor.amPort);
     executor.proxy = ApplicationRpcClient.getInstance(executor.amHost, executor.amPort, executor.yarnConf);
@@ -195,19 +195,6 @@ public class TaskExecutor {
 
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
-  }
-
-  private static void extractResources() {
-    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
-      LOG.info("Unpacking src directory..");
-      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
-    }
-    if (new File(Constants.PYTHON_VENV_ZIP).exists() && new File(Constants.PYTHON_VENV_ZIP).isFile()) {
-      LOG.info("Unpacking Python virtual environment.. ");
-      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
-    } else {
-      LOG.info("No virtual environment uploaded.");
-    }
   }
 
   private String registerAndGetClusterSpec() {

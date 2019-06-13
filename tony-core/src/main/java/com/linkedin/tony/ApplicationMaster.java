@@ -678,14 +678,7 @@ public class ApplicationMaster {
   // Run the preprocessing job and set up the common env variables for worker jobs.
   private int doPreprocessingJob() throws Exception {
 
-    // Unzip the sources folder & venv if exists.
-    if (new File(Constants.PYTHON_VENV_ZIP).exists() && new File(Constants.PYTHON_VENV_ZIP).isFile()) {
-      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
-    }
-    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
-      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
-    }
-
+    Utils.extractResources();
     HashMap<String, String> extraEnv = new HashMap<>(shellEnv);
     if (singleNode) {
       ServerSocket tbSocket = new ServerSocket(0);
