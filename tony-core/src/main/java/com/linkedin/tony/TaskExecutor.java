@@ -8,7 +8,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
