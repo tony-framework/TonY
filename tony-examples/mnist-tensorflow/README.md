@@ -35,12 +35,25 @@ zip -r venv.zip venv
 TonY only requires YARN, not HDFS. Please see the [open-source documentation](https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/SingleCluster.html) on how to set YARN up.
 
 
-### Disabling security
+### Configuration
 
-If your Hadoop cluster is not running with security enabled (e.g.: for local testing), you can disable security by creating a config file as follows:
+Below is an example config file to request 2 workers and 1 parameter server. We also assume our Hadoop cluster
+does NOT have security enabled (e.g.: for local testing), so we disable TonY's security support.
 
 ```
 <configuration>
+  <property>
+    <name>tony.worker.instances</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>tony.worker.memory</name>
+    <value>4g</value>
+  </property>
+  <property>
+    <name>tony.ps.instances</name>
+    <value>1</value>
+  </property>
   <property>
     <name>tony.application.security.enabled</name>
     <value>false</value>
@@ -83,4 +96,4 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 --python_binary_path=venv/bin/python # relative path inside venv.zip
 ```
 
-*We have tested this example with 1 Parameter Server (4GB RAM + 1 vCPU)  + 2 Workers (4GB RAM + 1 vCPU)
+We have tested this example with 1 Parameter Server (4GB RAM + 1 vCPU)  + 2 Workers (4GB RAM + 1 vCPU)

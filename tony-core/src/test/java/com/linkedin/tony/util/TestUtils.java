@@ -63,8 +63,7 @@ public class TestUtils {
     conf.setInt("tony.chief.gpus", 1);
 
     Map<String, TensorFlowContainerRequest> requests = Utils.parseContainerRequests(conf);
-    // PS and worker should use default 1 instance
-    assertEquals(1, requests.get("ps").getNumInstances());
+    assertEquals(0, requests.get("ps").getNumInstances());
     assertEquals(3, requests.get("worker").getNumInstances());
     assertEquals(1, requests.get("evaluator").getNumInstances());
     assertEquals(3072, requests.get("ps").getMemory());
