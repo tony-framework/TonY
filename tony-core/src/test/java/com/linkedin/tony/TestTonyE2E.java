@@ -295,7 +295,8 @@ public class TestTonyE2E  {
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--conf", "tony.ps.instances=1"
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1"
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
