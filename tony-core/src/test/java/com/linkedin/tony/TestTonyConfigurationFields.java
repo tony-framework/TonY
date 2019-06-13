@@ -27,11 +27,9 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     // We don't explicitly declare constants for these, since the configured TensorFlow job names
     // are determined at runtime. But we still need default values for them in tony-default.xml.
     // So ignore the fact that they exist in tony-default.xml and not in TonyConfigurationKeys.
-    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getInstancesKey(Constants.PS_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.PS_JOB_NAME, Constants.MEMORY));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.PS_JOB_NAME, Constants.VCORES));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourcesKey(Constants.PS_JOB_NAME));
-    xmlPropsToSkipCompare.add(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.MEMORY));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.VCORES));
     xmlPropsToSkipCompare.add(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS));

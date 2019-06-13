@@ -151,7 +151,9 @@ public class TestTonyE2E  {
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--container_env", Constants.TEST_TASK_EXECUTOR_NUM_HB_MISS + "=5"
+        "--container_env", Constants.TEST_TASK_EXECUTOR_NUM_HB_MISS + "=5",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertNotEquals(exitCode, 0);
@@ -212,7 +214,9 @@ public class TestTonyE2E  {
         "--executes", "exit_1.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
@@ -260,7 +264,7 @@ public class TestTonyE2E  {
   public void testAMStopsJobAfterWorker0Killed() throws ParseException, IOException {
     client.init(new String[]{"--src_dir", "tony-core/src/test/resources/scripts", "--executes", "exit_0.py",
         "--hdfs_classpath", libPath, "--python_binary_path", "python", "--container_env",
-        Constants.TEST_WORKER_TERMINATED + "=true"});
+        Constants.TEST_WORKER_TERMINATED + "=true", "--conf", "tony.worker.instances=1"});
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
   }
@@ -290,7 +294,9 @@ public class TestTonyE2E  {
         "--executes", "exit_1.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1"
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
@@ -363,6 +369,8 @@ public class TestTonyE2E  {
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--python_venv", "tony-core/src/test/resources/test.zip",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
     });
     client.addListener(handler);
     int exitCode = client.start();

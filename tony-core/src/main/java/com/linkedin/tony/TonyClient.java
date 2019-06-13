@@ -698,7 +698,7 @@ public class TonyClient implements AutoCloseable {
           // For each jobtype, amount requested is (num X per instance * num instances).
           long totalRequested = 0;
           for (String jobType : jobTypes) {
-            int instances = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(jobType), TonyConfigurationKeys.getDefaultInstances(jobType));
+            int instances = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(jobType), 0);
             String value = tonyConf.get(TonyConfigurationKeys.getResourceKey(jobType, resource), null);
             if (value != null) {
               long amountPerTask = resource.equals(Constants.MEMORY) ? Long.parseLong(Utils.parseMemoryString(value)) : Long.parseLong(value);
