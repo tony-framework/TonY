@@ -57,17 +57,13 @@ public class TestUtils {
     conf.addResource("tony-default.xml");
     conf.setInt("tony.worker.instances", 3);
     conf.setInt("tony.evaluator.instances", 1);
-    conf.set("tony.ps.memory", "3g");
     conf.setInt("tony.worker.gpus", 1);
     conf.setInt("tony.evaluator.vcores", 2);
     conf.setInt("tony.chief.gpus", 1);
 
     Map<String, TensorFlowContainerRequest> requests = Utils.parseContainerRequests(conf);
-    // PS and worker should use default 1 instance
-    assertEquals(1, requests.get("ps").getNumInstances());
     assertEquals(3, requests.get("worker").getNumInstances());
     assertEquals(1, requests.get("evaluator").getNumInstances());
-    assertEquals(3072, requests.get("ps").getMemory());
     assertEquals(1, requests.get("worker").getGPU());
     assertEquals(2, requests.get("evaluator").getVCores());
     // Check default value.

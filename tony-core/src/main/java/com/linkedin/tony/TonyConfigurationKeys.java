@@ -179,16 +179,6 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.max-instances", jobName);
   }
 
-  public static int getDefaultInstances(String jobName) {
-    switch (jobName) {
-      case Constants.PS_JOB_NAME:
-      case Constants.WORKER_JOB_NAME:
-        return 1;
-      default:
-        return 0;
-    }
-  }
-
   public static String getResourceKey(String jobName, String resource) {
     return String.format(TONY_PREFIX + "%s.%s", jobName, resource);
   }
