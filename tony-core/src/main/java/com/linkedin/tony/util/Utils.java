@@ -353,8 +353,7 @@ public class Utils {
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
     for (String jobName : jobNames) {
-      int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName),
-              TonyConfigurationKeys.getDefaultInstances(jobName));
+      int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName), 0);
       String memoryString = conf.get(TonyConfigurationKeys.getResourceKey(jobName, Constants.MEMORY),
               TonyConfigurationKeys.DEFAULT_MEMORY);
       long memory = Long.parseLong(parseMemoryString(memoryString));

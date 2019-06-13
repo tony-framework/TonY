@@ -145,12 +145,6 @@
     <value>1</value>
   </property>
 
-  <property>
-    <description>Number of parameter servers to request.</description>
-    <name>tony.ps.instances</name>
-    <value>1</value>
-  </property>
-
   <!-- Worker configurations -->
   <property>
     <description>Timeout, in milliseconds for the user's python processes before forcibly killing them.</description>
@@ -174,12 +168,6 @@
     <description>Number of GPUs per worker.</description>
     <name>tony.worker.gpus</name>
     <value>0</value>
-  </property>
-
-  <property>
-    <description>Number of workers to request.</description>
-    <name>tony.worker.instances</name>
-    <value>1</value>
   </property>
 
   <!-- Untracked job type configurations -->
