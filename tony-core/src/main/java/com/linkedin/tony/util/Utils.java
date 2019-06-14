@@ -600,5 +600,19 @@ public class Utils {
     }
   }
 
+  public static void extractResources() {
+    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
+      LOG.info("Unpacking src directory..");
+      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
+    }
+    File venvZip = new File(Constants.PYTHON_VENV_ZIP);
+    if (venvZip.exists() && venvZip.isFile()) {
+      LOG.info("Unpacking Python virtual environment.. ");
+      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
+    } else {
+      LOG.info("No virtual environment uploaded.");
+    }
+  }
+
   private Utils() { }
 }
