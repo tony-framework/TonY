@@ -81,8 +81,8 @@ class TaskMonitor implements Runnable {
 
   private boolean checkIsGpuMachine(Configuration conf) {
     int numWorkerGpus = conf.getInt(
-        TonyConfigurationKeys.getResourceKey("worker", "gpus"), 0);
-    LOG.info("Number of GPUs requested: " + numWorkerGpus);
+        TonyConfigurationKeys.getResourceKey(taskType, "gpus"), 0);
+    LOG.info("Number of GPUs requested for " + taskType + ": " + numWorkerGpus);
     return numWorkerGpus > 0;
   }
 
