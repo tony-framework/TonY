@@ -10,5 +10,5 @@ public enum TaskStatus {
     RUNNING,
     FAILED,
     SUCCEEDED,
-    FINISHED
+    FINISHED   // for untracked tasks killed by the AM
 }

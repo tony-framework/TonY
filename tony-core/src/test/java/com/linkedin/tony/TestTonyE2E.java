@@ -11,6 +11,7 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
+import java.util.HashSet;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -374,8 +375,8 @@ public class TestTonyE2E  {
     });
     client.addListener(handler);
     int exitCode = client.start();
-    List<String> expectedJobs = new ArrayList<>();
-    List<String> actualJobs = new ArrayList<>();
+    Set<String> expectedJobs = new HashSet<>();
+    Set<String> actualJobs = new HashSet<>();
     expectedJobs.add(Constants.WORKER_JOB_NAME);
     expectedJobs.add(Constants.PS_JOB_NAME);
     Assert.assertNotNull(handler.appId);
@@ -383,11 +384,17 @@ public class TestTonyE2E  {
     client.removeListener(handler);
     Assert.assertEquals(handler.getTaskInfoSet().size(), 2);
     for (TaskInfo taskInfo : handler.getTaskInfoSet()) {
-      actualJobs.add(taskInfo.getName());
-      Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
+      String name = taskInfo.getName();
+      TaskStatus status = taskInfo.getStatus();
+      actualJobs.add(name);
+      if (name.equals(Constants.WORKER_JOB_NAME)) {
+        Assert.assertEquals(status, TaskStatus.SUCCEEDED);
+      } else {
+        Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
+      }
     }
     Assert.assertNotNull(handler.getAppId());
-    Assert.assertTrue(actualJobs.containsAll(expectedJobs) && expectedJobs.containsAll(actualJobs));
+    Assert.assertEquals(actualJobs, expectedJobs);
   }
 
   /**

@@ -22,6 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -132,7 +133,7 @@ public class TonySession {
     shellEnv.put("CLASSPATH", classPathEnv.toString());
   }
 
-  public synchronized List<TensorFlowContainerRequest> getContainersRequests() {
+  public List<TensorFlowContainerRequest> getContainersRequests() {
     List<TensorFlowContainerRequest> requests = new ArrayList<>();
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
@@ -215,28 +216,16 @@ public class TonySession {
     LOG.info(String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode));
     TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
-    TaskType taskType = getTaskType(task);
     task.setExitStatus(exitCode);
-    switch (taskType) {
-      case TASK_TYPE_CHIEF:
-      case TASK_TYPE_PARAMETER_SERVER:
-      case TASK_TYPE_OTHERS:
-        // If the chief worker failed[chief or worker 0], short circuit and stop the training. Note that even though other
-        // worker failures will also fail the job but we don't short circuit the training because the training can still
-        // continue, while if chief worker is dead, a TensorFlow training would hang.
-        // Also note that, we only short circuit when the chief worker failed, not finished.
-        if (exitCode != 0) {
-          if (isChief(jobName, jobIndex)) {
-            trainingFinished = true;
-          }
-          task.getTaskInfo().setState(TaskStatus.FAILED);
-          setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
-        } else {
-          task.getTaskInfo().setState(TaskStatus.SUCCEEDED);
-        }
-        break;
-      default:
-        break;
+    // If the chief worker failed[chief or worker 0], short circuit and stop the training. Note that even though other
+    // worker failures will also fail the job but we don't short circuit the training because the training can still
+    // continue, while if chief worker is dead, TensorFlow training will hang.
+    // Also note that, we only short circuit when the chief worker failed, not finished.
+    if (exitCode != ContainerExitStatus.SUCCESS && exitCode != ContainerExitStatus.KILLED_BY_APPMASTER) {
+      if (isChief(jobName, jobIndex)) {
+        trainingFinished = true;
+      }
+      setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
     }
   }
 
@@ -266,7 +255,7 @@ public class TonySession {
         }
         boolean isCompleted = task.isCompleted();
         if (!isCompleted) {
-          String msg = "Job " + task.jobName + " at index: " + task.taskIndex + " haven't finished yet.";
+          String msg = "Job " + task + " hasn't finished yet.";
           LOG.error(msg);
           setFinalStatus(FinalApplicationStatus.FAILED, msg);
           return;
@@ -297,12 +286,6 @@ public class TonySession {
   }
 
   public void setFinalStatus(FinalApplicationStatus status, String message) {
-    for (TonyTask[] tasks : jobTasks.values()) {
-      for (TonyTask task : tasks) {
-        task.getTaskInfo().setState(TaskStatus.FINISHED);
-      }
-
-    }
     sessionFinalStatus = status;
     sessionFinalMessage = message;
   }
@@ -431,10 +414,16 @@ public class TonySession {
     }
 
     void setExitStatus(int status) {
-      if (status == 0) {
-        taskInfo.setState(TaskStatus.SUCCEEDED);
-      } else {
-        taskInfo.setState(TaskStatus.FAILED);
+      switch (status) {
+        case ContainerExitStatus.SUCCESS:
+          taskInfo.setState(TaskStatus.SUCCEEDED);
+          break;
+        case ContainerExitStatus.KILLED_BY_APPMASTER:
+          taskInfo.setState(TaskStatus.FINISHED);
+          break;
+        default:
+          taskInfo.setState(TaskStatus.FAILED);
+          break;
       }
       this.completed = true;
       this.exitStatus = status;
@@ -485,6 +474,11 @@ public class TonySession {
     @Override
     public int hashCode() {
       return Objects.hash(jobName, taskIndex);
+    }
+
+    @Override
+    public String toString() {
+      return getId();
     }
   }
 
