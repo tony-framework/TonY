@@ -332,7 +332,7 @@ public class ApplicationMaster {
 
       try {
         eventHandler.emitEvent(new Event(EventType.APPLICATION_INITED,
-            new ApplicationInited(appIdString, session.getTotalTasks(), Utils.getCurrentHostName()),
+            new ApplicationInited(appIdString, Utils.getNumTotalTasks(tonyConf), Utils.getCurrentHostName()),
             System.currentTimeMillis()));
         start();
       } catch (Exception e) {
@@ -661,18 +661,19 @@ public class ApplicationMaster {
     // stop remaining containers and give them time to finish so we can collect their task metrics and emit a
     // TASK_FINISHED event
     List<Container> allContainers = sessionContainersMap.get(session.sessionId);
-    for (Container container : allContainers) {
-      TonyTask task = session.getTask(container.getId());
-      if (!task.isCompleted()) {
-        nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+    if (allContainers != null) {
+      for (Container container : allContainers) {
+        TonyTask task = session.getTask(container.getId());
+        if (!task.isCompleted()) {
+          nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+        }
       }
     }
 
     // Give 15 seconds for containers to exit
     boolean result = Utils.poll(() -> session.getNumCompletedTasks() == session.getTotalTasks(), 1, 15);
     if (!result) {
-      LOG.warn("Not all containers were stopped or completed. Only " + session.getNumCompletedTasks() + " out of "
-          + session.getTotalTasks() + " finished.");
+      LOG.warn("Not all containers were stopped or completed. Only " + session.getNumCompletedTasks() + " out of " + session.getTotalTasks() + " finished.");
     }
 
     nmClientAsync.stop();
@@ -1014,10 +1015,13 @@ public class ApplicationMaster {
     }
 
     @Override
-    public void onShutdownRequest() { }
+    public void onShutdownRequest() {
+      LOG.info("onShutdownRequest called in RMCallbackHandler");
+    }
 
     @Override
     public void onNodesUpdated(List<NodeReport> list) {
+      LOG.info("onNodesUpdated called in RMCAllbackHandler");
     }
 
     @Override
@@ -1028,8 +1032,8 @@ public class ApplicationMaster {
 
     @Override
     public void onError(Throwable throwable) {
-      LOG.error(throwable);
-      amRMClient.stop();
+      LOG.error("Received error in AM to RM call", throwable);
+      stop();
     }
   }
 

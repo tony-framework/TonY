@@ -159,7 +159,8 @@ public class TestTonyE2E  {
 
   @Test
   public void testPSSkewedWorkerTrainingShouldPass() throws ParseException, IOException {
-    conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.PS_JOB_NAME), 1);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 2);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -183,13 +184,14 @@ public class TestTonyE2E  {
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--python_venv", "tony-core/src/test/resources/test.zip",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
   }
 
   @Test
-  public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException, IOException {
+  public void testWorkerTrainingPyTorchShouldPass() throws ParseException, IOException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
         "--executes", "exit_0_check_pytorchenv.py",
@@ -309,6 +311,7 @@ public class TestTonyE2E  {
         "--hdfs_classpath", libPath,
         "--src_dir", "tony-core/src/test/resources/scripts",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.worker.instances=1",
         "--conf", "tony.worker.resources=" + resources,
         "--conf", "tony.ps.instances=0",
     });
@@ -358,13 +361,14 @@ public class TestTonyE2E  {
   public void testTonyClientCallbackHandler() throws IOException, ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
-        "--executes", "python check_env_and_venv.py",
         "--hdfs_classpath", libPath,
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--python_venv", "tony-core/src/test/resources/test.zip",
         "--conf", "tony.ps.instances=1",
         "--conf", "tony.worker.instances=1",
+        "--conf", "tony.ps.command=python sleep_30.py",
+        "--conf", "tony.worker.command=python check_env_and_venv.py",
     });
     client.addListener(handler);
     int exitCode = client.start();
