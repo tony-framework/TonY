@@ -11,6 +11,7 @@ import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -160,6 +161,43 @@ public class TonySession {
     }
 
     return true;
+  }
+
+  public int getTotalTasks() {
+    return jobTasks.values().stream().mapToInt(arr -> arr.length).sum();
+  }
+
+  public int getTotalTrackedTasks() {
+    int count = 0;
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
+      if (Utils.isJobTypeTracked(entry.getKey(), tonyConf)) {
+        count += entry.getValue().length;
+      }
+    }
+    return count;
+  }
+
+  public int getNumCompletedTasks() {
+    return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr))
+        .filter(task -> task.isCompleted()).count();
+  }
+
+  public int getNumCompletedTrackedTasks() {
+    int count = 0;
+    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
+      if (Utils.isJobTypeTracked(entry.getKey(), tonyConf)) {
+        for (TonyTask task : entry.getValue()) {
+          if (task != null && task.isCompleted()) {
+            count++;
+          }
+        }
+      }
+    }
+    return count;
+  }
+
+  public int getNumFailedTasks() {
+    return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task.isFailed()).count();
   }
 
   /**
@@ -365,7 +403,7 @@ public class TonySession {
      */
     private Container container;
 
-    int exitStatus = -1;
+    private int exitStatus = -1;
 
     /**
      * Set to true when exit status is set.
@@ -400,6 +438,10 @@ public class TonySession {
       return completed;
     }
 
+    public boolean isFailed() {
+      return taskInfo.getStatus() == TaskStatus.FAILED;
+    }
+
     String getHostPort() {
       return String.format("%s:%d", host, port < 0 ? 0 : port);
     }
@@ -409,24 +451,26 @@ public class TonySession {
       this.port = Integer.parseInt(hostPort.split(":")[1]);
     }
 
-    int getExitStatus() {
+    synchronized int getExitStatus() {
       return exitStatus;
     }
 
-    void setExitStatus(int status) {
-      switch (status) {
-        case ContainerExitStatus.SUCCESS:
-          taskInfo.setState(TaskStatus.SUCCEEDED);
-          break;
-        case ContainerExitStatus.KILLED_BY_APPMASTER:
-          taskInfo.setState(TaskStatus.FINISHED);
-          break;
-        default:
-          taskInfo.setState(TaskStatus.FAILED);
-          break;
+    synchronized void setExitStatus(int status) {
+      if (exitStatus == -1) {
+        this.exitStatus = status;
+        switch (status) {
+          case ContainerExitStatus.SUCCESS:
+            taskInfo.setState(TaskStatus.SUCCEEDED);
+            break;
+          case ContainerExitStatus.KILLED_BY_APPMASTER:
+            taskInfo.setState(TaskStatus.FINISHED);
+            break;
+          default:
+            taskInfo.setState(TaskStatus.FAILED);
+            break;
+        }
+        this.completed = true;
       }
-      this.completed = true;
-      this.exitStatus = status;
     }
 
     /**
