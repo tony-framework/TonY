@@ -36,12 +36,6 @@
   </property>
 
   <property>
-    <description>Whether this is single node training or not.</description>
-    <name>tony.application.single-node</name>
-    <value>false</value>
-  </property>
-
-  <property>
     <description>Whether the AM should invoke the user's python script or not.</description>
     <name>tony.application.enable-preprocess</name>
     <value>false</value>
