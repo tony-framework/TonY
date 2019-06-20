@@ -382,6 +382,11 @@ public class Utils {
         .collect(Collectors.toSet());
   }
 
+  public static int getNumTotalTasks(Configuration conf) {
+    return getAllJobTypes(conf).stream().mapToInt(type -> conf.getInt(TonyConfigurationKeys.getInstancesKey(type), 0))
+        .sum();
+  }
+
   /**
    * Extracts TensorFlow job name from configuration key of the form "tony.*.instances".
    * @param confKey Name of the configuration key

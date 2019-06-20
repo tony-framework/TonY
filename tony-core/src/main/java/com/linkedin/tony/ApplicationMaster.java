@@ -242,8 +242,7 @@ public class ApplicationMaster {
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
     amRetryCount = tonyConf.getInt(TonyConfigurationKeys.AM_RETRY_COUNT,
         TonyConfigurationKeys.DEFAULT_AM_RETRY_COUNT);
-    singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
-        TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
+    singleNode = Utils.getNumTotalTasks(tonyConf) == 0;
     secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     enablePreprocessing = tonyConf.getBoolean(TonyConfigurationKeys.ENABLE_PREPROCESSING_JOB,

@@ -125,7 +125,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testSingleNodeTrainingShouldPass() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[] {
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -223,7 +222,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testSingleNodeTrainingShouldFail() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -238,7 +236,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testAMCrashTonyShouldFail() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -286,7 +283,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testNonChiefWorkerFail() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -303,7 +299,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testTonyResourcesFlag() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     String resources = "tony-core/src/test/resources/test.zip::test20.zip"
         + ",tony-core/src/test/resources/test2.zip#archive,"
