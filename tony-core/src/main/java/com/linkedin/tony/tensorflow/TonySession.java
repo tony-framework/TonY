@@ -164,17 +164,12 @@ public class TonySession {
   }
 
   public int getTotalTasks() {
-    return jobTasks.values().stream().mapToInt(arr -> arr.length).sum();
+    return jobTasks.values().stream().reduce(0, (currTotal, taskArr) -> currTotal + taskArr.length, (count1, count2) -> count1 + count2);
   }
 
   public int getTotalTrackedTasks() {
-    int count = 0;
-    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
-      if (Utils.isJobTypeTracked(entry.getKey(), tonyConf)) {
-        count += entry.getValue().length;
-      }
-    }
-    return count;
+    return jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeTracked(entry.getKey(), tonyConf))
+        .mapToInt(entry -> entry.getValue().length).sum();
   }
 
   public int getNumCompletedTasks() {
@@ -183,17 +178,8 @@ public class TonySession {
   }
 
   public int getNumCompletedTrackedTasks() {
-    int count = 0;
-    for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
-      if (Utils.isJobTypeTracked(entry.getKey(), tonyConf)) {
-        for (TonyTask task : entry.getValue()) {
-          if (task != null && task.isCompleted()) {
-            count++;
-          }
-        }
-      }
-    }
-    return count;
+    return (int) jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeTracked(entry.getKey(), tonyConf))
+        .flatMap(entry -> Arrays.stream(entry.getValue())).filter(task -> task != null && task.isCompleted()).count();
   }
 
   public int getNumFailedTasks() {
@@ -326,17 +312,6 @@ public class TonySession {
   public void setFinalStatus(FinalApplicationStatus status, String message) {
     sessionFinalStatus = status;
     sessionFinalMessage = message;
-  }
-
-  private TaskType getTaskType(TonyTask task) {
-    TaskType type;
-    String jobName = task.getJobName();
-    if (jobName.equals(PS_JOB_NAME)) {
-      type = TaskType.TASK_TYPE_PARAMETER_SERVER;
-    } else {
-      type = TaskType.TASK_TYPE_OTHERS;
-    }
-    return type;
   }
 
   private TonyTask getTask(String jobName, String taskIndex) {
