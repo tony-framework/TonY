@@ -59,7 +59,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -383,6 +382,11 @@ public class Utils {
         .collect(Collectors.toSet());
   }
 
+  public static int getNumTotalTasks(Configuration conf) {
+    return getAllJobTypes(conf).stream().mapToInt(type -> conf.getInt(TonyConfigurationKeys.getInstancesKey(type), 0))
+        .sum();
+  }
+
   /**
    * Extracts TensorFlow job name from configuration key of the form "tony.*.instances".
    * @param confKey Name of the configuration key
@@ -500,12 +504,12 @@ public class Utils {
     return "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
   }
 
-  public static void printWorkerTasksCompleted(AtomicInteger completedWTasks, long totalWTasks) {
-    if (completedWTasks.get() == totalWTasks) {
-      LOG.info("Completed all " + totalWTasks + " worker tasks.");
+  public static void printCompletedTrackedTasks(int completedTrackedTasks, int totalTrackedTasks) {
+    if (completedTrackedTasks == totalTrackedTasks) {
+      LOG.info("Completed all " + totalTrackedTasks + " tracked tasks.");
       return;
     }
-    LOG.info("Completed worker tasks: " + completedWTasks.get() + " out of " + totalWTasks + " worker tasks.");
+    LOG.info("Completed " + completedTrackedTasks + " out of " + totalTrackedTasks + " tracked tasks.");
   }
 
   public static String parseClusterSpecForPytorch(String clusterSpec) throws IOException {

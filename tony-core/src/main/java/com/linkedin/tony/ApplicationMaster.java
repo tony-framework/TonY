@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -101,7 +100,6 @@ public class ApplicationMaster {
    */
   private ApplicationAttemptId appAttemptID = null;
   private String appIdString;
-  private String amHostPort;
   private FileSystem resourceFs; // FileSystem used to access resources for the job, like jars and zips
   private FileSystem historyFs;  // FileSystem used to write history-related files like config and events.
                                  // In some HDFS setups, operators may wish to write history files to a different
@@ -126,18 +124,15 @@ public class ApplicationMaster {
 
   /** The environment passed from users to the training job. Note this is very different from the above. **/
   private Map<String, String> shellEnv = new HashMap<>();
-  private Map<String, List<Container>> sessionContainersMap = new ConcurrentHashMap<>();
 
-  /** Node manager delegates **/
-  private NMCallbackHandler containerListener;
+  /** Map of session to containers */
+  private Map<Integer, List<Container>> sessionContainersMap = new ConcurrentHashMap<>();
+
+  /** Node manager delegate **/
   private NMClientAsync nmClientAsync;
-   /** Resource manager **/
+  /** Resource manager **/
   private AMRMClientAsync<ContainerRequest> amRMClient;
-   /** Job progress **/
-  private AtomicInteger numCompletedTrackedTasks = new AtomicInteger();
-  private long numTotalTrackedTasks = 1;
 
-  private AtomicInteger numRequestedContainers = new AtomicInteger();
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
 
   /** Tony session **/
@@ -165,6 +160,8 @@ public class ApplicationMaster {
 
   /** Lifecycle control **/
   private long appTimeout;
+
+  /** We use this to give the client a chance to get task updates before the AM shuts down. */
   private volatile boolean clientSignalToStop = false; // client signal to stop
 
   /** Metrics and events **/
@@ -245,8 +242,7 @@ public class ApplicationMaster {
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
     amRetryCount = tonyConf.getInt(TonyConfigurationKeys.AM_RETRY_COUNT,
         TonyConfigurationKeys.DEFAULT_AM_RETRY_COUNT);
-    singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
-        TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
+    singleNode = Utils.getNumTotalTasks(tonyConf) == 0;
     secureMode = tonyConf.getBoolean(TonyConfigurationKeys.SECURITY_ENABLED,
         TonyConfigurationKeys.DEFAULT_SECURITY_ENABLED);
     enablePreprocessing = tonyConf.getBoolean(TonyConfigurationKeys.ENABLE_PREPROCESSING_JOB,
@@ -336,7 +332,7 @@ public class ApplicationMaster {
 
       try {
         eventHandler.emitEvent(new Event(EventType.APPLICATION_INITED,
-            new ApplicationInited(appIdString, (int) numTotalTrackedTasks, Utils.getCurrentHostName()),
+            new ApplicationInited(appIdString, Utils.getNumTotalTasks(tonyConf), Utils.getCurrentHostName()),
             System.currentTimeMillis()));
         start();
       } catch (Exception e) {
@@ -360,8 +356,8 @@ public class ApplicationMaster {
     long completed = System.currentTimeMillis();
     printTaskUrls();
     eventHandler.emitEvent(new Event(EventType.APPLICATION_FINISHED,
-        new ApplicationFinished(appIdString, (int) numTotalTrackedTasks,
-            (int) (numTotalTrackedTasks - numCompletedTrackedTasks.get()), new ArrayList<>()),
+        new ApplicationFinished(appIdString, session.getNumCompletedTasks(),
+            session.getNumFailedTasks(), new ArrayList<>()),
         System.currentTimeMillis()));
     metadata = metadataBuilder
         .setCompleted(completed)
@@ -378,7 +374,7 @@ public class ApplicationMaster {
   private boolean prepare() throws IOException {
     LOG.info("Preparing application master..");
 
-    containerListener = createNMCallbackHandler();
+    NMCallbackHandler containerListener = createNMCallbackHandler();
     nmClientAsync = new NMClientAsyncImpl(containerListener);
     nmClientAsync.init(yarnConf);
     nmClientAsync.start();
@@ -405,7 +401,8 @@ public class ApplicationMaster {
     amRMClient.start();
 
     RegisterApplicationMasterResponse response;
-    String hostNameOrIpFromTokenConf = "";
+    String hostNameOrIpFromTokenConf;
+    String amHostPort;
     try {
       hostNameOrIpFromTokenConf = Utils.getHostNameOrIpFromTokenConf(yarnConf);
       response = amRMClient.registerApplicationMaster(amHostname, amPort, null);
@@ -540,12 +537,9 @@ public class ApplicationMaster {
   private void scheduleTasks() {
     session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
     List<TensorFlowContainerRequest> requests = session.getContainersRequests();
-    numTotalTrackedTasks = requests.stream()
-        .filter(request -> Utils.isJobTypeTracked(request.getJobName(), tonyConf)).count();
     for (TensorFlowContainerRequest request : requests) {
       scheduleTask(request);
     }
-    numRequestedContainers.set(requests.size());
   }
 
   private void scheduleTask(TensorFlowContainerRequest request) {
@@ -559,18 +553,15 @@ public class ApplicationMaster {
 
   // Reset state to prepare for retryCount.
   private void reset() {
-    List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
+    List<Container> containers = sessionContainersMap.get(session.sessionId);
     for (Container container : containers) {
       nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
       LOG.info("Stop a task in container: containerId = " + container.getId() + ", containerNode = "
                + container.getNodeId().getHost());
     }
 
-    // Reset session and counters.
+    // Reset session
     session = sessionBuilder.build();
-
-    numCompletedTrackedTasks.set(0);
-    numRequestedContainers.set(0);
     applicationRpcServer.reset();
     session.sessionId += 1;
   }
@@ -618,14 +609,18 @@ public class ApplicationMaster {
         break;
       }
 
-      if (numCompletedTrackedTasks.get() == numTotalTrackedTasks) {
-        Utils.printWorkerTasksCompleted(numCompletedTrackedTasks, numTotalTrackedTasks);
-        break;
-      }
+      int numTotalTrackedTasks = session.getTotalTrackedTasks();
+      if (numTotalTrackedTasks > 0) {
+        int numCompletedTrackedTasks = session.getNumCompletedTrackedTasks();
+        if (numCompletedTrackedTasks == numTotalTrackedTasks) {
+          Utils.printCompletedTrackedTasks(numCompletedTrackedTasks, numTotalTrackedTasks);
+          break;
+        }
 
-      // Reduce logging frequency to every 100s.
-      if (counter % 20 == 1) {
-        Utils.printWorkerTasksCompleted(numCompletedTrackedTasks, numTotalTrackedTasks);
+        // Reduce logging frequency to every 100s.
+        if (counter % 20 == 1) {
+          Utils.printCompletedTrackedTasks(numCompletedTrackedTasks, numTotalTrackedTasks);
+        }
       }
 
       // Pause before refresh job status
@@ -637,9 +632,6 @@ public class ApplicationMaster {
     }
 
     session.updateSessionStatus();
-
-    Utils.printWorkerTasksCompleted(numCompletedTrackedTasks, numTotalTrackedTasks);
-
     FinalApplicationStatus status = session.getFinalStatus();
     String appMessage = session.getFinalMessage();
     if (status != FinalApplicationStatus.SUCCEEDED) {
@@ -662,14 +654,33 @@ public class ApplicationMaster {
     String appMessage = session.getFinalMessage();
     try {
       amRMClient.unregisterApplicationMaster(status, appMessage, null);
-    } catch (Exception ex) {
-      LOG.error("Failed to unregister application", ex);
+    } catch (YarnException | IOException e) {
+      LOG.error("Failed to unregister application", e);
     }
+
+    // stop remaining containers and give them time to finish so we can collect their task metrics and emit a
+    // TASK_FINISHED event
+    List<Container> allContainers = sessionContainersMap.get(session.sessionId);
+    if (allContainers != null) {
+      for (Container container : allContainers) {
+        TonyTask task = session.getTask(container.getId());
+        if (!task.isCompleted()) {
+          nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+        }
+      }
+    }
+
+    // Give 15 seconds for containers to exit
+    boolean result = Utils.poll(() -> session.getNumCompletedTasks() == session.getTotalTasks(), 1, 15);
+    if (!result) {
+      LOG.warn("Not all containers were stopped or completed. Only " + session.getNumCompletedTasks() + " out of " + session.getTotalTasks() + " finished.");
+    }
+
     nmClientAsync.stop();
     amRMClient.waitForServiceToStop(5000);
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
-    boolean result = Utils.poll(() -> clientSignalToStop, 1, 30);
+    result = Utils.poll(() -> clientSignalToStop, 1, 15);
     if (!result) {
       LOG.warn("TonyClient didn't signal Tony AM to stop.");
     }
@@ -812,15 +823,16 @@ public class ApplicationMaster {
       }
 
       // Return null until all tasks have registered
-      if (registeredTasks.size() == numRequestedContainers.get()) {
-        LOG.info("All " + numRequestedContainers.get() + " tasks registered.");
+      int totalTasks = session.getTotalTasks();
+      if (registeredTasks.size() == totalTasks) {
+        LOG.info("All " + totalTasks + " tasks registered.");
         return getClusterSpec();
       } else {
         // Periodically print a list of all tasks we are still awaiting registration from.
         if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
           Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
           LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
-              registeredTasks.size(), numRequestedContainers.get() - registeredTasks.size()));
+              registeredTasks.size(), totalTasks - registeredTasks.size()));
           unregisteredTasks.forEach(t -> LOG.info(
                   String.format("Awaiting registration from task %s %s in %s on host %s",
                       t.getJobName(), t.getTaskIndex(),
@@ -921,10 +933,10 @@ public class ApplicationMaster {
   /**
    * Node manager call back handler
    */
-  static class NMCallbackHandler implements NMClientAsync.CallbackHandler {
+  class NMCallbackHandler implements NMClientAsync.CallbackHandler {
     @Override
     public void onContainerStopped(ContainerId containerId) {
-      LOG.info("Succeeded to stop container " + containerId);
+      processFinishedContainer(containerId, ContainerExitStatus.KILLED_BY_APPMASTER);
     }
 
     @Override
@@ -970,28 +982,8 @@ public class ApplicationMaster {
         } else {
           LOG.info(diagnostics);
         }
-        TonyTask task = session.getTask(containerStatus.getContainerId());
 
-        if (task != null) {
-          // Ignore tasks from past sessions.
-          if (task.getSessionId() != session.sessionId) {
-            return;
-          }
-
-          // Update TonySession on the state of the task.
-          session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
-          if (Utils.isJobTypeTracked(task.getJobName(), tonyConf)) {
-            numCompletedTrackedTasks.incrementAndGet();
-          }
-
-          eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
-              new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
-                  task.getTaskInfo().getStatus().toString(),
-                  metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex()))),
-              System.currentTimeMillis()));
-        } else {
-          LOG.warn("No task found for container : [" + containerStatus.getContainerId() + "]!");
-        }
+        processFinishedContainer(containerStatus.getContainerId(), exitStatus);
       }
     }
 
@@ -1023,21 +1015,25 @@ public class ApplicationMaster {
     }
 
     @Override
-    public void onShutdownRequest() { }
+    public void onShutdownRequest() {
+      LOG.info("onShutdownRequest called in RMCallbackHandler");
+    }
 
     @Override
     public void onNodesUpdated(List<NodeReport> list) {
+      LOG.info("onNodesUpdated called in RMCAllbackHandler");
     }
 
     @Override
     public float getProgress() {
-      return (float) numCompletedTrackedTasks.get() / numTotalTrackedTasks;
+      int numTotalTrackedTasks = session.getTotalTrackedTasks();
+      return numTotalTrackedTasks > 0 ? (float) session.getNumCompletedTrackedTasks() / numTotalTrackedTasks : 0;
     }
 
     @Override
     public void onError(Throwable throwable) {
-      LOG.error(throwable);
-      amRMClient.stop();
+      LOG.error("Received error in AM to RM call", throwable);
+      stop();
     }
   }
 
@@ -1084,7 +1080,7 @@ public class ApplicationMaster {
       String taskIndex = task.getTaskIndex();
       containerLaunchEnv.put(Constants.JOB_NAME, jobName);
       containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
-      containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(numTotalTrackedTasks));
+      containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(session.getTotalTrackedTasks()));
       if (session.isChief(jobName, taskIndex)) {
         containerLaunchEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
       }
@@ -1116,8 +1112,7 @@ public class ApplicationMaster {
       ContainerLaunchContext ctx = ContainerLaunchContext.newInstance(containerResources, containerLaunchEnv,
                                                                       commands, null, tokens, acls);
 
-      String sessionId = String.valueOf(session.sessionId);
-      sessionContainersMap.computeIfAbsent(sessionId, key ->
+      sessionContainersMap.computeIfAbsent(session.sessionId, key ->
           Collections.synchronizedList(new ArrayList<>())
       ).add(container);
 
@@ -1140,12 +1135,34 @@ public class ApplicationMaster {
     mainThread.interrupt();
   }
 
+  private void processFinishedContainer(ContainerId containerId, int exitStatus) {
+    TonyTask task = session.getTask(containerId);
+    if (task != null) {
+      // Ignore tasks from past sessions.
+      if (task.getSessionId() != session.sessionId) {
+        return;
+      }
+
+      LOG.info("Container " + containerId + " for task " + task + " finished with exitStatus " + exitStatus + ".");
+      session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
+      eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
+          new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+              task.getTaskInfo().getStatus().toString(),
+              metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex()))),
+          System.currentTimeMillis()));
+    } else {
+      LOG.warn("No task found for container : [" + containerId + "]!");
+    }
+
+
+  }
+
   //region testing
 
   private void killChiefWorkerIfTesting(String taskId) {
     // Simulation of chief worker been killed.
     if (System.getenv(Constants.TEST_WORKER_TERMINATED) != null && taskId.equals(Constants.COORDINATOR_ID)) {
-      List<Container> containers = sessionContainersMap.get(String.valueOf(session.sessionId));
+      List<Container> containers = sessionContainersMap.get(session.sessionId);
       for (Container container : containers) {
         if (session.getTask(container.getId()).getJobName().equals(Constants.WORKER_JOB_NAME)) {
           LOG.warn("Simulating worker termination for taskId: " + taskId);

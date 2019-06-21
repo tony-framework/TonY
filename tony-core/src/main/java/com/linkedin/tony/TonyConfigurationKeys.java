@@ -108,9 +108,6 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_NODE_LABEL = TONY_APPLICATION_PREFIX + "node-label";
 
-  public static final String IS_SINGLE_NODE = TONY_APPLICATION_PREFIX + "single-node";
-  public static final boolean DEFAULT_IS_SINGLE_NODE = false;
-
   public static final String ENABLE_PREPROCESSING_JOB = TONY_APPLICATION_PREFIX + "enable-preprocess";
   public static final boolean DEFAULT_ENABLE_PREPROCESSING_JOB = false;
 

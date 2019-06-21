@@ -34,3 +34,4 @@ tony-portal/conf/prod.conf
 tony-portal/logs
 tony.xml
 !tony-core/src/test/resources/*.zip
+
