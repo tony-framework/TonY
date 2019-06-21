@@ -33,7 +33,6 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static com.linkedin.tony.Constants.CHIEF_JOB_NAME;
-import static com.linkedin.tony.Constants.PS_JOB_NAME;
 import static com.linkedin.tony.Constants.WORKER_JOB_NAME;
 
 
