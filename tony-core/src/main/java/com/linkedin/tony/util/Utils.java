@@ -622,11 +622,11 @@ public class Utils {
    * Parses Docker related configs and sets the appropriate container environment variables if Docker is available.
    * Uses reflection to support older versions of Hadoop.
    */
-  public static boolean parseDockerConfigs(Configuration tonyConf, Map<String, String> containerEnv) {
+  public static boolean parseDockerConfigs(Configuration tonyConf, Map<String, String> containerEnv, String jobType) {
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
       String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
-      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME)) != null) {
-        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME));
+      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType)) != null) {
+        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType));
       }
       if (imagePath == null) {
         LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
