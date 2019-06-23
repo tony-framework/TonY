@@ -1071,7 +1071,7 @@ public class ApplicationMaster {
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
       Map<String, String> containerLaunchEnv = new ConcurrentHashMap<>(containerEnv);
-      Utils.parseDockerConfigs(tonyConf, containerEnv);
+      Utils.parseDockerConfigs(tonyConf, containerLaunchEnv);
 
       /*
        * Add additional environment vars. We always set job_name task_index & task_num and
