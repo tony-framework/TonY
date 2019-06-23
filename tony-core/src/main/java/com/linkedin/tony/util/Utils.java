@@ -282,7 +282,7 @@ public class Utils {
     File executable = new File(executablePath);
     if (!executable.canExecute()) {
       if (!executable.setExecutable(true)) {
-        LOG.error("Failed to make " + executable + " executable");
+        LOG.warn("Failed to make " + executable + " executable");
       }
     }
 
