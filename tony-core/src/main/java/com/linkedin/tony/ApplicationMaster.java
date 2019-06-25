@@ -1079,7 +1079,8 @@ public class ApplicationMaster {
        */
       String jobName = task.getJobName();
       String taskIndex = task.getTaskIndex();
-      Utils.parseDockerConfigs(tonyConf, containerLaunchEnv, jobName);
+      Map<String, String> dockerEnv = Utils.getDockerContainerEnv(tonyConf, jobName);
+      containerLaunchEnv.putAll(dockerEnv);
       containerLaunchEnv.put(Constants.JOB_NAME, jobName);
       containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
       containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(session.getTotalTrackedTasks()));

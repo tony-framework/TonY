@@ -619,28 +619,29 @@ public class Utils {
   }
 
   /**
-   * Parses Docker related configs and sets the appropriate container environment variables if Docker is available.
+   * Parses Docker related configs and get required container launching environment.
    * Uses reflection to support older versions of Hadoop.
    */
-  public static boolean parseDockerConfigs(Configuration tonyConf, Map<String, String> containerEnv, String jobType) {
+  public static Map<String, String> getDockerContainerEnv(Configuration tonyConf, String jobType) {
+    Map<String, String> containerEnv = new HashMap<>();
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
       String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
-      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType)) != null) {
-        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType));
+      String jobImagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType));
+      if (jobImagePath != null) {
+        imagePath = jobImagePath;
       }
       if (imagePath == null) {
         LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
-        return false;
+        return containerEnv;
       } else {
-        Class containerRuntimeClass;
-        Class dockerRuntimeClass;
+        Class containerRuntimeClass = null;
+        Class dockerRuntimeClass = null;
         try {
           containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
           dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
         } catch (ClassNotFoundException e) {
           LOG.error("Docker runtime classes not found in this version ("
                         + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
-          return false;
         }
         if (dockerRuntimeClass != null) {
           try {
@@ -651,16 +652,14 @@ public class Utils {
           } catch (NoSuchFieldException e) {
             LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
                           + "found in " + containerRuntimeClass.getName());
-            return false;
           } catch (IllegalAccessException e) {
             LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
                           + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.");
-            return false;
           }
         }
       }
     }
-    return true;
+    return containerEnv;
   }
 
   private Utils() { }
