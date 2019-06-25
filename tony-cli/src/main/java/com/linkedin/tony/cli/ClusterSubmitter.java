@@ -38,9 +38,6 @@ public class ClusterSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(ClusterSubmitter.class);
   private TonyClient client;
 
-  private ClusterSubmitter() {
-    this(new TonyClient(new Configuration()));
-  }
   public ClusterSubmitter(TonyClient client) {
     this.client = client;
   }
@@ -84,8 +81,10 @@ public class ClusterSubmitter extends TonySubmitter {
 
   public static void main(String[] args) throws ParseException, URISyntaxException {
     int exitCode;
-    ClusterSubmitter submitter = new ClusterSubmitter();
-    exitCode = submitter.submit(args);
+    try (TonyClient tonyClient = new TonyClient(new Configuration())) {
+      ClusterSubmitter submitter = new ClusterSubmitter(tonyClient);
+      exitCode = submitter.submit(args);
+    }
     System.exit(exitCode);
   }
 }
