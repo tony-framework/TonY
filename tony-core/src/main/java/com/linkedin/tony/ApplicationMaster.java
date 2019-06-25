@@ -98,7 +98,6 @@ public class ApplicationMaster {
   /**
    * Metadata + History Server related variables
    */
-  private ApplicationAttemptId appAttemptID = null;
   private String appIdString;
   private FileSystem resourceFs; // FileSystem used to access resources for the job, like jars and zips
   private FileSystem historyFs;  // FileSystem used to write history-related files like config and events.
@@ -414,6 +413,7 @@ public class ApplicationMaster {
 
     if (secureMode) {
       // Set up secret manager for RPC servers
+      ApplicationAttemptId appAttemptID = containerId.getApplicationAttemptId();
       ClientToAMTokenIdentifier identifier = new ClientToAMTokenIdentifier(appAttemptID, user);
       byte[] secret = response.getClientToAMTokenMasterKey().array();
       ClientToAMTokenSecretManager secretManager = new ClientToAMTokenSecretManager(appAttemptID, secret);
