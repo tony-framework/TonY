@@ -282,7 +282,7 @@ public class Utils {
     File executable = new File(executablePath);
     if (!executable.canExecute()) {
       if (!executable.setExecutable(true)) {
-        LOG.error("Failed to make " + executable + " executable");
+        LOG.warn("Failed to make " + executable + " executable");
       }
     }
 
@@ -616,6 +616,50 @@ public class Utils {
     } else {
       LOG.info("No virtual environment uploaded.");
     }
+  }
+
+  /**
+   * Parses Docker related configs and get required container launching environment.
+   * Uses reflection to support older versions of Hadoop.
+   */
+  public static Map<String, String> getContainerEnvForDocker(Configuration tonyConf, String jobType) {
+    Map<String, String> containerEnv = new HashMap<>();
+    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
+      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
+      String jobImagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType));
+      if (jobImagePath != null) {
+        imagePath = jobImagePath;
+      }
+      if (imagePath == null) {
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
+        return containerEnv;
+      } else {
+        Class containerRuntimeClass = null;
+        Class dockerRuntimeClass = null;
+        try {
+          containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
+          dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
+        } catch (ClassNotFoundException e) {
+          LOG.error("Docker runtime classes not found in this version ("
+                        + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
+        }
+        if (dockerRuntimeClass != null) {
+          try {
+            String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
+            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_IMAGE).get(null);
+            containerEnv.put(envContainerType, "docker");
+            containerEnv.put(envDockerImage, imagePath);
+          } catch (NoSuchFieldException e) {
+            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
+                          + "found in " + containerRuntimeClass.getName());
+          } catch (IllegalAccessException e) {
+            LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
+                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.");
+          }
+        }
+      }
+    }
+    return containerEnv;
   }
 
   private Utils() { }

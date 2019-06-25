@@ -427,9 +427,8 @@ public class TonyClient implements AutoCloseable {
       tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
     }
 
-    if (!parseDockerConfigs()) {
-      return false;
-    }
+    Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, Constants.AM_NAME);
+    containerEnv.putAll(dockerEnv);
 
     List<String> containerEnvPair = new ArrayList<>();
     if (tonyConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV) != null) {
@@ -448,52 +447,6 @@ public class TonyClient implements AutoCloseable {
 
     return true;
   }
-
-  /**
-   * Parses Docker related configs and sets the appropriate container environment variables if Docker is available.
-   * Uses reflection to support older versions of Hadoop.
-   */
-  private boolean parseDockerConfigs() {
-    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
-      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME)) != null) {
-        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME));
-      }
-      if (imagePath == null) {
-        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
-        return false;
-      } else {
-        Class containerRuntimeClass;
-        Class dockerRuntimeClass;
-        try {
-          containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
-          dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
-        } catch (ClassNotFoundException e) {
-          LOG.error("Docker runtime classes not found in this version ("
-              + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
-          return false;
-        }
-        if (dockerRuntimeClass != null) {
-          try {
-            String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
-            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_IMAGE).get(null);
-            containerEnv.put(envContainerType, "docker");
-            containerEnv.put(envDockerImage, imagePath);
-          } catch (NoSuchFieldException e) {
-            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
-                + "found in " + containerRuntimeClass.getName());
-            return false;
-          } catch (IllegalAccessException e) {
-            LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
-                + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.");
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-
 
   @VisibleForTesting
   static String buildTaskCommand(String pythonVenv, String pythonBinaryPath, String execute,

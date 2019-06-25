@@ -1071,6 +1071,7 @@ public class ApplicationMaster {
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
 
       Map<String, String> containerLaunchEnv = new ConcurrentHashMap<>(containerEnv);
+
       /*
        * Add additional environment vars. We always set job_name task_index & task_num and
        * task_num and TaskExecutor is responsible for setting up the actual shell environment
@@ -1078,6 +1079,8 @@ public class ApplicationMaster {
        */
       String jobName = task.getJobName();
       String taskIndex = task.getTaskIndex();
+      Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, jobName);
+      containerLaunchEnv.putAll(dockerEnv);
       containerLaunchEnv.put(Constants.JOB_NAME, jobName);
       containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
       containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(session.getTotalTrackedTasks()));
