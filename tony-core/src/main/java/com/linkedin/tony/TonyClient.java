@@ -427,7 +427,7 @@ public class TonyClient implements AutoCloseable {
       tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
     }
 
-    Map<String, String> dockerEnv = Utils.getDockerContainerEnv(tonyConf, Constants.AM_NAME);
+    Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, Constants.AM_NAME);
     containerEnv.putAll(dockerEnv);
 
     List<String> containerEnvPair = new ArrayList<>();

@@ -622,7 +622,7 @@ public class Utils {
    * Parses Docker related configs and get required container launching environment.
    * Uses reflection to support older versions of Hadoop.
    */
-  public static Map<String, String> getDockerContainerEnv(Configuration tonyConf, String jobType) {
+  public static Map<String, String> getContainerEnvForDocker(Configuration tonyConf, String jobType) {
     Map<String, String> containerEnv = new HashMap<>();
     if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
       String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());

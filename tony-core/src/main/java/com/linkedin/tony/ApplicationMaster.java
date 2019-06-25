@@ -1079,7 +1079,7 @@ public class ApplicationMaster {
        */
       String jobName = task.getJobName();
       String taskIndex = task.getTaskIndex();
-      Map<String, String> dockerEnv = Utils.getDockerContainerEnv(tonyConf, jobName);
+      Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, jobName);
       containerLaunchEnv.putAll(dockerEnv);
       containerLaunchEnv.put(Constants.JOB_NAME, jobName);
       containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
