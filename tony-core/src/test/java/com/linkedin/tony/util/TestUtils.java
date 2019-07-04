@@ -7,15 +7,23 @@ package com.linkedin.tony.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.TFConfig;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import java.io.File;
 import java.io.IOException;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.*;
@@ -120,5 +128,140 @@ public class TestUtils {
     when(yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS)).thenReturn("testrmaddress");
     String expected = "http://testrmaddress/cluster/app/1";
     assertEquals(Utils.buildRMUrl(yarnConf, "1"), expected);
+  }
+
+  @Test
+  public void testPollTillNonNull() {
+    assertNull(Utils.pollTillNonNull(() -> null, 1, 1));
+    assertTrue(Utils.pollTillNonNull(() -> true, 1, 1));
+  }
+
+  @Test
+  public void testConstructUrl() {
+    assertEquals(Utils.constructUrl("foobar"), "http://foobar");
+    assertEquals(Utils.constructUrl("http://foobar"), "http://foobar");
+  }
+
+  @Test
+  public void testConstructContainerUrl() {
+    Container container = mock(Container.class);
+    assertNotNull(Utils.constructContainerUrl(container));
+    assertNotNull(Utils.constructContainerUrl("foo", null));
+  }
+
+  @Test
+  public void testParseKeyValue() {
+    HashMap<String, String> hashMap = new HashMap<>();
+    hashMap.put("bar", "");
+    hashMap.put("foo", "1");
+    hashMap.put("baz", "3");
+
+    assertEquals(Utils.parseKeyValue(null), new HashMap<>());
+    assertEquals(Utils.parseKeyValue(
+            new String[]{"foo=1", "bar", "baz=3"}), hashMap);
+  }
+
+  @Test
+  public void testExecuteShell() throws IOException, InterruptedException {
+    assertEquals(Utils.executeShell("foo", 0, null), 127);
+  }
+
+  @Test
+  public void testGetCurrentHostName() {
+    assertNull(Utils.getCurrentHostName());
+  }
+
+  @Test
+  public void testGetHostNameOrIpFromTokenConf()
+          throws SocketException, YarnException {
+    Configuration conf = mock(Configuration.class);
+    when(conf.getBoolean(
+            CommonConfigurationKeys.HADOOP_SECURITY_TOKEN_SERVICE_USE_IP,
+            CommonConfigurationKeys
+                    .HADOOP_SECURITY_TOKEN_SERVICE_USE_IP_DEFAULT))
+            .thenReturn(false);
+    assertNull(Utils.getHostNameOrIpFromTokenConf(conf));
+  }
+
+  @Test
+  public void testGetAllJobTypes() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 3);
+    conf.setInt("tony.evaluator.instances", 1);
+    conf.setInt("tony.worker.gpus", 1);
+    conf.setInt("tony.evaluator.vcores", 2);
+    conf.setInt("tony.chief.gpus", 1);
+
+    assertEquals(Utils.getAllJobTypes(conf),
+            new HashSet(Arrays.asList("worker", "evaluator")));
+  }
+
+  @Test
+  public void testGetNumTotalTasks() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 3);
+    conf.setInt("tony.evaluator.instances", 1);
+    conf.setInt("tony.worker.gpus", 1);
+    conf.setInt("tony.evaluator.vcores", 2);
+    conf.setInt("tony.chief.gpus", 1);
+
+    assertEquals(Utils.getNumTotalTasks(conf), 4);
+  }
+
+  @Test
+  public void testGetTaskType() {
+    assertNull(Utils.getTaskType("foo"));
+    assertEquals(Utils.getTaskType("tony.evaluator.instances"),
+            "evaluator");
+  }
+
+  @Test
+  public void testGetClientResourcesPath() {
+    assertEquals(Utils.getClientResourcesPath("foo", "bar"),
+            "foo-bar");
+  }
+
+  @Test
+  public void testGetUntrackedJobTypes() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 3);
+    conf.setInt("tony.evaluator.instances", 1);
+    conf.setInt("tony.worker.gpus", 1);
+    conf.setInt("tony.evaluator.vcores", 2);
+    conf.setInt("tony.chief.gpus", 1);
+
+    assertEquals(Utils.getUntrackedJobTypes(conf),
+            new String[]{"ps"}, "Arrays do not match");
+  }
+
+  @Test
+  public void testIsJobTypeTracked() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 3);
+    conf.setInt("tony.evaluator.instances", 1);
+    conf.setInt("tony.worker.gpus", 1);
+    conf.setInt("tony.evaluator.vcores", 2);
+    conf.setInt("tony.chief.gpus", 1);
+
+    assertTrue(Utils.isJobTypeTracked("tony.worker.gpus", conf));
+  }
+
+  @Test
+  public void testGetContainerEnvForDocker() {
+    Configuration conf = mock(Configuration.class);
+    when(conf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED,
+            TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED))
+            .thenReturn(true);
+    assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
+            new HashMap<>());
+
+    when(conf.get(TonyConfigurationKeys
+            .getDockerImageKey("tony.worker.gpus"))).thenReturn("foo");
+    assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
+            new HashMap<>());
   }
 }
