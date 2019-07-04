@@ -21,8 +21,8 @@ import org.testng.annotations.Test;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
-
 public class TestUtils {
+
   @Test
   public void testParseMemoryString() {
     assertEquals(Utils.parseMemoryString("2g"), "2048");
@@ -62,12 +62,12 @@ public class TestUtils {
     conf.setInt("tony.chief.gpus", 1);
 
     Map<String, TensorFlowContainerRequest> requests = Utils.parseContainerRequests(conf);
-    assertEquals(3, requests.get("worker").getNumInstances());
-    assertEquals(1, requests.get("evaluator").getNumInstances());
-    assertEquals(1, requests.get("worker").getGPU());
-    assertEquals(2, requests.get("evaluator").getVCores());
+    assertEquals(requests.get("worker").getNumInstances(), 3);
+    assertEquals(requests.get("evaluator").getNumInstances(), 1);
+    assertEquals(requests.get("worker").getGPU(), 1);
+    assertEquals(requests.get("evaluator").getVCores(), 2);
     // Check default value.
-    assertEquals(2048, requests.get("worker").getMemory());
+    assertEquals(requests.get("worker").getMemory(), 2048);
     // Check job does not exist if no instances are configured.
     assertFalse(requests.containsKey("chief"));
   }
@@ -90,13 +90,12 @@ public class TestUtils {
     assertFalse(Utils.isArchive(file1.getAbsolutePath()));
   }
 
-
   @Test
   public void testRenameFile() throws IOException {
     File tempFile = File.createTempFile("testRenameFile-", "-suffix");
     tempFile.deleteOnExit();
     boolean result = Utils.renameFile(tempFile.getAbsolutePath(),
-                                      tempFile.getAbsolutePath() + "bak");
+            tempFile.getAbsolutePath() + "bak");
     assertTrue(Files.exists(Paths.get(tempFile.getAbsolutePath() + "bak")));
     assertTrue(result);
     Files.deleteIfExists(Paths.get(tempFile.getAbsolutePath() + "bak"));
@@ -108,11 +107,11 @@ public class TestUtils {
     String tfConfig = Utils.constructTFConfig(spec, "worker", 1);
     ObjectMapper mapper = new ObjectMapper();
     TFConfig config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
-    assertEquals("worker", config.getTask().getType());
-    assertEquals(1, config.getTask().getIndex());
-    assertEquals("host0:1234", config.getCluster().get("worker").get(0));
-    assertEquals("host1:1234", config.getCluster().get("worker").get(1));
-    assertEquals("host2:1234", config.getCluster().get("ps").get(0));
+    assertEquals(config.getTask().getType(), "worker");
+    assertEquals(config.getTask().getIndex(), 1);
+    assertEquals(config.getCluster().get("worker").get(0), "host0:1234");
+    assertEquals(config.getCluster().get("worker").get(1), "host1:1234");
+    assertEquals(config.getCluster().get("ps").get(0), "host2:1234");
   }
 
   @Test
