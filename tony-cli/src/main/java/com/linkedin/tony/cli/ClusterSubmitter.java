@@ -21,7 +21,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
-import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.Constants.CORE_SITE_CONF;
+import static com.linkedin.tony.Constants.HADOOP_CONF_DIR;
+import static com.linkedin.tony.Constants.HDFS_SITE_CONF;
+import static com.linkedin.tony.Constants.TONY_FOLDER;
+import static com.linkedin.tony.Constants.TONY_JAR_NAME;
 
 
 /**
