@@ -234,7 +234,7 @@ public class TestUtils {
     conf.setInt("tony.chief.gpus", 1);
 
     assertEquals(Utils.getUntrackedJobTypes(conf),
-            new String[]{"ps"}, "Arrays do not match");
+            new String[]{"ps", "evaluator"}, "Arrays do not match");
   }
 
   @Test

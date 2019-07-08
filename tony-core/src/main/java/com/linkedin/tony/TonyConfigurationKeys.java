@@ -221,7 +221,7 @@ public class TonyConfigurationKeys {
 
   // Job types that we don't wait to finish
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
-  public static final String UNTRACKED_JOBTYPES_DEFAULT = "ps";
+  public static final String[] UNTRACKED_JOBTYPES_DEFAULT = {"ps", "evaluator"};
 
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";

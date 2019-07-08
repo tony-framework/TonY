@@ -168,7 +168,7 @@
   <property>
     <description>Job types that we don't track to finish</description>
     <name>tony.application.untracked.jobtypes</name>
-    <value>ps</value>
+    <value>ps,evaluator</value>
   </property>
 
   <!-- Docker configurations -->

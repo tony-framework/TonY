@@ -215,6 +215,10 @@ public class TonySession {
 
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       String jobName = entry.getKey();
+      if (jobName.equals("evaluator")) {
+        // Evaluator should not be included in cluster spec
+        continue;
+      }
       TonyTask[] tasks = entry.getValue();
 
       List<String> builder = new ArrayList<>();
