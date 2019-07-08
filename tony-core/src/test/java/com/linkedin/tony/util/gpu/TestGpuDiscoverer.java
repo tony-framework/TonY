@@ -29,9 +29,6 @@ import org.testng.SkipException;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.*;
-
-
 
 /**
  * Ported from Hadoop 2.9.0

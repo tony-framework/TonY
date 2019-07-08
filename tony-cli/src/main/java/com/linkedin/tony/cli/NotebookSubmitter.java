@@ -26,7 +26,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
-import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.Constants.TONY_FOLDER;
+
 
 /**
  * NotebookSubmitter is used to submit a python pex file (for example Jupyter Notebook) to run inside a cluster.

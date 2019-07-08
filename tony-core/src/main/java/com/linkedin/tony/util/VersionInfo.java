@@ -13,7 +13,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
-import static com.linkedin.tony.TonyConfigurationKeys.*;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_BRANCH;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_CHECKSUM;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_DATE;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_REVISION;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_URL;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_USER;
+import static com.linkedin.tony.TonyConfigurationKeys.TONY_VERSION_INFO_VERSION;
 
 
 /**
