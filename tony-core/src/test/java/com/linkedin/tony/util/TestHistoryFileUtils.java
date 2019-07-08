@@ -9,7 +9,7 @@ import com.linkedin.tony.models.JobMetadata;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
 
 
 public class TestHistoryFileUtils {
