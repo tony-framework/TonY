@@ -846,10 +846,8 @@ public class TonyClient implements AutoCloseable {
    * @throws java.io.IOException
    */
   @VisibleForTesting
-  public boolean monitorApplication()
-      throws YarnException, IOException, InterruptedException {
-
-
+  public boolean monitorApplication() throws YarnException, IOException, InterruptedException {
+    boolean result;
     while (true) {
       // Check app status every 1 second.
       Thread.sleep(1000);
@@ -869,7 +867,8 @@ public class TonyClient implements AutoCloseable {
             + "FinalApplicationStatus = " + finalApplicationStatus + ".");
         // Set amRpcClient to null so client does not try to connect to a killed AM.
         amRpcClient = null;
-        return false;
+        result = false;
+        break;
       }
 
       if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
@@ -879,7 +878,8 @@ public class TonyClient implements AutoCloseable {
         String tonyPortalUrl =
             tonyConf.get(TonyConfigurationKeys.TONY_PORTAL_URL, TonyConfigurationKeys.DEFAULT_TONY_PORTAL_URL);
         Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
-        return FinalApplicationStatus.SUCCEEDED == finalApplicationStatus;
+        result = FinalApplicationStatus.SUCCEEDED == finalApplicationStatus;
+        break;
       }
 
       if (appTimeout > 0) {
@@ -887,10 +887,19 @@ public class TonyClient implements AutoCloseable {
           LOG.info("Reached client specified timeout for application. Killing application"
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
           forceKillApplication();
-          return false;
+          result = false;
+          break;
         }
       }
     }
+
+    if (amRpcClient != null) {
+      amRpcClient.finishApplication();
+      LOG.info("Sent message to AM to stop.");
+      amRpcClient = null;
+    }
+
+    return result;
   }
 
   private void updateTaskInfos() throws IOException, YarnException {
@@ -1077,7 +1086,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   public static void main(String[] args) {
-    int exitCode = 0;
+    int exitCode;
 
     // Adds hadoop-inject.xml as a default resource so Azkaban metadata will be present in the new Configuration created
     HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
@@ -1086,16 +1095,10 @@ public class TonyClient implements AutoCloseable {
       if (!sanityCheck) {
         LOG.fatal("Failed to init client.");
         exitCode = -1;
-      }
-
-      if (exitCode == 0) {
+      } else {
         exitCode = client.start();
-        if (client.amRpcClient != null) {
-          client.amRpcClient.finishApplication();
-          LOG.info("Sent message to AM to stop.");
-        }
       }
-    } catch (ParseException | IOException | YarnException e) {
+    } catch (ParseException | IOException e) {
       LOG.fatal("Encountered exception while initializing client or finishing application.", e);
       exitCode = -1;
     }
