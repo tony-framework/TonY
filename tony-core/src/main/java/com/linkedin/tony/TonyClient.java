@@ -129,6 +129,7 @@ public class TonyClient implements AutoCloseable {
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
+  private boolean isTaskUrlsPrinted = false;
 
   private CallbackHandler callbackHandler;
   private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
@@ -840,7 +841,7 @@ public class TonyClient implements AutoCloseable {
   /**
    * Monitor the submitted application for completion.
    * Kill application if time expires.
-   * @return true if application completed successfully
+   * @return true if application completed successfully and false otherwise
    * @throws YarnException
    * @throws java.io.IOException
    */
@@ -848,7 +849,7 @@ public class TonyClient implements AutoCloseable {
   public boolean monitorApplication()
       throws YarnException, IOException, InterruptedException {
 
-    boolean isTaskUrlsPrinted = false;
+
     while (true) {
       // Check app status every 1 second.
       Thread.sleep(1000);
@@ -856,47 +857,29 @@ public class TonyClient implements AutoCloseable {
       // Get application report for the appId we are interested in
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
-      YarnApplicationState state = report.getYarnApplicationState();
+      YarnApplicationState appState = report.getYarnApplicationState();
 
-      FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
+      FinalApplicationStatus finalApplicationStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
 
-      if (amRpcClient != null) {
-        Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
-        Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
-                .filter(taskInfo -> !taskInfos.contains(taskInfo))
-                .collect(Collectors.toSet());
-        // If task status is changed, invoke callback for all listeners.
-        if (!taskInfoDiff.isEmpty()) {
-          for (TaskInfo taskInfo : taskInfoDiff) {
-            LOG.info("Tasks Status Updated: " + taskInfo);
-          }
-          for (TaskUpdateListener listener : listeners) {
-            listener.onTaskInfosUpdated(receivedInfos);
-          }
-          taskInfos = receivedInfos;
-        }
+      updateTaskInfos();
 
-        // Query AM for taskInfos if taskInfos is empty.
-        if (amRpcServerInitialized && !isTaskUrlsPrinted) {
-          if (!taskInfos.isEmpty()) {
-            // Print TaskUrls
-            new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
-            isTaskUrlsPrinted = true;
-          }
-        }
+      if (YarnApplicationState.KILLED == appState) {
+        LOG.warn("Application " + appId.getId() + " was killed. YarnState: " + appState + ". "
+            + "FinalApplicationStatus = " + finalApplicationStatus + ".");
+        // Set amRpcClient to null so client does not try to connect to a killed AM.
+        amRpcClient = null;
+        return false;
       }
 
-      if (YarnApplicationState.FINISHED == state || YarnApplicationState.FAILED == state
-          || YarnApplicationState.KILLED == state) {
-        LOG.info("Application " + appId.getId() + " finished with YarnState=" + state.toString()
-            + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
-        // Set amRpcClient to null so client does not try to connect to it after completion.
-        amRpcClient = null;
+      if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
+        updateTaskInfos();
+        LOG.info("Application " + appId.getId() + " finished with YarnState=" + appState
+            + ", DSFinalStatus=" + finalApplicationStatus + ", breaking monitoring loop.");
         String tonyPortalUrl =
             tonyConf.get(TonyConfigurationKeys.TONY_PORTAL_URL, TonyConfigurationKeys.DEFAULT_TONY_PORTAL_URL);
         Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
-        return FinalApplicationStatus.SUCCEEDED == dsStatus;
+        return FinalApplicationStatus.SUCCEEDED == finalApplicationStatus;
       }
 
       if (appTimeout > 0) {
@@ -905,6 +888,34 @@ public class TonyClient implements AutoCloseable {
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
           forceKillApplication();
           return false;
+        }
+      }
+    }
+  }
+
+  private void updateTaskInfos() throws IOException, YarnException {
+    if (amRpcClient != null) {
+      Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
+      Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
+          .filter(taskInfo -> !taskInfos.contains(taskInfo))
+          .collect(Collectors.toSet());
+      // If task status is changed, invoke callback for all listeners.
+      if (!taskInfoDiff.isEmpty()) {
+        for (TaskInfo taskInfo : taskInfoDiff) {
+          LOG.info("Task status updated: " + taskInfo);
+        }
+        for (TaskUpdateListener listener : listeners) {
+          listener.onTaskInfosUpdated(receivedInfos);
+        }
+        taskInfos = receivedInfos;
+      }
+
+      // Query AM for taskInfos if taskInfos is empty.
+      if (amRpcServerInitialized && !isTaskUrlsPrinted) {
+        if (!taskInfos.isEmpty()) {
+          // Print TaskUrls
+          new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
+          isTaskUrlsPrinted = true;
         }
       }
     }

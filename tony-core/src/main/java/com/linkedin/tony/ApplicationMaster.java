@@ -650,6 +650,8 @@ public class ApplicationMaster {
   }
 
   private void stop() {
+    stopRunningContainers();
+
     FinalApplicationStatus status = session.getFinalStatus();
     String appMessage = session.getFinalMessage();
     try {
@@ -658,8 +660,20 @@ public class ApplicationMaster {
       LOG.error("Failed to unregister application", e);
     }
 
-    // stop remaining containers and give them time to finish so we can collect their task metrics and emit a
-    // TASK_FINISHED event
+    nmClientAsync.stop();
+    amRMClient.stop();
+    // Poll until TonyClient signals we should exit
+    boolean result = Utils.poll(() -> clientSignalToStop, 1, 15);
+    if (!result) {
+      LOG.warn("TonyClient didn't signal Tony AM to stop.");
+    }
+  }
+
+  /**
+   * Stops any remaining running containers and gives them time to finish so we can collect their task metrics and emit
+   * a TASK_FINISHED event.
+   */
+  private void stopRunningContainers() {
     List<Container> allContainers = sessionContainersMap.get(session.sessionId);
     if (allContainers != null) {
       for (Container container : allContainers) {
@@ -673,16 +687,8 @@ public class ApplicationMaster {
     // Give 15 seconds for containers to exit
     boolean result = Utils.poll(() -> session.getNumCompletedTasks() == session.getTotalTasks(), 1, 15);
     if (!result) {
-      LOG.warn("Not all containers were stopped or completed. Only " + session.getNumCompletedTasks() + " out of " + session.getTotalTasks() + " finished.");
-    }
-
-    nmClientAsync.stop();
-    amRMClient.waitForServiceToStop(5000);
-    amRMClient.stop();
-    // Poll until TonyClient signals we should exit
-    result = Utils.poll(() -> clientSignalToStop, 1, 15);
-    if (!result) {
-      LOG.warn("TonyClient didn't signal Tony AM to stop.");
+      LOG.warn("Not all containers were stopped or completed. Only " + session.getNumCompletedTasks() + " out of "
+          + session.getTotalTasks() + " finished.");
     }
   }
 
@@ -1056,7 +1062,7 @@ public class ApplicationMaster {
 
       task.setTaskInfo(container);
       TaskInfo taskInfo = task.getTaskInfo();
-      taskInfo.setState(TaskStatus.READY);
+      taskInfo.setStatus(TaskStatus.READY);
 
       // Add job type specific resources
       Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
@@ -1121,7 +1127,7 @@ public class ApplicationMaster {
 
       Utils.printTaskUrl(task.getTaskInfo(), LOG);
       nmClientAsync.startContainerAsync(container, ctx);
-      taskInfo.setState(TaskStatus.RUNNING);
+      taskInfo.setStatus(TaskStatus.RUNNING);
       eventHandler.emitEvent(new Event(EventType.TASK_STARTED,
           new TaskStarted(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
               container.getNodeHttpAddress().split(":")[0]),
