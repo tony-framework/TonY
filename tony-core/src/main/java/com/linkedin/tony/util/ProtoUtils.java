@@ -12,7 +12,7 @@ import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRespo
 public class ProtoUtils {
   public static TaskInfo taskInfoProtoToTaskInfo(TaskInfoProto taskInfoProto) {
     TaskInfo taskInfo = new TaskInfo(taskInfoProto.getName(), taskInfoProto.getIndex(), taskInfoProto.getUrl());
-    taskInfo.setState(TaskStatus.values()[taskInfoProto.getTaskStatus().ordinal()]);
+    taskInfo.setStatus(TaskStatus.values()[taskInfoProto.getTaskStatus().ordinal()]);
     return taskInfo;
   }
 
