@@ -19,9 +19,13 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static com.linkedin.tony.util.ParserUtils.*;
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
+import static com.linkedin.tony.util.ParserUtils.parseEvents;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.fail;
 
 
 public class TestEventHandler {

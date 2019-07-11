@@ -237,7 +237,7 @@ public class TonySession {
   }
 
   /**
-   * Refresh task status on each TaskExecutor registers its exit code with AM.
+   * Refresh task status when a TaskExecutor registers its exit code with AM.
    */
   public void onTaskCompleted(String jobName, String jobIndex, int exitCode) {
     LOG.info(String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode));
@@ -434,17 +434,18 @@ public class TonySession {
     }
 
     synchronized void setExitStatus(int status) {
+      // Only set exit status if it hasn't been set yet
       if (exitStatus == -1) {
         this.exitStatus = status;
         switch (status) {
           case ContainerExitStatus.SUCCESS:
-            taskInfo.setState(TaskStatus.SUCCEEDED);
+            taskInfo.setStatus(TaskStatus.SUCCEEDED);
             break;
           case ContainerExitStatus.KILLED_BY_APPMASTER:
-            taskInfo.setState(TaskStatus.FINISHED);
+            taskInfo.setStatus(TaskStatus.FINISHED);
             break;
           default:
-            taskInfo.setState(TaskStatus.FAILED);
+            taskInfo.setStatus(TaskStatus.FAILED);
             break;
         }
         this.completed = true;

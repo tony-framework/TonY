@@ -83,7 +83,7 @@ LinkedIn Java style.
 
     <!-- No imports statements using '*' notation except static imports -->
     <module name="AvoidStarImport">
-      <property name="allowStaticMemberImports" value="true"/>
+      <property name="allowStaticMemberImports" value="false"/>
     </module>
     <!-- Do not import 'sun' packages -->
     <module name="IllegalImport"/>
