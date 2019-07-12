@@ -10,7 +10,7 @@ import java.util.Objects;
 
 
 /**
- * Contains the name, index, and URL for a task.
+ * Contains the name, index, URL, and status for a task.
  */
 public class TaskInfo implements Comparable<TaskInfo> {
   private final String name;   // The name (worker or ps) of the task
@@ -24,7 +24,7 @@ public class TaskInfo implements Comparable<TaskInfo> {
     this.url = url;
   }
 
-  public void setState(TaskStatus status) {
+  public void setStatus(TaskStatus status) {
     this.status = status;
   }
 
@@ -75,7 +75,7 @@ public class TaskInfo implements Comparable<TaskInfo> {
   @Override
   public String toString() {
     return String.format(
-        "[TaskInfo] name: %s index: %s url: %s status: %s",
+        "[TaskInfo] name: %s, index: %s, url: %s, status: %s",
         this.name, this.index, this.url, this.status.toString());
   }
 }
