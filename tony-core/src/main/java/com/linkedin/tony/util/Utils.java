@@ -293,6 +293,8 @@ public class Utils {
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", taskCommand);
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
     taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+    // Unset MALLOC_ARENA_MAX for better performance, see https://github.com/linkedin/TonY/issues/346 
+    taskProcessBuilder.environment().remove("MALLOC_ARENA_MAX");
     if (env != null) {
       taskProcessBuilder.environment().putAll(env);
     }
