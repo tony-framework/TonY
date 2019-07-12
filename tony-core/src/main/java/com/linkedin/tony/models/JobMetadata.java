@@ -137,7 +137,8 @@ public class JobMetadata {
 
   @Override
   public String toString() {
-    return "\nMetadata{" + "id: " + id + ",\n joblink: " + jobLink + ",\n configlink: " + configLink + ",\n rmLink: " + rmLink + ",\n dateStarted: " + new Date(started) + ",\n started: " + started
+    return "\nMetadata{" + "id: " + id + ",\n joblink: " + jobLink + ",\n configlink: " + configLink + ",\n rmLink: "
+        + rmLink + ",\n dateStarted: " + new Date(started) + ",\n started: " + started
         + ",\n dateCompleted: " + new Date(completed) + ",\n status: " + status + ",\n user: " + user + "}";
   }
 }
