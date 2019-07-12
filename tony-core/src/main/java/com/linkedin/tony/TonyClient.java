@@ -13,6 +13,7 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.security.TokenCache;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
@@ -22,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -50,7 +50,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -793,43 +792,26 @@ public class TonyClient implements AutoCloseable {
       cred.addToken(rmToken.getService(), rmToken);
       LOG.info("RM delegation token fetched.");
 
-      String defaultFS = hdfsConf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
-          CommonConfigurationKeysPublic.FS_DEFAULT_NAME_DEFAULT);
-      LOG.info("Fetching HDFS delegation token for default namenode: " + defaultFS);
-      FileSystem fs = FileSystem.get(hdfsConf);
-      Token<?> fsToken = fs.getDelegationToken(tokenRenewer);
-      if (fsToken == null) {
-        throw new RuntimeException("Failed to get FS delegation token for default FS.");
-      }
-      cred.addToken(fsToken.getService(), fsToken);
-      LOG.info("Default HDFS delegation token fetched.");
+      // Fetching HDFS tokens
+      LOG.info("Fetching HDFS delegation tokens for default, history and other namenodes...");
+      List<Path> pathList = new ArrayList<>();
+      pathList.add(appResourcesPath);
 
       String tonyHistoryLocation = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION);
       if (tonyHistoryLocation != null) {
-        fs = new Path(tonyHistoryLocation).getFileSystem(hdfsConf);
-        fsToken = fs.getDelegationToken(tokenRenewer);
-        if (fsToken == null) {
-          throw new RuntimeException("Failed to get FS delegation token for history FS.");
-        }
-        cred.addToken(fsToken.getService(), fsToken);
-        LOG.info("Fetched delegation token for history filesystem HDFS.");
+        pathList.add(new Path(tonyHistoryLocation));
       }
 
       String[] otherNamenodes = tonyConf.getStrings(TonyConfigurationKeys.OTHER_NAMENODES_TO_ACCESS);
       if (otherNamenodes != null) {
         for (String nnUri : otherNamenodes) {
-          String namenodeUri = nnUri.trim();
-          LOG.info("Fetching HDFS delegation token for " + nnUri);
-          FileSystem otherFS = FileSystem.get(new URI(namenodeUri), hdfsConf);
-          final Token<?> otherFSToken = otherFS.getDelegationToken(tokenRenewer);
-          if (otherFSToken == null) {
-            throw new RuntimeException("Failed to get FS delegation token for configured "
-                + "other namenode: " + namenodeUri);
-          }
-          cred.addToken(otherFSToken.getService(), otherFSToken);
-          LOG.info("Fetched HDFS token for " + nnUri);
+          pathList.add(new Path(nnUri.trim()));
         }
       }
+
+      Path[] paths = pathList.toArray(new Path[0]);
+      TokenCache.obtainTokensForNamenodes(cred, paths, hdfsConf, tokenRenewer);
+      LOG.info("Fetched HDFS delegation token.");
     }
 
     LOG.info("Successfully fetched tokens.");
