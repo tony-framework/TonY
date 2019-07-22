@@ -1,12 +1,31 @@
 @(metricsList: Collection[JobMetadata])
 
-<html> <body>
-    <!-- Required meta tags for Bootstrap-->
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+<html>
 
+  <head>
+
+    <!-- Required meta tags for Bootstrap-->
+  <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" media="screen" href='@routes.Assets.versioned("portal_assets/bootstrap-4.3.1-dist/css/bootstrap.min.css")'>
+
+  <style>
+      .rmv_elmt {
+        color: rgba(0, 0, 0, 0)
+      }
+
+      body {
+        margin:12px;
+      }
+
+  </style>
+
+</head>
+
+  <body>
 
 
   <table id="table_id" class="display">
@@ -44,25 +63,59 @@
       </tr>
   }
   </tbody>
+    <tfoot>
+      <tr>
+        <th>App ID</th>
+        <th>Configuration</th>
+        <th>Started</th>
+        <th>Completed</th>
+        <th>User</th>
+        <th>Status</th>
+        <th class = "rmv_elmt">ResourceManager Link</th>
+      </tr>
+    </tfoot>
 </table>
 </body>
 
 
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.css">
-  <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  <script type="text/javascript" src='@routes.Assets.versioned("portal_assets/jquery-3.4.1.slim.min.js")'></script>
+  <link rel="stylesheet" media="screen" href='@routes.Assets.versioned("portal_assets/DataTables/DataTables-1.10.18/css/jquery.dataTables.css")'>
+  <script type="text/javascript" src='@routes.Assets.versioned("portal_assets/DataTables/DataTables-1.10.18/js/jquery.dataTables.js")'></script>
+  <script type="text/javascript" src='@routes.Assets.versioned("portal_assets/popper.min.js")'></script>
+  <script type="text/javascript" src='@routes.Assets.versioned("portal_assets/bootstrap-4.3.1-dist/js/bootstrap.min.js")'></script>
+
+
+
 
   <script type="text/javascript">
 
-      $(document).ready( function () {
-        $('#table_id').DataTable();
+      $(document).ready(function() {
+        // Setup - add a text input to each footer cell
+        $('#table_id tfoot th').each( function (i) {
+          var title = $('#table_id tfoot th').eq( $(this).index() ).text();
+          if (title !="ResourceManager Link")
+            $(this).html( '<input type="text" placeholder="Search '+title+'" data-index="'+i+'" />' );
+        } );
+
+        // DataTable (uncomment lines to add scrolling)
+        var table = $('#table_id').DataTable( {
+          // scrollY:        "300px",
+          // scrollX:        true,
+          // scrollCollapse: true,
+          paging:         true,
+          fixedColumns:   true
+        } );
+
+        // Filter event handler
+        $( table.table().container() ).on( 'keyup', 'tfoot input', function () {
+          table
+              .column( $(this).data('index') )
+              .search( this.value )
+              .draw();
+        } );
       } );
 
   </script>
 
 </html>
-
-
 

@@ -395,7 +395,7 @@ body {
 }
 
 .wrapper {
-  width: 80%;
+  width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
   -webkit-box-sizing: border-box;
@@ -411,7 +411,7 @@ body {
 
 .wrapper article {
   min-height: 310px;
-  width: 60%;
+  width: 100%;
   float: left;
 }
 
