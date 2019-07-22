@@ -267,7 +267,11 @@
       will store for each cache (config, metadata, event)
     </description>
     <name>tony.portal.cache.max-entries</name>
+<<<<<<< HEAD
     <value>10000</value>
+=======
+    <value>1000</value>
+>>>>>>> 2cf213004d5382282a7ae9e910cc12eb2169e4f0
   </property>
 
   <property>

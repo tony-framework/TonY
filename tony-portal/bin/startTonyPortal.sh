@@ -87,7 +87,11 @@ esac
 # We parse tony-site.xml and set properties using -D instead.
 cp $APP_HOME/conf/application.example.conf $APP_HOME/conf/application.conf
 
+<<<<<<< HEAD:tony-portal/bin/startTonyPortal.sh
 CLASSPATH="$APP_HOME/lib/*:$APP_HOME/conf"
+=======
+CLASSPATH="$APP_HOME/lib/tony-portal.jar:$APP_HOME/conf"
+>>>>>>> 2cf213004d5382282a7ae9e910cc12eb2169e4f0:tony-portal/bin/startTonyPortal.sh
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
@@ -215,6 +219,10 @@ if [ "$(uname)" = "Darwin" ] && [ "$HOME" = "$PWD" ]; then
 fi
 
 # Run TonY Portal in the background
+<<<<<<< HEAD:tony-portal/bin/startTonyPortal.sh
 # Redirect all standard streams to prevent hanging when run over SSH.
 # See https://en.wikipedia.org/wiki/Nohup#Overcoming_hanging for details.
 nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart 2>&1 > nohup.out < /dev/null &
+=======
+nohup ${JAVACMD} ${OPTS} -classpath ${CLASSPATH} play.core.server.ProdServerStart &
+>>>>>>> 2cf213004d5382282a7ae9e910cc12eb2169e4f0:tony-portal/bin/startTonyPortal.sh

@@ -853,6 +853,7 @@ public class TonyClient implements AutoCloseable {
         break;
       }
 
+<<<<<<< HEAD
       if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
         updateTaskInfos();
         LOG.info("Application " + appId.getId() + " finished with YarnState=" + appState
@@ -862,6 +863,18 @@ public class TonyClient implements AutoCloseable {
         Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
         result = FinalApplicationStatus.SUCCEEDED == finalApplicationStatus;
         break;
+=======
+      if (YarnApplicationState.FINISHED == state || YarnApplicationState.FAILED == state
+          || YarnApplicationState.KILLED == state) {
+        LOG.info("Application " + appId.getId() + " finished with YarnState=" + state.toString()
+            + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
+        // Set amRpcClient to null so client does not try to connect to it after completion.
+        amRpcClient = null;
+        String tonyPortalUrl =
+            tonyConf.get(TonyConfigurationKeys.TONY_PORTAL_URL, TonyConfigurationKeys.DEFAULT_TONY_PORTAL_URL);
+        Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
+        return FinalApplicationStatus.SUCCEEDED == dsStatus;
+>>>>>>> 2cf213004d5382282a7ae9e910cc12eb2169e4f0
       }
 
       if (appTimeout > 0) {

@@ -45,6 +45,7 @@ public class TonyConfigurationKeys {
   public static final String TONY_HISTORY_FINISHED = TONY_HISTORY_PREFIX + "finished";
   public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
 
+<<<<<<< HEAD
   public static final String TONY_HISTORY_MOVER_INTERVAL_MS = TONY_HISTORY_PREFIX + "mover-interval-ms";
   public static final int DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -61,6 +62,10 @@ public class TonyConfigurationKeys {
 
   public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
   public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "10000";
+=======
+  public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
+  public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "1000";
+>>>>>>> 2cf213004d5382282a7ae9e910cc12eb2169e4f0
 
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
   public static final String DEFAULT_TONY_KEYTAB_USER = "user";
