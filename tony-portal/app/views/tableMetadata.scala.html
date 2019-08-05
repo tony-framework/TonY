@@ -1,6 +1,38 @@
 @(metricsList: Collection[JobMetadata])
 
-<table>
+<html>
+
+<head>
+
+  <!-- Required meta tags for Bootstrap-->
+  <meta charset="utf-8"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" media="screen"
+        href='@routes.Assets.versioned("portal_assets/bootstrap-4.3.1-dist/css/bootstrap.min.css")'>
+
+  <style>
+
+    .rmv_elmt {
+      color: rgba(0, 0, 0, 0)
+    }
+
+    body {
+      margin: 12px;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+
+<table id="table_id" class="display">
+
+  <thead>
   <tr>
     <th>App ID</th>
     <th>Configuration</th>
@@ -10,25 +42,84 @@
     <th>Status</th>
     <th>ResourceManager Link</th>
   </tr>
+  </thead>
+
+  <tbody>
   @for(s <- metricsList) {
-    <tr>
-      <td>
-        <a href=@s.getJobLink target="_blank">@s.getId</a>
-      </td>
-      <td>
-        <a href=@s.getConfigLink target="_blank">tony-final.xml</a>
-      </td>
-      <td>@s.getStartedDate.format(Constants.TIME_FORMAT)</td>
-      @if(s.getCompleted == -1) {
-        <td>-</td>
-      } else {
-        <td>@s.getCompletedDate.format(Constants.TIME_FORMAT)</td>
-      }
-      <td>@s.getUser</td>
-      <td>@s.getStatus</td>
-      <td>
-        <a href=@s.getRMLink target="_blank">Link</a>
-      </td>
-    </tr>
+  <tr>
+    <td>
+      <a href=@s.getJobLink target="_blank">@s.getId</a>
+    </td>
+    <td>
+      <a href=@s.getConfigLink target="_blank">tony-final.xml</a>
+    </td>
+    <td>@s.getStartedDate.format(Constants.TIME_FORMAT)</td>
+    @if(s.getCompleted == -1) {
+    <td>-</td>
+    } else {
+    <td>@s.getCompletedDate.format(Constants.TIME_FORMAT)</td>
+    }
+    <td>@s.getUser</td>
+    <td>@s.getStatus</td>
+    <td>
+      <a href=@s.getRMLink target="_blank">Link</a>
+    </td>
+  </tr>
   }
+  </tbody>
+
+@*  rmv_elmt tags the labels that will not have a footer filter*@
+
+  <tfoot>
+  <tr>
+    <th>App ID</th>
+    <th>Configuration</th>
+    <th>Started</th>
+    <th>Completed</th>
+    <th>User</th>
+    <th>Status</th>
+    <th class="rmv_elmt">ResourceManager Link</th>
+  </tr>
+  </tfoot>
 </table>
+</body>
+
+
+<script type="text/javascript" src='@routes.Assets.versioned("portal_assets/jquery-3.4.1.slim.min.js")'></script>
+<link rel="stylesheet" media="screen"
+      href='@routes.Assets.versioned("portal_assets/DataTables/DataTables-1.10.18/css/jquery.dataTables.min.css")'>
+<script type="text/javascript"
+        src='@routes.Assets.versioned("portal_assets/DataTables/DataTables-1.10.18/js/jquery.dataTables.min.js")'></script>
+<script type="text/javascript" src='@routes.Assets.versioned("portal_assets/popper.min.js")'></script>
+<script type="text/javascript"
+        src='@routes.Assets.versioned("portal_assets/bootstrap-4.3.1-dist/js/bootstrap.min.js")'></script>
+
+
+<script type="text/javascript">
+
+  $(document).ready(function () {
+    // Setup - add a text input to each footer cell except the rmv_elmt value
+    $('#table_id tfoot th').each(function (i) {
+      var title = $('#table_id tfoot th').eq($(this).index()).text();
+      if (title != "ResourceManager Link") {
+        $(this).html('<input type="text" placeholder="Search ' + title + '" data-index="' + i + '" />');
+      }
+    });
+
+    var table = $('#table_id').DataTable({
+      paging: true,
+      fixedColumns: true
+    });
+
+    // Filter event handler
+    $(table.table().container()).on('keyup', 'tfoot input', function () {
+      table
+          .column($(this).data('index'))
+          .search(this.value)
+          .draw();
+    });
+  });
+
+</script>
+
+</html>

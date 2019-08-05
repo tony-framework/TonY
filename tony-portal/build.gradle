@@ -26,6 +26,9 @@ model {
       baseName = "${project.name}-${project.version}"
     }
   }
+tasks.testPlayBinary {
+    classpath.add project.files("$projectDir")
+  }
 }
 
 // To avoid conflicts with Play's logback binding

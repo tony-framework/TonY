@@ -23,10 +23,10 @@ public class JobsMetadataPageController extends Controller {
 
     return ok(views.html.metadata.render(cache.asMap().values()
         .stream()
-        .sorted(Comparator.comparingLong(JobMetadata::getCompleted).reversed())
+        .sorted((Comparator
+            .comparingLong(JobMetadata::getCompleted)
+            .thenComparingLong(JobMetadata::getStarted)).reversed()
+            .thenComparing(JobMetadata::getUser))
         .collect(Collectors.toList())));
   }
 }
-
-
-
