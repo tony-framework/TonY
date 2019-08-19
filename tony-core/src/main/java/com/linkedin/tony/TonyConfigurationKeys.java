@@ -11,7 +11,8 @@ import java.util.List;
 public class TonyConfigurationKeys {
   public enum MLFramework {
     TENSORFLOW,
-    PYTORCH
+    PYTORCH,
+    HOROVOD
   }
 
   private TonyConfigurationKeys() {
@@ -32,18 +33,34 @@ public class TonyConfigurationKeys {
 
   public static final String OTHER_NAMENODES_TO_ACCESS = TONY_PREFIX + "other.namenodes";
 
-  // History folder configuration
-  public static final String TONY_HISTORY_LOCATION = TONY_PREFIX + "history.location";
+  // History-related configuration
+  public static final String TONY_HISTORY_PREFIX = TONY_PREFIX + "history.";
+
+  public static final String TONY_HISTORY_LOCATION = TONY_HISTORY_PREFIX + "location";
   public static final String DEFAULT_TONY_HISTORY_LOCATION = "/path/to/tony-history";
 
-  public static final String TONY_HISTORY_INTERMEDIATE = TONY_PREFIX + "history.intermediate";
+  public static final String TONY_HISTORY_INTERMEDIATE = TONY_HISTORY_PREFIX + "intermediate";
   public static final String DEFAULT_TONY_HISTORY_INTERMEDIATE = DEFAULT_TONY_HISTORY_LOCATION + "/intermediate";
 
-  public static final String TONY_HISTORY_FINISHED = TONY_PREFIX + "history.finished";
+  public static final String TONY_HISTORY_FINISHED = TONY_HISTORY_PREFIX + "finished";
   public static final String DEFAULT_TONY_HISTORY_FINISHED = DEFAULT_TONY_HISTORY_LOCATION + "/finished";
 
-  public static final String TONY_HISTORY_CACHE_MAX_ENTRIES = TONY_PREFIX + "history.cache.max-entries";
-  public static final String DEFAULT_TONY_HISTORY_CACHE_MAX_ENTRIES = "1000";
+  public static final String TONY_HISTORY_MOVER_INTERVAL_MS = TONY_HISTORY_PREFIX + "mover-interval-ms";
+  public static final int DEFAULT_TONY_HISTORY_MOVER_INTERVAL_MS = 5 * 60 * 1000;
+
+  public static final String TONY_HISTORY_FINISHED_DIR_TIMEZONE = TONY_HISTORY_PREFIX + "finished-dir-timezone";
+  public static final String DEFAULT_TONY_HISTORY_FINISHED_DIR_TIMEZONE = "UTC";
+
+  // How many seconds to retain history files for
+  public static final String TONY_HISTORY_RETENTION_SECONDS = TONY_HISTORY_PREFIX + "retention-sec";
+  public static final int DEFAULT_TONY_HISTORY_RETENTION_SECONDS = 30 * 24 * 60 * 60;
+
+  // How frequently to run the purger thread
+  public static final String TONY_HISTORY_PURGER_INTERVAL_MS = TONY_HISTORY_PREFIX + "purger-interval-ms";
+  public static final int DEFAULT_TONY_HISTORY_PURGER_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+  public static final String TONY_PORTAL_CACHE_MAX_ENTRIES = TONY_PREFIX + "portal.cache.max-entries";
+  public static final String DEFAULT_TONY_PORTAL_CACHE_MAX_ENTRIES = "10000";
 
   public static final String TONY_KEYTAB_USER = TONY_PREFIX + "keytab.user";
   public static final String DEFAULT_TONY_KEYTAB_USER = "user";
@@ -74,11 +91,8 @@ public class TonyConfigurationKeys {
   public static final String TONY_SECRET_KEY = TONY_PREFIX + "secret.key";
   public static final String DEFAULT_TONY_SECRET_KEY = "changeme";
 
-  public static final String TONY_HISTORY_MAX_APPEND = TONY_PREFIX + "history.maxAppends";
-  public static final int DEFAULT_TONY_HISTORY_MAX_APPEND = 3;
-
-  public static final String TONY_HISTORY_HOST = TONY_PREFIX + "history.host";
-  public static final String DEFAULT_TONY_HISTORY_HOST = "https://localhost:" + DEFAULT_TONY_HTTPS_PORT;
+  public static final String TONY_PORTAL_URL = TONY_PREFIX + "portal.url";
+  public static final String DEFAULT_TONY_PORTAL_URL = "https://localhost:" + DEFAULT_TONY_HTTPS_PORT;
 
   // Application configurations
   public static final String YARN_QUEUE_NAME = TONY_PREFIX + "yarn.queue";
@@ -94,9 +108,6 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_NODE_LABEL = TONY_APPLICATION_PREFIX + "node-label";
 
-  public static final String IS_SINGLE_NODE = TONY_APPLICATION_PREFIX + "single-node";
-  public static final boolean DEFAULT_IS_SINGLE_NODE = false;
-
   public static final String ENABLE_PREPROCESSING_JOB = TONY_APPLICATION_PREFIX + "enable-preprocess";
   public static final boolean DEFAULT_ENABLE_PREPROCESSING_JOB = false;
 
@@ -105,6 +116,8 @@ public class TonyConfigurationKeys {
 
   public static final String RM_CLIENT_CONNECT_RETRY_MULTIPLIER = TONY_APPLICATION_PREFIX + "num-client-rm-connect-retries";
   public static final int DEFAULT_RM_CLIENT_CONNECT_RETRY_MULTIPLIER = 3;
+
+  public static final String APPLICATION_TAGS = TONY_APPLICATION_PREFIX + "tags";
 
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
@@ -118,11 +131,14 @@ public class TonyConfigurationKeys {
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
-  public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval";
+  public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval-ms";
   public static final int DEFAULT_TASK_HEARTBEAT_INTERVAL_MS = 1000;
 
   public static final String TASK_MAX_MISSED_HEARTBEATS = TONY_TASK_PREFIX + "max-missed-heartbeats";
   public static final int DEFAULT_TASK_MAX_MISSED_HEARTBEATS = 25;
+
+  public static final String TASK_METRICS_UPDATE_INTERVAL_MS = TONY_TASK_PREFIX + "metrics-interval-ms";
+  public static final int DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS = 5000;
 
   // AM configurations
   public static final String AM_PREFIX = TONY_PREFIX + "am.";
@@ -160,16 +176,6 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.max-instances", jobName);
   }
 
-  public static int getDefaultInstances(String jobName) {
-    switch (jobName) {
-      case Constants.PS_JOB_NAME:
-      case Constants.WORKER_JOB_NAME:
-        return 1;
-      default:
-        return 0;
-    }
-  }
-
   public static String getResourceKey(String jobName, String resource) {
     return String.format(TONY_PREFIX + "%s.%s", jobName, resource);
   }
@@ -190,12 +196,12 @@ public class TonyConfigurationKeys {
 
   // Job specific execution command
   public static String getExecuteCommandKey(String jobName) {
-    return String.format(TONY_APPLICATION_PREFIX + "%s.command", jobName);
+    return String.format(TONY_PREFIX + "%s.command", jobName);
   }
 
   // Execution command for all containers
   public static String getContainerExecuteCommandKey() {
-    return TONY_APPLICATION_PREFIX + "containers.command";
+    return TONY_PREFIX + "containers.command";
   }
 
   // Job specific docker image
@@ -228,6 +234,8 @@ public class TonyConfigurationKeys {
   // Environment
   public static final String CONTAINER_LAUNCH_ENV = TONY_PREFIX + "containers.envs";
   public static final String EXECUTION_ENV = TONY_PREFIX + "execution.envs";
+  public static final String GPU_PATH_TO_EXEC = TONY_PREFIX + "gpu-exec-path";
+  public static final String DEFAULT_GPU_PATH_TO_EXEC = "nvidia-smi";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";

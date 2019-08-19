@@ -5,6 +5,7 @@
 package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -29,28 +30,6 @@ import org.apache.hadoop.fs.Path;
  */
 public class HdfsUtils {
   private static final Log LOG = LogFactory.getLog(ParserUtils.class);
-  private static final FileStatus[] NO_FILES = {};
-
-  /**
-   * Scan {@code dir} and return a list of files/directories.
-   * @param fs FileSystem object.
-   * @param dir Path of the directory.
-   * @return an array of FileStatus objects representing files/directories in {@code dir}.
-   * Note: result could be an empty array if there {@code dir} is empty.
-   */
-  public static FileStatus[] scanDir(FileSystem fs, Path dir) {
-    String errorMsg;
-    if (dir == null) {
-      return NO_FILES;
-    }
-    try {
-      return fs.listStatus(dir);
-    } catch (IOException e) {
-      errorMsg = "Failed to list files in " + dir;
-      LOG.error(errorMsg, e);
-    }
-    return NO_FILES;
-  }
 
   /**
    * Check to see if HDFS path exists.
@@ -89,12 +68,12 @@ public class HdfsUtils {
   }
 
   /**
-   * Extract the job id portion from the file path string.
+   * Extract the last component of a file path.
    * @param path file path string.
-   * @return job id
+   * @return the last component of a path
    */
-  public static String getJobId(String path) {
-    if (path == null) {
+  public static String getLastComponent(String path) {
+    if (Strings.isNullOrEmpty(path)) {
       return "";
     }
     String[] folderLayers = path.split("/");
@@ -110,37 +89,58 @@ public class HdfsUtils {
    */
   @VisibleForTesting
   public static boolean isJobFolder(Path p, String regex) {
-    return p != null && getJobId(p.toString()).matches(regex);
+    return p != null && getLastComponent(p.toString()).matches(regex);
   }
 
   /**
-   * Find all job folders recursively under {@code curr} that
-   * matches {@code regex} pattern and return a list of
-   * corresponding Path objects.
-   * @param fs FileSystem object.
-   * @param curr folder location Path object.
-   * @param regex regular expression string.
-   * @return list of job Path objects in {@code curr} folder.
+   * Returns all the directories in {@code path}.
    */
-  public static List<Path> getJobFolders(FileSystem fs, Path curr, String regex) {
-    List<Path> intermediateFolders = new ArrayList<>();
-    if (curr == null) {
-      return Collections.emptyList();
-    }
-    if (isJobFolder(curr, regex)) {
-      intermediateFolders.add(curr);
-      return intermediateFolders;
-    }
+  public static List<FileStatus> getDirectories(FileSystem fs, Path path) {
     try {
-      intermediateFolders = Arrays.stream(fs.listStatus(curr))
-          .filter(FileStatus::isDirectory)
-          .map(fileStatus -> getJobFolders(fs, fileStatus.getPath(), regex))
-          .flatMap(List::stream)
-          .collect(Collectors.toList());
+      return Arrays.stream(fs.listStatus(path)).filter(FileStatus::isDirectory).collect(Collectors.toList());
     } catch (IOException e) {
-      LOG.error("Failed to traverse down history folder", e);
+      LOG.error("Encountered exception listing directories in " + path, e);
+      return Collections.EMPTY_LIST;
     }
-    return intermediateFolders;
+  }
+
+  /**
+   * Returns the {@link Path} of the first directory found under {@code curr} (recursively) whose name is
+   * {@code applicationId} or {@code null} if none is found.
+   * @param fs FileSystem object.
+   * @param curr directory to recursively search.
+   * @param applicationId the application id of the job
+   * @return {@link Path} of the job directory or {@code null} if none is found.
+   */
+  public static Path getJobDirPath(FileSystem fs, Path curr, String applicationId) {
+    List<FileStatus> dirs = getDirectories(fs, curr);
+    for (FileStatus dir : dirs) {
+      if (dir.getPath().getName().equals(applicationId)) {
+        return dir.getPath();
+      }
+    }
+    for (FileStatus dir : dirs) {
+      Path result = getJobDirPath(fs, dir.getPath(), applicationId);
+      if (result != null) {
+        return result;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns a list of all the directories under {@code curr} that match {@code regex}.
+   */
+  public static List<Path> getJobDirs(FileSystem fs, Path curr, String regex) {
+    List<Path> result = new ArrayList<>();
+    List<FileStatus> dirs = getDirectories(fs, curr);
+    dirs.forEach(dir -> {
+      if (isJobFolder(dir.getPath(), regex)) {
+        result.add(dir.getPath());
+      }
+      result.addAll(getJobDirs(fs, dir.getPath(), regex));
+    });
+    return result;
   }
 
   /**

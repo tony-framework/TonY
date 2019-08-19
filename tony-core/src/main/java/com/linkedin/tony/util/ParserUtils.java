@@ -6,6 +6,7 @@ package com.linkedin.tony.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.models.JobConfig;
@@ -13,9 +14,12 @@ import com.linkedin.tony.models.JobEvent;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
@@ -36,7 +40,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import static com.linkedin.tony.util.HdfsUtils.*;
+import static com.linkedin.tony.util.HdfsUtils.pathExists;
 
 
 /**
@@ -61,6 +65,11 @@ public class ParserUtils {
    */
   @VisibleForTesting
   public static boolean isValidHistFileName(String fileName, String jobIdRegex) {
+    if (Strings.isNullOrEmpty(fileName)) {
+      LOG.error("No filename provided!");
+      return false;
+    }
+
     String histFileNoExt = fileName.substring(0, fileName.indexOf('.'));
     String[] metadataArr = histFileNoExt.split("-");
     if (metadataArr.length < 3) {
@@ -83,46 +92,78 @@ public class ParserUtils {
   }
 
   /**
-   * Get the name of the jhist file
+   * Returns the full path of the latest (by start time) jhist file in {@code jobFolderPath}.
    * @param fs FileSystem object.
-   * @param jobFolderPath Path object of job directory.
-   * @return the name of the jhist file or empty string if error occurs.
+   * @param jobFolderPath Path of job directory.
+   * @return the full path of the jhist file or {@code null} if an error occurs or no history file is found.
    */
-  @VisibleForTesting
-  static String getJhistFileName(FileSystem fs, Path jobFolderPath) {
-    String[] jobFilesArr;
+  public static String getJhistFilePath(FileSystem fs, Path jobFolderPath) {
     try {
       // We want to have both running jobs and completed jobs
       // so we can't use endsWith() but rather contains() to filter
-      jobFilesArr = Arrays.stream(fs.listStatus(jobFolderPath))
+      List<String> histFilePaths = Arrays.stream(fs.listStatus(jobFolderPath))
           .filter(f -> f.getPath().toString().contains(Constants.HISTFILE_SUFFIX))
-          .map(f -> f.getPath().toString())
-          .toArray(String[]::new);
-      Preconditions.checkArgument(jobFilesArr.length == 1);
+          .map(f -> f.getPath().toString()).collect(Collectors.toList());
+      if (histFilePaths.isEmpty()) {
+        LOG.warn("No history files found in " + jobFolderPath);
+        return null;
+      }
+
+      // There may be multiple jhist files if there were multiple AM attempts.
+      // We should use the one with the latest start time.
+      histFilePaths.sort((filePath1, filePath2) -> {
+        long startTime1 = Long.parseLong(HdfsUtils.getLastComponent(filePath1).split("-")[1]);
+        long startTime2 = Long.parseLong(HdfsUtils.getLastComponent(filePath2).split("-")[1]);
+        long difference = startTime1 - startTime2;
+        if (difference < 0) {
+          return -1;
+        } else if (difference > 0) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
+      return histFilePaths.get(histFilePaths.size() - 1);
     } catch (IOException e) {
       LOG.error("Failed to scan " + jobFolderPath, e);
-      return "";
+      return null;
     }
-    return jobFilesArr[0];
   }
 
   /**
-   * Assuming that there's only 1 jhist file in {@code jobFolderPath},
-   * this function parses metadata and return a {@code JobMetadata} object.
+   * Returns the completed time portion of a jhist file name as a {@link long}.
+   * Assumes the jhist file name is valid and represents a completed job.
+   */
+  public static long getCompletedTimeFromJhistFileName(String jhistFileName) {
+    if (jhistFileName.lastIndexOf("/") >= 0) {
+      jhistFileName = jhistFileName.substring(jhistFileName.lastIndexOf("/") + 1);
+    }
+    return Long.parseLong(jhistFileName.split("-")[2]);
+  }
+
+  /**
+   * Parses the latest (by start time) jhist file in {@code jobFolderPath} and returns a {@code JobMetadata} object
+   * for the jhist file.
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
    * @param jobIdRegex Regular expression string to validate metadata.
-   * @return a {@code JobMetadata} object.
+   * @return a {@code JobMetadata} object or {@code null} if a jhist file could not be found or an error occurred
+   * during processing.
    */
   public static JobMetadata parseMetadata(FileSystem fs, YarnConfiguration yarnConf, Path jobFolderPath, String jobIdRegex) {
     if (!pathExists(fs, jobFolderPath)) {
       return null;
     }
 
-    String histFileName = HdfsUtils.getJobId(getJhistFileName(fs, jobFolderPath));
+    String jhistFilePath = getJhistFilePath(fs, jobFolderPath);
+    if (Strings.isNullOrEmpty(jhistFilePath)) {
+      return null;
+    }
+
+    String histFileName = HdfsUtils.getLastComponent(jhistFilePath);
     if (!isValidHistFileName(histFileName, jobIdRegex)) {
       // this should never happen unless user rename the history file
-      LOG.error("Metadata isn't valid");
+      LOG.warn("Invalid history file name " + histFileName);
       return null;
     }
 
@@ -131,8 +172,8 @@ public class ParserUtils {
   }
 
   /**
-   * Assuming that there's only 1 config.xml file in {@code jobFolderPath},
-   * this function parses config.xml and return a list of {@code JobConfig} objects.
+   * Assuming that there's only 1 config file in {@code jobFolderPath},
+   * this function parses the config file and returns a list of {@code JobConfig} objects.
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
    * @return a list of {@code JobConfig} objects.
@@ -142,7 +183,17 @@ public class ParserUtils {
       return Collections.emptyList();
     }
 
-    Path configFilePath = new Path(jobFolderPath, "config.xml");
+    Path configFilePath = new Path(jobFolderPath, Constants.TONY_FINAL_XML);
+    try {
+      if (!fs.exists(configFilePath)) {
+        // For backward-compatibility
+        // Remove once everyone is using open-source tony-0.3.5+
+        configFilePath = new Path(jobFolderPath, "config.xml");
+      }
+    } catch (IOException e) {
+      LOG.error("Encountered exception while checking existence of " + configFilePath, e);
+    }
+
     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
     List<JobConfig> configs = new ArrayList<>();
 
@@ -158,10 +209,19 @@ public class ParserUtils {
         if (property.getNodeType() == Node.ELEMENT_NODE) {
           Element p = (Element) property;
           JobConfig jobConf = new JobConfig();
-          jobConf.setName(p.getElementsByTagName("name").item(0).getTextContent());
-          jobConf.setValue(p.getElementsByTagName("value").item(0).getTextContent());
-          jobConf.setFinal(p.getElementsByTagName("final").item(0).getTextContent().equals("true"));
-          jobConf.setSource(p.getElementsByTagName("source").item(0).getTextContent());
+          String name = getNodeElementText(p, "name");
+          String value = getNodeElementText(p, "value");
+          if (name == null || value == null) {
+            LOG.warn("Found config with null name or value. Name = " + name + ", value = " + value);
+            continue;
+          }
+          jobConf.setName(name);
+          jobConf.setValue(value);
+          String finalText = getNodeElementText(p, "final");
+          if (finalText != null && finalText.equalsIgnoreCase("true")) {
+            jobConf.setFinal(true);
+          }
+          jobConf.setSource(getNodeElementText(p, "source"));
           configs.add(jobConf);
         }
       }
@@ -179,20 +239,29 @@ public class ParserUtils {
     return configs;
   }
 
+  private static String getNodeElementText(Element node, String tagName) {
+    if (node != null) {
+      NodeList nodeList = node.getElementsByTagName(tagName);
+      if (nodeList.getLength() > 0) {
+        return nodeList.item(0).getTextContent();
+      }
+    }
+    return null;
+  }
+
   /**
-   * Assuming that there's only 1 jhist file in {@code jobFolderPath},
-   * this function parses the jhist and return a list of {@code JobEvent} objects.
+   * Parses the newest (by start time) jhist file in {@code jobFolderPath}, and returns a list of {@link Event}s
    * @param fs FileSystem object.
    * @param jobFolderPath Path object of job directory.
-   * @return a list of {@code JobEvent} objects.
+   * @return a list of {@link Event} objects.
    */
   public static List<Event> parseEvents(FileSystem fs, Path jobFolderPath) {
     if (!pathExists(fs, jobFolderPath)) {
       return Collections.emptyList();
     }
 
-    String jhistFile = getJhistFileName(fs, jobFolderPath);
-    if (jhistFile.isEmpty()) {
+    String jhistFile = getJhistFilePath(fs, jobFolderPath);
+    if (Strings.isNullOrEmpty(jhistFile)) {
       return Collections.emptyList();
     }
 
@@ -201,13 +270,13 @@ public class ParserUtils {
     try (InputStream in = fs.open(historyFile)) {
       DatumReader<Event> datumReader = new SpecificDatumReader<>(Event.class);
       try (DataFileStream<Event> avroFileStream = new DataFileStream<>(in, datumReader)) {
-        Event record = null;
+        Event record;
         while (avroFileStream.hasNext()) {
-          record = avroFileStream.next(record);
+          record = avroFileStream.next(null);
           events.add(record);
         }
       } catch (IOException e) {
-        LOG.error("Failed to read events from " + historyFile);
+        LOG.error("Failed to read events from " + historyFile, e);
       }
     } catch (IOException e) {
       LOG.error("Failed to open history file", e);
@@ -217,6 +286,18 @@ public class ParserUtils {
 
   public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
     return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
+  }
+
+  /**
+   * Given a {@link Date} and {@link ZoneId}, returns a "yyyy/mm/dd" string representation in the time zone specified.
+   */
+  public static String getYearMonthDayDirectory(Date date, ZoneId zoneId) {
+    StringBuilder dirString = new StringBuilder();
+    LocalDate localDate = date.toInstant().atZone(zoneId).toLocalDate();
+    dirString.append(localDate.getYear());
+    dirString.append(Path.SEPARATOR).append(String.format("%02d", localDate.getMonthValue()));
+    dirString.append(Path.SEPARATOR).append(String.format("%02d", localDate.getDayOfMonth()));
+    return dirString.toString();
   }
 
   private ParserUtils() { }

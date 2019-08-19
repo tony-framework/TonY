@@ -4,11 +4,13 @@
  */
 package com.linkedin.tony.azkaban;
 
+import azkaban.flow.CommonJobProperties;
 import azkaban.jobtype.HadoopJavaJob;
 import azkaban.jobtype.HadoopJobUtils;
 import azkaban.utils.Props;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +28,38 @@ public class TonyJob extends HadoopJavaJob {
   public static final String HADOOP_GLOBAL_OPTS = "hadoop.global.opts";
   public static final String WORKER_ENV_PREFIX = "worker_env.";
   private static final String TONY_CONF_PREFIX = "tony.";
+  public static final String TONY_APPLICATION_TAGS =
+      TONY_CONF_PREFIX + "application.tags";
   private String tonyXml;
   private File tonyConfFile;
+  private final Configuration tonyConf;
 
   public TonyJob(String jobid, Props sysProps, Props jobProps, Logger log) {
     super(jobid, sysProps, jobProps, log);
 
     tonyXml = String.format("_tony-conf-%s/tony.xml", jobid);
     tonyConfFile = new File(getWorkingDirectory(), tonyXml);
+    tonyConf = getJobConfiguration();
+  }
+
+  private Configuration getJobConfiguration() {
+    Map<String, String> tonyConfs = getJobProps().getMapByPrefix(TONY_CONF_PREFIX);
+    Configuration tonyConf = new Configuration(false);
+    for (Map.Entry<String, String> confEntry : tonyConfs.entrySet()) {
+      tonyConf.set(TONY_CONF_PREFIX + confEntry.getKey(), confEntry.getValue());
+    }
+
+    // pass flow information to the tony job through configuration
+    String[] tagKeys = new String[] { CommonJobProperties.EXEC_ID,
+        CommonJobProperties.FLOW_ID, CommonJobProperties.PROJECT_NAME };
+    String applicationTags =
+        HadoopJobUtils.constructHadoopTags(getJobProps(), tagKeys);
+    tonyConf.set(TONY_APPLICATION_TAGS, applicationTags);
+    return tonyConf;
+  }
+
+  public Configuration getTonyJobConf() {
+    return tonyConf;
   }
 
   @Override
@@ -47,7 +73,22 @@ public class TonyJob extends HadoopJavaJob {
   public void run() throws Exception {
     getLog().info("Running TonY job!");
     setupHadoopOpts(getJobProps());
+    setupJobConfigurationFile();
     super.run();
+  }
+
+  private void setupJobConfigurationFile() throws IOException {
+    // Write user's tony confs to an xml to be localized.
+    File parentDir = tonyConfFile.getParentFile();
+    if (!parentDir.mkdirs() && !parentDir.exists()) {
+      throw new IOException("Failed to create parent directory " + tonyConfFile.getParentFile()
+          + " for TonY conf file.");
+    }
+    try (OutputStream os = new FileOutputStream(tonyConfFile)) {
+      tonyConf.writeXml(os);
+    } catch (IOException e) {
+      throw new IOException("Failed to create " + tonyXml + " conf file. Exiting.", e);
+    }
   }
 
   private void setupHadoopOpts(Props props) {
@@ -119,24 +160,6 @@ public class TonyJob extends HadoopJavaJob {
     String executes = getJobProps().getString(TonyJobArg.EXECUTES.azPropName, null);
     if (executes != null) {
       args.append(" " + TonyJobArg.EXECUTES.tonyParamName + " " + executes);
-    }
-
-    Map<String, String> tonyConfs = getJobProps().getMapByPrefix(TONY_CONF_PREFIX);
-    Configuration tonyConf = new Configuration(false);
-    for (Map.Entry<String, String> confEntry : tonyConfs.entrySet()) {
-      tonyConf.set(TONY_CONF_PREFIX + confEntry.getKey(), confEntry.getValue());
-    }
-
-    // Write user's tony confs to an xml to be localized.
-    File parentDir = tonyConfFile.getParentFile();
-    if (!parentDir.mkdirs() && !parentDir.exists()) {
-      throw new RuntimeException("Failed to create parent directory " + tonyConfFile.getParentFile()
-          + " for TonY conf file.");
-    }
-    try (OutputStream os = new FileOutputStream(tonyConfFile)) {
-      tonyConf.writeXml(os);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create " + tonyXml + " conf file. Exiting.", e);
     }
 
     info("Complete main arguments: " + args);

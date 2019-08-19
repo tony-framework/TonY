@@ -28,13 +28,22 @@ import java.net.URI;
  * ARCHIVE: if #archive is put at the end, the file will be uploaded as ARCHIVE type and unzipped upon localization.
  */
 public class LocalizableResource {
-  private String path;
+
+  /**
+   * The complete resource string which contains annotations like #archive or
+   * ::abc
+   */
+  private String completeResourceString;
 
   private boolean isDirectory;
   private LocalResourceType resourceType;
   private FileStatus sourceFileStatus;
+
+  // The path of the source file.
   private Path sourceFilePath;
-  private String localFileName;
+
+  // The file name of this resource inside the container.
+  private String localizedFileName;
 
   private LocalizableResource() { }
 
@@ -42,38 +51,50 @@ public class LocalizableResource {
     return isDirectory;
   }
 
+  public boolean isLocalFile() {
+    return new Path(completeResourceString).toUri().getScheme() == null;
+  }
+
+  public boolean isArchive() {
+    return resourceType == LocalResourceType.ARCHIVE;
+  }
+
   public Path getSourceFilePath() {
     return sourceFilePath;
   }
 
-  public String getLocalFileName() {
-    return localFileName;
+  public String getLocalizedFileName() {
+    return localizedFileName;
   }
 
-  public LocalizableResource(String path, FileSystem fs) throws ParseException, IOException  {
-    this.path = path;
-      this.parse(fs);
+  public LocalizableResource(String completeResourceString, FileSystem fs) throws ParseException, IOException  {
+    this.completeResourceString = completeResourceString;
+    this.parse(fs);
   }
 
   private void parse(FileSystem fs) throws ParseException, IOException {
-    String filePath = path;
+    String filePath = completeResourceString;
     resourceType = LocalResourceType.FILE;
-    if (path.toLowerCase().endsWith(Constants.ARCHIVE_SUFFIX)) {
+    if (completeResourceString.toLowerCase().endsWith(Constants.ARCHIVE_SUFFIX)) {
         resourceType = LocalResourceType.ARCHIVE;
-        filePath = path.substring(0, path.length() - Constants.ARCHIVE_SUFFIX.length());
+        filePath = completeResourceString.substring(0, completeResourceString.length() - Constants.ARCHIVE_SUFFIX.length());
     }
 
     String[] tuple = filePath.split(Constants.RESOURCE_DIVIDER);
     if (tuple.length > 2) {
-        throw new ParseException("Failed to parse file: " + path);
+        throw new ParseException("Failed to parse file: " + completeResourceString);
     }
-
     sourceFilePath = new Path(tuple[0]);
-    sourceFileStatus = fs.getFileStatus(sourceFilePath);
-    localFileName = sourceFilePath.getName();
+    if (isLocalFile()) {
+      FileSystem localFs = FileSystem.getLocal(fs.getConf());
+      sourceFileStatus = localFs.getFileStatus(sourceFilePath);
+    } else {
+      sourceFileStatus = fs.getFileStatus(sourceFilePath);
+    }
+    localizedFileName = sourceFilePath.getName();
 
     if (tuple.length == 2) {
-        localFileName = tuple[1];
+        localizedFileName = tuple[1];
     }
     if (sourceFileStatus.isDirectory()) {
         isDirectory = true;
@@ -82,7 +103,7 @@ public class LocalizableResource {
 
   public LocalResource toLocalResource() {
     if (isDirectory) {
-        throw new RuntimeException("Resource is directory and cannot be converted to LocalResource.");
+      throw new RuntimeException("Resource is directory and cannot be converted to LocalResource.");
     }
     return LocalResource.newInstance(ConverterUtils.getYarnUrlFromURI(
       URI.create(sourceFileStatus.getPath().toString())),

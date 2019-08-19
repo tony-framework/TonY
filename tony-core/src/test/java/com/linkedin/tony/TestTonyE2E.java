@@ -11,6 +11,7 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
+import java.util.HashSet;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -27,8 +28,6 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
@@ -126,7 +125,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testSingleNodeTrainingShouldPass() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[] {
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -151,7 +149,9 @@ public class TestTonyE2E  {
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--container_env", Constants.TEST_TASK_EXECUTOR_NUM_HB_MISS + "=5"
+        "--container_env", Constants.TEST_TASK_EXECUTOR_NUM_HB_MISS + "=5",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertNotEquals(exitCode, 0);
@@ -159,7 +159,8 @@ public class TestTonyE2E  {
 
   @Test
   public void testPSSkewedWorkerTrainingShouldPass() throws ParseException, IOException {
-    conf.setInt(TonyConfigurationKeys.getInstancesKey("worker"), 2);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.PS_JOB_NAME), 1);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 2);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -183,13 +184,14 @@ public class TestTonyE2E  {
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--python_venv", "tony-core/src/test/resources/test.zip",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
   }
 
   @Test
-  public void testPSWorkerTrainingPyTorchShouldPass() throws ParseException, IOException {
+  public void testWorkerTrainingPyTorchShouldPass() throws ParseException, IOException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
         "--executes", "exit_0_check_pytorchenv.py",
@@ -212,7 +214,9 @@ public class TestTonyE2E  {
         "--executes", "exit_1.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
@@ -220,7 +224,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testSingleNodeTrainingShouldFail() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -235,7 +238,6 @@ public class TestTonyE2E  {
 
   @Test
   public void testAMCrashTonyShouldFail() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, true);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
@@ -260,7 +262,7 @@ public class TestTonyE2E  {
   public void testAMStopsJobAfterWorker0Killed() throws ParseException, IOException {
     client.init(new String[]{"--src_dir", "tony-core/src/test/resources/scripts", "--executes", "exit_0.py",
         "--hdfs_classpath", libPath, "--python_binary_path", "python", "--container_env",
-        Constants.TEST_WORKER_TERMINATED + "=true"});
+        Constants.TEST_WORKER_TERMINATED + "=true", "--conf", "tony.worker.instances=1"});
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
   }
@@ -283,14 +285,15 @@ public class TestTonyE2E  {
 
   @Test
   public void testNonChiefWorkerFail() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
         "--executes", "exit_1.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1"
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
@@ -298,15 +301,17 @@ public class TestTonyE2E  {
 
   @Test
   public void testTonyResourcesFlag() throws ParseException, IOException {
-    conf.setBoolean(TonyConfigurationKeys.IS_SINGLE_NODE, false);
     client = new TonyClient(conf);
-    String resources = "tony-core/src/test/resources/test.zip" + ",tony-core/src/test/resources/test2.zip#archive,"
-            + libPath;
+    String resources = "tony-core/src/test/resources/test.zip::test20.zip"
+        + ",tony-core/src/test/resources/test2.zip#archive,"
+        + ",tony-core/src/test/resources/common.zip,"
+        + libPath;
     client.init(new String[]{
         "--executes", "python check_archive_file_localization.py",
         "--hdfs_classpath", libPath,
         "--src_dir", "tony-core/src/test/resources/scripts",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--conf", "tony.worker.instances=1",
         "--conf", "tony.worker.resources=" + resources,
         "--conf", "tony.ps.instances=0",
     });
@@ -356,16 +361,19 @@ public class TestTonyE2E  {
   public void testTonyClientCallbackHandler() throws IOException, ParseException {
     client.init(new String[]{
         "--src_dir", "tony-core/src/test/resources/scripts",
-        "--executes", "python check_env_and_venv.py",
         "--hdfs_classpath", libPath,
         "--shell_env", "ENV_CHECK=ENV_CHECK",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
         "--python_venv", "tony-core/src/test/resources/test.zip",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
+        "--conf", "tony.ps.command=python sleep_30.py",
+        "--conf", "tony.worker.command=python check_env_and_venv.py",
     });
     client.addListener(handler);
     int exitCode = client.start();
-    List<String> expectedJobs = new ArrayList<>();
-    List<String> actualJobs = new ArrayList<>();
+    Set<String> expectedJobs = new HashSet<>();
+    Set<String> actualJobs = new HashSet<>();
     expectedJobs.add(Constants.WORKER_JOB_NAME);
     expectedJobs.add(Constants.PS_JOB_NAME);
     Assert.assertNotNull(handler.appId);
@@ -373,11 +381,17 @@ public class TestTonyE2E  {
     client.removeListener(handler);
     Assert.assertEquals(handler.getTaskInfoSet().size(), 2);
     for (TaskInfo taskInfo : handler.getTaskInfoSet()) {
-      actualJobs.add(taskInfo.getName());
-      Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
+      String name = taskInfo.getName();
+      TaskStatus status = taskInfo.getStatus();
+      actualJobs.add(name);
+      if (name.equals(Constants.WORKER_JOB_NAME)) {
+        Assert.assertEquals(status, TaskStatus.SUCCEEDED);
+      } else {
+        Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
+      }
     }
     Assert.assertNotNull(handler.getAppId());
-    Assert.assertTrue(actualJobs.containsAll(expectedJobs) && expectedJobs.containsAll(actualJobs));
+    Assert.assertEquals(actualJobs, expectedJobs);
   }
 
   /**
@@ -395,7 +409,7 @@ public class TestTonyE2E  {
         "--executes", "ls",
         "--shell_env", "TEST1=test",
         "--container_env", "TEST2=test",
-        "--conf", "tony.application.worker.command=cat",
+        "--conf", "tony.worker.command=cat",
         "--conf", "tony.containers.resources=tony-core/src/test/resources/test.zip"
     });
     // Stub actual app submission logic

@@ -1,0 +1,25 @@
+@(title: String)(content: Html)
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>@title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" media="screen" href='@routes.Assets.versioned("stylesheets/main.css")'>
+    <link rel="shortcut icon" type="image/png" href='@routes.Assets.versioned("images/favicon.png")'>
+</head>
+
+<body>
+    <section id="top">
+        <div class="wrapper">
+            <h1>
+                <img class="resize" src='@routes.Assets.versioned("images/banner-logo.png")' alt="logo" />
+                TonY Portal
+            </h1>
+        </div>
+    </section>
+    @content
+</body>
+
+</html>

@@ -13,6 +13,7 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.security.TokenCache;
 import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
@@ -22,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -50,7 +50,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -92,8 +91,6 @@ import org.apache.hadoop.yarn.util.Records;
 public class TonyClient implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TonyClient.class);
 
-  private static final String APP_TYPE = "TONY";
-
   // Configurations
   private YarnClient yarnClient;
   private HdfsConfiguration hdfsConf = new HdfsConfiguration();
@@ -116,6 +113,7 @@ public class TonyClient implements AutoCloseable {
   private String pythonBinaryPath = null;
   private String pythonVenv = null;
   private String srcDir = null;
+  private Set<String> applicationTags;
   private String hdfsClasspath = null;
   private String executes;
   private long appTimeout;
@@ -130,6 +128,7 @@ public class TonyClient implements AutoCloseable {
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
+  private boolean isTaskUrlsPrinted = false;
 
   private CallbackHandler callbackHandler;
   private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
@@ -152,7 +151,7 @@ public class TonyClient implements AutoCloseable {
     VersionInfo.injectVersionInfo(tonyConf);
   }
 
-  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException {
+  private boolean run() throws IOException, InterruptedException, URISyntaxException, YarnException, ParseException {
     LOG.info("Starting client..");
     yarnClient.start();
     YarnClientApplication app = yarnClient.createApplication();
@@ -186,7 +185,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  public String processFinalTonyConf() throws IOException {
+  public String processFinalTonyConf() throws IOException, ParseException {
     FileSystem fs = FileSystem.get(hdfsConf);
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
@@ -233,7 +232,10 @@ public class TonyClient implements AutoCloseable {
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
     appContext.setApplicationName(appName);
-    appContext.setApplicationType(APP_TYPE);
+    appContext.setApplicationType(Constants.APP_TYPE);
+    if (!applicationTags.isEmpty()) {
+      appContext.setApplicationTags(applicationTags);
+    }
 
     // Set up resource type requirements
     Resource capability = Resource.newInstance((int) amMemory, amVCores);
@@ -382,6 +384,9 @@ public class TonyClient implements AutoCloseable {
     // src_dir & hdfs_classpath flags are for compatibility.
     srcDir = cliParser.getOptionValue("src_dir");
 
+    applicationTags = new HashSet<>(
+        tonyConf.getStringCollection(TonyConfigurationKeys.APPLICATION_TAGS));
+
     // Set hdfsClassPath for all workers
     // Prepend hdfs:// if missing
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
@@ -399,13 +404,9 @@ public class TonyClient implements AutoCloseable {
                                          + " Specified virtual cores=" + amVCores);
     }
 
-    boolean singleNode = tonyConf.getBoolean(TonyConfigurationKeys.IS_SINGLE_NODE,
-        TonyConfigurationKeys.DEFAULT_IS_SINGLE_NODE);
-    if (!singleNode) {
-      if (amGpus > 0) {
-        LOG.warn("It seems you reserved " + amGpus + " GPUs in application master (driver, which doesn't perform "
-            + "training) during distributed training.");
-      }
+    if (Utils.getNumTotalTasks(tonyConf) == 0 && amGpus > 0) {
+      LOG.warn("It seems you reserved " + amGpus + " GPUs in application master (driver, which doesn't perform "
+          + "training) during distributed training.");
     }
 
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
@@ -426,9 +427,8 @@ public class TonyClient implements AutoCloseable {
       tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
     }
 
-    if (!parseDockerConfigs()) {
-      return false;
-    }
+    Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, Constants.AM_NAME);
+    containerEnv.putAll(dockerEnv);
 
     List<String> containerEnvPair = new ArrayList<>();
     if (tonyConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV) != null) {
@@ -447,52 +447,6 @@ public class TonyClient implements AutoCloseable {
 
     return true;
   }
-
-  /**
-   * Parses Docker related configs and sets the appropriate container environment variables if Docker is available.
-   * Uses reflection to support older versions of Hadoop.
-   */
-  private boolean parseDockerConfigs() {
-    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
-      if (tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME)) != null) {
-        imagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(Constants.AM_NAME));
-      }
-      if (imagePath == null) {
-        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
-        return false;
-      } else {
-        Class containerRuntimeClass;
-        Class dockerRuntimeClass;
-        try {
-          containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
-          dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
-        } catch (ClassNotFoundException e) {
-          LOG.error("Docker runtime classes not found in this version ("
-              + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
-          return false;
-        }
-        if (dockerRuntimeClass != null) {
-          try {
-            String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
-            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_TYPE).get(null);
-            containerEnv.put(envContainerType, "docker");
-            containerEnv.put(envDockerImage, imagePath);
-          } catch (NoSuchFieldException e) {
-            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_TYPE + " not "
-                + "found in " + containerRuntimeClass.getName());
-            return false;
-          } catch (IllegalAccessException e) {
-            LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
-                + Constants.ENV_DOCKER_CONTAINER_TYPE + " fields.");
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-
 
   @VisibleForTesting
   static String buildTaskCommand(String pythonVenv, String pythonBinaryPath, String execute,
@@ -568,7 +522,7 @@ public class TonyClient implements AutoCloseable {
    *  address of the uploaded file.
    **/
   @VisibleForTesting
-  public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException {
+  public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException, ParseException {
     Set<String> resourceKeys = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
     for (String resourceKey : resourceKeys) {
       String[] resources = tonyConf.getStrings(resourceKey);
@@ -576,29 +530,29 @@ public class TonyClient implements AutoCloseable {
         continue;
       }
       for (String resource: resources) {
+        LocalizableResource lr = new LocalizableResource(resource, fs);
         // If it is local file, we upload to remote fs first
-        if (new Path(resource).toUri().getScheme() == null) {
-          boolean isArchiveFormat = resource.contains(Constants.ARCHIVE_SUFFIX);
-          String trimmedResource = resource.replace(Constants.ARCHIVE_SUFFIX, "");
-          File file = new File(trimmedResource);
+        if (lr.isLocalFile()) {
+          Path localFilePath = lr.getSourceFilePath();
+          File file = new File(localFilePath.toString());
           if (!file.exists()) {
-            LOG.fatal(trimmedResource + " doesn't exist in local filesystem");
-            throw new IOException(trimmedResource + " doesn't exist in local filesystem.");
+            LOG.fatal(localFilePath + " doesn't exist in local filesystem");
+            throw new IOException(localFilePath + " doesn't exist in local filesystem.");
           }
           if (file.isFile()) {
             // If it is archive format, set it as ARCHIVE format.
-            if (isArchiveFormat) {
+            if (lr.isArchive()) {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
-                      new Path(trimmedResource),
-                      new Path(trimmedResource).getName(),
-                      tonyConf,
-                      fs, LocalResourceType.ARCHIVE, resourceKey);
+                  localFilePath,
+                  lr.getLocalizedFileName(),
+                  tonyConf,
+                  fs, LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
-                      new Path(trimmedResource),
-                      new Path(trimmedResource).getName(),
-                      tonyConf,
-                      fs, LocalResourceType.FILE, resourceKey);
+                  localFilePath,
+                  lr.getLocalizedFileName(),
+                  tonyConf,
+                  fs, LocalResourceType.FILE, resourceKey);
             }
           } else {
             // file is directory
@@ -609,7 +563,7 @@ public class TonyClient implements AutoCloseable {
               Utils.zipFolder(Paths.get(resource), dest);
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                   new Path(dest.toString()),
-                  new Path(dest.toString()).getName(),
+                  lr.getLocalizedFileName(),
                   tonyConf,
                   fs, LocalResourceType.ARCHIVE, resourceKey);
             } finally {
@@ -693,7 +647,7 @@ public class TonyClient implements AutoCloseable {
           // For each jobtype, amount requested is (num X per instance * num instances).
           long totalRequested = 0;
           for (String jobType : jobTypes) {
-            int instances = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(jobType), TonyConfigurationKeys.getDefaultInstances(jobType));
+            int instances = tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(jobType), 0);
             String value = tonyConf.get(TonyConfigurationKeys.getResourceKey(jobType, resource), null);
             if (value != null) {
               long amountPerTask = resource.equals(Constants.MEMORY) ? Long.parseLong(Utils.parseMemoryString(value)) : Long.parseLong(value);
@@ -838,43 +792,26 @@ public class TonyClient implements AutoCloseable {
       cred.addToken(rmToken.getService(), rmToken);
       LOG.info("RM delegation token fetched.");
 
-      String defaultFS = hdfsConf.get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY,
-          CommonConfigurationKeysPublic.FS_DEFAULT_NAME_DEFAULT);
-      LOG.info("Fetching HDFS delegation token for default namenode: " + defaultFS);
-      FileSystem fs = FileSystem.get(hdfsConf);
-      Token<?> fsToken = fs.getDelegationToken(tokenRenewer);
-      if (fsToken == null) {
-        throw new RuntimeException("Failed to get FS delegation token for default FS.");
-      }
-      cred.addToken(fsToken.getService(), fsToken);
-      LOG.info("Default HDFS delegation token fetched.");
+      // Fetching HDFS tokens
+      LOG.info("Fetching HDFS delegation tokens for default, history and other namenodes...");
+      List<Path> pathList = new ArrayList<>();
+      pathList.add(appResourcesPath);
 
       String tonyHistoryLocation = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION);
       if (tonyHistoryLocation != null) {
-        fs = new Path(tonyHistoryLocation).getFileSystem(hdfsConf);
-        fsToken = fs.getDelegationToken(tokenRenewer);
-        if (fsToken == null) {
-          throw new RuntimeException("Failed to get FS delegation token for history FS.");
-        }
-        cred.addToken(fsToken.getService(), fsToken);
-        LOG.info("Fetched delegation token for history filesystem HDFS.");
+        pathList.add(new Path(tonyHistoryLocation));
       }
 
       String[] otherNamenodes = tonyConf.getStrings(TonyConfigurationKeys.OTHER_NAMENODES_TO_ACCESS);
       if (otherNamenodes != null) {
         for (String nnUri : otherNamenodes) {
-          String namenodeUri = nnUri.trim();
-          LOG.info("Fetching HDFS delegation token for " + nnUri);
-          FileSystem otherFS = FileSystem.get(new URI(namenodeUri), hdfsConf);
-          final Token<?> otherFSToken = otherFS.getDelegationToken(tokenRenewer);
-          if (otherFSToken == null) {
-            throw new RuntimeException("Failed to get FS delegation token for configured "
-                + "other namenode: " + namenodeUri);
-          }
-          cred.addToken(otherFSToken.getService(), otherFSToken);
-          LOG.info("Fetched HDFS token for " + nnUri);
+          pathList.add(new Path(nnUri.trim()));
         }
       }
+
+      Path[] paths = pathList.toArray(new Path[0]);
+      TokenCache.obtainTokensForNamenodes(cred, paths, hdfsConf, tokenRenewer);
+      LOG.info("Fetched HDFS delegation token.");
     }
 
     LOG.info("Successfully fetched tokens.");
@@ -886,15 +823,13 @@ public class TonyClient implements AutoCloseable {
   /**
    * Monitor the submitted application for completion.
    * Kill application if time expires.
-   * @return true if application completed successfully
+   * @return true if application completed successfully and false otherwise
    * @throws YarnException
    * @throws java.io.IOException
    */
   @VisibleForTesting
-  public boolean monitorApplication()
-      throws YarnException, IOException, InterruptedException {
-
-    boolean isTaskUrlsPrinted = false;
+  public boolean monitorApplication() throws YarnException, IOException, InterruptedException {
+    boolean result;
     while (true) {
       // Check app status every 1 second.
       Thread.sleep(1000);
@@ -902,46 +837,31 @@ public class TonyClient implements AutoCloseable {
       // Get application report for the appId we are interested in
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
-      YarnApplicationState state = report.getYarnApplicationState();
+      YarnApplicationState appState = report.getYarnApplicationState();
 
-      FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
+      FinalApplicationStatus finalApplicationStatus = report.getFinalApplicationStatus();
       initRpcClient(report);
 
-      if (amRpcClient != null) {
-        Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
-        Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
-                .filter(taskInfo -> !taskInfos.contains(taskInfo))
-                .collect(Collectors.toSet());
-        // If task status is changed, invoke callback for all listeners.
-        if (!taskInfoDiff.isEmpty()) {
-          for (TaskInfo taskInfo : taskInfoDiff) {
-            LOG.info("Tasks Status Updated: " + taskInfo);
-          }
-          for (TaskUpdateListener listener : listeners) {
-            listener.onTaskInfosUpdated(receivedInfos);
-          }
-          taskInfos = receivedInfos;
-        }
+      updateTaskInfos();
 
-        // Query AM for taskInfos if taskInfos is empty.
-        if (amRpcServerInitialized && !isTaskUrlsPrinted) {
-          if (!taskInfos.isEmpty()) {
-            // Print TaskUrls
-            new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
-            isTaskUrlsPrinted = true;
-          }
-        }
+      if (YarnApplicationState.KILLED == appState) {
+        LOG.warn("Application " + appId.getId() + " was killed. YarnState: " + appState + ". "
+            + "FinalApplicationStatus = " + finalApplicationStatus + ".");
+        // Set amRpcClient to null so client does not try to connect to a killed AM.
+        amRpcClient = null;
+        result = false;
+        break;
       }
 
-      if (YarnApplicationState.FINISHED == state || YarnApplicationState.FAILED == state
-          || YarnApplicationState.KILLED == state) {
-        LOG.info("Application " + appId.getId() + " finished with YarnState=" + state.toString()
-            + ", DSFinalStatus=" + dsStatus.toString() + ", breaking monitoring loop.");
-        // Set amRpcClient to null so client does not try to connect to it after completion.
-        amRpcClient = null;
-        String histHost = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_HOST, TonyConfigurationKeys.DEFAULT_TONY_HISTORY_HOST);
-        Utils.printTHSUrl(histHost, appId.toString(), LOG);
-        return FinalApplicationStatus.SUCCEEDED == dsStatus;
+      if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
+        updateTaskInfos();
+        LOG.info("Application " + appId.getId() + " finished with YarnState=" + appState
+            + ", DSFinalStatus=" + finalApplicationStatus + ", breaking monitoring loop.");
+        String tonyPortalUrl =
+            tonyConf.get(TonyConfigurationKeys.TONY_PORTAL_URL, TonyConfigurationKeys.DEFAULT_TONY_PORTAL_URL);
+        Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
+        result = FinalApplicationStatus.SUCCEEDED == finalApplicationStatus;
+        break;
       }
 
       if (appTimeout > 0) {
@@ -949,7 +869,44 @@ public class TonyClient implements AutoCloseable {
           LOG.info("Reached client specified timeout for application. Killing application"
                    + ". Breaking monitoring loop : ApplicationId:" + appId.getId());
           forceKillApplication();
-          return false;
+          result = false;
+          break;
+        }
+      }
+    }
+
+    if (amRpcClient != null) {
+      amRpcClient.finishApplication();
+      LOG.info("Sent message to AM to stop.");
+      amRpcClient = null;
+    }
+
+    return result;
+  }
+
+  private void updateTaskInfos() throws IOException, YarnException {
+    if (amRpcClient != null) {
+      Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
+      Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
+          .filter(taskInfo -> !taskInfos.contains(taskInfo))
+          .collect(Collectors.toSet());
+      // If task status is changed, invoke callback for all listeners.
+      if (!taskInfoDiff.isEmpty()) {
+        for (TaskInfo taskInfo : taskInfoDiff) {
+          LOG.info("Task status updated: " + taskInfo);
+        }
+        for (TaskUpdateListener listener : listeners) {
+          listener.onTaskInfosUpdated(receivedInfos);
+        }
+        taskInfos = receivedInfos;
+      }
+
+      // Query AM for taskInfos if taskInfos is empty.
+      if (amRpcServerInitialized && !isTaskUrlsPrinted) {
+        if (!taskInfos.isEmpty()) {
+          // Print TaskUrls
+          new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
+          isTaskUrlsPrinted = true;
         }
       }
     }
@@ -1008,7 +965,7 @@ public class TonyClient implements AutoCloseable {
     boolean result;
     try {
       result = run();
-    } catch (IOException | InterruptedException | URISyntaxException | YarnException e) {
+    } catch (IOException | InterruptedException | URISyntaxException | YarnException | ParseException e) {
       LOG.fatal("Failed to run TonyClient", e);
       result = false;
     }
@@ -1111,7 +1068,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   public static void main(String[] args) {
-    int exitCode = 0;
+    int exitCode;
 
     // Adds hadoop-inject.xml as a default resource so Azkaban metadata will be present in the new Configuration created
     HadoopConfigurationInjector.injectResources(new Props() /* ignored */);
@@ -1120,16 +1077,10 @@ public class TonyClient implements AutoCloseable {
       if (!sanityCheck) {
         LOG.fatal("Failed to init client.");
         exitCode = -1;
-      }
-
-      if (exitCode == 0) {
+      } else {
         exitCode = client.start();
-        if (client.amRpcClient != null) {
-          client.amRpcClient.finishApplication();
-          LOG.info("Sent message to AM to stop.");
-        }
       }
-    } catch (ParseException | IOException | YarnException e) {
+    } catch (ParseException | IOException e) {
       LOG.fatal("Encountered exception while initializing client or finishing application.", e);
       exitCode = -1;
     }

@@ -35,20 +35,12 @@ public class JobMetadata {
   public static JobMetadata newInstance(YarnConfiguration conf, String histFileName) {
     String histFileNoExt = histFileName.substring(0, histFileName.indexOf('.'));
     String[] metadata = histFileNoExt.split("-");
-    Builder metadataBuilder = new Builder()
-        .setId(metadata[0])
-        .setStarted(Long.parseLong(metadata[1]))
-        .setConf(conf);
+    Builder metadataBuilder = new Builder().setId(metadata[0]).setStarted(Long.parseLong(metadata[1])).setConf(conf);
     if (histFileName.endsWith(Constants.INPROGRESS)) {
-      metadataBuilder
-          .setUser(metadata[2])
-          .setStatus(Constants.RUNNING);
+      metadataBuilder.setUser(metadata[2]).setStatus(Constants.RUNNING);
       return metadataBuilder.build();
     }
-    metadataBuilder
-        .setCompleted(Long.parseLong(metadata[2]))
-        .setUser(metadata[3])
-        .setStatus(metadata[4]);
+    metadataBuilder.setCompleted(Long.parseLong(metadata[2])).setUser(metadata[3]).setStatus(metadata[4]);
     return metadataBuilder.build();
   }
 
@@ -141,5 +133,12 @@ public class JobMetadata {
 
   public void setUser(String user) {
     this.user = user;
+  }
+
+  @Override
+  public String toString() {
+    return "Metadata{ id: " + id + ", joblink: " + jobLink + ", configlink: " + configLink + ", rmLink: "
+        + rmLink + ", dateStarted: " + new Date(started) + ", started: " + started
+        + ", dateCompleted: " + new Date(completed) + ", status: " + status + ", user: " + user + "}";
   }
 }

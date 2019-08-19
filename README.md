@@ -1,14 +1,17 @@
 # TonY [![Build Status](https://travis-ci.org/linkedin/TonY.svg?branch=master)](https://travis-ci.org/linkedin/TonY)
 
+![tony-logo-small](https://user-images.githubusercontent.com/544734/57793050-45b3ff00-76f5-11e9-8cc0-8ebb830b6e78.png)
+
 TonY is a framework to _natively_ run deep learning jobs on [Apache Hadoop](http://hadoop.apache.org/).
-It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow) and [PyTorch](https://github.com/pytorch/pytorch).
+It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow), [PyTorch](https://github.com/pytorch/pytorch), and [Horovod](https://github.com/horovod/horovod).
 TonY enables running either single node or distributed
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
-machine learning jobs reliably and flexibly.
+machine learning jobs reliably and flexibly. For a quick overview of TonY and comparisons to other frameworks, please see
+[this presentation](https://www.slideshare.net/ssuser72f42a/scaling-deep-learning-on-hadoop-at-linkedin).
 
 ## Compatibility Notes
 
-It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with Hadoop 2.9.1(https://hadoop.apache.org/docs/r2.9.1/) and above. If you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
+It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with [Hadoop 2.7.4](https://hadoop.apache.org/docs/r2.7.4/) and above. If you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
 
 ## Build
 
@@ -22,6 +25,31 @@ This will automatically run tests, if want to build without running tests, run:
     ./gradlew build -x test
 
 The jar required to run TonY will be located in `./tony-cli/build/libs/`.
+
+## Publishing (for admins)
+
+Follow [this guide](https://blog.sonatype.com/2010/01/how-to-generate-pgp-signatures-with-maven/) to generate a key pair using GPG. Publish your public key.
+
+Create a Nexus account at https://oss.sonatype.org/ and request access to publish to com.linkedin.tony. Here's an example Jira ticket: https://issues.sonatype.org/browse/OSSRH-47350.
+
+Configure your `~/.gradle/gradle.properties` file:
+
+```
+# signing plugin uses these
+signing.keyId=...
+signing.secretKeyRingFile=/home/<ldap>/.gnupg/secring.gpg
+signing.password=...
+
+# maven repo credentials
+mavenUser=...
+mavenPassword=...
+
+# gradle-nexus-staging-plugin uses these
+nexusUsername=<sameAsMavenUser>
+nexusPassword=<sameAsMavenPassword>
+```
+
+Now you can publish and release artifacts by running `./gradlew publish closeAndReleaseRepository`.
 
 ## Usage
 
@@ -140,7 +168,7 @@ Then you can launch your job:
 
     $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob" \
                 com.linkedin.tony.cli.ClusterSubmitter \
-                -executes models/mnist_distributed.py \ # relative path to the src directory.
+                -executes models/mnist_distributed.py \ # relative path to model program inside the src_dir
                 -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output \
                 -python_venv my-venv.zip \
                 -python_binary_path Python/bin/python \  # relative path to the Python binary inside the my-venv.zip
@@ -178,6 +206,15 @@ Below are examples to run distributed deep learning jobs with TonY:
 - [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
 - [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
 - [TonY in Google Cloud Platform](https://github.com/linkedin/TonY/tree/master/tony-examples/tony-in-gcp)
+- [TonY in Azkaban video](https://youtu.be/DM89y8BGFaY)
+
+## More information
+
+For more information about TonY, check out the following:
+- [TonY presentation at DataWorks Summit '19 in Washington, D.C.](https://www.slideshare.net/ssuser72f42a/scaling-deep-learning-on-hadoop-at-linkedin)
+- [TonY OpML '19 paper](https://arxiv.org/abs/1904.01631)
+- [TonY LinkedIn Engineering blog post](https://engineering.linkedin.com/blog/2018/09/open-sourcing-tony--native-support-of-tensorflow-on-hadoop)
+
 
 ## FAQ
 

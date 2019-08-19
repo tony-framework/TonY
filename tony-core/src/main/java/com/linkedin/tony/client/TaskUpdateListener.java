@@ -10,5 +10,5 @@ import java.util.Set;
 
 public interface TaskUpdateListener {
     // Called when TonyClient gets a set of taskUrls from TonyAM.
-    public void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet);
+    void onTaskInfosUpdated(Set<TaskInfo> taskInfoSet);
 }

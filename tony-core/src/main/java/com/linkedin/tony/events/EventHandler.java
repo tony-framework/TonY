@@ -48,6 +48,7 @@ public class EventHandler extends Thread {
     try {
       out = myFs.create(inProgressHistFile);
       dataFileWriter.create(Event.SCHEMA$, out);
+      LOG.info("Writing events to " + inProgressHistFile);
     } catch (IOException e) {
       LOG.error("Failed to set up writer", e);
     }
@@ -119,7 +120,10 @@ public class EventHandler extends Thread {
 
   private void moveInProgressToFinal() {
     try {
-      myFs.rename(inProgressHistFile, finalHistFile);
+      LOG.info("Moving " + inProgressHistFile + " to " + finalHistFile + ".");
+      if (!myFs.rename(inProgressHistFile, finalHistFile)) {
+        LOG.error("Failed to move " + inProgressHistFile + " to " + finalHistFile);
+      }
     } catch (IOException e) {
       LOG.error("Failed to rename to jhist file", e);
     }

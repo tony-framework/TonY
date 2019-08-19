@@ -5,7 +5,7 @@
 package com.linkedin.tony.rpc;
 
 import com.google.protobuf.BlockingService;
-import com.linkedin.tony.TFPolicyProvider;
+import com.linkedin.tony.TonyPolicyProvider;
 import com.linkedin.tony.rpc.impl.pb.service.TensorFlowClusterPBServiceImpl;
 import java.io.IOException;
 import java.util.Random;
@@ -125,7 +125,7 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
       if (conf.getBoolean(
               CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
               false)) {
-        refreshServiceAcls(conf, new TFPolicyProvider());
+        refreshServiceAcls(conf, new TonyPolicyProvider());
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

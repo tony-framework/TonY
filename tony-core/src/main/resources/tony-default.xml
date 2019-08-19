@@ -25,14 +25,14 @@
   </property>
 
   <property>
-    <description>YARN partition which this application should run in.</description>
-    <name>tony.application.node-label</name>
+    <description>Tags of your YARN application.</description>
+    <name>tony.application.tags</name>
+    <value></value>
   </property>
 
   <property>
-    <description>Whether this is single node training or not.</description>
-    <name>tony.application.single-node</name>
-    <value>false</value>
+    <description>YARN partition which this application should run in.</description>
+    <name>tony.application.node-label</name>
   </property>
 
   <property>
@@ -85,7 +85,7 @@
 
   <property>
     <description>Frequency, in milliseconds, for which TaskExecutors should heartbeat with AM.</description>
-    <name>tony.task.heartbeat-interval</name>
+    <name>tony.task.heartbeat-interval-ms</name>
     <value>1000</value>
   </property>
 
@@ -93,6 +93,12 @@
     <description>How many missed heartbeats before declaring a TaskExecutor dead.</description>
     <name>tony.task.max-missed-heartbeats</name>
     <value>25</value>
+  </property>
+
+  <property>
+    <description>Frequency, in milliseconds, for which TaskExecutors should report metrics to the AM.</description>
+    <name>tony.task.metrics-interval-ms</name>
+    <value>5000</value>
   </property>
 
   <!-- AM configurations -->
@@ -133,12 +139,6 @@
     <value>1</value>
   </property>
 
-  <property>
-    <description>Number of parameter servers to request.</description>
-    <name>tony.ps.instances</name>
-    <value>1</value>
-  </property>
-
   <!-- Worker configurations -->
   <property>
     <description>Timeout, in milliseconds for the user's python processes before forcibly killing them.</description>
@@ -162,12 +162,6 @@
     <description>Number of GPUs per worker.</description>
     <name>tony.worker.gpus</name>
     <value>0</value>
-  </property>
-
-  <property>
-    <description>Number of workers to request.</description>
-    <name>tony.worker.instances</name>
-    <value>1</value>
   </property>
 
   <!-- Untracked job type configurations -->
@@ -212,9 +206,9 @@
   <!--All the configurations below should be set in $TONY_CONF_DIR/tony-site.xml-->
   <property>
     <description>
-      Hostname of history server
+      URL of the TonY Portal
     </description>
-    <name>tony.history.host</name>
+    <name>tony.portal.url</name>
     <value>https://localhost:19886</value>
   </property>
 
@@ -243,12 +237,37 @@
   </property>
 
   <property>
+    <name>tony.history.mover-interval-ms</name>
+    <value>300000</value>
+    <description>Frequency at which to scan the intermediate directory for completed jobs to move to the
+    finished directory.</description>
+  </property>
+
+  <property>
+    <name>tony.history.retention-sec</name>
+    <value>2592000</value>
+    <description>How many seconds to retain history files for. Default is 30 days.</description>
+  </property>
+
+  <property>
+    <name>tony.history.purger-interval-ms</name>
+    <value>21600000</value>
+    <description>Frequency at which to run the purger thread. Default is 6 hours.</description>
+  </property>
+
+  <property>
+    <name>tony.history.finished-dir-timezone</name>
+    <value>UTC</value>
+    <description>ZoneId used to create/purge finished directory in /yyyy/MM/dd format.</description>
+  </property>
+
+  <property>
     <description>
-      Maximum (approximate) number of cache entries THS
+      Maximum (approximate) number of cache entries TonY Portal
       will store for each cache (config, metadata, event)
     </description>
-    <name>tony.history.cache.max-entries</name>
-    <value>1000</value>
+    <name>tony.portal.cache.max-entries</name>
+    <value>10000</value>
   </property>
 
   <property>
@@ -314,13 +333,5 @@
     </description>
     <name>tony.secret.key</name>
     <value>changeme</value>
-  </property>
-
-  <property>
-    <description>
-      Number of times the AM tries append the event to buffer (Avro's DataWriter).
-    </description>
-    <name>tony.history.maxAppends</name>
-    <value>3</value>
   </property>
 </configuration>

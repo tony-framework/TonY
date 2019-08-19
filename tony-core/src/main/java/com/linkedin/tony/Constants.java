@@ -18,7 +18,7 @@ public class Constants {
   public static final String DOCKER_LINUX_CONTAINER_RUNTIME_CLASS =
       "org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime";
   public static final String ENV_CONTAINER_TYPE = "ENV_CONTAINER_TYPE";
-  public static final String ENV_DOCKER_CONTAINER_TYPE = "ENV_DOCKER_CONTAINER_TYPE";
+  public static final String ENV_DOCKER_CONTAINER_IMAGE = "ENV_DOCKER_CONTAINER_IMAGE";
   public static final String SET_MONITOR_INTERVAL_METHOD = "setMonitorInterval";
 
   // File Permission
@@ -55,7 +55,6 @@ public class Constants {
   public static final String JOB_NAME = "JOB_NAME";
   public static final String SESSION_ID = "SESSION_ID";
   public static final String PREPROCESSING_JOB = "PREPROCESSING_JOB";
-  public static final String PY4JGATEWAY = "PY4J_GATEWAY_PORT";
 
   // Environment variables for resource localization
   public static final String TONY_CONF_PREFIX = "TONY_CONF";
@@ -73,6 +72,8 @@ public class Constants {
   public static final String PYTHON_VENV_DIR = "venv";
   public static final String TASK_PARAM_KEY = "MODEL_PARAMS";
 
+  public static final String AM_HOST = "AM_HOST";
+  public static final String AM_PORT = "AM_PORT";
   public static final String AM_STDOUT_FILENAME = "amstdout.log";
   public static final String AM_STDERR_FILENAME = "amstderr.log";
 
@@ -113,6 +114,7 @@ public class Constants {
   public static final String TONY_HISTORY_INTERMEDIATE = "intermediate";
 
   // Configuration related constants
+  public static final String APP_TYPE = "TONY";
   // Name of the file containing all configuration keys and their default values
   public static final String TONY_DEFAULT_XML = "tony-default.xml";
   // Default file name of user-provided configuration file
@@ -128,6 +130,28 @@ public class Constants {
   public static final String MEMORY = "memory";
   public static final String VCORES = "vcores";
   public static final String GPUS = "gpus";
+
+  // pid environment variable set by YARN
+  public static final String JVM_PID = "JVM_PID";
+
+  // Metrics
+  public static final String METRICS_RPC_PORT = "METRICS_RPC_PORT";
+  public static final String MAX_MEMORY_BYTES = "MAX_MEMORY_BYTES";
+  public static final String AVG_MEMORY_BYTES = "AVG_MEMORY_BYTES";
+  // Maximum percent of time one or more kernels was executing on GPU
+  public static final String MAX_GPU_UTILIZATION = "MAX_GPU_UTILIZATION";
+  // Average across GPUs of percent of time one or more kernels was executing on GPU
+  public static final String AVG_GPU_UTILIZATION = "AVG_GPU_UTILIZATION";
+  // Maximum total percentage GPU on-board frame buffer memory used
+  public static final String MAX_GPU_FB_MEMORY_USAGE = "MAX_GPU_FB_MEMORY_USAGE";
+  // Average across GPUs of percentage on-board frame buffer memory used
+  public static final String AVG_GPU_FB_MEMORY_USAGE = "AVG_GPU_FB_MEMORY_USAGE";
+  // Maximum BAR1 (used to map FB for direct access by CPU) memory used
+  public static final String MAX_GPU_MAIN_MEMORY_USAGE = "MAX_GPU_MAIN_MEMORY_USAGE";
+  // Average across GPUs of BAR1 memory used
+  public static final String AVG_GPU_MAIN_MEMORY_USAGE = "AVG_GPU_MAIN_MEMORY_USAGE";
+
+  public static final int MAX_REPEATED_GPU_ERROR_ALLOWED = 10;
 
   private Constants() { }
 }

@@ -1,0 +1,12 @@
+@(metadataList: Collection[JobMetadata])
+
+  @main("Jobs' Metadata") {
+
+    <section id="content">
+      <div class="wrapper doc">
+        <article>
+        @tableMetadata(metadataList)
+        </article>
+      </div>
+    </section>
+  }

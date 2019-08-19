@@ -21,10 +21,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
@@ -34,6 +36,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,6 +44,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.URL;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -54,7 +59,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -214,9 +218,8 @@ public class Utils {
     log.info(String.format("Logs for %s %s at: %s", taskInfo.getName(), taskInfo.getIndex(), taskInfo.getUrl()));
   }
 
-  public static void printTHSUrl(String thsHost, String appId, Log log) {
-    log.info(
-            String.format("Link for %s's events/metrics: %s/%s/%s", appId, thsHost, Constants.JOBS_SUFFIX, appId));
+  public static void printTonyPortalUrl(String portalUrl, String appId, Log log) {
+    log.info(String.format("Link for %s's events/metrics: %s/%s/%s", appId, portalUrl, Constants.JOBS_SUFFIX, appId));
   }
 
   /**
@@ -278,7 +281,9 @@ public class Utils {
     String executablePath = taskCommand.trim().split(" ")[0];
     File executable = new File(executablePath);
     if (!executable.canExecute()) {
-      executable.setExecutable(true);
+      if (!executable.setExecutable(true)) {
+        LOG.warn("Failed to make " + executable + " executable");
+      }
     }
 
     // Used for running unit tests in build boxes without Hadoop environment.
@@ -288,6 +293,8 @@ public class Utils {
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", taskCommand);
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
     taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+    // Unset MALLOC_ARENA_MAX for better performance, see https://github.com/linkedin/TonY/issues/346 
+    taskProcessBuilder.environment().remove("MALLOC_ARENA_MAX");
     if (env != null) {
       taskProcessBuilder.environment().putAll(env);
     }
@@ -303,6 +310,24 @@ public class Utils {
 
   public static String getCurrentHostName() {
     return System.getenv(ApplicationConstants.Environment.NM_HOST.name());
+  }
+
+  public static String getHostNameOrIpFromTokenConf(Configuration conf)
+      throws YarnException, SocketException {
+    boolean useIp = conf.getBoolean(
+        CommonConfigurationKeys.HADOOP_SECURITY_TOKEN_SERVICE_USE_IP,
+        CommonConfigurationKeys.HADOOP_SECURITY_TOKEN_SERVICE_USE_IP_DEFAULT);
+    String hostName =
+        System.getenv(ApplicationConstants.Environment.NM_HOST.name());
+    if (useIp) {
+      InetAddress ip = NetUtils.getLocalInetAddress(hostName);
+      if (ip == null) {
+        throw new YarnException("Can't resolve the ip of " + hostName);
+      }
+      return ip.getHostAddress();
+    } else {
+      return hostName;
+    }
   }
 
   public static void addEnvironmentForResource(LocalResource resource, FileSystem fs, String envPrefix,
@@ -329,8 +354,7 @@ public class Utils {
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
     for (String jobName : jobNames) {
-      int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName),
-              TonyConfigurationKeys.getDefaultInstances(jobName));
+      int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName), 0);
       String memoryString = conf.get(TonyConfigurationKeys.getResourceKey(jobName, Constants.MEMORY),
               TonyConfigurationKeys.DEFAULT_MEMORY);
       long memory = Long.parseLong(parseMemoryString(memoryString));
@@ -358,6 +382,11 @@ public class Utils {
     return conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
         .map(Utils::getTaskType)
         .collect(Collectors.toSet());
+  }
+
+  public static int getNumTotalTasks(Configuration conf) {
+    return getAllJobTypes(conf).stream().mapToInt(type -> conf.getInt(TonyConfigurationKeys.getInstancesKey(type), 0))
+        .sum();
   }
 
   /**
@@ -465,7 +494,7 @@ public class Utils {
             addResource(fileStatus.getPath().toString(), resourcesMap, fs);
           }
         } else {
-          resourcesMap.put(localizableResource.getLocalFileName(), localizableResource.toLocalResource());
+          resourcesMap.put(localizableResource.getLocalizedFileName(), localizableResource.toLocalResource());
         }
       }
     } catch (IOException | ParseException exception) {
@@ -477,12 +506,12 @@ public class Utils {
     return "http://" + yarnConf.get(YarnConfiguration.RM_WEBAPP_ADDRESS) + "/cluster/app/" + appId;
   }
 
-  public static void printWorkerTasksCompleted(AtomicInteger completedWTasks, long totalWTasks) {
-    if (completedWTasks.get() == totalWTasks) {
-      LOG.info("Completed all " + totalWTasks + " worker tasks.");
+  public static void printCompletedTrackedTasks(int completedTrackedTasks, int totalTrackedTasks) {
+    if (completedTrackedTasks == totalTrackedTasks) {
+      LOG.info("Completed all " + totalTrackedTasks + " tracked tasks.");
       return;
     }
-    LOG.info("Completed worker tasks: " + completedWTasks.get() + " out of " + totalWTasks + " worker tasks.");
+    LOG.info("Completed " + completedTrackedTasks + " out of " + totalTrackedTasks + " tracked tasks.");
   }
 
   public static String parseClusterSpecForPytorch(String clusterSpec) throws IOException {
@@ -497,11 +526,11 @@ public class Utils {
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
   }
 
-  public static void createDir(FileSystem fs, Path dir, FsPermission permission) {
+  public static void createDirIfNotExists(FileSystem fs, Path dir, FsPermission permission) {
     String warningMsg;
     try {
       if (!fs.exists(dir)) {
-        fs.mkdirs(dir);
+        fs.mkdirs(dir, permission);
         fs.setPermission(dir, permission);
         return;
       }
@@ -513,10 +542,12 @@ public class Utils {
     }
   }
 
+  public static String[] getUntrackedJobTypes(Configuration conf) {
+    return conf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES, TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
+  }
+
   public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
-    String[] ignoredJobTypes = tonyConf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES,
-            TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
-    return !Arrays.asList(ignoredJobTypes).contains(taskName);
+    return !Arrays.asList(getUntrackedJobTypes(tonyConf)).contains(taskName);
   }
 
   public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,
@@ -573,6 +604,64 @@ public class Utils {
     if (new File(siteConfName).exists()) {
       conf.addResource(new Path(siteConfName));
     }
+  }
+
+  public static void extractResources() {
+    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
+      LOG.info("Unpacking src directory..");
+      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
+    }
+    File venvZip = new File(Constants.PYTHON_VENV_ZIP);
+    if (venvZip.exists() && venvZip.isFile()) {
+      LOG.info("Unpacking Python virtual environment.. ");
+      Utils.unzipArchive(Constants.PYTHON_VENV_ZIP, Constants.PYTHON_VENV_DIR);
+    } else {
+      LOG.info("No virtual environment uploaded.");
+    }
+  }
+
+  /**
+   * Parses Docker related configs and get required container launching environment.
+   * Uses reflection to support older versions of Hadoop.
+   */
+  public static Map<String, String> getContainerEnvForDocker(Configuration tonyConf, String jobType) {
+    Map<String, String> containerEnv = new HashMap<>();
+    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
+      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
+      String jobImagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType));
+      if (jobImagePath != null) {
+        imagePath = jobImagePath;
+      }
+      if (imagePath == null) {
+        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
+        return containerEnv;
+      } else {
+        Class containerRuntimeClass = null;
+        Class dockerRuntimeClass = null;
+        try {
+          containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
+          dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
+        } catch (ClassNotFoundException e) {
+          LOG.error("Docker runtime classes not found in this version ("
+                        + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
+        }
+        if (dockerRuntimeClass != null) {
+          try {
+            String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
+            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_IMAGE).get(null);
+            containerEnv.put(envContainerType, "docker");
+            containerEnv.put(envDockerImage, imagePath);
+          } catch (NoSuchFieldException e) {
+            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
+                          + "found in " + containerRuntimeClass.getName());
+          } catch (IllegalAccessException e) {
+            LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
+                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.");
+          }
+        }
+      }
+    }
+    return containerEnv;
   }
 
   private Utils() { }

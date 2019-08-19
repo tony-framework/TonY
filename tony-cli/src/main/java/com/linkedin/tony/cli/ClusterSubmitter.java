@@ -21,7 +21,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
-import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.Constants.CORE_SITE_CONF;
+import static com.linkedin.tony.Constants.HADOOP_CONF_DIR;
+import static com.linkedin.tony.Constants.HDFS_SITE_CONF;
+import static com.linkedin.tony.Constants.TONY_FOLDER;
+import static com.linkedin.tony.Constants.TONY_JAR_NAME;
 
 
 /**
@@ -38,9 +42,6 @@ public class ClusterSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(ClusterSubmitter.class);
   private TonyClient client;
 
-  private ClusterSubmitter() {
-    this(new TonyClient(new Configuration()));
-  }
   public ClusterSubmitter(TonyClient client) {
     this.client = client;
   }
@@ -84,8 +85,10 @@ public class ClusterSubmitter extends TonySubmitter {
 
   public static void main(String[] args) throws ParseException, URISyntaxException {
     int exitCode;
-    ClusterSubmitter submitter = new ClusterSubmitter();
-    exitCode = submitter.submit(args);
+    try (TonyClient tonyClient = new TonyClient(new Configuration())) {
+      ClusterSubmitter submitter = new ClusterSubmitter(tonyClient);
+      exitCode = submitter.submit(args);
+    }
     System.exit(exitCode);
   }
 }

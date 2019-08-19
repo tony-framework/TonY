@@ -8,7 +8,10 @@ import com.linkedin.tony.Constants;
 import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -17,10 +20,18 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
+
 
 public class TestParserUtils {
+  private static final ClassLoader CLASSLOADER = TestParserUtils.class.getClassLoader();
+
   private static FileSystem fs = null;
   private YarnConfiguration yarnConf = new YarnConfiguration();
 
@@ -110,6 +121,13 @@ public class TestParserUtils {
   }
 
   @Test
+  public void testConfigMissingElements() {
+    Path jobFolder = new Path(CLASSLOADER.getResource("application_123_456").getFile());
+    List<JobConfig> actualConfigs = ParserUtils.parseConfig(fs, jobFolder);
+    assertEquals(actualConfigs.size(), 3);
+  }
+
+  @Test
   public void testParseConfigFailIOException() throws IOException {
     Path jobFolder = new Path(Constants.TONY_CORE_SRC + "test/resources/typicalHistFolder/job1");
     FileSystem mockFs = mock(FileSystem.class);
@@ -117,5 +135,20 @@ public class TestParserUtils {
 
     List<JobConfig> loc = ParserUtils.parseConfig(mockFs, jobFolder);
     assertEquals(0, loc.size());
+  }
+
+  @Test
+  public void testGetYearMonthDayDirectory() {
+    Instant instant = Instant.ofEpochMilli(1559155036000L);
+    Date date = Date.from(instant);
+    ZoneId utc = ZoneId.of("UTC");
+    ZoneId gmt6 = ZoneId.of("GMT+6");
+    String expectedUTCDirectoryStr = "2019/05/29";
+    String expectedGMT6DirectoryStr = "2019/05/30";
+
+    String actualUTCDirectoryStr = ParserUtils.getYearMonthDayDirectory(date, utc);
+    String actualGMT6DirectoryStr = ParserUtils.getYearMonthDayDirectory(date, gmt6);
+    assertEquals(actualUTCDirectoryStr, expectedUTCDirectoryStr);
+    assertEquals(actualGMT6DirectoryStr, expectedGMT6DirectoryStr);
   }
 }
