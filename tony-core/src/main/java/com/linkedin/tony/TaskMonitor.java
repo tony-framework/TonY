@@ -158,7 +158,7 @@ class TaskMonitor implements Runnable {
         return;
       }
 
-      LOG.warn("Failed to collect GPU metrics at " + (numRefreshes + 1) + "th run, retry...", e);
+      LOG.warn("Failed to collect GPU metrics, attempt: " + (numRefreshes + 1) + ", retry...", e);
     }
   }
 
