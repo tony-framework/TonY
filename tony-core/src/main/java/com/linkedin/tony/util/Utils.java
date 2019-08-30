@@ -185,8 +185,8 @@ public class Utils {
       method.invoke(resource, Constants.GPU_URI, gpuCount);
     } catch (NoSuchMethodException nsme) {
       LOG.error("API to set GPU capability(" + Constants.SET_RESOURCE_VALUE_METHOD + ") is not "
-          + "supported in this version (" + VersionInfo.getVersion() + ") of YARN. Please request"
-          + " CPU instead.");
+          + "supported in this version (" + VersionInfo.getVersion() + ") of YARN. Please "
+          + "do not request GPU.");
       throw new RuntimeException(nsme);
     } catch (IllegalAccessException | InvocationTargetException e) {
       LOG.error("Failed to invoke '" + Constants.SET_RESOURCE_VALUE_METHOD + "' method to set GPU resources", e);
