@@ -92,14 +92,22 @@ public class TaskExecutor {
     }
   }
 
+  /**
+   * Release the reserved ports if any. This method has to be invoked after ports are
+   * created.
+   * @throws IOException
+   */
   private void releasePorts() throws IOException {
-    if (this.rpcSocket != null) {
-      this.rpcSocket.close();
-    }
-
-    if(this.tbSocket != null) {
-      this.tbSocket.close();
-    }
+      try {
+        if (this.rpcSocket != null) {
+          this.rpcSocket.close();
+        }
+      }
+      finally {
+        if(this.tbSocket != null) {
+          this.tbSocket.close();
+        }
+      }
   }
 
   private static TaskExecutor createExecutor() throws Exception {
@@ -121,7 +129,6 @@ public class TaskExecutor {
 
     executor.setupPorts();
     executor.clusterSpec = executor.registerAndGetClusterSpec();
-    executor.releasePorts();
 
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
