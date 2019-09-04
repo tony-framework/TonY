@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 
 import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Content that we want to run in the containers. TaskExecutor will register itself with AM and fetch cluster spec from
@@ -166,12 +167,12 @@ public class TaskExecutor {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = null;
     try {
-      executor = createExecutor();
+      executor = requireNonNull(createExecutor());
     } finally {
-      executor.releasePorts();
+      if (executor != null) {
+        executor.releasePorts();
+      }
     }
-
-    assert executor != null;
 
     int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
     // START - worker skew testing:
