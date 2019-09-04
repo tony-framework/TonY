@@ -101,9 +101,8 @@ public class TaskExecutor {
         if (this.rpcSocket != null) {
           this.rpcSocket.close();
         }
-      }
-      finally {
-        if(this.tbSocket != null) {
+      } finally {
+        if (this.tbSocket != null) {
           this.tbSocket.close();
         }
       }
@@ -168,8 +167,7 @@ public class TaskExecutor {
     TaskExecutor executor = null;
     try {
       executor = createExecutor();
-    }
-    finally {
+    } finally {
       executor.releasePorts();
     }
 
