@@ -93,8 +93,7 @@ public class TaskExecutor {
   }
 
   /**
-   * Release the reserved ports if any. This method has to be invoked after ports are
-   * created.
+   * Release the reserved ports if any. This method has to be invoked after ports are created.
    * @throws IOException
    */
   private void releasePorts() throws IOException {
