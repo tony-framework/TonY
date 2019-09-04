@@ -70,15 +70,15 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
+
   /**
-   * We bind to random ports and then release them, and these are the ports used by the task.
-   * However, there is the possibility that another process grabs the port between when it's released and used again.
+   * We bind to random ports and reserve them up until before the underlying TF process is launched.
+   * @See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for details.
    */
   private void setupPorts() throws IOException {
     // Reserve a rpcSocket rpcPort.
     this.rpcSocket = new ServerSocket(0);
     this.rpcPort = this.rpcSocket.getLocalPort();
-    this.rpcSocket.close();
     LOG.info("Reserved rpcPort: " + this.rpcPort);
 
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
@@ -86,17 +86,24 @@ public class TaskExecutor {
     if (isChief) {
       this.tbSocket = new ServerSocket(0);
       this.tbPort = this.tbSocket.getLocalPort();
-      this.tbSocket.close();
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort));
       LOG.info("Reserved tbPort: " + this.tbPort);
     }
   }
 
-  public static void main(String[] unused) throws Exception {
-    LOG.info("TaskExecutor is running..");
-    TaskExecutor executor = new TaskExecutor();
+  private void releasePorts() throws IOException {
+    if (this.rpcSocket != null) {
+      this.rpcSocket.close();
+    }
 
+    if(this.tbSocket != null) {
+      this.tbSocket.close();
+    }
+  }
+
+  private static TaskExecutor createExecutor() throws Exception {
+    TaskExecutor executor = new TaskExecutor();
     executor.initConfigs();
     Utils.extractResources();
 
@@ -105,7 +112,7 @@ public class TaskExecutor {
 
     LOG.info("Setting up metrics RPC client, connecting to: " + executor.amHost + ":" + executor.metricsRPCPort);
     executor.metricsProxy = RPC.getProxy(MetricsRpc.class, RPC.getProtocolVersion(MetricsRpc.class),
-            new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
+        new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
     executor.scheduledThreadPool.scheduleAtFixedRate(
         new TaskMonitor(executor.jobName, executor.taskIndex, executor.yarnConf, executor.tonyConf, executor.metricsProxy),
         0,
@@ -114,6 +121,8 @@ public class TaskExecutor {
 
     executor.setupPorts();
     executor.clusterSpec = executor.registerAndGetClusterSpec();
+    executor.releasePorts();
+
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
       throw new Exception("Failed to register worker with AM.");
@@ -146,6 +155,19 @@ public class TaskExecutor {
       default:
         throw new RuntimeException("Unsupported executor framework: " + executor.framework);
     }
+    return executor;
+  }
+  public static void main(String[] unused) throws Exception {
+    LOG.info("TaskExecutor is running..");
+    TaskExecutor executor = null;
+    try {
+      executor = createExecutor();
+    }
+    finally {
+      executor.releasePorts();
+    }
+
+    assert executor != null;
 
     int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
     // START - worker skew testing:
