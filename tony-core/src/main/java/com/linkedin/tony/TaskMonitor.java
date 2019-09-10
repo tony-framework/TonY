@@ -31,10 +31,9 @@ class TaskMonitor implements Runnable {
   private ResourceCalculatorProcessTree resourceCalculator;
   private GpuDiscoverer gpuDiscoverer;
 
-  public static final List<String> METRICS_TO_COLLECT = ImmutableList.of(Constants.MAX_MEMORY_BYTES,
-      Constants.AVG_MEMORY_BYTES, Constants.MAX_GPU_UTILIZATION, Constants.AVG_GPU_UTILIZATION,
-      Constants.MAX_GPU_FB_MEMORY_USAGE, Constants.AVG_GPU_FB_MEMORY_USAGE,
-      Constants.MAX_GPU_MAIN_MEMORY_USAGE, Constants.AVG_GPU_MAIN_MEMORY_USAGE);
+  public static final List<String> METRICS_TO_COLLECT =
+      ImmutableList.of(Constants.MAX_MEMORY_BYTES, Constants.AVG_MEMORY_BYTES, Constants.MAX_GPU_UTILIZATION, Constants.AVG_GPU_UTILIZATION,
+          Constants.MAX_GPU_FB_MEMORY_USAGE, Constants.AVG_GPU_FB_MEMORY_USAGE, Constants.MAX_GPU_MAIN_MEMORY_USAGE, Constants.AVG_GPU_MAIN_MEMORY_USAGE);
 
   public static final int MAX_MEMORY_BYTES_INDEX = 0;
   public static final int AVG_MEMORY_BYTES_INDEX = 1;
@@ -46,14 +45,14 @@ class TaskMonitor implements Runnable {
   public static final int AVG_GPU_MAIN_MEMORY_USAGE_INDEX = 7;
 
   private Boolean isGpuMachine;
+  private Boolean gpuMetricsEnabled;
 
   private MetricsWritable metrics = new MetricsWritable(METRICS_TO_COLLECT.size());
 
   @VisibleForTesting
   protected int numRefreshes = 0;
 
-  TaskMonitor(String taskType, int taskIndex,
-      Configuration yarnConf, Configuration tonyConf, MetricsRpc metricsRpcClient) {
+  TaskMonitor(String taskType, int taskIndex, Configuration yarnConf, Configuration tonyConf, MetricsRpc metricsRpcClient) {
     this.taskType = taskType;
     this.taskIndex = taskIndex;
 
@@ -64,7 +63,7 @@ class TaskMonitor implements Runnable {
     LOG.info("Task pid is: " + pid);
 
     isGpuMachine = checkIsGpuMachine(tonyConf);
-    boolean gpuMetricsEnabled = tonyConf.getBoolean(TonyConfigurationKeys.TASK_GPU_METRICS_ENABLED,
+    gpuMetricsEnabled = tonyConf.getBoolean(TonyConfigurationKeys.TASK_GPU_METRICS_ENABLED,
         TonyConfigurationKeys.DEFAULT_TASK_GPU_METRICS_ENABLED);
 
     this.resourceCalculator = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, null, yarnConf);
@@ -82,8 +81,7 @@ class TaskMonitor implements Runnable {
   }
 
   private boolean checkIsGpuMachine(Configuration conf) {
-    int numWorkerGpus = conf.getInt(
-        TonyConfigurationKeys.getResourceKey(taskType, "gpus"), 0);
+    int numWorkerGpus = conf.getInt(TonyConfigurationKeys.getResourceKey(taskType, "gpus"), 0);
     LOG.info("Number of GPUs requested for " + taskType + ": " + numWorkerGpus);
     return numWorkerGpus > 0;
   }
@@ -100,7 +98,7 @@ class TaskMonitor implements Runnable {
 
   private void refreshMetrics() {
     refreshMemoryBytesMetrics();
-    if (isGpuMachine) {
+    if (isGpuMachine && gpuMetricsEnabled) {
       refreshGPUMetrics();
     }
     numRefreshes++;
@@ -126,23 +124,23 @@ class TaskMonitor implements Runnable {
           .average()
           .getAsDouble();
       double maxGpuFBMemoryUsage = gpuInfo.getGpus().stream()
-          .mapToDouble((x ->
-              ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
+          .mapToDouble(
+              (x -> ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
           .max()
           .getAsDouble();
       double avgGpuFBMemoryUsage = gpuInfo.getGpus().stream()
-          .mapToDouble((x ->
-              ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
+          .mapToDouble(
+              (x -> ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
           .average()
           .getAsDouble();
       double maxGpuMainMemoryUsage = gpuInfo.getGpus().stream()
-          .mapToDouble((x ->
-              ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB() * 100)))
+          .mapToDouble((x -> ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB()
+              * 100)))
           .max()
           .getAsDouble();
       double avgGpuMainMemoryUsage = gpuInfo.getGpus().stream()
-          .mapToDouble((x ->
-              ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB() * 100)))
+          .mapToDouble((x -> ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB()
+              * 100)))
           .average()
           .getAsDouble();
 
@@ -160,8 +158,7 @@ class TaskMonitor implements Runnable {
         return;
       }
 
-      LOG.warn("Failed to collect GPU metrics on attempt " + (numRefreshes + 1) + ", retrying...",
-          e);
+      LOG.warn("Failed to collect GPU metrics on attempt " + (numRefreshes + 1) + ", retrying...", e);
     }
   }
 
@@ -183,4 +180,6 @@ class TaskMonitor implements Runnable {
 
   @VisibleForTesting
   MetricsWritable getMetrics() {
-    return this.
+    return this.metrics;
+  }
+}
