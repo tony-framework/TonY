@@ -32,8 +32,9 @@ class TaskMonitor implements Runnable {
   private GpuDiscoverer gpuDiscoverer;
 
   public static final List<String> METRICS_TO_COLLECT =
-      ImmutableList.of(Constants.MAX_MEMORY_BYTES, Constants.AVG_MEMORY_BYTES, Constants.MAX_GPU_UTILIZATION, Constants.AVG_GPU_UTILIZATION,
-          Constants.MAX_GPU_FB_MEMORY_USAGE, Constants.AVG_GPU_FB_MEMORY_USAGE, Constants.MAX_GPU_MAIN_MEMORY_USAGE, Constants.AVG_GPU_MAIN_MEMORY_USAGE);
+      ImmutableList.of(Constants.MAX_MEMORY_BYTES, Constants.AVG_MEMORY_BYTES, Constants.MAX_GPU_UTILIZATION,
+          Constants.AVG_GPU_UTILIZATION, Constants.MAX_GPU_FB_MEMORY_USAGE, Constants.AVG_GPU_FB_MEMORY_USAGE,
+          Constants.MAX_GPU_MAIN_MEMORY_USAGE, Constants.AVG_GPU_MAIN_MEMORY_USAGE);
 
   public static final int MAX_MEMORY_BYTES_INDEX = 0;
   public static final int AVG_MEMORY_BYTES_INDEX = 1;
@@ -52,7 +53,8 @@ class TaskMonitor implements Runnable {
   @VisibleForTesting
   protected int numRefreshes = 0;
 
-  TaskMonitor(String taskType, int taskIndex, Configuration yarnConf, Configuration tonyConf, MetricsRpc metricsRpcClient) {
+  TaskMonitor(String taskType, int taskIndex,
+      Configuration yarnConf, Configuration tonyConf, MetricsRpc metricsRpcClient) {
     this.taskType = taskType;
     this.taskIndex = taskIndex;
 
@@ -125,21 +127,26 @@ class TaskMonitor implements Runnable {
           .getAsDouble();
       double maxGpuFBMemoryUsage = gpuInfo.getGpus().stream()
           .mapToDouble(
-              (x -> ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
+              (x -> ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB()
+                  * 100)))
           .max()
           .getAsDouble();
       double avgGpuFBMemoryUsage = gpuInfo.getGpus().stream()
           .mapToDouble(
-              (x -> ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB() * 100)))
+              (x ->
+                  ((double) x.getGpuFBMemoryUsage().getUsedMemoryMiB() / x.getGpuFBMemoryUsage().getTotalMemoryMiB()
+                      * 100)))
           .average()
           .getAsDouble();
       double maxGpuMainMemoryUsage = gpuInfo.getGpus().stream()
-          .mapToDouble((x -> ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB()
+          .mapToDouble((x ->
+              ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB()
               * 100)))
           .max()
           .getAsDouble();
       double avgGpuMainMemoryUsage = gpuInfo.getGpus().stream()
-          .mapToDouble((x -> ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB()
+          .mapToDouble((x ->
+              ((double) x.getGpuMainMemoryUsage().getUsedMemoryMiB() / x.getGpuMainMemoryUsage().getTotalMemoryMiB()
               * 100)))
           .average()
           .getAsDouble();
