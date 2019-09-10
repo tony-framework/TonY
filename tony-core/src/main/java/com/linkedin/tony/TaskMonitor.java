@@ -64,9 +64,11 @@ class TaskMonitor implements Runnable {
     LOG.info("Task pid is: " + pid);
 
     isGpuMachine = checkIsGpuMachine(tonyConf);
+    boolean gpuMetricsEnabled = tonyConf.getBoolean(TonyConfigurationKeys.TASK_GPU_METRICS_ENABLED,
+        TonyConfigurationKeys.DEFAULT_TASK_GPU_METRICS_ENABLED);
 
     this.resourceCalculator = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, null, yarnConf);
-    if (isGpuMachine) {
+    if (isGpuMachine && gpuMetricsEnabled) {
       this.gpuDiscoverer = GpuDiscoverer.getInstance();
       this.gpuDiscoverer.initialize(yarnConf);
     }
@@ -181,6 +183,4 @@ class TaskMonitor implements Runnable {
 
   @VisibleForTesting
   MetricsWritable getMetrics() {
-    return this.metrics;
-  }
-}
+    return this.
