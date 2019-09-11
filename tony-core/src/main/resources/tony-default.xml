@@ -101,6 +101,12 @@
     <value>5000</value>
   </property>
 
+  <property>
+    <description>Whether or not to enable GPU metrics collection.</description>
+    <name>tony.task.gpu-metrics.enabled</name>
+    <value>true</value>
+  </property>
+
   <!-- AM configurations -->
   <property>
     <description>How many times a failed AM should retry.</description>

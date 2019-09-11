@@ -140,6 +140,9 @@ public class TonyConfigurationKeys {
   public static final String TASK_METRICS_UPDATE_INTERVAL_MS = TONY_TASK_PREFIX + "metrics-interval-ms";
   public static final int DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS = 5000;
 
+  public static final String TASK_GPU_METRICS_ENABLED = TONY_TASK_PREFIX + "gpu-metrics.enabled";
+  public static final boolean DEFAULT_TASK_GPU_METRICS_ENABLED = true;
+
   // AM configurations
   public static final String AM_PREFIX = TONY_PREFIX + "am.";
 
