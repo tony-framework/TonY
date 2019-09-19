@@ -46,6 +46,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.net.URL;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -527,6 +528,35 @@ public class Utils {
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
   }
 
+  public static String[] parseClusterSpecForMXNet(String clusterSpec) throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    Map<String, List<String>> clusterSpecMap =
+            objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+    String serverAddress = clusterSpecMap.get(Constants.SCHEDULER_JOB_NAME).get(0);
+    LOG.info("Parsed ServerAddress " + serverAddress);
+    if (serverAddress == null) {
+      LOG.error("Failed to get server address from cluster spec.");
+      return null;
+    }
+    String[] splitAddress = splitAddressPort(serverAddress);
+    if (splitAddress == null) {
+        LOG.error("Failed to split address: " + serverAddress);
+        return null;
+    }
+    try {
+        splitAddress[0] = resolveNameToIpAddress(splitAddress[0]);
+    } catch (UnknownHostException e) {
+        LOG.error("Cannot resolve ipaddress of " + splitAddress[0]);
+        return null;
+    }
+    return splitAddress;
+  }
+
+  public static String resolveNameToIpAddress(String hostname) throws UnknownHostException {
+    InetAddress address = InetAddress.getByName(hostname);
+    return address.getHostAddress();
+  }
+
   public static void createDirIfNotExists(FileSystem fs, Path dir, FsPermission permission) {
     String warningMsg;
     try {
@@ -562,6 +592,16 @@ public class Utils {
       dstAddress += Constants.ARCHIVE_SUFFIX;
     }
     appendConfResources(resourceKey, dstAddress, tonyConf);
+  }
+
+  public static String[] splitAddressPort(String hostname) {
+    String hostPattern = "([\\w\\.\\-]+):(\\d+)";
+    Pattern p = Pattern.compile(hostPattern);
+    Matcher m = p.matcher(hostname);
+    if (m.matches()) {
+        return new String[]{m.group(1), m.group(2)};
+    }
+    return null;
   }
 
   public static void appendConfResources(String key, String resource, Configuration tonyConf) {

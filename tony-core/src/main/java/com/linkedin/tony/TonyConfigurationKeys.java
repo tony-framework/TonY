@@ -12,7 +12,8 @@ public class TonyConfigurationKeys {
   public enum MLFramework {
     TENSORFLOW,
     PYTORCH,
-    HOROVOD
+    HOROVOD,
+    MXNET
   }
 
   private TonyConfigurationKeys() {

@@ -50,6 +50,14 @@ public class Constants {
   public static final String WORLD = "WORLD";
   public static final String INIT_METHOD = "INIT_METHOD";
 
+  // MXNET Constants
+  public static final String DMLC_ROLE = "DMLC_ROLE";
+  public static final String DMLC_PS_ROOT_URI = "DMLC_PS_ROOT_URI";
+  public static final String DMLC_PS_ROOT_PORT = "DMLC_PS_ROOT_PORT";
+  public static final String DMLC_NUM_SERVER = "DMLC_NUM_SERVER";
+  public static final String DMLC_NUM_WORKER = "DMLC_NUM_WORKER";
+  public static final String PS_VERBOSE = "PS_VERBOSE";
+
   // Distributed TensorFlow job name, e.g. "ps" or "worker",
   // as per https://www.tensorflow.org/deploy/distributed
   public static final String JOB_NAME = "JOB_NAME";
@@ -91,6 +99,8 @@ public class Constants {
 
   public static final String AM_NAME = "am";
   public static final String CHIEF_JOB_NAME = "chief";
+  public static final String SCHEDULER_JOB_NAME = "scheduler";
+  public static final String SERVER_JOB_NAME = "server";
   public static final String PS_JOB_NAME = "ps";
   public static final String WORKER_JOB_NAME = "worker";
   public static final String NOTEBOOK_JOB_NAME = "notebook";

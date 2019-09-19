@@ -154,6 +154,27 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
         executor.shellEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
+      case MXNET:
+        LOG.info("Setting up MXNet job...");
+        String[] dmlcServer = Utils.parseClusterSpecForMXNet(executor.clusterSpec);
+        if (dmlcServer == null) {
+          System.exit(-1);
+        }
+        int numServer = executor.tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.SERVER_JOB_NAME), 0);
+        int numWorker = executor.tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 0);
+        LOG.info("init DMLC is: " + dmlcServer[0] + " port: " + dmlcServer[1]);
+        LOG.info("init DMLC ROLE: " + executor.jobName);
+        LOG.info("init DMLC NUM_PS: " + numServer);
+        LOG.info("init DMLC NUM_WORKER: " + numWorker);
+        executor.shellEnv.put(Constants.DMLC_ROLE, executor.jobName);
+        executor.shellEnv.put(Constants.DMLC_PS_ROOT_URI, dmlcServer[0]);
+        executor.shellEnv.put(Constants.DMLC_PS_ROOT_PORT, dmlcServer[1]);
+        executor.shellEnv.put("DMLC_LOCAL", "0");
+        //executor.shellEnv.put("DMLC_USE_KUBERNETES", "0");
+        executor.shellEnv.put(Constants.DMLC_NUM_SERVER, String.valueOf(numServer));
+        executor.shellEnv.put(Constants.DMLC_NUM_WORKER, String.valueOf(numWorker));
+        //executor.shellEnv.put(Constants.PS_VERBOSE, "2");
+        break;
       case HOROVOD:
         // No extra environment variables needed; horovodrun takes care of setup.
         // Setting TF_CONFIG causes problems if "chief" isn't set.
