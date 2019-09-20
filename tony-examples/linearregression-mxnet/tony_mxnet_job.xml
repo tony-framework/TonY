@@ -1,0 +1,38 @@
+<configuration>
+  <property>
+    <name>tony.application.security.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>tony.scheduler.instances</name>
+    <value>1</value>
+  </property>
+  <property>
+    <name>tony.server.instances</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>tony.ps.instances</name>
+    <value>0</value>
+  </property>
+  <property>
+    <name>tony.worker.instances</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>tony.worker.vcores</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>tony.worker.memory</name>
+    <value>4G</value>
+  </property>
+  <property>
+    <name>tony.application.framework</name>
+    <value>mxnet</value>
+  </property>
+  <property>
+    <name>tony.application.name</name>
+    <value>mxnet - linearregression</value>
+  </property>
+</configuration>
