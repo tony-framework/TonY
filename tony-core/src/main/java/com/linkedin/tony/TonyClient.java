@@ -118,7 +118,6 @@ public class TonyClient implements AutoCloseable {
   private String executes;
   private long appTimeout;
   private boolean secureMode;
-  private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
   private String tonyFinalConfPath;
@@ -416,12 +415,10 @@ public class TonyClient implements AutoCloseable {
     if (tonyConf.get(TonyConfigurationKeys.EXECUTION_ENV) != null) {
       String[] envs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
       executionEnvPair.addAll(Arrays.asList(envs));
-      shellEnv.putAll(Utils.parseKeyValue(envs));
     }
     if (cliParser.hasOption("shell_env")) {
       String[] envs = cliParser.getOptionValues("shell_env");
       executionEnvPair.addAll(Arrays.asList(envs));
-      shellEnv.putAll(Utils.parseKeyValue(envs));
     }
     if (!executionEnvPair.isEmpty()) {
       tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
