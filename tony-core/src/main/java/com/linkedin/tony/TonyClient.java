@@ -226,7 +226,7 @@ public class TonyClient implements AutoCloseable {
 
   @VisibleForTesting
   public void submitApplication(ApplicationSubmissionContext appContext)
-      throws YarnException, IOException, URISyntaxException {
+      throws YarnException, IOException {
 
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
@@ -766,7 +766,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   // Set up delegation token
-  private ByteBuffer getTokens() throws IOException, URISyntaxException, YarnException {
+  private ByteBuffer getTokens() throws IOException, YarnException {
     if (!this.secureMode) {
       return null;
     }
