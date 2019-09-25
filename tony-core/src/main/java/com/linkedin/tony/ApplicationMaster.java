@@ -437,7 +437,7 @@ public class ApplicationMaster {
       setupJobDir(historyFs, tonyHistoryFolder, appIdString);
       writeConfigFile(historyFs, jobDir);
     } catch (IOException e) {
-      LOG.error(e);
+      LOG.error("Error while setting up history files", e);
       return false;
     }
 
@@ -957,17 +957,17 @@ public class ApplicationMaster {
 
     @Override
     public void onStartContainerError(ContainerId containerId, Throwable t) {
-      LOG.error("Failed to start container " + containerId);
+      LOG.error("Failed to start container " + containerId, t);
     }
 
     @Override
     public void onGetContainerStatusError(ContainerId containerId, Throwable t) {
-      LOG.error("Failed to query the status of container " + containerId);
+      LOG.error("Failed to query the status of container " + containerId, t);
     }
 
     @Override
     public void onStopContainerError(ContainerId containerId, Throwable t) {
-      LOG.error("Failed to stop container " + containerId);
+      LOG.error("Failed to stop container " + containerId, t);
     }
   }
 
@@ -1002,7 +1002,7 @@ public class ApplicationMaster {
         try {
           Thread.sleep(1000);
         } catch (InterruptedException e) {
-          LOG.error(e);
+          LOG.error("Interrupted while sleeping", e);
         }
       }
     }
