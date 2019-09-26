@@ -75,7 +75,7 @@ public class TaskInfo implements Comparable<TaskInfo> {
   @Override
   public String toString() {
     return String.format(
-        "[TaskInfo] name: %s, index: %s, url: %s, status: %s",
+        "[TaskInfo] name: %s, index: %s, url: %s status: %s",
         this.name, this.index, this.url, this.status.toString());
   }
 }
