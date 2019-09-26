@@ -297,7 +297,7 @@ public class TonyClient implements AutoCloseable {
           .stream()
           .min(Comparator.comparingLong(x -> x.getContainerId().getContainerId()))
           .orElseThrow(YarnException::new);
-      LOG.info("AM log url: " + amContainerReport.getLogUrl());
+      LOG.info("Driver (application master) log url: " + amContainerReport.getLogUrl());
     } catch (YarnException | IOException e) {
       LOG.warn("Failed to get containers for attemptId: " + report.getCurrentApplicationAttemptId(), e);
     }
