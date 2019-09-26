@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -69,6 +70,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.ContainerReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -257,7 +259,7 @@ public class TonyClient implements AutoCloseable {
     LOG.info("Submitting YARN application");
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
-    logTrackingAndRMUrls(report);
+    logTrackingAndAMRMUrls(report);
   }
 
   /**
@@ -285,11 +287,20 @@ public class TonyClient implements AutoCloseable {
     }
   }
 
-  private void logTrackingAndRMUrls(ApplicationReport report) {
+  private void logTrackingAndAMRMUrls(ApplicationReport report) {
     LOG.info("URL to track running application (will proxy to TensorBoard once it has started): "
              + report.getTrackingUrl());
     LOG.info("ResourceManager web address for application: "
         + Utils.buildRMUrl(yarnConf, report.getApplicationId().toString()));
+    try {
+      ContainerReport amContainerReport = yarnClient.getContainers(report.getCurrentApplicationAttemptId())
+          .stream()
+          .min(Comparator.comparingLong(x -> x.getContainerId().getContainerId()))
+          .orElseThrow(YarnException::new);
+      LOG.info("AM log url: " + amContainerReport.getLogUrl());
+    } catch (YarnException | IOException e) {
+      LOG.warn("Failed to get containers for attemptId: " + report.getCurrentApplicationAttemptId(), e);
+    }
   }
 
   private void initHdfsConf() {
