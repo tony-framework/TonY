@@ -18,7 +18,8 @@ tar xf virtualenv-16.0.0.tar.gz
 
 python virtualenv-16.0.0/virtualenv.py venv
 . venv/bin/activate
-pip install pytorch==0.4.0
+pip install torch==0.4.1
+pip install torchvision==0.1.8
 zip -r venv.zip venv
 ```
 
