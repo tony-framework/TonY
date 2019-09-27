@@ -3,7 +3,7 @@
 ![tony-logo-small](https://user-images.githubusercontent.com/544734/57793050-45b3ff00-76f5-11e9-8cc0-8ebb830b6e78.png)
 
 TonY is a framework to _natively_ run deep learning jobs on [Apache Hadoop](http://hadoop.apache.org/).
-It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow), [PyTorch](https://github.com/pytorch/pytorch), and [Horovod](https://github.com/horovod/horovod).
+It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow), [PyTorch](https://github.com/pytorch/pytorch), [MXNet](https://github.com/apache/incubator-mxnet) and [Horovod](https://github.com/horovod/horovod).
 TonY enables running either single node or distributed
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
 machine learning jobs reliably and flexibly. For a quick overview of TonY and comparisons to other frameworks, please see
@@ -205,6 +205,7 @@ Please check our [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configuration
 Below are examples to run distributed deep learning jobs with TonY:
 - [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
 - [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
+- [Linear regression with MXNet](https://github.com/linkedin/TonY/tree/master/tony-examples/linearregression-mxnet)
 - [TonY in Google Cloud Platform](https://github.com/linkedin/TonY/tree/master/tony-examples/tony-in-gcp)
 - [TonY in Azkaban video](https://youtu.be/DM89y8BGFaY)
 
