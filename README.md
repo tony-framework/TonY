@@ -233,4 +233,4 @@ For more information about TonY, check out the following:
 
 2. How do I configure arbitrary TensorFlow job types?
 
-    Please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations#task-configuration) on TensorFlow task configuration for details.
+    Please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations#task-configuration) on TensorFlow task configuration for details. 
