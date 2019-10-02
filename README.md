@@ -1,4 +1,5 @@
-# TonY [![Build Status](https://travis-ci.org/linkedin/TonY.svg?branch=master)](https://travis-ci.org/linkedin/TonY)
+# TonY 
+[![CircleCI](https://circleci.com/gh/linkedin/TonY/tree/master.svg?style=svg)](https://circleci.com/gh/linkedin/TonY/tree/master)
 
 ![tony-logo-small](https://user-images.githubusercontent.com/544734/57793050-45b3ff00-76f5-11e9-8cc0-8ebb830b6e78.png)
 
