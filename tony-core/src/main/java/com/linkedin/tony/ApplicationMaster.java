@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
@@ -129,10 +131,12 @@ public class ApplicationMaster {
 
   /** Node manager delegate **/
   private NMClientAsync nmClientAsync;
+  private ExecutorService containersLauncherThreadPool = Executors.newCachedThreadPool();
   /** Resource manager **/
   private AMRMClientAsync<ContainerRequest> amRMClient;
 
   private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
+  private Map<String, Map<String, LocalResource>> jobTypeToContainerResources = new HashMap<>();
 
   /** Tony session **/
   private TonySession session = new TonySession(); // Create a dummy session for single node training.
@@ -544,11 +548,24 @@ public class ApplicationMaster {
 
   private void scheduleTask(TensorFlowContainerRequest request) {
     AMRMClient.ContainerRequest containerAsk = setupContainerRequestForRM(request);
-    if (!jobTypeToContainerRequestsMap.containsKey(request.getJobName())) {
-      jobTypeToContainerRequestsMap.put(request.getJobName(), new ArrayList<>());
+    String jobName = request.getJobName();
+    if (!jobTypeToContainerRequestsMap.containsKey(jobName)) {
+      jobTypeToContainerRequestsMap.put(jobName, new ArrayList<>());
+      jobTypeToContainerResources.put(jobName, getContainerResources(jobName));
     }
     jobTypeToContainerRequestsMap.get(request.getJobName()).add(containerAsk);
     amRMClient.addContainerRequest(containerAsk);
+  }
+
+  private Map<String, LocalResource> getContainerResources(String jobName) {
+    Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
+    String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(jobName));
+    Utils.addResources(resources, containerResources, resourceFs);
+
+    // All resources available to all containers
+    resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
+    Utils.addResources(resources, containerResources, resourceFs);
+    return containerResources;
   }
 
   // Reset state to prepare for retryCount.
@@ -1016,7 +1033,7 @@ public class ApplicationMaster {
             + ", containerNode = " + container.getNodeId().getHost() + ":" + container.getNodeId().getPort()
             + ", resourceRequest = " + container.getResource()
             + ", priority = " + container.getPriority());
-        new ContainerLauncher(container).run();
+        containersLauncherThreadPool.execute(new ContainerLauncher(container));
       }
     }
 
@@ -1065,13 +1082,7 @@ public class ApplicationMaster {
       taskInfo.setStatus(TaskStatus.READY);
 
       // Add job type specific resources
-      Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
-      String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(task.getJobName()));
-      Utils.addResources(resources, containerResources, resourceFs);
-
-      // All resources available to all containers
-      resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
-      Utils.addResources(resources, containerResources, resourceFs);
+      Map<String, LocalResource> containerResources = jobTypeToContainerResources.get(task.getJobName());
 
       task.addContainer(container);
       LOG.info("Setting Container [" + container.getId() + "] for task [" + task.getId() + "]..");
@@ -1100,11 +1111,7 @@ public class ApplicationMaster {
       arguments.add(session.getTaskCommand());
       arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
       arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
-      StringBuilder command = new StringBuilder();
-      for (CharSequence str : arguments) {
-        command.append(str).append(" ");
-      }
-      List<String> commands = ImmutableList.of(command.toString());
+      List<String> commands = ImmutableList.of(String.join(" ", arguments));
 
       LOG.info("Constructed command: " + commands);
       LOG.info("Container environment: " + containerLaunchEnv);
