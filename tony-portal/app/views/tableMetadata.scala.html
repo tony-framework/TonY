@@ -108,7 +108,9 @@
 
     var table = $('#table_id').DataTable({
       paging: true,
-      fixedColumns: true
+      fixedColumns: true,
+      aaSorting: [],
+      "pageLength": 25
     });
 
     // Filter event handler
