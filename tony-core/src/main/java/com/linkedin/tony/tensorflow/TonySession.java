@@ -72,7 +72,7 @@ public class TonySession {
     return cmd.toString();
   }
 
-  private Map<ContainerId, TonyTask> containerIdMap = new HashMap<>();
+  private ConcurrentHashMap<ContainerId, TonyTask> containerIdMap = new ConcurrentHashMap<>();
 
   public TonySession() {
   }
