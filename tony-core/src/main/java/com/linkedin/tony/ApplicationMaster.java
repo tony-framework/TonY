@@ -1044,7 +1044,7 @@ public class ApplicationMaster {
 
     @Override
     public void onNodesUpdated(List<NodeReport> list) {
-      LOG.info("onNodesUpdated called in RMCAllbackHandler");
+      LOG.info("onNodesUpdated called in RMCallbackHandler");
     }
 
     @Override
