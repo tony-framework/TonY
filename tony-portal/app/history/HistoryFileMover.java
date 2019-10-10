@@ -156,9 +156,7 @@ public class HistoryFileMover {
   private void renameKilledApps(FileSystem fs, List<FileStatus> jobDirs) {
     for (FileStatus jobDir : jobDirs) {
       String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
-      //This safeguards from potential errant appending of the filename due to system anomalies
       if (jhistFilePath.endsWith(".jhist.inprogress")) {
-        {
           //new file name will need an end time, set it to current time
           long currentTimestamp = System.currentTimeMillis();
           Path sourcePath = new Path(jhistFilePath);
@@ -175,7 +173,6 @@ public class HistoryFileMover {
           } catch (IOException e) {
             LOG.error("Failed to rename KILLED apps", e);
           }
-        }
       }
     }
   }
