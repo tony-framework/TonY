@@ -944,7 +944,7 @@ public class ApplicationMaster {
     Priority priority = Priority.newInstance(request.getPriority());
     Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
     Utils.setCapabilityGPU(capability, request.getGPU());
-    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority);
+    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
   }
