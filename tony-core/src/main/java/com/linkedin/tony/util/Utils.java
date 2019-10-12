@@ -364,6 +364,7 @@ public class Utils {
               TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
+      String nodeLabel = conf.get(TonyConfigurationKeys.getNodeLabelKey(jobName));
 
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
@@ -373,7 +374,7 @@ public class Utils {
       if (numInstances > 0) {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName,
-                new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
+                new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority, nodeLabel));
         priority++;
       }
     }
