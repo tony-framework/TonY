@@ -695,7 +695,7 @@ public class ApplicationMaster {
     if (allContainers != null) {
       for (Container container : allContainers) {
         TonyTask task = session.getTask(container.getId());
-        if (!task.isCompleted()) {
+        if (task != null && !task.isCompleted()) {
           nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
         }
       }
