@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.apache.hadoop.fs.FileStatus;
@@ -41,11 +42,13 @@ public class HistoryFileMover {
   private final CacheWrapper cacheWrapper;
 
   @Inject
-  public HistoryFileMover(Config appConf, Requirements requirements, CacheWrapper cacheWrapper) {
+  public HistoryFileMover(Config appConf, Requirements requirements, CacheWrapper cacheWrapper)
+      throws IOException, YarnException{
     fs = requirements.getFileSystem();
     intermediateDir = requirements.getIntermediateDir();
     finishedDir = requirements.getFinishedDir();
     this.cacheWrapper = cacheWrapper;
+    List<ApplicationReport> killedApplications = getKilledApps();
 
     ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
     long moverIntervalMs = ConfigUtils.fetchIntConfigIfExists(appConf,
@@ -60,7 +63,6 @@ public class HistoryFileMover {
     LOG.info("Starting background history file mover thread, will run every " + moverIntervalMs + " milliseconds.");
     scheduledThreadPool.scheduleAtFixedRate(() -> {
       FileStatus[] intermedDir = null;
-      List<FileStatus> killedDirsList = new ArrayList<>();
       try {
         intermedDir = fs.listStatus(intermediateDir);
         LOG.info("Intermediate Directory Size: " + intermedDir.length);
@@ -69,18 +71,8 @@ public class HistoryFileMover {
       }
       if (intermedDir != null) {
         try {
-          for (String k : killedAppIds()) {
-            for (FileStatus j : intermedDir) {
-              if (j.toString().contains(k)) {
-                killedDirsList.add(j);
-              }
-            }
-          }
-          LOG.info("Number of Killed Applications: " + killedDirsList.size());
-          renameKilledApps(fs, killedDirsList);
-          LOG.info("Updated Killed Application Filenames");
+          renameKilledApps(intermedDir, killedApplications);
           moveIntermediateToFinished(fs, intermedDir, zoneId);
-          LOG.info("Finished Moving Intermediate Files to Finished Folder");
         } catch (Exception e) {
           LOG.error("Encountered exception while moving history directories", e);
         }
@@ -119,18 +111,7 @@ public class HistoryFileMover {
     return !jhistFileName.endsWith(Constants.HISTFILE_SUFFIX);
   }
 
-  // This function queries Yarn and returns App IDs of apps that are Killed by the user or RM
-  private List<String> killedAppIds() throws IOException, YarnException {
-    List<String> killedIDs = new ArrayList<String>();
-    EnumSet<YarnApplicationState> admissibleApplicationStates  = EnumSet.of(
-        YarnApplicationState.NEW,
-        YarnApplicationState.NEW_SAVING,
-        YarnApplicationState.SUBMITTED,
-        YarnApplicationState.ACCEPTED,
-        YarnApplicationState.RUNNING,
-        YarnApplicationState.FINISHED,
-        YarnApplicationState.FAILED
-    );
+  private List<ApplicationReport>  getKilledApps() throws IOException, YarnException {
     YarnConfiguration yarnConf = new YarnConfiguration();
     if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) +
@@ -141,24 +122,31 @@ public class HistoryFileMover {
     YarnClient yarnClient = YarnClient.createYarnClient();
     yarnClient.init(yarnConf);
     yarnClient.start();
-    List<ApplicationReport> totalApps = yarnClient.getApplications();
+    List<ApplicationReport> killedAppReports = yarnClient.getApplications(EnumSet.of(YarnApplicationState.KILLED));
 
-    //Checks for both yarn state KILLED apps and apps killed by the RM and purged from RM memory
-    for(ApplicationReport r : totalApps) {
-      if(!admissibleApplicationStates.contains(r.getYarnApplicationState())){
-        killedIDs.add(r.getApplicationId().toString());
-      }
-    }
-    LOG.info("Number Killed Yarn Apps: " + killedIDs.size());
-    return killedIDs;
+    return killedAppReports;
   }
 
-  private void renameKilledApps(FileSystem fs, List<FileStatus> jobDirs) {
-    for (FileStatus jobDir : jobDirs) {
-      String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
-      //This safeguards from potential errant appending of the filename due to system anomalies
+  private void renameKilledApps(FileStatus[] intermediateDir, List<ApplicationReport> killedYarnAppReports) {
+    List<FileStatus> killedAppDirectories = new ArrayList<>();
+
+    List<String> killedAppIds = killedYarnAppReports
+        .stream()
+        .map(x -> x.getApplicationId().toString())
+        .collect(Collectors.toList());
+
+    for (String killedAppId : killedAppIds) {
+      for (FileStatus jobDirFilePath : intermediateDir) {
+        if (jobDirFilePath.toString().contains(killedAppId)) {
+          killedAppDirectories.add(jobDirFilePath);
+        }
+      }
+    }
+
+    for (FileStatus killedAppDirectory : killedAppDirectories) {
+      String jhistFilePath = ParserUtils.getJhistFilePath(fs, killedAppDirectory.getPath());
       if (jhistFilePath.endsWith(".jhist.inprogress")) {
-        {
+
           //new file name will need an end time, set it to current time
           long currentTimestamp = System.currentTimeMillis();
           Path sourcePath = new Path(jhistFilePath);
@@ -179,4 +167,4 @@ public class HistoryFileMover {
       }
     }
   }
-}
+
