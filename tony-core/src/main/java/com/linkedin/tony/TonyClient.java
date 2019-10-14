@@ -259,7 +259,7 @@ public class TonyClient implements AutoCloseable {
     LOG.info("Submitting YARN application");
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
-    logTrackingAndAMRMUrls(report);
+    logTrackingAndRMUrls(report);
   }
 
   /**
@@ -287,20 +287,11 @@ public class TonyClient implements AutoCloseable {
     }
   }
 
-  private void logTrackingAndAMRMUrls(ApplicationReport report) {
+  private void logTrackingAndRMUrls(ApplicationReport report) {
     LOG.info("URL to track running application (will proxy to TensorBoard once it has started): "
              + report.getTrackingUrl());
     LOG.info("ResourceManager web address for application: "
         + Utils.buildRMUrl(yarnConf, report.getApplicationId().toString()));
-    try {
-      ContainerReport amContainerReport = yarnClient.getContainers(report.getCurrentApplicationAttemptId())
-          .stream()
-          .min(Comparator.comparingLong(x -> x.getContainerId().getContainerId()))
-          .orElseThrow(YarnException::new);
-      LOG.info("Driver (application master) log url: " + amContainerReport.getLogUrl());
-    } catch (YarnException | IOException e) {
-      LOG.warn("Failed to get containers for attemptId: " + report.getCurrentApplicationAttemptId(), e);
-    }
   }
 
   private void initHdfsConf() {
@@ -848,7 +839,7 @@ public class TonyClient implements AutoCloseable {
       YarnApplicationState appState = report.getYarnApplicationState();
 
       FinalApplicationStatus finalApplicationStatus = report.getFinalApplicationStatus();
-      initRpcClient(report);
+      initRpcClientAndLogAMUrl(report);
 
       updateTaskInfos();
 
@@ -920,8 +911,18 @@ public class TonyClient implements AutoCloseable {
     }
   }
 
-  private void initRpcClient(ApplicationReport report) throws IOException {
+  private void initRpcClientAndLogAMUrl(ApplicationReport report) throws IOException {
     if (!amRpcServerInitialized && report.getRpcPort() != -1) {
+      try {
+        ContainerReport amContainerReport = yarnClient.getContainers(report.getCurrentApplicationAttemptId())
+            .stream()
+            .min(Comparator.comparingLong(x -> x.getContainerId().getContainerId()))
+            .orElseThrow(YarnException::new);
+        LOG.info("Driver (application master) log url: " + amContainerReport.getLogUrl());
+      } catch (YarnException | IOException e) {
+        LOG.warn("Failed to get containers for attemptId: " + report.getCurrentApplicationAttemptId(), e);
+      }
+
       amRpcPort = report.getRpcPort();
       amHost = report.getHost();
       LOG.info("AM host: " + report.getHost());
