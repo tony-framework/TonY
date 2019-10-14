@@ -184,6 +184,10 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.%s", jobName, resource);
   }
 
+  public static String getNodeLabelKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.node-label", jobName);
+  }
+
   public static String getMaxTotalResourceKey(String resource) {
     return String.format(TONY_TASK_PREFIX + "max-total-%s", resource);
   }

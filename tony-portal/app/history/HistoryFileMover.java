@@ -143,10 +143,17 @@ public class HistoryFileMover {
       }
     }
 
+<<<<<<< HEAD
     for (FileStatus killedAppDirectory : killedAppDirectories) {
       String jhistFilePath = ParserUtils.getJhistFilePath(fs, killedAppDirectory.getPath());
       if (jhistFilePath.endsWith(".jhist.inprogress")) {
 
+=======
+  private void renameKilledApps(FileSystem fs, List<FileStatus> jobDirs) {
+    for (FileStatus jobDir : jobDirs) {
+      String jhistFilePath = ParserUtils.getJhistFilePath(fs, jobDir.getPath());
+      if (jhistFilePath.endsWith(".jhist.inprogress")) {
+>>>>>>> fb601969f9e71a37d0ea7b089adccd26a5534a55
           //new file name will need an end time, set it to current time
           long currentTimestamp = System.currentTimeMillis();
           Path sourcePath = new Path(jhistFilePath);
@@ -163,7 +170,6 @@ public class HistoryFileMover {
           } catch (IOException e) {
             LOG.error("Failed to rename KILLED apps", e);
           }
-        }
       }
     }
   }
