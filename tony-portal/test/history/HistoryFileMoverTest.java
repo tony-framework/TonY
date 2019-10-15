@@ -14,6 +14,8 @@ import java.util.Date;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -57,6 +59,12 @@ public class HistoryFileMoverTest {
     long endTime = System.currentTimeMillis();
     File events = new File(appDir, appId + "-123-" + endTime + "-user1-SUCCEEDED." + Constants.HISTFILE_SUFFIX);
     events.createNewFile();
+
+    //Create Yarn Environment for Testing
+    YarnConfiguration yarnConf = new YarnConfiguration();
+    YarnClient yarnClient = YarnClient.createYarnClient();
+    yarnClient.init(yarnConf);
+    yarnClient.start();
 
     // Make sure year/month/day directories created in finished directory are based on finished time set in
     // jhist file name and NOT based off the application directory's modification time.
