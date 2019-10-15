@@ -12,22 +12,17 @@ public class TensorFlowContainerRequest {
   private int priority;
   private int gpu;
   private String jobName;
+  private String nodeLabelsExpression;
 
-  public TensorFlowContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority) {
+  public TensorFlowContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority,
+      String nodeLabelsExpression) {
     this.numInstances = numInstances;
     this.memory = memory;
     this.vCores = vCores;
     this.priority = priority;
     this.gpu = gpu;
     this.jobName = jobName;
-  }
-
-  public TensorFlowContainerRequest(TensorFlowContainerRequest that) {
-    this.memory = that.memory;
-    this.vCores = that.vCores;
-    this.gpu = that.gpu;
-    this.priority = that.priority;
-    this.jobName = that.jobName;
+    this.nodeLabelsExpression = nodeLabelsExpression;
   }
 
   public int getNumInstances() {
@@ -52,5 +47,9 @@ public class TensorFlowContainerRequest {
 
   public String getJobName() {
     return jobName;
+  }
+
+  public String getNodeLabelsExpression() {
+    return nodeLabelsExpression;
   }
 }
