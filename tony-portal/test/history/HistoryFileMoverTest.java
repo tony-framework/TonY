@@ -10,21 +10,25 @@ import hadoop.Requirements;
 import java.io.File;
 import java.io.IOException;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
 
 @RunWith(MockitoJUnitRunner.class)
 public class HistoryFileMoverTest {
@@ -36,6 +40,10 @@ public class HistoryFileMoverTest {
 
   @Mock
   CacheWrapper cacheWrapper;
+
+  @Mock
+  YarnClient yarnClient;
+
 
   private static File tempDir;
   private static File intermediateDir;
@@ -60,12 +68,6 @@ public class HistoryFileMoverTest {
     File events = new File(appDir, appId + "-123-" + endTime + "-user1-SUCCEEDED." + Constants.HISTFILE_SUFFIX);
     events.createNewFile();
 
-    //Create Yarn Environment for Testing
-    YarnConfiguration yarnConf = new YarnConfiguration();
-    YarnClient yarnClient = YarnClient.createYarnClient();
-    yarnClient.init(yarnConf);
-    yarnClient.start();
-
     // Make sure year/month/day directories created in finished directory are based on finished time set in
     // jhist file name and NOT based off the application directory's modification time.
     if (!appDir.setLastModified(0)) {
@@ -77,6 +79,10 @@ public class HistoryFileMoverTest {
     when(reqs.getFileSystem()).thenReturn(FileSystem.getLocal(new Configuration()));
     when(reqs.getIntermediateDir()).thenReturn(new Path(intermediateDir.getAbsolutePath()));
     when(reqs.getFinishedDir()).thenReturn(new Path(finishedDir.getAbsolutePath()));
+    when(reqs.getYarnClient()).thenReturn(yarnClient);
+
+    doNothing().when(yarnClient).start();
+    when(yarnClient.getApplications(EnumSet.of(YarnApplicationState.KILLED))).thenReturn(new ArrayList<>());
 
     // start mover
     new HistoryFileMover(config, reqs, cacheWrapper);

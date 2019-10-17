@@ -12,6 +12,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import play.Logger;
 import utils.ConfigUtils;
 
@@ -111,4 +112,11 @@ public class Requirements {
   public Path getIntermediateDir() {
     return interm;
   }
+
+  public YarnClient getYarnClient() {
+    return YarnClient.createYarnClient();
+  }
+
 }
+
+
