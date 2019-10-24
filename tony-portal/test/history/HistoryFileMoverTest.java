@@ -10,18 +10,24 @@ import hadoop.Requirements;
 import java.io.File;
 import java.io.IOException;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -34,6 +40,10 @@ public class HistoryFileMoverTest {
 
   @Mock
   CacheWrapper cacheWrapper;
+
+  @Mock
+  YarnClient yarnClient;
+
 
   private static File tempDir;
   private static File intermediateDir;
@@ -49,7 +59,7 @@ public class HistoryFileMoverTest {
   }
 
   @Test
-  public void testMoveIntermediateToFinished() throws IOException, InterruptedException {
+  public void testMoveIntermediateToFinished() throws IOException, InterruptedException, YarnException {
     // Add a completed application in the intermediate dir
     String appId = "application_123_456";
     File appDir = new File(intermediateDir, appId);
@@ -69,6 +79,10 @@ public class HistoryFileMoverTest {
     when(reqs.getFileSystem()).thenReturn(FileSystem.getLocal(new Configuration()));
     when(reqs.getIntermediateDir()).thenReturn(new Path(intermediateDir.getAbsolutePath()));
     when(reqs.getFinishedDir()).thenReturn(new Path(finishedDir.getAbsolutePath()));
+    when(reqs.getYarnClient()).thenReturn(yarnClient);
+
+    doNothing().when(yarnClient).start();
+    when(yarnClient.getApplications(EnumSet.of(YarnApplicationState.KILLED))).thenReturn(new ArrayList<>());
 
     // start mover
     new HistoryFileMover(config, reqs, cacheWrapper);
