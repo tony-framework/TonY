@@ -15,6 +15,7 @@ import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,6 +76,7 @@ public class TestUtils {
     conf.setInt("tony.worker.gpus", 1);
     conf.setInt("tony.evaluator.vcores", 2);
     conf.setInt("tony.chief.gpus", 1);
+    conf.setStrings("tony.worker.depends-on", "ps");
 
     Map<String, TensorFlowContainerRequest> requests = Utils.parseContainerRequests(conf);
     assertEquals(requests.get("worker").getNumInstances(), 3);
@@ -85,6 +87,7 @@ public class TestUtils {
     assertEquals(requests.get("worker").getMemory(), 2048);
     // Check job does not exist if no instances are configured.
     assertFalse(requests.containsKey("chief"));
+    assertEquals(requests.get("worker").getDependsOn(), new ArrayList<>(Arrays.asList("ps")));
   }
 
   @Test

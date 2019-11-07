@@ -60,6 +60,8 @@ public class TonySession {
   // go straight to the cleaning phase.
   private boolean trainingFinished = false;
 
+  private int numExpectedTasks = 0;
+
   public enum TaskType {
     TASK_TYPE_CHIEF, TASK_TYPE_PARAMETER_SERVER, TASK_TYPE_OTHERS
   }
@@ -140,6 +142,7 @@ public class TonySession {
       for (TonyTask task : tasks) {
         if (task == null) {
           requests.add(getContainerRequestForType(entry.getKey()));
+          break;
         }
       }
     }
@@ -183,6 +186,15 @@ public class TonySession {
 
   public int getNumFailedTasks() {
     return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task.isFailed()).count();
+  }
+
+  /** Number of expected tasks that have been scheduled at current time **/
+  public int getNumExpectedTasks() {
+    return numExpectedTasks;
+  }
+
+  public void addExpectedTask() {
+    numExpectedTasks++;
   }
 
   /**
@@ -317,10 +329,12 @@ public class TonySession {
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
       for (TonyTask task : tasks) {
-        String job = task.getJobName();
-        String index = task.getTaskIndex();
-        if (job.equals(jobName) && index.equals(taskIndex)) {
-          return task;
+        if (task != null) {
+          String job = task.getJobName();
+          String index = task.getTaskIndex();
+          if (job.equals(jobName) && index.equals(taskIndex)) {
+            return task;
+          }
         }
       }
     }
