@@ -255,7 +255,7 @@ public class TestTonyE2E  {
   public void testTonyAMSchedulerShouldPass() throws ParseException, IOException {
     client = new TonyClient(conf);
     client.init(new String[] {
-        "--src_id", "tony-core/src/test/resources/scripts",
+        "--src_dir", "tony-core/src/test/resources/scripts",
         "--executes", "exit_0.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
@@ -273,7 +273,7 @@ public class TestTonyE2E  {
   public void testComplexTonyAMSchedulerShouldPass() throws ParseException, IOException {
     client = new TonyClient(conf);
     client.init(new String[] {
-        "--src_id", "tony-core/src/test/resources/scripts",
+        "--src_dir", "tony-core/src/test/resources/scripts",
         "--executes", "exit_0.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
@@ -293,7 +293,7 @@ public class TestTonyE2E  {
   public void testNotDAGTonyAMSchedulerShouldFail() throws ParseException, IOException {
     client = new TonyClient(conf);
     client.init(new String[] {
-        "--src_id", "tony-core/src/test/resources/scripts",
+        "--src_dir", "tony-core/src/test/resources/scripts",
         "--executes", "exit_0.py",
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
