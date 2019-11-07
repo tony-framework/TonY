@@ -600,6 +600,11 @@ public class ApplicationMaster {
         break;
       }
 
+      if (!this.scheduler.dependencyCheckPassed) {
+        LOG.info("Terminating application due to failure to load dependency graph");
+        break;
+      }
+
       int numTotalTrackedTasks = session.getTotalTrackedTasks();
       if (numTotalTrackedTasks > 0) {
         int numCompletedTrackedTasks = session.getNumCompletedTrackedTasks();
@@ -756,6 +761,7 @@ public class ApplicationMaster {
 
   private class TaskScheduler {
     private Map<TensorFlowContainerRequest, Map<String, Integer>> taskDependencyMap = new HashMap<>();
+    boolean dependencyCheckPassed = true;
 
     private void scheduleTasks() {
       session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
@@ -764,6 +770,7 @@ public class ApplicationMaster {
       if (!isDAG(requests)) {
         LOG.error("TonY execution graph does not form a DAG, exiting.");
         session.setFinalStatus(FinalApplicationStatus.FAILED, "TonY task scheduling failed..");
+        dependencyCheckPassed = false;
         return;
       }
 
