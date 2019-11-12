@@ -264,7 +264,7 @@ public class TestTonyE2E  {
         "--conf", "tony.ps.instances=1",
         "--conf", "tony.db.instances=1",
         "--conf", "tony.dbloader.instances=1",
-        "--conf", "tony.application.prepare-stage=dbloader",
+        "--conf", "tony.application.prepare-stage=dbloader,db",
         "--conf", "tony.application.training-stage=ps,worker"
     });
     int exitCode = client.start();

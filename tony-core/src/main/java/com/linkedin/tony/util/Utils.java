@@ -360,7 +360,8 @@ public class Utils {
 
     List<String> prepareStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_PREPARE_STAGE));
     List<String> trainingStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_TRAINING_STAGE));
-    ensureStagedTasksIntegrity(prepareStageTasks, trainingStageTasks, jobNames, untrackedJobTypes);
+    ensureStagedTasksIntegrity(prepareStageTasks, trainingStageTasks, jobNames);
+    List<String> tasksToDependOn = prepareStageTasks.stream().filter(x -> !untrackedJobTypes.contains(x)).collect(Collectors.toList());
 
     for (String jobName : jobNames) {
       int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName), 0);
@@ -379,7 +380,7 @@ public class Utils {
       // Any task that belong to the training stage depend on prepare stage
       List<String> dependsOn = new ArrayList<>();
       if (trainingStageTasks.contains(jobName)) {
-        dependsOn.addAll(prepareStageTasks);
+        dependsOn.addAll(tasksToDependOn);
       }
 
       /* The priority of different task types MUST be different.
@@ -399,31 +400,22 @@ public class Utils {
   }
 
   private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,
-      Set<String> allJobTypes, Set<String> untrackedJobTypes) {
+      Set<String> allJobTypes) {
     if (prepareStageTasks.isEmpty() && !trainingStageTasks.isEmpty()) {
-      prepareStageTasks.addAll(CollectionUtils
-          .subtract(CollectionUtils
-              .subtract(allJobTypes, trainingStageTasks), untrackedJobTypes));
+      prepareStageTasks.addAll(CollectionUtils.subtract(allJobTypes, trainingStageTasks));
       LOG.warn("Found no prepare stage tasks, auto-filling with: " + Arrays.toString(prepareStageTasks.toArray()));
     } else if ((!prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty())) {
-      trainingStageTasks.addAll(CollectionUtils
-          .subtract(CollectionUtils
-              .subtract(allJobTypes, prepareStageTasks), untrackedJobTypes));
+      trainingStageTasks.addAll(CollectionUtils.subtract(allJobTypes, prepareStageTasks));
       LOG.warn("Found no training stage tasks, auto-filling with: " + Arrays.toString(trainingStageTasks.toArray()));
     } else if (prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty()) {
       return;
     }
 
-    if (prepareStageTasks.size() + trainingStageTasks.size() + untrackedJobTypes.size() != allJobTypes.size()) {
+    if (prepareStageTasks.size() + trainingStageTasks.size() != allJobTypes.size()) {
       throw new IllegalArgumentException("TonY cannot parse application stage command, "
           + "there are " + prepareStageTasks.size() + " prepare-stage tasks, "
-          + trainingStageTasks.size() + " training-stage tasks and "
-          + untrackedJobTypes.size() + " untracked tasks. "
+          + trainingStageTasks.size() + " training-stage tasks."
           + "However, you have " + allJobTypes.size() + " total jobs in total");
-    }
-
-    if (prepareStageTasks.stream().anyMatch(x -> untrackedJobTypes.contains(x))) {
-      throw new IllegalArgumentException("TonY application prepare-stage cannot contain any untracked tasks");
     }
   }
 

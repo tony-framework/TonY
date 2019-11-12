@@ -38,16 +38,17 @@ public class TaskScheduler {
 
   // job with dependency -> (dependent job name, number of instances for that job)
   private Map<JobContainerRequest, Map<String, Integer>> taskDependencyMap = new HashMap<>();
-  private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
+  private Map<String, LocalResource> localResources;
   private Map<String, List<AMRMClient.ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
   private Map<String, Map<String, LocalResource>> jobTypeToContainerResources;
 
   boolean dependencyCheckPassed = true;
 
-  public TaskScheduler(TonySession session, AMRMClientAsync<AMRMClient.ContainerRequest> amRMClient,
+  public TaskScheduler(TonySession session, AMRMClientAsync<AMRMClient.ContainerRequest> amRMClient, Map<String, LocalResource> localResources,
       FileSystem resourceFs, Configuration tonyConf, Map<String, Map<String, LocalResource>> jobTypeToContainerResources) {
     this.session = session;
     this.amRMClient = amRMClient;
+    this.localResources = localResources;
     this.resourceFs = resourceFs;
     this.tonyConf = tonyConf;
     this.jobTypeToContainerResources = jobTypeToContainerResources;

@@ -534,7 +534,7 @@ public class ApplicationMaster {
 
     buildTonySession();
     session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
-    scheduler = new TaskScheduler(session, amRMClient, resourceFs, tonyConf, jobTypeToContainerResources);
+    scheduler = new TaskScheduler(session, amRMClient, localResources, resourceFs, tonyConf, jobTypeToContainerResources);
     scheduler.scheduleTasks();
   }
 

@@ -78,7 +78,7 @@ public class TestUtils {
     conf.setInt("tony.chief.gpus", 1);
     conf.setInt("tony.db.instances", 1);
     conf.setInt("tony.dbwriter.instances", 1);
-    conf.setStrings("tony.application.prepare-stage", "dbwriter");
+    conf.setStrings("tony.application.prepare-stage", "dbwriter, db");
     conf.setStrings("tony.application.untracked.jobtypes", "db");
 
     Map<String, JobContainerRequest> requests = Utils.parseContainerRequests(conf);
@@ -107,7 +107,7 @@ public class TestUtils {
     conf.setInt("tony.chief.gpus", 1);
     conf.setInt("tony.db.instances", 1);
     conf.setInt("tony.dbwriter.instances", 1);
-    conf.setStrings("tony.application.prepare-stage", "dbwriter");
+    conf.setStrings("tony.application.prepare-stage", "dbwriter,db");
     conf.setStrings("tony.application.untracked.jobtypes", "db");
     conf.setStrings("tony.application.training-stage", "chief, evaluator, worker");
 

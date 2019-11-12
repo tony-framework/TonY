@@ -32,6 +32,7 @@ public class TestTaskScheduler {
   TonySession session = mock(TonySession.class);
   AMRMClientAsync<AMRMClient.ContainerRequest> amRMClient = mock(AMRMClientAsync.class);
   Map<String, Map<String, LocalResource>> jobTypeToContainerResources = mock(HashMap.class);
+  Map<String, LocalResource> localResources = mock(HashMap.class);
   Configuration conf = mock(Configuration.class);
   TaskScheduler taskScheduler;
 
@@ -41,7 +42,7 @@ public class TestTaskScheduler {
 
   @BeforeClass
   public void doBeforeClass() {
-    taskScheduler = new TaskScheduler(session, amRMClient, fileSystem, conf, jobTypeToContainerResources);
+    taskScheduler = new TaskScheduler(session, amRMClient, localResources, fileSystem, conf, jobTypeToContainerResources);
     doNothing().when(amRMClient).addContainerRequest(any());
     when(jobTypeToContainerResources.put(any(), any())).thenReturn(new HashMap<>());
     when(conf.getStrings(any())).thenReturn(null);
