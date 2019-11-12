@@ -12,11 +12,12 @@ import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -351,10 +352,16 @@ public class Utils {
    * @param conf the TonY configuration.
    * @return map from configured job name to its corresponding resource request
    */
-  public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
+  public static Map<String, JobContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = getAllJobTypes(conf);
-    Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
+    Set<String> untrackedJobTypes = Arrays.stream(getUntrackedJobTypes(conf)).collect(Collectors.toSet());
+    Map<String, JobContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
+
+    List<String> prepareStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_PREPARE_STAGE));
+    List<String> trainingStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_TRAINING_STAGE));
+    ensureStagedTasksIntegrity(prepareStageTasks, trainingStageTasks, jobNames, untrackedJobTypes);
+
     for (String jobName : jobNames) {
       int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName), 0);
       String memoryString = conf.get(TonyConfigurationKeys.getResourceKey(jobName, Constants.MEMORY),
@@ -365,7 +372,15 @@ public class Utils {
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
       String nodeLabel = conf.get(TonyConfigurationKeys.getNodeLabelKey(jobName));
-      String[] dependsOn = conf.getStrings(TonyConfigurationKeys.getDependsOnKey(jobName), "");
+
+      // Disabled building of DAG graph, for now we only support simple two stage tasks
+      //String[] dependsOn = conf.getStrings(TonyConfigurationKeys.getDependsOnKey(jobName), "");
+
+      // Any task that belong to the training stage depend on prepare stage
+      List<String> dependsOn = new ArrayList<>();
+      if (trainingStageTasks.contains(jobName)) {
+        dependsOn.addAll(prepareStageTasks);
+      }
 
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
@@ -375,12 +390,41 @@ public class Utils {
       if (numInstances > 0) {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName,
-                new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority,
+                new JobContainerRequest(jobName, numInstances, memory, vCores, gpus, priority,
                     nodeLabel, dependsOn));
         priority++;
       }
     }
     return containerRequests;
+  }
+
+  private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,
+      Set<String> allJobTypes, Set<String> untrackedJobTypes) {
+    if (prepareStageTasks.isEmpty() && !trainingStageTasks.isEmpty()) {
+      prepareStageTasks.addAll(CollectionUtils
+          .subtract(CollectionUtils
+              .subtract(allJobTypes, trainingStageTasks), untrackedJobTypes));
+      LOG.warn("Found no prepare stage tasks, auto-filling with: " + Arrays.toString(prepareStageTasks.toArray()));
+    } else if ((!prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty())) {
+      trainingStageTasks.addAll(CollectionUtils
+          .subtract(CollectionUtils
+              .subtract(allJobTypes, prepareStageTasks), untrackedJobTypes));
+      LOG.warn("Found no training stage tasks, auto-filling with: " + Arrays.toString(trainingStageTasks.toArray()));
+    } else if (prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty()) {
+      return;
+    }
+
+    if (prepareStageTasks.size() + trainingStageTasks.size() + untrackedJobTypes.size() != allJobTypes.size()) {
+      throw new IllegalArgumentException("TonY cannot parse application stage command, "
+          + "there are " + prepareStageTasks.size() + " prepare-stage tasks, "
+          + trainingStageTasks.size() + " training-stage tasks and "
+          + untrackedJobTypes.size() + " untracked tasks. "
+          + "However, you have " + allJobTypes.size() + " total jobs in total");
+    }
+
+    if (prepareStageTasks.stream().anyMatch(x -> untrackedJobTypes.contains(x))) {
+      throw new IllegalArgumentException("TonY application prepare-stage cannot contain any untracked tasks");
+    }
   }
 
   public static Set<String> getAllJobTypes(Configuration conf) {

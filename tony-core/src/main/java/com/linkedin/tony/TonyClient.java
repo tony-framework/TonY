@@ -14,7 +14,7 @@ import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.security.TokenCache;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;
@@ -602,10 +602,10 @@ public class TonyClient implements AutoCloseable {
    * if any limits are exceeded.
    */
   private static void enforceTaskInstanceLimits(Configuration tonyConf) {
-    Map<String, TensorFlowContainerRequest> containerRequestMap = Utils.parseContainerRequests(tonyConf);
+    Map<String, JobContainerRequest> containerRequestMap = Utils.parseContainerRequests(tonyConf);
 
     // check that we don't request more than the max allowed for any task type
-    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequestMap.entrySet()) {
+    for (Map.Entry<String, JobContainerRequest> entry : containerRequestMap.entrySet()) {
       int numInstancesRequested = entry.getValue().getNumInstances();
       int maxAllowedInstances = tonyConf.getInt(TonyConfigurationKeys.getMaxInstancesKey(entry.getKey()), -1);
       if (maxAllowedInstances >= 0 && numInstancesRequested > maxAllowedInstances) {
@@ -617,7 +617,7 @@ public class TonyClient implements AutoCloseable {
     // check that we don't request more than the allowed total tasks
     int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES,
         TonyConfigurationKeys.DEFAULT_MAX_TOTAL_INSTANCES);
-    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(TensorFlowContainerRequest::getNumInstances).sum();
+    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(JobContainerRequest::getNumInstances).sum();
     if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
       throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
           + maxTotalInstances + ".");

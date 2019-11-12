@@ -4,11 +4,10 @@
  */
 package com.linkedin.tony.tensorflow;
 
-import java.util.Arrays;
 import java.util.List;
 
 
-public class TensorFlowContainerRequest {
+public class JobContainerRequest {
   private int numInstances;
   private long memory;
   private int vCores;
@@ -18,8 +17,8 @@ public class TensorFlowContainerRequest {
   private String nodeLabelsExpression;
   private List<String> dependsOn;
 
-  public TensorFlowContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority,
-      String nodeLabelsExpression, final String[] dependsOn) {
+  public JobContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority,
+      String nodeLabelsExpression, final List<String> dependsOn) {
     this.numInstances = numInstances;
     this.memory = memory;
     this.vCores = vCores;
@@ -27,7 +26,7 @@ public class TensorFlowContainerRequest {
     this.gpu = gpu;
     this.jobName = jobName;
     this.nodeLabelsExpression = nodeLabelsExpression;
-    this.dependsOn = Arrays.asList(dependsOn);
+    this.dependsOn = dependsOn;
   }
 
   public int getNumInstances() {

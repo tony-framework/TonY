@@ -260,51 +260,15 @@ public class TestTonyE2E  {
         "--hdfs_classpath", libPath,
         "--python_binary_path", "python",
         "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--conf", "tony.worker.instance=1",
-        "--conf", "tony.ps.instance=1",
-        "--conf", "tony.last.instance=1",
-        "--conf", "tony.last.depends-on=\"ps,worker\""
+        "--conf", "tony.worker.instances=1",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.db.instances=1",
+        "--conf", "tony.dbloader.instances=1",
+        "--conf", "tony.application.prepare-stage=dbloader",
+        "--conf", "tony.application.training-stage=ps,worker"
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, 0);
-  }
-
-  @Test
-  public void testComplexTonyAMSchedulerShouldPass() throws ParseException, IOException {
-    client = new TonyClient(conf);
-    client.init(new String[] {
-        "--src_dir", "tony-core/src/test/resources/scripts",
-        "--executes", "exit_0.py",
-        "--hdfs_classpath", libPath,
-        "--python_binary_path", "python",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--conf", "tony.worker.instance=1",
-        "--conf", "tony.ps.instance=1",
-        "--conf", "tony.db.instance=1",
-        "--conf", "tony.db_loader.instance=1",
-        "--conf", "tony.worker.depends-on=\"db_loader, db\"",
-        "--conf", "tony.ps.depends-on=\"db\""
-    });
-    int exitCode = client.start();
-    Assert.assertEquals(exitCode, 0);
-  }
-
-  @Test
-  public void testNotDAGTonyAMSchedulerShouldFail() throws ParseException, IOException {
-    client = new TonyClient(conf);
-    client.init(new String[] {
-        "--src_dir", "tony-core/src/test/resources/scripts",
-        "--executes", "exit_0.py",
-        "--hdfs_classpath", libPath,
-        "--python_binary_path", "python",
-        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-        "--conf", "tony.worker.instance=1",
-        "--conf", "tony.ps.instance=1",
-        "--conf", "tony.worker.depends-on=\"ps\"",
-        "--conf", "tony.ps.depends-on=\"worker\""
-    });
-    int exitCode = client.start();
-    Assert.assertEquals(exitCode, -1);
   }
 
   /**
