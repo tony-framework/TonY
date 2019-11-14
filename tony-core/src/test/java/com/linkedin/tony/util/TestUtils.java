@@ -96,24 +96,6 @@ public class TestUtils {
     assertEquals(requests.get("dbwriter").getDependsOn(), new ArrayList<>());
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
-  public void testParseContainerRequestsShouldFail() {
-    Configuration conf = new Configuration();
-    conf.addResource("tony-default.xml");
-    conf.setInt("tony.worker.instances", 3);
-    conf.setInt("tony.evaluator.instances", 1);
-    conf.setInt("tony.worker.gpus", 1);
-    conf.setInt("tony.evaluator.vcores", 2);
-    conf.setInt("tony.chief.gpus", 1);
-    conf.setInt("tony.db.instances", 1);
-    conf.setInt("tony.dbwriter.instances", 1);
-    conf.setStrings("tony.application.prepare-stage", "dbwriter,db");
-    conf.setStrings("tony.application.untracked.jobtypes", "db");
-    conf.setStrings("tony.application.training-stage", "chief, evaluator, worker");
-
-    Utils.parseContainerRequests(conf);
-  }
-
   @Test
   public void testIsArchive() {
     ClassLoader classLoader = getClass().getClassLoader();
