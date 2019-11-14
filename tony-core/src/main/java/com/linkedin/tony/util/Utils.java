@@ -359,7 +359,8 @@ public class Utils {
     int priority = 0;
 
     List<String> prepareStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_PREPARE_STAGE));
-    List<String> trainingStageTasks = (List<String>) CollectionUtils.subtract(jobNames, prepareStageTasks);
+    List<String> trainingStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_TRAINING_STAGE));
+    ensureStagedTasksIntegrity(prepareStageTasks, trainingStageTasks, jobNames);
     List<String> tasksToDependOn = prepareStageTasks.stream().filter(x -> !untrackedJobTypes.contains(x)).collect(Collectors.toList());
 
     for (String jobName : jobNames) {
@@ -393,6 +394,26 @@ public class Utils {
       }
     }
     return containerRequests;
+  }
+
+  private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,
+      Set<String> allJobTypes) {
+    if (prepareStageTasks.isEmpty() && !trainingStageTasks.isEmpty()) {
+      prepareStageTasks.addAll(CollectionUtils.subtract(allJobTypes, trainingStageTasks));
+      LOG.warn("Found no prepare stage tasks, auto-filling with: " + Arrays.toString(prepareStageTasks.toArray()));
+    } else if ((!prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty())) {
+      trainingStageTasks.addAll(CollectionUtils.subtract(allJobTypes, prepareStageTasks));
+      LOG.warn("Found no training stage tasks, auto-filling with: " + Arrays.toString(trainingStageTasks.toArray()));
+    } else if (prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty()) {
+      return;
+    }
+
+    if (prepareStageTasks.size() + trainingStageTasks.size() != allJobTypes.size()) {
+      throw new IllegalArgumentException("TonY cannot parse application stage command, "
+          + "there are " + prepareStageTasks.size() + " prepare-stage tasks, "
+          + trainingStageTasks.size() + " training-stage tasks."
+          + "However, you have " + allJobTypes.size() + " total jobs in total");
+    }
   }
 
   public static Set<String> getAllJobTypes(Configuration conf) {

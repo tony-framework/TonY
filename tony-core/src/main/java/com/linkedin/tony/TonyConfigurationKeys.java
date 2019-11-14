@@ -121,6 +121,7 @@ public class TonyConfigurationKeys {
   public static final String APPLICATION_TAGS = TONY_APPLICATION_PREFIX + "tags";
 
   public static final String APPLICATION_PREPARE_STAGE = TONY_APPLICATION_PREFIX + "prepare-stage";
+  public static final String APPLICATION_TRAINING_STAGE = TONY_APPLICATION_PREFIX + "training-stage";
 
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
