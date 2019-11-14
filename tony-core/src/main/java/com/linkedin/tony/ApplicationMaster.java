@@ -21,7 +21,6 @@ import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.MetricsRpcServer;
 import com.linkedin.tony.rpc.impl.TaskStatus;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
 import com.linkedin.tony.util.Utils;
@@ -79,9 +78,6 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeReport;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
@@ -129,14 +125,13 @@ public class ApplicationMaster {
   /** Map of session to containers */
   private Map<Integer, List<Container>> sessionContainersMap = new ConcurrentHashMap<>();
 
+  private Map<String, Map<String, LocalResource>> jobTypeToContainerResources = new HashMap<>();
+
   /** Node manager delegate **/
   private NMClientAsync nmClientAsync;
   private ExecutorService containersLauncherThreadPool = Executors.newCachedThreadPool();
   /** Resource manager **/
   private AMRMClientAsync<ContainerRequest> amRMClient;
-
-  private Map<String, List<ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
-  private Map<String, Map<String, LocalResource>> jobTypeToContainerResources = new HashMap<>();
 
   /** Tony session **/
   private TonySession session = new TonySession(); // Create a dummy session for single node training.
@@ -177,6 +172,9 @@ public class ApplicationMaster {
   private int maxConsecutiveHBMiss;
   private volatile boolean taskHasMissesHB = false;
   private Thread mainThread;
+
+  /** Task Scheduler **/
+  private TaskScheduler scheduler;
 
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
@@ -535,37 +533,9 @@ public class ApplicationMaster {
     }
 
     buildTonySession();
-    scheduleTasks();
-  }
-
-  private void scheduleTasks() {
     session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
-    List<TensorFlowContainerRequest> requests = session.getContainersRequests();
-    for (TensorFlowContainerRequest request : requests) {
-      scheduleTask(request);
-    }
-  }
-
-  private void scheduleTask(TensorFlowContainerRequest request) {
-    AMRMClient.ContainerRequest containerAsk = setupContainerRequestForRM(request);
-    String jobName = request.getJobName();
-    if (!jobTypeToContainerRequestsMap.containsKey(jobName)) {
-      jobTypeToContainerRequestsMap.put(jobName, new ArrayList<>());
-      jobTypeToContainerResources.put(jobName, getContainerResources(jobName));
-    }
-    jobTypeToContainerRequestsMap.get(request.getJobName()).add(containerAsk);
-    amRMClient.addContainerRequest(containerAsk);
-  }
-
-  private Map<String, LocalResource> getContainerResources(String jobName) {
-    Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
-    String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(jobName));
-    Utils.addResources(resources, containerResources, resourceFs);
-
-    // All resources available to all containers
-    resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
-    Utils.addResources(resources, containerResources, resourceFs);
-    return containerResources;
+    scheduler = new TaskScheduler(session, amRMClient, localResources, resourceFs, tonyConf, jobTypeToContainerResources);
+    scheduler.scheduleTasks();
   }
 
   // Reset state to prepare for retryCount.
@@ -623,6 +593,11 @@ public class ApplicationMaster {
 
       if (this.taskHasMissesHB) {
         LOG.error("Application failed due to missed heartbeats");
+        break;
+      }
+
+      if (!this.scheduler.dependencyCheckPassed) {
+        LOG.info("Terminating application due to failure to load dependency graph");
         break;
       }
 
@@ -770,7 +745,11 @@ public class ApplicationMaster {
           .values()
           .stream()
           .flatMap(Arrays::stream)
-          .forEach(task -> Utils.printTaskUrl(task.getTaskInfo(), LOG));
+          .forEach(task -> {
+            if (task != null) {
+              Utils.printTaskUrl(task.getTaskInfo(), LOG);
+            }
+          });
     }
   }
 
@@ -845,17 +824,17 @@ public class ApplicationMaster {
         killChiefWorkerIfTesting(taskId);
       }
 
-      // Return null until all tasks have registered
-      int totalTasks = session.getTotalTasks();
-      if (registeredTasks.size() == totalTasks) {
-        LOG.info("All " + totalTasks + " tasks registered.");
+      // Return null until all expected tasks have registered
+      int numExpectedTasks = session.getNumExpectedTasks();
+      if (registeredTasks.size() == numExpectedTasks) {
+        LOG.info("All " + numExpectedTasks + " expected tasks registered.");
         return getClusterSpec();
       } else {
         // Periodically print a list of all tasks we are still awaiting registration from.
         if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
           Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
           LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
-              registeredTasks.size(), totalTasks - registeredTasks.size()));
+              registeredTasks.size(), numExpectedTasks - registeredTasks.size()));
           unregisteredTasks.forEach(t -> LOG.info(
                   String.format("Awaiting registration from task %s %s in %s on host %s",
                       t.getJobName(), t.getTaskIndex(),
@@ -938,15 +917,6 @@ public class ApplicationMaster {
     String submitterUserName = System.getenv(ApplicationConstants.Environment.USER.name());
     UserGroupInformation submitterUgi = UserGroupInformation.createRemoteUser(submitterUserName);
     submitterUgi.addCredentials(credentials);
-  }
-
-  private AMRMClient.ContainerRequest setupContainerRequestForRM(TensorFlowContainerRequest request) {
-    Priority priority = Priority.newInstance(request.getPriority());
-    Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
-    Utils.setCapabilityGPU(capability, request.getGPU());
-    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
-    LOG.info("Requested container ask: " + containerRequest.toString());
-    return containerRequest;
   }
 
   private NMCallbackHandler createNMCallbackHandler() {
@@ -1161,6 +1131,7 @@ public class ApplicationMaster {
 
       LOG.info("Container " + containerId + " for task " + task + " finished with exitStatus " + exitStatus + ".");
       session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
+      scheduler.registerDependencyCompleted(task.getJobName());
       eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
           new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
               task.getTaskInfo().getStatus().toString(),
@@ -1169,8 +1140,6 @@ public class ApplicationMaster {
     } else {
       LOG.warn("No task found for container : [" + containerId + "]!");
     }
-
-
   }
 
   //region testing

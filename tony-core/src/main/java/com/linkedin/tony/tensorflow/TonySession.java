@@ -43,7 +43,7 @@ public class TonySession {
   private static final Log LOG = LogFactory.getLog(TonySession.class);
   private Configuration tonyConf;
 
-  private Map<String, TensorFlowContainerRequest> containerRequests;
+  private Map<String, JobContainerRequest> containerRequests;
 
   // sessionId to distinguish different sessions. Currently used to distinguish
   // failed session and new session.
@@ -59,6 +59,8 @@ public class TonySession {
   // If the training has finished. This is used to signal AM to stop waiting for other workers to finish and
   // go straight to the cleaning phase.
   private boolean trainingFinished = false;
+
+  private int numExpectedTasks = 0;
 
   public enum TaskType {
     TASK_TYPE_CHIEF, TASK_TYPE_PARAMETER_SERVER, TASK_TYPE_OTHERS
@@ -82,7 +84,7 @@ public class TonySession {
     this.jvmArgs = builder.jvmArgs;
     this.tonyConf = builder.tonyConf;
 
-    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
+    for (Map.Entry<String, JobContainerRequest> entry : containerRequests.entrySet()) {
       jobTasks.put(entry.getKey(), new TonyTask[entry.getValue().getNumInstances()]);
     }
   }
@@ -133,20 +135,21 @@ public class TonySession {
     shellEnv.put("CLASSPATH", classPathEnv.toString());
   }
 
-  public List<TensorFlowContainerRequest> getContainersRequests() {
-    List<TensorFlowContainerRequest> requests = new ArrayList<>();
+  public List<JobContainerRequest> getContainersRequests() {
+    List<JobContainerRequest> requests = new ArrayList<>();
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
       for (TonyTask task : tasks) {
         if (task == null) {
           requests.add(getContainerRequestForType(entry.getKey()));
+          break;
         }
       }
     }
     return requests;
   }
 
-  public TensorFlowContainerRequest getContainerRequestForType(String jobType) {
+  public JobContainerRequest getContainerRequestForType(String jobType) {
     return containerRequests.get(jobType);
   }
 
@@ -173,7 +176,7 @@ public class TonySession {
 
   public int getNumCompletedTasks() {
     return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr))
-        .filter(task -> task.isCompleted()).count();
+        .filter(task -> task != null && task.isCompleted()).count();
   }
 
   public int getNumCompletedTrackedTasks() {
@@ -182,7 +185,16 @@ public class TonySession {
   }
 
   public int getNumFailedTasks() {
-    return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task.isFailed()).count();
+    return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task != null && task.isFailed()).count();
+  }
+
+  /** Number of expected tasks that have been scheduled at current time **/
+  public int getNumExpectedTasks() {
+    return numExpectedTasks;
+  }
+
+  public void addNumExpectedTask(int numExpectedTasksToAdd) {
+    numExpectedTasks += numExpectedTasksToAdd;
   }
 
   /**
@@ -193,7 +205,7 @@ public class TonySession {
    * @return task to be assigned to this allocation
    */
   public synchronized TonyTask getAndInitMatchingTaskByPriority(int priority) {
-    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
+    for (Map.Entry<String, JobContainerRequest> entry : containerRequests.entrySet()) {
       String jobName = entry.getKey();
       if (entry.getValue().getPriority() != priority) {
         LOG.debug("Ignoring jobname {" + jobName + "} as priority doesn't match");
@@ -317,10 +329,12 @@ public class TonySession {
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
       for (TonyTask task : tasks) {
-        String job = task.getJobName();
-        String index = task.getTaskIndex();
-        if (job.equals(jobName) && index.equals(taskIndex)) {
-          return task;
+        if (task != null) {
+          String job = task.getJobName();
+          String index = task.getTaskIndex();
+          if (job.equals(jobName) && index.equals(taskIndex)) {
+            return task;
+          }
         }
       }
     }

@@ -120,6 +120,9 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_TAGS = TONY_APPLICATION_PREFIX + "tags";
 
+  public static final String APPLICATION_PREPARE_STAGE = TONY_APPLICATION_PREFIX + "prepare-stage";
+  public static final String APPLICATION_TRAINING_STAGE = TONY_APPLICATION_PREFIX + "training-stage";
+
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
 
@@ -186,6 +189,10 @@ public class TonyConfigurationKeys {
 
   public static String getNodeLabelKey(String jobName) {
     return String.format(TONY_PREFIX + "%s.node-label", jobName);
+  }
+
+  public static String getDependsOnKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.depends-on", jobName);
   }
 
   public static String getMaxTotalResourceKey(String resource) {
