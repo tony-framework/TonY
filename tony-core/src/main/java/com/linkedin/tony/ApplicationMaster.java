@@ -156,6 +156,9 @@ public class ApplicationMaster {
   /** Preprocessing job **/
   private boolean enablePreprocessing = false;
 
+  /** Untracked jobs **/
+  private boolean untrackedTaskFailed = false;
+
   /** Lifecycle control **/
   private long appTimeout;
 
@@ -596,6 +599,11 @@ public class ApplicationMaster {
         break;
       }
 
+      if (this.untrackedTaskFailed) {
+        LOG.error("One of the untracked tasks has failed with a non-zero exit code.");
+        break;
+      }
+
       if (!this.scheduler.dependencyCheckPassed) {
         LOG.info("Terminating application due to failure to load dependency graph");
         break;
@@ -877,6 +885,7 @@ public class ApplicationMaster {
       return "RECEIVED";
     }
 
+
     @Override
     public String registerTensorBoardUrl(String spec) throws Exception {
       LOG.info("Got request to update TensorBoard URL: " + spec);
@@ -1137,6 +1146,12 @@ public class ApplicationMaster {
               task.getTaskInfo().getStatus().toString(),
               metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex()))),
           System.currentTimeMillis()));
+
+      // Detect if an untracked task has crashed to prevent application hangups.
+      if (!Utils.isJobTypeTracked(task.getJobName(), tonyConf) && task.isFailed()) {
+        untrackedTaskFailed = true;
+      }
+
     } else {
       LOG.warn("No task found for container : [" + containerId + "]!");
     }
