@@ -414,6 +414,38 @@ public class TestTonyE2E  {
     Assert.assertEquals(actualJobs, expectedJobs);
   }
 
+  @Test
+  public void testTonyPSCrashShouldFailAndStopAM() throws IOException, ParseException {
+    client.init(new String[]{
+        "--src_dir", "tony-core/src/test/resources/scripts",
+        "--hdfs_classpath", libPath,
+        "--shell_env", "ENV_CHECK=ENV_CHECK",
+        "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+        "--python_venv", "tony-core/src/test/resources/test.zip",
+        "--conf", "tony.ps.instances=1",
+        "--conf", "tony.worker.instances=1",
+        "--conf", "tony.ps.command=python exit_1.py",
+        "--conf", "tony.worker.command=python sleep_30.py",
+        "--conf", "tony.application.untracked.jobtypes=ps"
+      });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+    client.removeListener(handler);
+    Assert.assertEquals(handler.getTaskInfoSet().size(), 2);
+    for (TaskInfo taskInfo : handler.getTaskInfoSet()) {
+      String name = taskInfo.getName();
+      // Should
+      if (name.equals(Constants.WORKER_JOB_NAME)) {
+        Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
+      }
+      if (name.equals(Constants.PS_JOB_NAME)) {
+        Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FAILED);
+      }
+    }
+    Assert.assertNotNull(handler.getAppId());
+  }
+
   /**
    * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
    * to passing tony configuration file. It is critical to make sure all fields in
