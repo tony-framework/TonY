@@ -435,7 +435,7 @@ public class TestTonyE2E  {
     Assert.assertEquals(handler.getTaskInfoSet().size(), 2);
     for (TaskInfo taskInfo : handler.getTaskInfoSet()) {
       String name = taskInfo.getName();
-      // Should
+      // Workers should be killed by the AM, so they should end up in FINISHED state.
       if (name.equals(Constants.WORKER_JOB_NAME)) {
         Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FINISHED);
       }
