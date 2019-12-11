@@ -114,6 +114,7 @@ public class TonyClient implements AutoCloseable {
   private String taskParams = null;
   private String pythonBinaryPath = null;
   private String pythonVenv = null;
+  private String interpreterPath = null;
   private String srcDir = null;
   private Set<String> applicationTags;
   private String hdfsClasspath = null;
@@ -199,11 +200,14 @@ public class TonyClient implements AutoCloseable {
       }
     }
 
-    if (pythonVenv != null) {
+    // If interpreter path is present, ignore the python_venv zip.
+    if (interpreterPath != null) {
+      Utils.uploadFileAndSetConfResources(appResourcesPath,
+          new Path(interpreterPath), interpreterPath, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+    } else if (pythonVenv != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath,
           new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
-
 
     URL coreSiteUrl = yarnConf.getResource(Constants.CORE_SITE_CONF);
     if (coreSiteUrl != null) {
@@ -248,7 +252,7 @@ public class TonyClient implements AutoCloseable {
         TonyConfigurationKeys.DEFAULT_YARN_QUEUE_NAME);
     appContext.setQueue(yarnQueue);
 
-    // Set the ContainerLaunchContext to describe the Container ith which the ApplicationMaster is launched.
+    // Set the ContainerLaunchContext to describe the Container with which the ApplicationMaster is launched.
     ContainerLaunchContext amSpec =
         createAMContainerSpec(this.amMemory, getTokens());
     appContext.setAMContainerSpec(amSpec);
@@ -376,8 +380,18 @@ public class TonyClient implements AutoCloseable {
     taskParams = cliParser.getOptionValue("task_params");
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
     pythonVenv = cliParser.getOptionValue("python_venv");
+    interpreterPath = cliParser.getOptionValue("interpreter_path");
     executes = cliParser.getOptionValue("executes");
-    executes = TonyClient.buildTaskCommand(pythonVenv, pythonBinaryPath, executes, taskParams);
+
+    // Give preference to interpreterPath over the python stuff
+    if (interpreterPath != null) {
+      LOG.info("interpreter_path is set, so ignoring the python_venv and python_binary_path "
+          + "parameters to create the task command.");
+      executes = TonyClient.buildTaskCommand(interpreterPath, executes, taskParams);
+    } else {
+      executes = TonyClient.buildTaskCommand(pythonVenv, pythonBinaryPath, executes, taskParams);
+    }
+
     if (executes != null) {
       tonyConf.set(TonyConfigurationKeys.getContainerExecuteCommandKey(), executes);
     }
@@ -450,18 +464,29 @@ public class TonyClient implements AutoCloseable {
   @VisibleForTesting
   static String buildTaskCommand(String pythonVenv, String pythonBinaryPath, String execute,
                                  String taskParams) {
-    if (execute == null) {
-      return null;
-    }
-    String baseTaskCommand = execute;
-    String pythonInterpreter;
+    // Try to create path to python interpreter
+    String pythonInterpreter = null;
     if (pythonBinaryPath != null) {
       if (pythonBinaryPath.startsWith("/") || pythonVenv == null) {
         pythonInterpreter = pythonBinaryPath;
       } else {
         pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
       }
-      baseTaskCommand = pythonInterpreter + " " + execute;
+    }
+
+    return buildTaskCommand(pythonInterpreter, execute, taskParams);
+  }
+
+
+  @VisibleForTesting
+  static String buildTaskCommand(String interpreterPath, String execute, String taskParams) {
+    if (execute == null) {
+      return null;
+    }
+
+    String baseTaskCommand = execute;
+    if (interpreterPath != null) {
+      baseTaskCommand = interpreterPath + " " + execute;
     }
 
     if (taskParams != null) {
@@ -470,7 +495,6 @@ public class TonyClient implements AutoCloseable {
 
     return baseTaskCommand;
   }
-
 
   /**
    * Add resource if exist to {@code tonyConf}

@@ -157,6 +157,11 @@ public class TonyJob extends HadoopJavaJob {
       args.append(" " + TonyJobArg.PYTHON_VENV.tonyParamName + " " + pythonVenv);
     }
 
+    String interpreterPath = getJobProps().getString(TonyJobArg.INTERPRETER_PATH.azPropName, null);
+    if (interpreterPath != null ) {
+      args.append(" " + TonyJobArg.INTERPRETER_PATH.tonyParamName + " " + interpreterPath);
+    }
+
     String executes = getJobProps().getString(TonyJobArg.EXECUTES.azPropName, null);
     if (executes != null) {
       args.append(" " + TonyJobArg.EXECUTES.tonyParamName + " " + executes);

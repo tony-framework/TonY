@@ -12,7 +12,9 @@ public enum TonyJobArg {
   PYTHON_BINARY_PATH("python_binary_path"),
   PYTHON_VENV("python_venv"),
   EXECUTES("executes"),
-  SRC_DIR("src_dir");
+  SRC_DIR("src_dir"),
+  INTERPRETER_PATH("interpreter_path");
+
 
   TonyJobArg(String azPropName) {
     this.azPropName = azPropName;

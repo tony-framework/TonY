@@ -264,8 +264,13 @@ public class Utils {
     opts.addOption("hdfs_classpath", true, "Path to jars on HDFS for workers.");
 
     // Python env
+    // This will be deprecated in future because zip of virtualenv is not a reliable way to package python code.
+    // Going forward, we should try to use the generic "interpreter_path" option which can be a path to pex or shiv
+    // executable for Python code.
     opts.addOption("python_binary_path", true, "The relative path to python binary.");
     opts.addOption("python_venv", true, "The python virtual environment zip.");
+
+    opts.addOption("interpreter_path", true, "Path to the interpreter which will be used to invoke the file in executes.");
 
     return opts;
   }
