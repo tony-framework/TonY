@@ -461,6 +461,8 @@ public class TestTonyE2E  {
         "--executes", "ls",
         "--shell_env", "TEST1=test",
         "--container_env", "TEST2=test",
+        "--interpreter_path", "tony-core/src/test/resources/test.zip",
+        "--conf", "tony.ps.instances=1",
         "--conf", "tony.worker.command=cat",
         "--conf", "tony.containers.resources=tony-core/src/test/resources/test.zip"
     });
@@ -471,7 +473,7 @@ public class TestTonyE2E  {
     String path = client.processFinalTonyConf();
     Configuration finalConf = new Configuration();
     finalConf.addResource(new Path(path));
-    assertEquals(finalConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()), "ls");
+    assertEquals(finalConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()), "tony-core/src/test/resources/test.zip ls");
     assertEquals(finalConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV), "TEST2=test");
     assertEquals(finalConf.get(TonyConfigurationKeys.EXECUTION_ENV), "TEST1=test");
     assertEquals(finalConf.get(TonyConfigurationKeys.getExecuteCommandKey("worker")), "cat");
@@ -480,5 +482,4 @@ public class TestTonyE2E  {
     assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test.zip"));
     assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("common.zip"));
   }
-
 }

@@ -158,7 +158,7 @@ public class TonyJob extends HadoopJavaJob {
     }
 
     String interpreterPath = getJobProps().getString(TonyJobArg.INTERPRETER_PATH.azPropName, null);
-    if (interpreterPath != null ) {
+    if (interpreterPath != null) {
       args.append(" " + TonyJobArg.INTERPRETER_PATH.tonyParamName + " " + interpreterPath);
     }
 

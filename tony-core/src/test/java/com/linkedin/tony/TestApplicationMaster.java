@@ -38,5 +38,16 @@ public class TestApplicationMaster {
     expected = "venv/Python/bin/python "
         + "src/main/python/my_awesome_script.py --input_dir hdfs://default/foo/bar";
     Assert.assertEquals(actual, expected);
+
+    // interpreterPath is set
+    actual = TonyClient.buildTaskCommand("./project.pyz", "mnist.py", "--input_dir hdfs://default/foo/bar");
+    expected = "./project.pyz mnist.py --input_dir hdfs://default/foo/bar";
+    Assert.assertEquals(actual, expected);
+
+    // interpreterPath is null
+    actual = TonyClient.buildTaskCommand(null, "mnist.py", "--input_dir hdfs://default/foo/bar");
+    expected = "mnist.py --input_dir hdfs://default/foo/bar";
+    Assert.assertEquals(actual, expected);
+
   }
 }
