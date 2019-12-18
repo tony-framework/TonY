@@ -204,6 +204,15 @@ public class TonyClient implements AutoCloseable {
           new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
 
+    // If the user has provided python binary path without the python virtual env
+    // and the binary path exists, then upload it.
+    if (pythonVenv == null && pythonBinaryPath != null) {
+      File pythonBinaryFile = new File(pythonBinaryPath);
+      if (pythonBinaryFile.exists()) {
+        Utils.uploadFileAndSetConfResources(appResourcesPath,
+            new Path(pythonBinaryPath), pythonBinaryPath, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+      }
+    }
 
     URL coreSiteUrl = yarnConf.getResource(Constants.CORE_SITE_CONF);
     if (coreSiteUrl != null) {

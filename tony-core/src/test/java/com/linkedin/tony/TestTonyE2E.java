@@ -459,6 +459,7 @@ public class TestTonyE2E  {
     TonyClient client = spy(this.client);
     client.init(new String[]{
         "--executes", "ls",
+        "--python_binary_path", "/non-existent/path",
         "--shell_env", "TEST1=test",
         "--container_env", "TEST2=test",
         "--conf", "tony.worker.command=cat",
@@ -471,7 +472,9 @@ public class TestTonyE2E  {
     String path = client.processFinalTonyConf();
     Configuration finalConf = new Configuration();
     finalConf.addResource(new Path(path));
-    assertEquals(finalConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()), "ls");
+    // Python binary path is only uploaded if it exists. If it doesn't we still let it go through as user may have provided
+    // it in some other way and this keeps the change backward compatible.
+    assertEquals(finalConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()), "/non-existent/path ls");
     assertEquals(finalConf.get(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV), "TEST2=test");
     assertEquals(finalConf.get(TonyConfigurationKeys.EXECUTION_ENV), "TEST1=test");
     assertEquals(finalConf.get(TonyConfigurationKeys.getExecuteCommandKey("worker")), "cat");
