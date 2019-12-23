@@ -617,6 +617,10 @@ public class Utils {
     return !Arrays.asList(getUntrackedJobTypes(tonyConf)).contains(taskName);
   }
 
+  public static String[] getStopOnFailureJobTypes(Configuration conf) {
+    return conf.getStrings(TonyConfigurationKeys.STOP_ON_FAILURE_JOBTYPES, "");
+  }
+
   public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,
                                                    Configuration tonyConf, FileSystem fs,
                                                    LocalResourceType resourceType, String resourceKey) throws IOException {
