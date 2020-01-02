@@ -229,6 +229,11 @@ public class TonyConfigurationKeys {
     return DOCKER_PREFIX + "containers.image";
   }
 
+  // Container configurations
+  public static final String CONTAINER_PREFIX = TONY_PREFIX + "container.";
+  public static final String CONTAINER_ALLOCATION_TIMEOUT = CONTAINER_PREFIX + "allocation.timeout";
+  public static final int DEFAULT_CONTAINER_ALLOCATION_TIMEOUT = 15 * 60 * 1000;
+
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";

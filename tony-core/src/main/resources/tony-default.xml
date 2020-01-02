@@ -145,6 +145,13 @@
     <value>1</value>
   </property>
 
+  <!-- Container configurations -->
+  <property>
+    <description>Timeout, in milliseconds for allocated container registration before forcibly killing application.</description>
+    <name>tony.container.allocation.timeout</name>
+    <value>900000</value>
+  </property>
+
   <!-- Worker configurations -->
   <property>
     <description>Timeout, in milliseconds for the user's python processes before forcibly killing them.</description>
