@@ -177,6 +177,13 @@
     <value>ps</value>
   </property>
 
+  <!-- Stop on failure job type configurations -->
+  <property>
+    <description>Job types that we will short circuit when it failed</description>
+    <name>tony.application.stop.on.failure.jobtypes</name>
+    <value>ps</value>
+  </property>
+
   <!-- Docker configurations -->
   <property>
     <description>Whether we use docker container to launch the tasks</description>

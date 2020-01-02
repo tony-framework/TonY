@@ -238,6 +238,9 @@ public class TonyConfigurationKeys {
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
   public static final String UNTRACKED_JOBTYPES_DEFAULT = "ps";
 
+  // Job types that we will short circuit when it failed
+  public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop.on.failure.jobtypes";
+
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
 
