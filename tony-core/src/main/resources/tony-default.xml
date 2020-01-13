@@ -149,7 +149,7 @@
   <property>
     <description>Timeout, in milliseconds for allocated container registration before forcibly killing application.</description>
     <name>tony.container.allocation.timeout</name>
-    <value>900000</value>
+    <value>-1</value>
   </property>
 
   <!-- Worker configurations -->

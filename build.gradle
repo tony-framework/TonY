@@ -80,7 +80,7 @@ ext.deps = [
 
 allprojects {
   group = "com.linkedin.tony"
-  project.version = "0.3.23"
+  project.version = "0.3.24"
 }
 
 task sourcesJar(type: Jar) {
