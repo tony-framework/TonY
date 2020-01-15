@@ -31,7 +31,7 @@ export ENV_FILE="/etc/profile.d/env.sh"
 cat << 'EOF' > "$ENV_FILE"
 export NVIDIA_PATH="/opt/nvidia"
 export VERSION_FILE_PATH="$NVIDIA_PATH/version"
-export IMAGE_VERSION="cu90"
+export IMAGE_VERSION="cu10"
 EOF
 source "$ENV_FILE"
 mkdir -p "${NVIDIA_PATH}"
