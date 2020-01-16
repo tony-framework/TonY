@@ -99,7 +99,7 @@ We provide 4 versions:
  - TensorFlow pre 1.13 compiled using CUDA 90
  - TensorFlow 1.13+ compiled using CUDA 10
  - TensorFlow 2.1+ compiled using CUDA 10.1
- - Customer CUDA, CuDNN, NCCL versions using metadata
+ - Custom CUDA, CuDNN, NCCL versions using metadata
 
 The script does the following:
 
