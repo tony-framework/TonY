@@ -191,6 +191,13 @@
     <value>ps</value>
   </property>
 
+  <!-- App returned status configurations -->
+  <property>
+    <description>Whether to return FAILED when training is completed with some failed job tasks</description>
+    <name>tony.application.failed_on_complete_with_failure.enabled</name>
+    <value>true</value>
+  </property>
+
   <!-- Docker configurations -->
   <property>
     <description>Whether we use docker container to launch the tasks</description>

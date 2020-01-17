@@ -246,6 +246,10 @@ public class TonyConfigurationKeys {
   // Job types that we will short circuit when it failed
   public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop.on.failure.jobtypes";
 
+  // Whether to return FAILED when training is completed with some failed job tasks
+  public static final String FAILED_ON_COMPLETED_WITH_FAILURE_ENABLED = TONY_APPLICATION_PREFIX + "failed_on_complete_with_failure.enabled";
+  public static final boolean DEFAULT_FAILED_ON_COMPLETED_WITH_FAILURE_ENABLED = true;
+
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
 

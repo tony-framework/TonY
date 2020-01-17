@@ -6,6 +6,7 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
@@ -262,7 +263,13 @@ public class TonySession {
       if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName)) {
         trainingFinished = true;
       }
-      setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
+
+      boolean failedOnCompletedWithFailure = tonyConf.getBoolean(
+          TonyConfigurationKeys.FAILED_ON_COMPLETED_WITH_FAILURE_ENABLED,
+          TonyConfigurationKeys.DEFAULT_FAILED_ON_COMPLETED_WITH_FAILURE_ENABLED);
+      if (failedOnCompletedWithFailure) {
+        setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
+      }
     }
   }
 
@@ -305,7 +312,10 @@ public class TonySession {
       }
     }
 
-    if (failureCount > 0) {
+    boolean failedOnCompletedWithFailure = tonyConf.getBoolean(
+        TonyConfigurationKeys.FAILED_ON_COMPLETED_WITH_FAILURE_ENABLED,
+        TonyConfigurationKeys.DEFAULT_FAILED_ON_COMPLETED_WITH_FAILURE_ENABLED);
+    if (failedOnCompletedWithFailure && failureCount > 0) {
       setFinalStatus(FinalApplicationStatus.FAILED,
           "At least one job task exited with non-zero status, failedCnt=" + failureCount);
     } else {
