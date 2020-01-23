@@ -336,7 +336,7 @@ public class ApplicationMaster {
 
       try {
         eventHandler.emitEvent(new Event(EventType.APPLICATION_INITED,
-            new ApplicationInited(appIdString, Utils.getNumTotalTasks(tonyConf), Utils.getCurrentHostName()),
+            new ApplicationInited(appIdString, Utils.getNumTotalTasks(tonyConf), Utils.getCurrentHostName(), this.containerId.toString()),
             System.currentTimeMillis()));
         start();
       } catch (Exception e) {
@@ -1131,7 +1131,7 @@ public class ApplicationMaster {
       taskInfo.setStatus(TaskStatus.RUNNING);
       eventHandler.emitEvent(new Event(EventType.TASK_STARTED,
           new TaskStarted(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
-              container.getNodeHttpAddress().split(":")[0]),
+              container.getNodeHttpAddress().split(":")[0], container.getId().toString()),
           System.currentTimeMillis()));
     }
   }

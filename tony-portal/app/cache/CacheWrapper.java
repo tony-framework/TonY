@@ -88,7 +88,7 @@ public class CacheWrapper {
     String jobId = HdfsUtils.getLastComponent(jobDir.toString());
     JobMetadata metadata = ParserUtils.parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
     List<JobConfig> configs = ParserUtils.parseConfig(myFs, jobDir);
-    List<JobEvent> events = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobDir));
+    List<JobEvent> events = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobDir), yarnConf, metadata.getUser());
     if (metadata != null) {
       metadataCache.put(jobId, metadata);
     }
@@ -104,5 +104,9 @@ public class CacheWrapper {
       listOfJobDirs.forEach(this::updateCaches);
       LOG.info("Done with background initialization of caches.");
     }).start();
+  }
+
+  public YarnConfiguration getYarnConf() {
+    return yarnConf;
   }
 }

@@ -264,7 +264,6 @@ public class ParserUtils {
     if (Strings.isNullOrEmpty(jhistFile)) {
       return Collections.emptyList();
     }
-
     Path historyFile = new Path(jhistFile);
     List<Event> events = new ArrayList<>();
     try (InputStream in = fs.open(historyFile)) {
@@ -284,8 +283,11 @@ public class ParserUtils {
     return events;
   }
 
-  public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
-    return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
+  public static List<JobEvent> mapEventToJobEvent(List<Event> events, YarnConfiguration yarnConfiguration,
+      String userName) {
+    return events.stream()
+        .map((Event e) -> JobEvent.convertEventToJobEvent(e, yarnConfiguration, userName))
+        .collect(Collectors.toList());
   }
 
   /**

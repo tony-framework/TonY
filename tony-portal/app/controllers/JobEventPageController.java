@@ -12,13 +12,16 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import play.mvc.Controller;
 import play.mvc.Result;
-
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import com.linkedin.tony.models.JobMetadata;
 
 public class JobEventPageController extends Controller {
   private FileSystem myFs;
   private Cache<String, List<JobEvent>> cache;
   private Path interm;
   private Path finished;
+  private YarnConfiguration yarnConf;
+  private Cache<String, JobMetadata> metaDataCache;
 
   @Inject
   public JobEventPageController(Requirements requirements, CacheWrapper cacheWrapper) {
@@ -26,6 +29,8 @@ public class JobEventPageController extends Controller {
     cache = cacheWrapper.getEventCache();
     interm = requirements.getIntermediateDir();
     finished = requirements.getFinishedDir();
+    yarnConf = cacheWrapper.getYarnConf();
+    metaDataCache = cacheWrapper.getMetadataCache();
   }
 
   public Result index(String jobId) {
@@ -43,7 +48,7 @@ public class JobEventPageController extends Controller {
     // Check finished dir
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
-      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder));
+      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder), yarnConf, metaDataCache.getIfPresent(jobId).getUser());
       cache.put(jobId, listOfEvents);
       return ok(views.html.event.render(listOfEvents));
     }
