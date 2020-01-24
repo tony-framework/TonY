@@ -5,7 +5,14 @@
 package com.linkedin.tony.util;
 
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.events.ApplicationFinished;
+import com.linkedin.tony.events.ApplicationInited;
+import com.linkedin.tony.events.Event;
+import com.linkedin.tony.events.EventType;
+import com.linkedin.tony.events.TaskFinished;
+import com.linkedin.tony.events.TaskStarted;
 import com.linkedin.tony.models.JobConfig;
+import com.linkedin.tony.models.JobEvent;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
 import java.time.Instant;
@@ -20,6 +27,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import static com.linkedin.tony.Constants.DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -151,4 +159,47 @@ public class TestParserUtils {
     assertEquals(actualUTCDirectoryStr, expectedUTCDirectoryStr);
     assertEquals(actualGMT6DirectoryStr, expectedGMT6DirectoryStr);
   }
+
+  @Test
+  public void testMapEventToJobEvent() {
+    List<Event> applicationEvents = eventBuilder();
+    List<JobEvent> jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, yarnConf, "testuser");
+    assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    yarnConf.set("mapreduce.jobhistory.webapp.address", "localhost:19888");
+    yarnConf.set("yarn.nodemanager.address", "0.0.0.0:8041");
+    jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, yarnConf, "testuser");
+    assertEquals(jobEvents.get(0).getLogLink(),
+        "http://localhost:19888/jobhistory/nmlogs/fakehost2:8041/fakecontainerID/fakecontainerID/testuser");
+    assertEquals(jobEvents.get(1).getLogLink(),
+        "http://localhost:19888/jobhistory/nmlogs/fakehost3:8041/fakecontainerID1/fakecontainerID1/testuser");
+    assertEquals(jobEvents.get(2).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    assertEquals(jobEvents.get(3).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    yarnConf.set("yarn.nodemanager.address", "0.0.0.0");
+    jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, yarnConf, "testuser");
+    assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, null, null);
+    assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    assertEquals(jobEvents.get(1).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    assertEquals(jobEvents.get(2).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+    assertEquals(jobEvents.get(3).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+  }
+
+  private List<Event> eventBuilder() {
+    ApplicationInited applicationInited = new ApplicationInited("fakeid123", 2, "fakehost2", "fakecontainerID");
+    TaskStarted taskStarted = new TaskStarted("faketasktype", 3, "fakehost3", "fakecontainerID1");
+    java.util.List<com.linkedin.tony.events.Metric> dummymetrics = new ArrayList<>();
+    TaskFinished taskFinished = new TaskFinished("fasktasktype", 4, "false", dummymetrics);
+    ApplicationFinished applicationFinished = new ApplicationFinished("fakeid123", 4, 3, dummymetrics);
+    List<Event> applicationEvents = new ArrayList<>();
+    Event applicationInitedEvent = new Event(EventType.APPLICATION_INITED, applicationInited, 1L);
+    Event taskStartedEvent = new Event(EventType.TASK_STARTED, taskStarted, 2L);
+    Event taskFinishedEvent = new Event(EventType.TASK_FINISHED, taskFinished, 3L);
+    Event applicationFinishedEvent = new Event(EventType.APPLICATION_FINISHED, applicationFinished, 4L);
+    applicationEvents.add(applicationInitedEvent);
+    applicationEvents.add(taskStartedEvent);
+    applicationEvents.add(taskFinishedEvent);
+    applicationEvents.add(applicationFinishedEvent);
+    return applicationEvents;
+  }
+
 }

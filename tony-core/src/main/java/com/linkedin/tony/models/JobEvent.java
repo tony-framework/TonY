@@ -18,7 +18,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import static com.linkedin.tony.Constants.*;
+import static com.linkedin.tony.Constants.DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
 
 
 public class JobEvent {
@@ -28,9 +28,7 @@ public class JobEvent {
   private static final String YARN_NODEMANAGER_ADDRESS = "yarn.nodemanager.address";
   private static final String IP_ADDRESS_PORT_DELIMITER = ":";
 
-  private enum NodeWebAddressSchema {IP_ADDRESS, PORT, MAX}
-
-
+  private enum NodeWebAddressSchema { IP_ADDRESS, PORT, MAX }
 
   private EventType type;
   private Object event;
@@ -79,6 +77,14 @@ public class JobEvent {
     return wrapper;
   }
 
+  /**
+   *
+   * @param e {@link Event}
+   * @param yarnConfiguration Yarnconfiguration provided to TonY
+   * @param userName username who launched the job
+   * @return LogLink , it will be NA for TASK_FINISHED and APPLICATION_FINISHED event
+   * APPLICATION_INITED, TASK_STARTED value which will be jobhistory URL to see the container logs
+   */
   private static String createLogLink(Event e, YarnConfiguration yarnConfiguration, String userName) {
     String logLink = DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
     if (Objects.isNull(yarnConfiguration) || Objects.isNull(userName)) {
@@ -97,6 +103,11 @@ public class JobEvent {
     return logLink;
   }
 
+  /**
+   * @param yarnConfiguration {@link YarnConfiguration} yarnconfiguration provided to TonY
+   * @return Pair contains mapreduce.jobhistory.webapp.address if able to get information from
+   * yarnconf ,other will return null
+   */
   private static Pair<String, String> getJobHistoryNodeMgrAdd(YarnConfiguration yarnConfiguration) {
     String mapReduceJobHistoryWebAddress = yarnConfiguration.get(MAPREDUCE_JOBHISTORY_WEBAPP_ADDRESS);
     String yarnNodeManagerAddress = yarnConfiguration.get(YARN_NODEMANAGER_ADDRESS);
@@ -109,6 +120,12 @@ public class JobEvent {
     return null;
   }
 
+  /**
+   *
+   * @param e {@link Event}
+   * @return Pair contains node host address and container id if desired  event type is there
+   * return null is other events there
+   */
   private static Pair<String, String> processEventForNodeIdContainerId(Event e) {
     if (e.getType().name().equals(EventType.APPLICATION_INITED.name())) {
       return Pair.of(((ApplicationInited) e.getEvent()).getHost(), ((ApplicationInited) e.getEvent()).getContainerID());
@@ -118,6 +135,13 @@ public class JobEvent {
     return null;
   }
 
+  /**
+   *
+   * @param jobHistoryNodeMgrAdd Job History Address and Node mgr address
+   * @param nodeIdContainerId  Node ID and container Id
+   * @param userName username
+   * @return History server url , which will provide the container logs
+   */
   private static String processForLogLink(Pair<String, String> jobHistoryNodeMgrAdd,
       Pair<String, String> nodeIdContainerId, String userName) {
     String[] nodeMgrAddress = jobHistoryNodeMgrAdd.getRight().split(IP_ADDRESS_PORT_DELIMITER);

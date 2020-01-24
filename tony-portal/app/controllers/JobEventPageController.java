@@ -48,7 +48,8 @@ public class JobEventPageController extends Controller {
     // Check finished dir
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
-      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder), yarnConf, metaDataCache.getIfPresent(jobId).getUser());
+      String userName = getUserNameFromMetaDataCache(jobId);
+      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder), yarnConf, userName);
       cache.put(jobId, listOfEvents);
       return ok(views.html.event.render(listOfEvents));
     }
@@ -60,5 +61,18 @@ public class JobEventPageController extends Controller {
     }
 
     return internalServerError("Failed to fetch events");
+  }
+
+  /**
+   *
+   * @param jobID jobId provided by the user
+   * @return user who launch the application
+   */
+  private String getUserNameFromMetaDataCache(String jobID) {
+    String userName = null;
+    if (metaDataCache != null) {
+      userName = metaDataCache.getIfPresent(jobID).getUser();
+    }
+    return userName;
   }
 }

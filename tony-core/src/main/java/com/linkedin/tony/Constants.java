@@ -162,6 +162,7 @@ public class Constants {
   public static final String AVG_GPU_MAIN_MEMORY_USAGE = "AVG_GPU_MAIN_MEMORY_USAGE";
 
   public static final int MAX_REPEATED_GPU_ERROR_ALLOWED = 10;
+  // Default value of container log link, will be used for TASK_FINISHED, APPLICATION_FINISHED
   public static final String DEFAULT_VALUE_OF_CONTAINER_LOG_LINK = "NA";
   private Constants() { }
 }

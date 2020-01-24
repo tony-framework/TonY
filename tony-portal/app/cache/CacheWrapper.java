@@ -88,10 +88,12 @@ public class CacheWrapper {
     String jobId = HdfsUtils.getLastComponent(jobDir.toString());
     JobMetadata metadata = ParserUtils.parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
     List<JobConfig> configs = ParserUtils.parseConfig(myFs, jobDir);
-    List<JobEvent> events = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobDir), yarnConf, metadata.getUser());
+    String userName = null;
     if (metadata != null) {
+      userName = metadata.getUser();
       metadataCache.put(jobId, metadata);
     }
+    List<JobEvent> events = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobDir), yarnConf, userName);
     configCache.put(jobId, configs);
     eventCache.put(jobId, events);
   }

@@ -283,8 +283,14 @@ public class ParserUtils {
     return events;
   }
 
-  public static List<JobEvent> mapEventToJobEvent(List<Event> events, YarnConfiguration yarnConfiguration,
-      String userName) {
+  /**
+   *
+   * @param events : List of events
+   * @param yarnConfiguration : YarnConfiguration ,it can be null in that case loglink would be NA
+   * @param userName : Username who have launch tony application ,it can be null in that case loglink would be NA
+   * @return List of job events
+   */
+  public static List<JobEvent> mapEventToJobEvent(List<Event> events, YarnConfiguration yarnConfiguration, String userName) {
     return events.stream()
         .map((Event e) -> JobEvent.convertEventToJobEvent(e, yarnConfiguration, userName))
         .collect(Collectors.toList());
