@@ -34,7 +34,12 @@ Then create a Cloud Storage bucket. Reference [here](https://cloud.google.com/st
 
 ```
 export BUCKET=<your bucket name>
-gsutil mb gs://tony-staging
+gsutil mb gs://${BUCKET}
+```
+**Set default Dataproc region**
+```
+export REGION=us-west1
+gcloud config set dataproc/region ${REGION}
 ```
 
 **Create a Hadoop cluster via Cloud Dataproc using initialization actions**
@@ -46,13 +51,14 @@ export CLUSTER_NAME=<your cluster name>
 export DATAPROC_VERSION=1.3-deb9
 export ZONE=us-west1-a
 
-gcloud dataproc clusters create ${CLUSTER_NAME} --bucket ${BUCKET} \
+gcloud beta dataproc clusters create ${CLUSTER_NAME} --bucket ${BUCKET} \
 --subnet default \
---zone $ZONE \
+--zone ${ZONE} \
 --master-machine-type n1-standard-4 \
 --num-workers 2 --worker-machine-type n1-standard-4 \
 --image-version ${DATAPROC_VERSION} \
---initialization-actions gs://dataproc-initialization-actions/tony/tony.sh
+--initialization-actions gs://dataproc-initialization-actions/tony/tony.sh \
+--enable-component-gateway
 ```
 
 When creating a Cloud Dataproc cluster, you can specify in your TonY [initialization actions](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions) script that Cloud Dataproc should run on all nodes in your Cloud Dataproc cluster immediately after the cluster is set up. 
@@ -258,11 +264,14 @@ gcloud beta dataproc autoscaling-policies import autoscale_tony --source=autosca
 export CLUSTER_NAME=tony-staging-1
 export DATAPROC_VERSION=1.3-deb9
 export ZONE=us-west1-a          # Update your zone/region accordingly
+export REGION=us-west1
 export BUCKET=tony-staging
 export LOG_BUCKET=tony-staging  # Update your Google Cloud Storage Bucket accordingly
  
 gcloud beta dataproc clusters create ${CLUSTER_NAME} \
---zone $ZONE \
+--zone ${ZONE} \
+--region ${REGION} \
+--enable-component-gateway \
 --master-machine-type n1-standard-4 \
 --num-workers 4 --worker-machine-type n1-standard-4 \
 --image-version ${DATAPROC_VERSION} \
@@ -292,7 +301,7 @@ gcloud dataproc jobs submit hadoop --cluster ${CLUSTER_NAME} \
 --conf_file=/opt/tony/TonY-samples/jobs/TFJob/tony.xml \
 --executes mnist_distributed.py \
 --python_venv=/opt/tony/TonY-samples/deps/tf.zip \
---python_binary_path=tf/bin/python3.5 &
+--python_binary_path=tf/bin/python3.5 --region ${REGION} &
 sleep 1
 done
 ```
