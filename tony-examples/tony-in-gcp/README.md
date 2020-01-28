@@ -265,8 +265,8 @@ export CLUSTER_NAME=tony-staging-1
 export DATAPROC_VERSION=1.3-deb9
 export ZONE=us-west1-a          # Update your zone/region accordingly
 export REGION=us-west1
-export BUCKET=tony-staging
-export LOG_BUCKET=tony-staging  # Update your Google Cloud Storage Bucket accordingly
+export BUCKET=${BUCKET} 
+export LOG_BUCKET=${BUCKET}   # Update your Google Cloud Storage Bucket accordingly
  
 gcloud beta dataproc clusters create ${CLUSTER_NAME} \
 --zone ${ZONE} \
