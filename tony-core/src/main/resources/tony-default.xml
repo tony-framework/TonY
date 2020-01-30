@@ -205,7 +205,7 @@
       well as between the client and AM.
     </description>
     <name>tony.application.security.enabled</name>
-    <value>true</value>
+    <value>false</value>
   </property>
 
   <property>
@@ -237,7 +237,7 @@
       Location for Tony AM to write config and events on HDFS
     </description>
     <name>tony.history.location</name>
-    <value>/path/to/tony-history</value>
+    <value>hdfs://localhost:9000/user/pkumar2/tony-history</value>
   </property>
 
   <property>
@@ -245,7 +245,7 @@
       Location of intermediate folder
     </description>
     <name>tony.history.intermediate</name>
-    <value>/path/to/tony-history/intermediate</value>
+    <value>hdfs://localhost:9000/user/pkumar2/tony-history/intermediate</value>
   </property>
 
   <property>
@@ -253,15 +253,21 @@
       Location of finished folder
     </description>
     <name>tony.history.finished</name>
-    <value>/path/to/tony-history/finished</value>
+    <value>hdfs://localhost:9000/user/pkumar2/tony-history/finished</value>
   </property>
 
   <property>
     <name>tony.history.mover-interval-ms</name>
-    <value>300000</value>
+    <value>1000</value>
     <description>Frequency at which to scan the intermediate directory for completed jobs to move to the
     finished directory.</description>
   </property>
+
+<property>
+        <name>mapreduce.jobhistory.webapp.address</name>
+        <value>localhost:19888</value>
+    </property>
+
 
   <property>
     <name>tony.history.retention-sec</name>

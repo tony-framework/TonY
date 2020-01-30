@@ -1,6 +1,18 @@
 @(eventList: List[JobEvent])
 
+
+
   @main("Events") {
+
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <ul class="nav navbar-nav">
+          <li class="active" ><a href=@{request.uri} id="events">Events</a></li>
+          <li><a href=@eventList(0).getLogsLink id="logs">Logs</a></li>
+        </ul>
+      </div>
+    </nav>
+
 
     <section id="content">
       <div class="wrapper doc">

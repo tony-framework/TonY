@@ -21,6 +21,7 @@ public class JobMetadata {
   private String status;
   private String user;
 
+
   private JobMetadata(JobMetadata.Builder builder) {
     this.id = builder.id;
     this.jobLink = "/" + Constants.JOBS_SUFFIX + "/" + id;

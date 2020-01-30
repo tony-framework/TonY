@@ -12,7 +12,7 @@ import com.linkedin.tony.events.EventType;
 import com.linkedin.tony.events.TaskFinished;
 import com.linkedin.tony.events.TaskStarted;
 import com.linkedin.tony.models.JobConfig;
-import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.models.JobLog;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
 import java.time.Instant;
@@ -163,11 +163,11 @@ public class TestParserUtils {
   @Test
   public void testMapEventToJobEvent() {
     List<Event> applicationEvents = eventBuilder();
-    List<JobEvent> jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, yarnConf, "testuser");
+    List<JobLog> jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, yarnConf, "testuser", "fakeJobID");
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     yarnConf.set("mapreduce.jobhistory.webapp.address", "localhost:19888");
     yarnConf.set("yarn.nodemanager.address", "0.0.0.0:8041");
-    jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, yarnConf, "testuser");
+    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, yarnConf, "testuser", "fakeJobID");
     assertEquals(jobEvents.get(0).getLogLink(),
         "http://localhost:19888/jobhistory/nmlogs/fakehost2:8041/fakecontainerID/fakecontainerID/testuser");
     assertEquals(jobEvents.get(1).getLogLink(),
@@ -175,9 +175,9 @@ public class TestParserUtils {
     assertEquals(jobEvents.get(2).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     assertEquals(jobEvents.get(3).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     yarnConf.set("yarn.nodemanager.address", "0.0.0.0");
-    jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, yarnConf, "testuser");
+    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, yarnConf, "testuser", "fakeJobID");
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
-    jobEvents = ParserUtils.mapEventToJobEvent(applicationEvents, null, null);
+    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, null, null, "fakeJobID");
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     assertEquals(jobEvents.get(1).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     assertEquals(jobEvents.get(2).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);

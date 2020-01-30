@@ -60,6 +60,7 @@ public class HistoryFileMover {
 
     YarnConfiguration yarnConf = new YarnConfiguration();
     if (System.getenv(Constants.HADOOP_CONF_DIR) != null) {
+      LOG.info(" Path to hadoop configuration is null ");
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) +
           File.separatorChar + Constants.CORE_SITE_CONF));
       yarnConf.addResource(new Path(System.getenv(Constants.HADOOP_CONF_DIR) +

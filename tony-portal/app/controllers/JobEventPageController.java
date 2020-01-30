@@ -3,8 +3,10 @@ package controllers;
 import cache.CacheWrapper;
 import com.google.common.cache.Cache;
 import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.models.JobLog;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.ParserUtils;
+import com.linkedin.tony.events.Event;
 import hadoop.Requirements;
 import java.util.List;
 import javax.inject.Inject;
@@ -12,25 +14,23 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import play.mvc.Controller;
 import play.mvc.Result;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import com.linkedin.tony.models.JobMetadata;
+
 
 public class JobEventPageController extends Controller {
   private FileSystem myFs;
   private Cache<String, List<JobEvent>> cache;
+  private Cache<String, List<JobLog>> jobLogCache;
   private Path interm;
   private Path finished;
-  private YarnConfiguration yarnConf;
-  private Cache<String, JobMetadata> metaDataCache;
+
 
   @Inject
   public JobEventPageController(Requirements requirements, CacheWrapper cacheWrapper) {
     myFs = requirements.getFileSystem();
     cache = cacheWrapper.getEventCache();
+    jobLogCache = cacheWrapper.getLogCache();
     interm = requirements.getIntermediateDir();
     finished = requirements.getFinishedDir();
-    yarnConf = cacheWrapper.getYarnConf();
-    metaDataCache = cacheWrapper.getMetadataCache();
   }
 
   public Result index(String jobId) {
@@ -48,9 +48,11 @@ public class JobEventPageController extends Controller {
     // Check finished dir
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
-      String userName = getUserNameFromMetaDataCache(jobId);
-      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder), yarnConf, userName);
+      List<Event> events = ParserUtils.parseEvents(myFs, jobFolder);
+      listOfEvents = ParserUtils.mapEventToJobEvent(events, jobId);
       cache.put(jobId, listOfEvents);
+      // Since file is already parsed , its better to populate job log cache
+      //jobLogCache.put(jobId, ParserUtils.mapEventToJobLog(events));
       return ok(views.html.event.render(listOfEvents));
     }
 
@@ -63,16 +65,5 @@ public class JobEventPageController extends Controller {
     return internalServerError("Failed to fetch events");
   }
 
-  /**
-   *
-   * @param jobID jobId provided by the user
-   * @return user who launch the application
-   */
-  private String getUserNameFromMetaDataCache(String jobID) {
-    String userName = null;
-    if (metaDataCache != null) {
-      userName = metaDataCache.getIfPresent(jobID).getUser();
-    }
-    return userName;
-  }
+
 }
