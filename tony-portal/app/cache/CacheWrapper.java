@@ -103,15 +103,14 @@ public class CacheWrapper {
     JobMetadata metadata = ParserUtils.parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
     List<JobConfig> configs = ParserUtils.parseConfig(myFs, jobDir);
     List<Event> events = ParserUtils.parseEvents(myFs, jobDir);
-
     List<JobEvent> jobEvents = ParserUtils.mapEventToJobEvent(events);
+
     String userName = null;
     if (metadata != null) {
       metadataCache.put(jobId, metadata);
       userName = metadata.getUser();
     }
-    JobLogMetaData jobLogMetaData = new JobLogMetaData(yarnConf, userName);
-    List<JobLog> jobLogs = ParserUtils.mapEventToJobLog(events, jobLogMetaData);
+    List<JobLog> jobLogs = ParserUtils.mapEventToJobLog(events, new JobLogMetaData(yarnConf, userName));
     configCache.put(jobId, configs);
     eventCache.put(jobId, jobEvents);
     logCache.put(jobId, jobLogs);

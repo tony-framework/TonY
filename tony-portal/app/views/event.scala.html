@@ -1,25 +1,20 @@
-@(eventList: List[JobEvent], links: Map[String,String])
+@(eventList: List[JobEvent], links: Map[String, String])
+@main("Events") {
 
-
-
-  @main("Events") {
-
-    <nav class="navbar navbar-default">
-      <div class="container-fluid">
-        <ul class="nav navbar-nav">
-        @for((key, value) <- links) {
-          <li><a href=@value>@key</a></li>
-        }
-        </ul>
-      </div>
-    </nav>
-
-
-    <section id="content">
-      <div class="wrapper doc">
-        <article>
-        @tableEvent(eventList)
-        </article>
-      </div>
-    </section>
-  }
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <ul class="nav navbar-nav">
+      @for((key, value) <- links) {
+        <li><a href=@value>@key</a></li>
+      }
+      </ul>
+    </div>
+  </nav>
+  <section id="content">
+    <div class="wrapper doc">
+      <article>
+      @tableEvent(eventList)
+      </article>
+    </div>
+  </section>
+}

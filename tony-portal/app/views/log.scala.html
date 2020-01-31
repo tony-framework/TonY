@@ -1,13 +1,13 @@
-@(logList: List[JobLog],links: Map[String,String])
+@(logList: List[JobLog], links: Map[String, String])
 
 @main("logs") {
 
   <nav class="navbar navbar-default">
     <div class="container-fluid">
       <ul class="nav navbar-nav">
-        @for((key, value) <- links) {
+      @for((key, value) <- links) {
         <li><a href=@value>@key</a></li>
-        }
+      }
       </ul>
     </div>
   </nav>

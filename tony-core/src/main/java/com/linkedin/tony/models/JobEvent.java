@@ -7,12 +7,10 @@ package com.linkedin.tony.models;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.events.EventType;
 import java.util.Date;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 
 
 public class JobEvent {
-  private static final Log LOG = LogFactory.getLog(JobEvent.class);
   private EventType type;
   private Object event;
   private long timestamp;
@@ -49,4 +47,3 @@ public class JobEvent {
     return wrapper;
   }
 }
-

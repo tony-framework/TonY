@@ -64,7 +64,7 @@ public class JobLog {
 
   /**
    *
-   * @param e  e {@link Event}
+   * @param e {@link Event}
    * @param jobLogMetaData : Metadata about Job , which is required to create JobLog
    * @return JobLog
    */

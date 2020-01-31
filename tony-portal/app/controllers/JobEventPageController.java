@@ -53,8 +53,7 @@ public class JobEventPageController extends Controller {
     // Check finished dir
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
-      List<Event> events = ParserUtils.parseEvents(myFs, jobFolder);
-      listOfEvents = ParserUtils.mapEventToJobEvent(events);
+      listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder));
       cache.put(jobId, listOfEvents);
       //todo: Since file is already parsed , its better to populate job log cache
       return ok(views.html.event.render(listOfEvents, linksToBeDisplayedOnPage(jobId)));

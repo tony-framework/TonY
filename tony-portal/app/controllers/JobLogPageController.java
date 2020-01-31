@@ -75,8 +75,7 @@ public class JobLogPageController extends Controller {
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
       List<Event> events = ParserUtils.parseEvents(myFs, jobFolder);
-      JobLogMetaData jobLogMetadata = new JobLogMetaData(yarnConf, userName);
-      listOflogs = ParserUtils.mapEventToJobLog(events, jobLogMetadata);
+      listOflogs = ParserUtils.mapEventToJobLog(events, new JobLogMetaData(yarnConf, userName));
       jobLogCache.put(jobId, listOflogs);
       //Since file is already parsed , its better populate event cache
       jobEventCache.put(jobId, ParserUtils.mapEventToJobEvent(events));
@@ -93,6 +92,7 @@ public class JobLogPageController extends Controller {
   }
 
   private Map<String, String> linksToBeDisplayedOnPage(String jobId) {
+    // treemap to maintain keys order
     Map<String, String> titleAndLinks = new TreeMap<>();
     titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
     titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
@@ -122,8 +122,7 @@ public class JobLogPageController extends Controller {
     List<Event> events = jobEvents.stream()
         .map(jobEvent -> new Event(jobEvent.getType(), jobEvent.getEvent(), jobEvent.getTimestamp().getTime()))
         .collect(Collectors.toList());
-    JobLogMetaData jobLogMetadata = new JobLogMetaData(yarnConf, userName);
-    List<JobLog> listOflogs = ParserUtils.mapEventToJobLog(events, jobLogMetadata);
+    List<JobLog> listOflogs = ParserUtils.mapEventToJobLog(events, new JobLogMetaData(yarnConf, userName));
     return listOflogs;
   }
 }

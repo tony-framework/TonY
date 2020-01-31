@@ -265,6 +265,7 @@ public class ParserUtils {
     if (Strings.isNullOrEmpty(jhistFile)) {
       return Collections.emptyList();
     }
+
     Path historyFile = new Path(jhistFile);
     List<Event> events = new ArrayList<>();
     try (InputStream in = fs.open(historyFile)) {
@@ -290,9 +291,7 @@ public class ParserUtils {
    * @return List of job events
    */
   public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
-    return events.stream()
-        .map(JobEvent::convertEventToJobEvent)
-        .collect(Collectors.toList());
+    return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
   }
 
   /**
@@ -307,7 +306,6 @@ public class ParserUtils {
         .filter(jobLog -> jobLog.getContainerID() != null)
         .collect(Collectors.toList());
   }
-
 
   /**
    * Given a {@link Date} and {@link ZoneId}, returns a "yyyy/mm/dd" string representation in the time zone specified.
