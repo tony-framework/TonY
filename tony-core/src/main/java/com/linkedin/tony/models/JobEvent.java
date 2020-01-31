@@ -9,7 +9,6 @@ import com.linkedin.tony.events.EventType;
 import java.util.Date;
 
 
-
 public class JobEvent {
   private EventType type;
   private Object event;

@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -27,6 +28,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.testng.annotations.Test;
 
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+import static com.linkedin.tony.Constants.JOBS_SUFFIX;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -297,5 +300,14 @@ public class TestUtils {
             .getDockerImageKey("tony.worker.gpus"))).thenReturn("foo");
     assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
             new HashMap<>());
+  }
+
+  @Test
+  public void testLinksToBeDisplayedOnPage() {
+    assertEquals(Utils.linksToBeDisplayedOnPage(null), new TreeMap<>());
+    Map<String, String> linksToBeDisplayed = Utils.linksToBeDisplayedOnPage("fakeJobId");
+    assertEquals(linksToBeDisplayed.size(), 2);
+    assertEquals(linksToBeDisplayed.get("Logs"), "/" + LOGS_SUFFIX + "/" + "fakeJobId");
+    assertEquals(linksToBeDisplayed.get("Events"), "/" + JOBS_SUFFIX + "/" + "fakeJobId");
   }
 }

@@ -18,12 +18,7 @@ import com.linkedin.tony.models.JobMetadata;
 import java.util.stream.Collectors;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.util.JobLogMetaData;
-
-import static com.linkedin.tony.Constants.JOBS_SUFFIX;
-import static com.linkedin.tony.Constants.LOGS_SUFFIX;
-
-import java.util.Map;
-import java.util.TreeMap;
+import com.linkedin.tony.util.Utils;
 
 
 public class JobLogPageController extends Controller {
@@ -55,7 +50,7 @@ public class JobLogPageController extends Controller {
     // Check Log cache
     listOflogs = jobLogCache.getIfPresent(jobId);
     if (listOflogs != null) {
-      return ok(views.html.log.render(listOflogs, linksToBeDisplayedOnPage(jobId)));
+      return ok(views.html.log.render(listOflogs, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     String userName = getUserNameFromMetaDataCache(jobId);
@@ -66,7 +61,7 @@ public class JobLogPageController extends Controller {
     if (jobEvents != null) {
       listOflogs = parseJobEventsToJobLogs(userName, jobEvents);
       jobLogCache.put(jobId, listOflogs);
-      return ok(views.html.log.render(listOflogs, linksToBeDisplayedOnPage(jobId)));
+      return ok(views.html.log.render(listOflogs, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     //If the job log doesn't exist in cache and also not there in job event cache
@@ -79,7 +74,7 @@ public class JobLogPageController extends Controller {
       jobLogCache.put(jobId, listOflogs);
       //Since file is already parsed , its better populate event cache
       jobEventCache.put(jobId, ParserUtils.mapEventToJobEvent(events));
-      return ok(views.html.log.render(listOflogs, linksToBeDisplayedOnPage(jobId)));
+      return ok(views.html.log.render(listOflogs, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check intermediate dir
@@ -89,14 +84,6 @@ public class JobLogPageController extends Controller {
     }
 
     return internalServerError("Failed to fetch events");
-  }
-
-  private Map<String, String> linksToBeDisplayedOnPage(String jobId) {
-    // treemap to maintain keys order
-    Map<String, String> titleAndLinks = new TreeMap<>();
-    titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
-    titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
-    return titleAndLinks;
   }
 
   /**

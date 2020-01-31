@@ -14,13 +14,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import play.mvc.Controller;
 import play.mvc.Result;
-
-import static com.linkedin.tony.Constants.LOGS_SUFFIX;
-import static com.linkedin.tony.Constants.JOBS_SUFFIX;
-
-import java.util.Map;
-import java.util.TreeMap;
-
+import com.linkedin.tony.util.Utils;
 
 public class JobEventPageController extends Controller {
   private FileSystem myFs;
@@ -47,7 +41,7 @@ public class JobEventPageController extends Controller {
     // Check cache
     listOfEvents = cache.getIfPresent(jobId);
     if (listOfEvents != null) {
-      return ok(views.html.event.render(listOfEvents, linksToBeDisplayedOnPage(jobId)));
+      return ok(views.html.event.render(listOfEvents, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check finished dir
@@ -56,7 +50,7 @@ public class JobEventPageController extends Controller {
       listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder));
       cache.put(jobId, listOfEvents);
       //todo: Since file is already parsed , its better to populate job log cache
-      return ok(views.html.event.render(listOfEvents, linksToBeDisplayedOnPage(jobId)));
+      return ok(views.html.event.render(listOfEvents, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check intermediate dir
@@ -68,10 +62,4 @@ public class JobEventPageController extends Controller {
     return internalServerError("Failed to fetch events");
   }
 
-  private Map<String, String> linksToBeDisplayedOnPage(String jobId) {
-    Map<String, String> titleAndLinks = new TreeMap<>();
-    titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
-    titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
-    return titleAndLinks;
-  }
 }

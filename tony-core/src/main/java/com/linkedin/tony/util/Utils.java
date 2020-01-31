@@ -13,6 +13,8 @@ import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.tensorflow.JobContainerRequest;
+import java.util.Objects;
+import java.util.TreeMap;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
@@ -66,6 +68,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+import static com.linkedin.tony.Constants.JOBS_SUFFIX;
 
 public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
@@ -743,6 +748,21 @@ public class Utils {
       }
     }
     return containerEnv;
+  }
+
+  /**
+   * Prepares links which is to be displayed on job event and log page
+   * @param jobId : JobId for which links to be created
+   * @return Map with title and links
+   * TreeMap is used to maintain the key orders
+   */
+  public static Map<String, String> linksToBeDisplayedOnPage(String jobId) {
+    Map<String, String> titleAndLinks = new TreeMap<>();
+    if (Objects.nonNull(jobId)) {
+      titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
+      titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
+    }
+    return titleAndLinks;
   }
 
   private Utils() { }

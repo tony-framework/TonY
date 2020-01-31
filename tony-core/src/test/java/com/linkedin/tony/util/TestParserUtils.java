@@ -161,7 +161,7 @@ public class TestParserUtils {
   }
 
   @Test
-  public void testMapEventToJobEvent() {
+  public void testMapEventToJobLog() {
     List<Event> applicationEvents = eventBuilder();
     List<JobLog> jobEvents =
         ParserUtils.mapEventToJobLog(applicationEvents, new JobLogMetaData(yarnConf, "testuser"));
@@ -180,6 +180,17 @@ public class TestParserUtils {
     jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, new JobLogMetaData(null, null));
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     assertEquals(jobEvents.get(1).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
+
+    assertEquals("fakecontainerID",
+        JobLog.convertEventToJobLog(applicationEvents.get(0), new JobLogMetaData(yarnConf, "testuser"))
+            .getContainerID());
+    assertEquals("fakecontainerID1",
+        JobLog.convertEventToJobLog(applicationEvents.get(1), new JobLogMetaData(yarnConf, "testuser"))
+            .getContainerID());
+    assertNull(JobLog.convertEventToJobLog(applicationEvents.get(2), new JobLogMetaData(yarnConf, "testuser"))
+        .getContainerID());
+    assertNull(JobLog.convertEventToJobLog(applicationEvents.get(3), new JobLogMetaData(yarnConf, "testuser"))
+        .getContainerID());
   }
 
   private List<Event> eventBuilder() {

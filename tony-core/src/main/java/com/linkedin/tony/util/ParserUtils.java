@@ -43,7 +43,6 @@ import org.xml.sax.SAXException;
 
 import static com.linkedin.tony.util.HdfsUtils.pathExists;
 
-
 /**
  * The class handles parsing different file format
  */
@@ -285,11 +284,6 @@ public class ParserUtils {
     return events;
   }
 
-  /**
-   *
-   * @param events : List of events
-   * @return List of job events
-   */
   public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
     return events.stream().map(JobEvent::convertEventToJobEvent).collect(Collectors.toList());
   }
@@ -320,4 +314,5 @@ public class ParserUtils {
   }
 
   private ParserUtils() { }
+
 }
