@@ -163,20 +163,21 @@ public class TestParserUtils {
   @Test
   public void testMapEventToJobEvent() {
     List<Event> applicationEvents = eventBuilder();
-    List<JobLog> jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, yarnConf, "testuser", "fakeJobID");
+    List<JobLog> jobEvents =
+        ParserUtils.mapEventToJobLog(applicationEvents, new JobLogMetaData(yarnConf, "testuser"));
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
 
     yarnConf.set("mapreduce.jobhistory.webapp.address", "localhost:19888");
     yarnConf.set("yarn.nodemanager.address", "0.0.0.0:8041");
-    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, yarnConf, "testuser", "fakeJobID");
+    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, new JobLogMetaData(yarnConf, "testuser"));
     assertEquals(jobEvents.get(0).getLogLink(),
         "http://localhost:19888/jobhistory/nmlogs/fakehost2:8041/fakecontainerID/fakecontainerID/testuser");
     assertEquals(jobEvents.get(1).getLogLink(),
         "http://localhost:19888/jobhistory/nmlogs/fakehost3:8041/fakecontainerID1/fakecontainerID1/testuser");
     yarnConf.set("yarn.nodemanager.address", "0.0.0.0");
-    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, yarnConf, "testuser", "fakeJobID");
+    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, new JobLogMetaData(yarnConf, "testuser"));
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
-    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, null, null, "fakeJobID");
+    jobEvents = ParserUtils.mapEventToJobLog(applicationEvents, new JobLogMetaData(null, null));
     assertEquals(jobEvents.get(0).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
     assertEquals(jobEvents.get(1).getLogLink(), DEFAULT_VALUE_OF_CONTAINER_LOG_LINK);
   }

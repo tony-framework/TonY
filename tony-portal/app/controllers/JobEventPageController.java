@@ -15,6 +15,12 @@ import org.apache.hadoop.fs.Path;
 import play.mvc.Controller;
 import play.mvc.Result;
 
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+import static com.linkedin.tony.Constants.JOBS_SUFFIX;
+
+import java.util.Map;
+import java.util.TreeMap;
+
 
 public class JobEventPageController extends Controller {
   private FileSystem myFs;
@@ -22,7 +28,6 @@ public class JobEventPageController extends Controller {
   private Cache<String, List<JobLog>> jobLogCache;
   private Path interm;
   private Path finished;
-
 
   @Inject
   public JobEventPageController(Requirements requirements, CacheWrapper cacheWrapper) {
@@ -42,18 +47,17 @@ public class JobEventPageController extends Controller {
     // Check cache
     listOfEvents = cache.getIfPresent(jobId);
     if (listOfEvents != null) {
-      return ok(views.html.event.render(listOfEvents));
+      return ok(views.html.event.render(listOfEvents, linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check finished dir
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
       List<Event> events = ParserUtils.parseEvents(myFs, jobFolder);
-      listOfEvents = ParserUtils.mapEventToJobEvent(events, jobId);
+      listOfEvents = ParserUtils.mapEventToJobEvent(events);
       cache.put(jobId, listOfEvents);
-      // Since file is already parsed , its better to populate job log cache
-      //jobLogCache.put(jobId, ParserUtils.mapEventToJobLog(events));
-      return ok(views.html.event.render(listOfEvents));
+      //todo: Since file is already parsed , its better to populate job log cache
+      return ok(views.html.event.render(listOfEvents, linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check intermediate dir
@@ -65,5 +69,10 @@ public class JobEventPageController extends Controller {
     return internalServerError("Failed to fetch events");
   }
 
-
+  private Map<String, String> linksToBeDisplayedOnPage(String jobId) {
+    Map<String, String> titleAndLinks = new TreeMap<>();
+    titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
+    titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
+    return titleAndLinks;
+  }
 }

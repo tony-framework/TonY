@@ -17,6 +17,13 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import com.linkedin.tony.models.JobMetadata;
 import java.util.stream.Collectors;
 import com.linkedin.tony.events.Event;
+import com.linkedin.tony.util.JobLogMetaData;
+
+import static com.linkedin.tony.Constants.JOBS_SUFFIX;
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+
+import java.util.Map;
+import java.util.TreeMap;
 
 
 public class JobLogPageController extends Controller {
@@ -48,7 +55,7 @@ public class JobLogPageController extends Controller {
     // Check Log cache
     listOflogs = jobLogCache.getIfPresent(jobId);
     if (listOflogs != null) {
-      return ok(views.html.log.render(listOflogs));
+      return ok(views.html.log.render(listOflogs, linksToBeDisplayedOnPage(jobId)));
     }
 
     String userName = getUserNameFromMetaDataCache(jobId);
@@ -57,9 +64,9 @@ public class JobLogPageController extends Controller {
     //to create joblogs
     List<JobEvent> jobEvents = jobEventCache.getIfPresent(jobId);
     if (jobEvents != null) {
-      listOflogs = parseJobEventsToJobLogs(userName, jobEvents, jobId);
+      listOflogs = parseJobEventsToJobLogs(userName, jobEvents);
       jobLogCache.put(jobId, listOflogs);
-      return ok(views.html.log.render(listOflogs));
+      return ok(views.html.log.render(listOflogs, linksToBeDisplayedOnPage(jobId)));
     }
 
     //If the job log doesn't exist in cache and also not there in job event cache
@@ -68,11 +75,12 @@ public class JobLogPageController extends Controller {
     Path jobFolder = HdfsUtils.getJobDirPath(myFs, finished, jobId);
     if (jobFolder != null) {
       List<Event> events = ParserUtils.parseEvents(myFs, jobFolder);
-      listOflogs = ParserUtils.mapEventToJobLog(events, yarnConf, userName, jobId);
+      JobLogMetaData jobLogMetadata = new JobLogMetaData(yarnConf, userName);
+      listOflogs = ParserUtils.mapEventToJobLog(events, jobLogMetadata);
       jobLogCache.put(jobId, listOflogs);
       //Since file is already parsed , its better populate event cache
-      jobEventCache.put(jobId, ParserUtils.mapEventToJobEvent(events, jobId));
-      return ok(views.html.log.render(listOflogs));
+      jobEventCache.put(jobId, ParserUtils.mapEventToJobEvent(events));
+      return ok(views.html.log.render(listOflogs, linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check intermediate dir
@@ -82,6 +90,13 @@ public class JobLogPageController extends Controller {
     }
 
     return internalServerError("Failed to fetch events");
+  }
+
+  private Map<String, String> linksToBeDisplayedOnPage(String jobId) {
+    Map<String, String> titleAndLinks = new TreeMap<>();
+    titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
+    titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
+    return titleAndLinks;
   }
 
   /**
@@ -103,11 +118,12 @@ public class JobLogPageController extends Controller {
    * @param jobEvents list of job events
    * @return list of job logs
    */
-  private List<JobLog> parseJobEventsToJobLogs(String userName, List<JobEvent> jobEvents, String jobID) {
+  private List<JobLog> parseJobEventsToJobLogs(String userName, List<JobEvent> jobEvents) {
     List<Event> events = jobEvents.stream()
         .map(jobEvent -> new Event(jobEvent.getType(), jobEvent.getEvent(), jobEvent.getTimestamp().getTime()))
         .collect(Collectors.toList());
-    List<JobLog> listOflogs = ParserUtils.mapEventToJobLog(events, yarnConf, userName, jobID);
+    JobLogMetaData jobLogMetadata = new JobLogMetaData(yarnConf, userName);
+    List<JobLog> listOflogs = ParserUtils.mapEventToJobLog(events, jobLogMetadata);
     return listOflogs;
   }
 }

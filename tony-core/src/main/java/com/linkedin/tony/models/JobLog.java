@@ -8,6 +8,7 @@ package com.linkedin.tony.models;
 import com.linkedin.tony.events.ApplicationInited;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.events.TaskStarted;
+import com.linkedin.tony.util.JobLogMetaData;
 import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -16,9 +17,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-import static com.linkedin.tony.Constants.JOBS_SUFFIX;
 import static com.linkedin.tony.Constants.DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
 
+
+/**
+ * JobLog is responsible for parsing the event and create the information
+ * about container logs .
+ */
 public class JobLog {
   private static final Log LOG = LogFactory.getLog(JobLog.class);
   private static final String LOG_URL_SCHEMA = "http://{0}/jobhistory/nmlogs/{1}:{2}/{3}/{4}/{5}";
@@ -31,7 +36,7 @@ public class JobLog {
   private String hostAddress;
   private String containerID;
   private String logLink;
-  private String jobEventsLink;
+
 
   public String getHostAddress() {
     return hostAddress;
@@ -57,30 +62,20 @@ public class JobLog {
     this.logLink = logLink;
   }
 
-  public String getJobEventsLink() {
-    return jobEventsLink;
-  }
-
-  public void setJobEventsLink(String jobEventsLink) {
-    this.jobEventsLink = jobEventsLink;
-  }
-
   /**
    *
-   * @param e  {@link Event}
-   * @param yarnConfiguration YarnConfiguration
-   * @param userName userName
-   * @param jobID Application ID
-   * @return Joblog
+   * @param e  e {@link Event}
+   * @param jobLogMetaData : Metadata about Job , which is required to create JobLog
+   * @return JobLog
    */
-  public static JobLog convertEventToJobLog(Event e, YarnConfiguration yarnConfiguration, String userName, String jobID) {
+  public static JobLog convertEventToJobLog(Event e, JobLogMetaData jobLogMetaData) {
     JobLog wrapper = new JobLog();
     Pair<String, String> nodeIdContainerId = processEventForNodeIdContainerId(e);
     if (isParameterValid(nodeIdContainerId)) {
       wrapper.setContainerID(nodeIdContainerId.getRight());
       wrapper.setHostAddress(nodeIdContainerId.getLeft());
-      wrapper.setLogLink(createLogLink(nodeIdContainerId, yarnConfiguration, userName));
-      wrapper.setJobEventsLink("/" + JOBS_SUFFIX + "/" + jobID);
+      wrapper.setLogLink(
+          createLogLink(nodeIdContainerId, jobLogMetaData.getYarnConfiguration(), jobLogMetaData.getUserName()));
     }
     return wrapper;
   }

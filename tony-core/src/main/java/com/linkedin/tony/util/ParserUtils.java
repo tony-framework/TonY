@@ -289,23 +289,21 @@ public class ParserUtils {
    * @param events : List of events
    * @return List of job events
    */
-  public static List<JobEvent> mapEventToJobEvent(List<Event> events, String jobId) {
+  public static List<JobEvent> mapEventToJobEvent(List<Event> events) {
     return events.stream()
-        .map(e -> JobEvent.convertEventToJobEvent(e, jobId))
+        .map(JobEvent::convertEventToJobEvent)
         .collect(Collectors.toList());
   }
 
   /**
    *
    * @param events : List of events
-   * @param yarnConfiguration : YarnConfiguration ,it can be null in that case loglink would be NA
-   * @param userName : Username who have launch tony application ,it can be null in that case loglink would be NA
+   * @param jobLogMetaData : : Metadata about Job , which is required to create JobLog
    * @return List of job logs
    */
-  public static List<JobLog> mapEventToJobLog(List<Event> events, YarnConfiguration yarnConfiguration,
-      String userName, String jobId) {
+  public static List<JobLog> mapEventToJobLog(List<Event> events, JobLogMetaData jobLogMetaData) {
     return events.stream()
-        .map(e -> JobLog.convertEventToJobLog(e, yarnConfiguration, userName, jobId))
+        .map(e -> JobLog.convertEventToJobLog(e, jobLogMetaData))
         .filter(jobLog -> jobLog.getContainerID() != null)
         .collect(Collectors.toList());
   }

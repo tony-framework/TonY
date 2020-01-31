@@ -21,7 +21,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import play.Logger;
 import utils.ConfigUtils;
-
+import com.linkedin.tony.util.JobLogMetaData;
 
 
 @Singleton
@@ -104,13 +104,14 @@ public class CacheWrapper {
     List<JobConfig> configs = ParserUtils.parseConfig(myFs, jobDir);
     List<Event> events = ParserUtils.parseEvents(myFs, jobDir);
 
-    List<JobEvent> jobEvents = ParserUtils.mapEventToJobEvent(events, jobId);
+    List<JobEvent> jobEvents = ParserUtils.mapEventToJobEvent(events);
     String userName = null;
     if (metadata != null) {
       metadataCache.put(jobId, metadata);
       userName = metadata.getUser();
     }
-    List<JobLog> jobLogs = ParserUtils.mapEventToJobLog(events, yarnConf, userName, jobId);
+    JobLogMetaData jobLogMetaData = new JobLogMetaData(yarnConf, userName);
+    List<JobLog> jobLogs = ParserUtils.mapEventToJobLog(events, jobLogMetaData);
     configCache.put(jobId, configs);
     eventCache.put(jobId, jobEvents);
     logCache.put(jobId, jobLogs);
