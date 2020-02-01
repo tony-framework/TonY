@@ -26,9 +26,8 @@ import static com.linkedin.tony.Constants.DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
  */
 public class JobLog {
   private static final Log LOG = LogFactory.getLog(JobLog.class);
-  private static final String LOG_URL_SCHEMA = "http://{0}/jobhistory/nmlogs/{1}:{2}/{3}/{4}/{5}";
-  private static final String MAPREDUCE_JOBHISTORY_WEBAPP_ADDRESS = "mapreduce.jobhistory.webapp.address";
-  private static final String YARN_NODEMANAGER_ADDRESS = "yarn.nodemanager.address";
+  private static final String LOG_URL_SCHEMA = "http://{0}:{1}/node/containerlogs/{2}/{3}";
+  private static final String YARN_NODEMANAGER_WEBAPP_ADDRESS = "yarn.nodemanager.webapp.address";
   private static final String IP_ADDRESS_PORT_DELIMITER = ":";
 
   private enum NodeWebAddressSchema { IP_ADDRESS, PORT, MAX }
@@ -36,7 +35,6 @@ public class JobLog {
   private String hostAddress;
   private String containerID;
   private String logLink;
-
 
   public String getHostAddress() {
     return hostAddress;
@@ -116,11 +114,11 @@ public class JobLog {
     String logLink = DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
     if (isParameterValid(userName)) {
       LOG.debug(" Valid values in yarn configuration and username");
-      Pair<String, String> jobHistoryNodeMgrAdd = getJobHistoryNodeMgrAdd(yarnConfiguration);
-      if (isParameterValid(jobHistoryNodeMgrAdd)) {
-        LOG.debug("Create container log URL with following information " + " " + jobHistoryNodeMgrAdd.getLeft() + " "
-            + jobHistoryNodeMgrAdd.getRight() + " " + nodeIdContainerId.getLeft() + " " + nodeIdContainerId.getRight());
-        logLink = processForLogLink(jobHistoryNodeMgrAdd, nodeIdContainerId, userName);
+      String nodeManagerWebAppAddress = getNodeMgrWebAppAddress(yarnConfiguration);
+      if (isParameterValid(nodeManagerWebAppAddress)) {
+        LOG.debug("Create container log URL with following information " + " " + nodeManagerWebAppAddress + " "
+            + nodeIdContainerId.getLeft() + " " + nodeIdContainerId.getRight());
+        logLink = processForLogLink(nodeManagerWebAppAddress, nodeIdContainerId, userName);
       }
     }
     return logLink;
@@ -128,21 +126,18 @@ public class JobLog {
 
   /**
    * @param yarnConfiguration {@link YarnConfiguration} yarnconfiguration provided to TonY
-   * @return Pair contains mapreduce.jobhistory.webapp.address if able to get information from
+   * @return NodeMgrWebAppAddress if able to get information from
    * yarnconf ,other will return null
    */
-  private static Pair<String, String> getJobHistoryNodeMgrAdd(YarnConfiguration yarnConfiguration) {
-    Pair<String, String> jobHistoryNodeMgrAddress = null;
+  private static String getNodeMgrWebAppAddress(YarnConfiguration yarnConfiguration) {
+    String yarnNodeManagerWebAppAddress = null;
     if (isParameterValid(yarnConfiguration)) {
-      String mapReduceJobHistoryWebAddress = yarnConfiguration.get(MAPREDUCE_JOBHISTORY_WEBAPP_ADDRESS);
-      String yarnNodeManagerAddress = yarnConfiguration.get(YARN_NODEMANAGER_ADDRESS);
-      if (isParameterValid(mapReduceJobHistoryWebAddress, yarnNodeManagerAddress)) {
-        LOG.debug("There is sufficient information to construct container url " + mapReduceJobHistoryWebAddress + " "
-            + yarnNodeManagerAddress);
-        jobHistoryNodeMgrAddress = Pair.of(mapReduceJobHistoryWebAddress, yarnNodeManagerAddress);
+      yarnNodeManagerWebAppAddress = yarnConfiguration.get(YARN_NODEMANAGER_WEBAPP_ADDRESS);
+      if (isParameterValid(yarnNodeManagerWebAppAddress)) {
+        LOG.debug("There is sufficient information to construct container url " + yarnNodeManagerWebAppAddress);
       }
     }
-    return jobHistoryNodeMgrAddress;
+    return yarnNodeManagerWebAppAddress;
   }
 
   private static boolean isParameterValid(Object... parameters) {
@@ -151,24 +146,24 @@ public class JobLog {
 
   /**
    *
-   * @param jobHistoryNodeMgrAdd Job History Address and Node mgr address
+   * @param nodeManagerWebAppAddress WebApp address of the node mgr
    * @param nodeIdContainerId  Node ID and container Id
    * @param userName username
-   * @return History server url , which will provide the container logs
+   * @return Node Manager URL for container logs
    */
-  private static String processForLogLink(Pair<String, String> jobHistoryNodeMgrAdd,
-      Pair<String, String> nodeIdContainerId, String userName) {
-    String[] nodeMgrAddress = jobHistoryNodeMgrAdd.getRight().split(IP_ADDRESS_PORT_DELIMITER);
-    String nodeMgrPort = null;
+  private static String processForLogLink(String nodeManagerWebAppAddress, Pair<String, String> nodeIdContainerId,
+      String userName) {
+    String[] nodeMgrAddress = nodeManagerWebAppAddress.split(IP_ADDRESS_PORT_DELIMITER);
+    String nodeMgrPort;
     if (nodeMgrAddress.length >= NodeWebAddressSchema.MAX.ordinal()) {
       nodeMgrPort = nodeMgrAddress[NodeWebAddressSchema.PORT.ordinal()];
       String logLink =
-          MessageFormat.format(LOG_URL_SCHEMA, jobHistoryNodeMgrAdd.getLeft(), nodeIdContainerId.getLeft(), nodeMgrPort,
-              nodeIdContainerId.getRight(), nodeIdContainerId.getRight(), userName);
+          MessageFormat.format(LOG_URL_SCHEMA, nodeIdContainerId.getLeft(), nodeMgrPort, nodeIdContainerId.getRight(),
+              userName);
       LOG.info(" Log link URL " + logLink);
       return logLink;
     }
-    LOG.error(" Node mgr address is incorrect " + jobHistoryNodeMgrAdd.getRight());
+    LOG.error(" Node mgr address is incorrect " + nodeManagerWebAppAddress);
     return DEFAULT_VALUE_OF_CONTAINER_LOG_LINK;
   }
 }

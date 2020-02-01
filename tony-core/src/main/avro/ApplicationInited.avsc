@@ -6,6 +6,6 @@
     {"name": "applicationId", "type": "string"},
     {"name": "numTasks", "type": "int"},
     {"name": "host", "type": "string"},
-    {"name": "containerID", "type": ["null","string"], "default": null, "doc":  "Container  id"}
+    {"name": "containerID", "type": "string", "doc":  "Container  id"}
   ]
 }
