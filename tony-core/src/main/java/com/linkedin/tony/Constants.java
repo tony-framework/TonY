@@ -28,6 +28,7 @@ public class Constants {
   // History Server related constants
   public static final String JOBS_SUFFIX = "jobs";
   public static final String CONFIG_SUFFIX = "config";
+  public static final String LOGS_SUFFIX = "logs";
   public static final String HISTFILE_SUFFIX = "jhist";
   public static final String INPROGRESS = "inprogress";
   public static final String SUCCEEDED = "SUCCEEDED";
@@ -163,5 +164,7 @@ public class Constants {
 
   public static final int MAX_REPEATED_GPU_ERROR_ALLOWED = 10;
 
+  // Default value of container log link, will be used for TASK_FINISHED, APPLICATION_FINISHED
+  public static final String DEFAULT_VALUE_OF_CONTAINER_LOG_LINK = "NA";
   private Constants() { }
 }

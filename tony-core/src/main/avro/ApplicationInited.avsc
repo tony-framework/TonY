@@ -5,6 +5,7 @@
   "fields": [
     {"name": "applicationId", "type": "string"},
     {"name": "numTasks", "type": "int"},
-    {"name": "host", "type": "string"}
+    {"name": "host", "type": "string"},
+    {"name": "containerID", "type": "string", "doc":  "Container  id"}
   ]
 }
