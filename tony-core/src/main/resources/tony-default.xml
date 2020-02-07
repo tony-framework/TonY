@@ -101,6 +101,12 @@
     <value>5000</value>
   </property>
 
+  <property>
+    <description>Whether or not to enable GPU metrics collection.</description>
+    <name>tony.task.gpu-metrics.enabled</name>
+    <value>true</value>
+  </property>
+
   <!-- AM configurations -->
   <property>
     <description>How many times a failed AM should retry.</description>
@@ -139,6 +145,13 @@
     <value>1</value>
   </property>
 
+  <!-- Container configurations -->
+  <property>
+    <description>Timeout, in milliseconds for allocated container registration before forcibly killing application.</description>
+    <name>tony.container.allocation.timeout</name>
+    <value>-1</value>
+  </property>
+
   <!-- Worker configurations -->
   <property>
     <description>Timeout, in milliseconds for the user's python processes before forcibly killing them.</description>
@@ -168,6 +181,13 @@
   <property>
     <description>Job types that we don't track to finish</description>
     <name>tony.application.untracked.jobtypes</name>
+    <value>ps</value>
+  </property>
+
+  <!-- Stop on failure job type configurations -->
+  <property>
+    <description>Job types that we will short circuit when it failed</description>
+    <name>tony.application.stop.on.failure.jobtypes</name>
     <value>ps</value>
   </property>
 

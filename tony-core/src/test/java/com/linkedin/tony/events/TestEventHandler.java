@@ -33,7 +33,9 @@ public class TestEventHandler {
   private BlockingQueue<Event> eventQueue;
   private EventHandler eventHandlerThread;
   private Event eEventWrapper;
-  private ApplicationInited eAppInitEvent = new ApplicationInited("app123", 1, "fakehost");
+  private Event eEventWrapperForTaskStarted;
+  private ApplicationInited eAppInitEvent = new ApplicationInited("app123", 1, "fakehost", "fakecontainerid");
+  private TaskStarted eTaskStartedEvent = new TaskStarted("task123", 1, "fakehost1", "fakecontainerid");
   private Path jobDir = new Path("./src/test/resources/jobDir");
   private JobMetadata metadata = new JobMetadata.Builder()
       .setStarted(0L)
@@ -53,6 +55,9 @@ public class TestEventHandler {
     eEventWrapper.setType(EventType.APPLICATION_INITED);
     eEventWrapper.setEvent(eAppInitEvent);
     eventQueue = new LinkedBlockingQueue<>();
+    eEventWrapperForTaskStarted = new Event();
+    eEventWrapperForTaskStarted.setType(EventType.TASK_STARTED);
+    eEventWrapperForTaskStarted.setEvent(eTaskStartedEvent);
   }
 
   @Test
@@ -74,6 +79,7 @@ public class TestEventHandler {
     eventHandlerThread.setUpThread(jobDir, metadata);
     eventHandlerThread.start();
     eventHandlerThread.emitEvent(eEventWrapper);
+    eventHandlerThread.emitEvent(eEventWrapperForTaskStarted);
 
     // In real scenario, this `metadata` would be different from the
     // `metadata` passed in `setUpThread` method (i.e with status and completed time)
@@ -83,15 +89,22 @@ public class TestEventHandler {
     Event aEventWrapper = events.get(0);
     ApplicationInited aAppInitEvent = (ApplicationInited) aEventWrapper.getEvent();
 
-    assertEquals(events.size(), 1);
+    assertEquals(events.size(), 2);
     assertEquals(aAppInitEvent.getApplicationId(), eAppInitEvent.getApplicationId());
     assertEquals(aAppInitEvent.getNumTasks(), eAppInitEvent.getNumTasks());
     assertEquals(aAppInitEvent.getHost(), eAppInitEvent.getHost());
+    assertEquals(aAppInitEvent.getContainerID(), eAppInitEvent.getContainerID());
     assertEquals(aEventWrapper.getType(), eEventWrapper.getType());
     assertEquals(aEventWrapper.getTimestamp(), eEventWrapper.getTimestamp());
     assertEquals(fs.listStatus(jobDir).length, 1);
-
     Utils.cleanupHDFSPath(fs.getConf(), jobDir);
+
+    aEventWrapper = events.get(1);
+    TaskStarted aTaskStartedEvent = (TaskStarted) aEventWrapper.getEvent();
+    assertEquals(aTaskStartedEvent.getContainerID(), eTaskStartedEvent.getContainerID());
+    assertEquals(aTaskStartedEvent.getHost(), eTaskStartedEvent.getHost());
+    assertEquals(aTaskStartedEvent.getTaskType(), eTaskStartedEvent.getTaskType());
+    assertEquals(aTaskStartedEvent.getTaskIndex(), eTaskStartedEvent.getTaskIndex());
   }
 
   @Test

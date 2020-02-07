@@ -20,7 +20,6 @@ set -x -e
 # Download settings
 readonly REQUIREMENTS_URL='https://raw.githubusercontent.com/GoogleCloudPlatform/dataproc-initialization-actions/master/gpu/gpu_utilization_metrics/requirements.txt'
 readonly REPORT_GPU_URL='https://raw.githubusercontent.com/GoogleCloudPlatform/dataproc-initialization-actions/master/gpu/gpu_utilization_metrics/report_gpu_metrics.py'
-readonly BUCKET='tony-staging'
 
 systemctl disable unattended-upgrades.service
 systemctl disable apt-daily-upgrade.timer
@@ -31,7 +30,7 @@ export ENV_FILE="/etc/profile.d/env.sh"
 cat << 'EOF' > "$ENV_FILE"
 export NVIDIA_PATH="/opt/nvidia"
 export VERSION_FILE_PATH="$NVIDIA_PATH/version"
-export IMAGE_VERSION="cu10"
+export IMAGE_VERSION="custom"
 EOF
 source "$ENV_FILE"
 mkdir -p "${NVIDIA_PATH}"
@@ -95,10 +94,14 @@ function install_dependencies() {
 function driver_installation() {
  source /etc/profile.d/env.sh
  export DEBIAN_FRONTEND=noninteractive
+ local CUDA_FILE_LOCATION
+ CUDA_FILE_LOCATION="$(/usr/share/google/get_metadata_value attributes/cuda_file_location)"
+ # Example: https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.105_418.39_linux.run
+
  cat << 'EOF' > "${NVIDIA_PATH}/install-driver.sh"
 #!/bin/bash -eu
 export DRIVER_INSTALLER_FILE_NAME="driver_installer.run"
-wget -q https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_410.48_linux -O ${DRIVER_INSTALLER_FILE_NAME}
+wget -q  ${CUDA_FILE_LOCATION} -O ${DRIVER_INSTALLER_FILE_NAME}
 chmod +x ${DRIVER_INSTALLER_FILE_NAME}
 ./${DRIVER_INSTALLER_FILE_NAME}  --driver --override --silent
 rm -rf ${DRIVER_INSTALLER_FILE_NAME}
@@ -117,8 +120,10 @@ EOF
 # Download and install CUDA
 function cuda_installer() {
  export CUDA_INSTALLER_FILE_NAME="cuda_installer"
+ local CUDA_FILE_LOCATION
+ CUDA_FILE_LOCATION="$(/usr/share/google/get_metadata_value attributes/cuda_file_location)"
  cd /tmp/
- wget -q https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_410.48_linux -O $CUDA_INSTALLER_FILE_NAME
+ wget -q ${CUDA_FILE_LOCATION} -O $CUDA_INSTALLER_FILE_NAME
  chmod +x $CUDA_INSTALLER_FILE_NAME
  ./$CUDA_INSTALLER_FILE_NAME --toolkit --override --silent
  echo "/usr/local/cuda/lib64" >> /etc/ld.so.conf.d/nvidia.conf
@@ -130,8 +135,11 @@ function cuda_installer() {
 # Download and install CuDNN
 function cudnn_installer() {
  export CUDNN_INSTALLER_FILE_NAME="cudnn_installer"
+ local CUDNN_FILE_LOCATION
+ CUDNN_FILE_LOCATION="$(/usr/share/google/get_metadata_value attributes/cudnn_file_location)"
+
  cd /tmp/
- gsutil cp gs://"${BUCKET}"/nvidia-drivers/cudnn-10.0-linux-x64-v7.5.0.56.tgz ./$CUDNN_INSTALLER_FILE_NAME
+ gsutil cp ${CUDNN_FILE_LOCATION} ./$CUDNN_INSTALLER_FILE_NAME
  tar -xvzf ./$CUDNN_INSTALLER_FILE_NAME
  cp -r ./cuda/* /usr/local/cuda
  rm -rf $CUDNN_INSTALLER_FILE_NAME
@@ -141,14 +149,18 @@ function cudnn_installer() {
 # Download and install NCCL
 function nccl_installer() {
  export NCCL_DIR=/usr/local/nccl2
- export NCCL_INSTALLER="nccl_installer"
+ local NCCL_FILE_LOCATION
+ NCCL_FILE_LOCATION="$(/usr/share/google/get_metadata_value attributes/nccl_file_location)"
+ NCCL_FILENAME="$(basename -- $NCCL_INSTALLER)"
+ NCCL_FILENAME_NOEXT="$(basename -- $NCCL_INSTALLER .txz)"
+ NCCL_TARFILE="$(basename -- $NCCL_INSTALLER .txz).tar"
  cd /tmp/
  mkdir -p $NCCL_DIR
- gsutil cp gs://"${BUCKET}"/nvidia-drivers/nccl_2.3.4-1+cuda10.0_x86_64.txz ./nccl_2.3.4-1+cuda10.0_x86_64.txz
- xz -d nccl_2.3.4-1+cuda10.0_x86_64.txz
- tar xvf nccl_2.3.4-1+cuda10.0_x86_64.tar
- cp -r nccl_2.3.4-1+cuda10.0_x86_64/* $NCCL_DIR
- rm -rf nccl_2.3.4-1+cuda10.0_x86_64.tar
+ gsutil cp ${NCCL_FILE_LOCATION} ./$NCCL_FILENAME
+ xz -d $NCCL_FILENAME
+ tar xvf $NCCL_TARFILE
+ cp -r $NCCL_FILENAME_NOEXT/* $NCCL_DIR
+ rm -rf $NCCL_TARFILE
  echo "/usr/local/nccl2/lib" >> /etc/ld.so.conf.d/nvidia.conf
  ldconfig
 }
@@ -203,8 +215,8 @@ function main() {
   	driver_installation || err "Unable to install GPU driver"
   	cuda_installer || err "Unable to install CUDA driver"
   	cudnn_installer || err "Unable to install CuDNN"
-	nccl_installer || err "Unable to install NCCL"
-	cuda_enviroment || err "Unable to install CUDA environment"
+	  nccl_installer || err "Unable to install NCCL"
+	  cuda_enviroment || err "Unable to install CUDA environment"
 
     # Add licenses
   	wget https://docs.nvidia.com/cuda/pdf/EULA.pdf -O $NVIDIA_PATH/NVIDIA_EULA.pdf

@@ -11,6 +11,7 @@ import com.linkedin.tony.Constants;
 import com.linkedin.tony.events.Event;
 import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.models.JobLog;
 import com.linkedin.tony.models.JobMetadata;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +42,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import static com.linkedin.tony.util.HdfsUtils.pathExists;
-
 
 /**
  * The class handles parsing different file format
@@ -289,6 +289,19 @@ public class ParserUtils {
   }
 
   /**
+   *
+   * @param events : List of events
+   * @param jobLogMetaData : : Metadata about Job , which is required to create JobLog
+   * @return List of job logs
+   */
+  public static List<JobLog> mapEventToJobLog(List<Event> events, JobLogMetaData jobLogMetaData) {
+    return events.stream()
+        .map(e -> JobLog.convertEventToJobLog(e, jobLogMetaData))
+        .filter(jobLog -> jobLog.getContainerID() != null)
+        .collect(Collectors.toList());
+  }
+
+  /**
    * Given a {@link Date} and {@link ZoneId}, returns a "yyyy/mm/dd" string representation in the time zone specified.
    */
   public static String getYearMonthDayDirectory(Date date, ZoneId zoneId) {
@@ -301,4 +314,5 @@ public class ParserUtils {
   }
 
   private ParserUtils() { }
+
 }

@@ -89,15 +89,17 @@ tf_version=1.13.1,tf_gpu=true
 
 **Note:** You need to edit `mnist-tensorflow/mnist_distributed.py` if you want to use multiple jobs and share GPU.
 
-[install_gpu_cuXX](install_gpu_cu90.sh)
+[install_gpu_cuXX](install_gpu.sh)
 
  - Install GPU drivers
  - Install GPU Stackdriver monitoring service
 
-We provide 2 versions:
+We provide 4 versions:
 
  - TensorFlow pre 1.13 compiled using CUDA 90
  - TensorFlow 1.13+ compiled using CUDA 10
+ - TensorFlow 2.1+ compiled using CUDA 10.1
+ - Custom CUDA, CuDNN, NCCL versions using metadata
 
 The script does the following:
 
@@ -113,6 +115,9 @@ The script does the following:
 
 ```bash
 install_gpu_agent=true
+cuda_file_location=https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.105_418.39_linux.run
+cudnn_file_location=gs://tony-staging/nvidia-drivers/cudnn-10.1-linux-x64-v7.6.5.32.tgz
+nccl_file_location=gs://tony-staging/nvidia-drivers/nccl_2.5.6-1+cuda10.1_x86_64.txz
 ```
 
 

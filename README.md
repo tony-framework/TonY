@@ -1,9 +1,9 @@
-# TonY [![Build Status](https://travis-ci.org/linkedin/TonY.svg?branch=master)](https://travis-ci.org/linkedin/TonY)
+# TonY [![CircleCI](https://circleci.com/gh/linkedin/TonY/tree/master.svg?style=svg)](https://circleci.com/gh/linkedin/TonY/tree/master)
 
 ![tony-logo-small](https://user-images.githubusercontent.com/544734/57793050-45b3ff00-76f5-11e9-8cc0-8ebb830b6e78.png)
 
 TonY is a framework to _natively_ run deep learning jobs on [Apache Hadoop](http://hadoop.apache.org/).
-It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow), [PyTorch](https://github.com/pytorch/pytorch), and [Horovod](https://github.com/horovod/horovod).
+It currently supports [TensorFlow](https://github.com/tensorflow/tensorflow), [PyTorch](https://github.com/pytorch/pytorch), [MXNet](https://github.com/apache/incubator-mxnet) and [Horovod](https://github.com/horovod/horovod).
 TonY enables running either single node or distributed
 training as a Hadoop application. This native connector, together with other TonY features, aims to run
 machine learning jobs reliably and flexibly. For a quick overview of TonY and comparisons to other frameworks, please see
@@ -184,7 +184,7 @@ The command line arguments are as follows:
 | task_params        | no        | --input_dir /hdfs/input --output_dir /hdfs/output | The command line arguments which will be passed to your entry point                                                                                                                                               |
 | python_venv        | no        | --python_venv venv.zip                            | Path to the *zipped* local Python virtual environment                                                                                                                                                             |
 | python_binary_path | no        | --python_binary_path Python/bin/python            | Used together with python_venv, describes the relative path in your python virtual environment which contains the python binary, or an absolute path to use a python binary already installed on all worker nodes |
-| shell_env          | no        | --shel_env LD_LIBRARY_PATH=/usr/local/lib64/      | Specifies key-value pairs for environment variables which will be set in your python worker/ps processes.                                                                                                         |
+| shell_env          | no        | --shell_env LD_LIBRARY_PATH=/usr/local/lib64/      | Specifies key-value pairs for environment variables which will be set in your python worker/ps processes.                                                                                                         |
 | conf_file          | no        | --conf_file tony-local.xml                        | Location of a TonY configuration file.                                                                                                                                                                            |
 | conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line
 
@@ -205,6 +205,7 @@ Please check our [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configuration
 Below are examples to run distributed deep learning jobs with TonY:
 - [Distributed MNIST with TensorFlow](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-tensorflow)
 - [Distributed MNIST with PyTorch](https://github.com/linkedin/TonY/tree/master/tony-examples/mnist-pytorch)
+- [Linear regression with MXNet](https://github.com/linkedin/TonY/tree/master/tony-examples/linearregression-mxnet)
 - [TonY in Google Cloud Platform](https://github.com/linkedin/TonY/tree/master/tony-examples/tony-in-gcp)
 - [TonY in Azkaban video](https://youtu.be/DM89y8BGFaY)
 

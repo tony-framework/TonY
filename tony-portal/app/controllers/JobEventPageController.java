@@ -3,8 +3,10 @@ package controllers;
 import cache.CacheWrapper;
 import com.google.common.cache.Cache;
 import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.models.JobLog;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.ParserUtils;
+import com.linkedin.tony.events.Event;
 import hadoop.Requirements;
 import java.util.List;
 import javax.inject.Inject;
@@ -12,11 +14,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import play.mvc.Controller;
 import play.mvc.Result;
-
+import com.linkedin.tony.util.Utils;
 
 public class JobEventPageController extends Controller {
   private FileSystem myFs;
   private Cache<String, List<JobEvent>> cache;
+  private Cache<String, List<JobLog>> jobLogCache;
   private Path interm;
   private Path finished;
 
@@ -24,6 +27,7 @@ public class JobEventPageController extends Controller {
   public JobEventPageController(Requirements requirements, CacheWrapper cacheWrapper) {
     myFs = requirements.getFileSystem();
     cache = cacheWrapper.getEventCache();
+    jobLogCache = cacheWrapper.getLogCache();
     interm = requirements.getIntermediateDir();
     finished = requirements.getFinishedDir();
   }
@@ -37,7 +41,7 @@ public class JobEventPageController extends Controller {
     // Check cache
     listOfEvents = cache.getIfPresent(jobId);
     if (listOfEvents != null) {
-      return ok(views.html.event.render(listOfEvents));
+      return ok(views.html.event.render(listOfEvents, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check finished dir
@@ -45,7 +49,8 @@ public class JobEventPageController extends Controller {
     if (jobFolder != null) {
       listOfEvents = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobFolder));
       cache.put(jobId, listOfEvents);
-      return ok(views.html.event.render(listOfEvents));
+      //todo: Since file is already parsed , its better to populate job log cache
+      return ok(views.html.event.render(listOfEvents, Utils.linksToBeDisplayedOnPage(jobId)));
     }
 
     // Check intermediate dir
@@ -56,4 +61,5 @@ public class JobEventPageController extends Controller {
 
     return internalServerError("Failed to fetch events");
   }
+
 }

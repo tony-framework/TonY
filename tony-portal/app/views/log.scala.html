@@ -1,5 +1,6 @@
-@(eventList: List[JobEvent], links: Map[String, String])
-@main("Events") {
+@(logList: List[JobLog], links: Map[String, String])
+
+@main("logs") {
 
   <nav class="navbar navbar-default">
     <div class="container-fluid">
@@ -13,7 +14,7 @@
   <section id="content">
     <div class="wrapper doc">
       <article>
-      @tableEvent(eventList)
+      @tableLog(logList)
       </article>
     </div>
   </section>

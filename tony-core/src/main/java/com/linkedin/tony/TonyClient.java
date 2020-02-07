@@ -14,7 +14,7 @@ import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.security.TokenCache;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;
@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -69,6 +70,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.ContainerReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -118,7 +120,6 @@ public class TonyClient implements AutoCloseable {
   private String executes;
   private long appTimeout;
   private boolean secureMode;
-  private Map<String, String> shellEnv = new HashMap<>();
   private Map<String, String> containerEnv = new HashMap<>();
 
   private String tonyFinalConfPath;
@@ -227,7 +228,7 @@ public class TonyClient implements AutoCloseable {
 
   @VisibleForTesting
   public void submitApplication(ApplicationSubmissionContext appContext)
-      throws YarnException, IOException, URISyntaxException {
+      throws YarnException, IOException {
 
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
@@ -416,12 +417,10 @@ public class TonyClient implements AutoCloseable {
     if (tonyConf.get(TonyConfigurationKeys.EXECUTION_ENV) != null) {
       String[] envs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
       executionEnvPair.addAll(Arrays.asList(envs));
-      shellEnv.putAll(Utils.parseKeyValue(envs));
     }
     if (cliParser.hasOption("shell_env")) {
       String[] envs = cliParser.getOptionValues("shell_env");
       executionEnvPair.addAll(Arrays.asList(envs));
-      shellEnv.putAll(Utils.parseKeyValue(envs));
     }
     if (!executionEnvPair.isEmpty()) {
       tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
@@ -603,10 +602,10 @@ public class TonyClient implements AutoCloseable {
    * if any limits are exceeded.
    */
   private static void enforceTaskInstanceLimits(Configuration tonyConf) {
-    Map<String, TensorFlowContainerRequest> containerRequestMap = Utils.parseContainerRequests(tonyConf);
+    Map<String, JobContainerRequest> containerRequestMap = Utils.parseContainerRequests(tonyConf);
 
     // check that we don't request more than the max allowed for any task type
-    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequestMap.entrySet()) {
+    for (Map.Entry<String, JobContainerRequest> entry : containerRequestMap.entrySet()) {
       int numInstancesRequested = entry.getValue().getNumInstances();
       int maxAllowedInstances = tonyConf.getInt(TonyConfigurationKeys.getMaxInstancesKey(entry.getKey()), -1);
       if (maxAllowedInstances >= 0 && numInstancesRequested > maxAllowedInstances) {
@@ -618,7 +617,7 @@ public class TonyClient implements AutoCloseable {
     // check that we don't request more than the allowed total tasks
     int maxTotalInstances = tonyConf.getInt(TonyConfigurationKeys.MAX_TOTAL_INSTANCES,
         TonyConfigurationKeys.DEFAULT_MAX_TOTAL_INSTANCES);
-    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(TensorFlowContainerRequest::getNumInstances).sum();
+    int totalRequestedInstances = containerRequestMap.values().stream().mapToInt(JobContainerRequest::getNumInstances).sum();
     if (maxTotalInstances >= 0 && totalRequestedInstances > maxTotalInstances) {
       throw new RuntimeException("Job requested " + totalRequestedInstances + " total task instances but limit is "
           + maxTotalInstances + ".");
@@ -769,7 +768,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   // Set up delegation token
-  private ByteBuffer getTokens() throws IOException, URISyntaxException, YarnException {
+  private ByteBuffer getTokens() throws IOException, YarnException {
     if (!this.secureMode) {
       return null;
     }
@@ -840,7 +839,7 @@ public class TonyClient implements AutoCloseable {
       YarnApplicationState appState = report.getYarnApplicationState();
 
       FinalApplicationStatus finalApplicationStatus = report.getFinalApplicationStatus();
-      initRpcClient(report);
+      initRpcClientAndLogAMUrl(report);
 
       updateTaskInfos();
 
@@ -912,8 +911,18 @@ public class TonyClient implements AutoCloseable {
     }
   }
 
-  private void initRpcClient(ApplicationReport report) throws IOException {
+  private void initRpcClientAndLogAMUrl(ApplicationReport report) throws IOException {
     if (!amRpcServerInitialized && report.getRpcPort() != -1) {
+      try {
+        ContainerReport amContainerReport = yarnClient.getContainers(report.getCurrentApplicationAttemptId())
+            .stream()
+            .min(Comparator.comparingLong(x -> x.getContainerId().getContainerId()))
+            .orElseThrow(YarnException::new);
+        LOG.info("Driver (application master) log url: " + amContainerReport.getLogUrl());
+      } catch (YarnException | IOException e) {
+        LOG.warn("Failed to get containers for attemptId: " + report.getCurrentApplicationAttemptId(), e);
+      }
+
       amRpcPort = report.getRpcPort();
       amHost = report.getHost();
       LOG.info("AM host: " + report.getHost());

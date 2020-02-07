@@ -8,17 +8,19 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -26,6 +28,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.testng.annotations.Test;
 
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+import static com.linkedin.tony.Constants.JOBS_SUFFIX;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -75,8 +79,12 @@ public class TestUtils {
     conf.setInt("tony.worker.gpus", 1);
     conf.setInt("tony.evaluator.vcores", 2);
     conf.setInt("tony.chief.gpus", 1);
+    conf.setInt("tony.db.instances", 1);
+    conf.setInt("tony.dbwriter.instances", 1);
+    conf.setStrings("tony.application.prepare-stage", "dbwriter, db");
+    conf.setStrings("tony.application.untracked.jobtypes", "db");
 
-    Map<String, TensorFlowContainerRequest> requests = Utils.parseContainerRequests(conf);
+    Map<String, JobContainerRequest> requests = Utils.parseContainerRequests(conf);
     assertEquals(requests.get("worker").getNumInstances(), 3);
     assertEquals(requests.get("evaluator").getNumInstances(), 1);
     assertEquals(requests.get("worker").getGPU(), 1);
@@ -85,6 +93,28 @@ public class TestUtils {
     assertEquals(requests.get("worker").getMemory(), 2048);
     // Check job does not exist if no instances are configured.
     assertFalse(requests.containsKey("chief"));
+    assertEquals(requests.get("worker").getDependsOn(), new ArrayList<>(Arrays.asList("dbwriter")));
+    assertEquals(requests.get("evaluator").getDependsOn(), new ArrayList<>(Arrays.asList("dbwriter")));
+    assertEquals(requests.get("db").getDependsOn(), new ArrayList<>());
+    assertEquals(requests.get("dbwriter").getDependsOn(), new ArrayList<>());
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class)
+  public void testParseContainerRequestsShouldFail() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 3);
+    conf.setInt("tony.evaluator.instances", 1);
+    conf.setInt("tony.worker.gpus", 1);
+    conf.setInt("tony.evaluator.vcores", 2);
+    conf.setInt("tony.chief.gpus", 1);
+    conf.setInt("tony.db.instances", 1);
+    conf.setInt("tony.dbwriter.instances", 1);
+    conf.setStrings("tony.application.prepare-stage", "dbwriter,db");
+    conf.setStrings("tony.application.untracked.jobtypes", "db");
+    conf.setStrings("tony.application.training-stage", "chief, evaluator, worker");
+
+    Utils.parseContainerRequests(conf);
   }
 
   @Test
@@ -270,5 +300,14 @@ public class TestUtils {
             .getDockerImageKey("tony.worker.gpus"))).thenReturn("foo");
     assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
             new HashMap<>());
+  }
+
+  @Test
+  public void testLinksToBeDisplayedOnPage() {
+    assertEquals(Utils.linksToBeDisplayedOnPage(null), new TreeMap<>());
+    Map<String, String> linksToBeDisplayed = Utils.linksToBeDisplayedOnPage("fakeJobId");
+    assertEquals(linksToBeDisplayed.size(), 2);
+    assertEquals(linksToBeDisplayed.get("Logs"), "/" + LOGS_SUFFIX + "/" + "fakeJobId");
+    assertEquals(linksToBeDisplayed.get("Events"), "/" + JOBS_SUFFIX + "/" + "fakeJobId");
   }
 }

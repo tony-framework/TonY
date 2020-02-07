@@ -12,7 +12,8 @@ public class TonyConfigurationKeys {
   public enum MLFramework {
     TENSORFLOW,
     PYTORCH,
-    HOROVOD
+    HOROVOD,
+    MXNET
   }
 
   private TonyConfigurationKeys() {
@@ -119,6 +120,9 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_TAGS = TONY_APPLICATION_PREFIX + "tags";
 
+  public static final String APPLICATION_PREPARE_STAGE = TONY_APPLICATION_PREFIX + "prepare-stage";
+  public static final String APPLICATION_TRAINING_STAGE = TONY_APPLICATION_PREFIX + "training-stage";
+
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
 
@@ -139,6 +143,9 @@ public class TonyConfigurationKeys {
 
   public static final String TASK_METRICS_UPDATE_INTERVAL_MS = TONY_TASK_PREFIX + "metrics-interval-ms";
   public static final int DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS = 5000;
+
+  public static final String TASK_GPU_METRICS_ENABLED = TONY_TASK_PREFIX + "gpu-metrics.enabled";
+  public static final boolean DEFAULT_TASK_GPU_METRICS_ENABLED = true;
 
   // AM configurations
   public static final String AM_PREFIX = TONY_PREFIX + "am.";
@@ -180,6 +187,14 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.%s", jobName, resource);
   }
 
+  public static String getNodeLabelKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.node-label", jobName);
+  }
+
+  public static String getDependsOnKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.depends-on", jobName);
+  }
+
   public static String getMaxTotalResourceKey(String resource) {
     return String.format(TONY_TASK_PREFIX + "max-total-%s", resource);
   }
@@ -214,6 +229,11 @@ public class TonyConfigurationKeys {
     return DOCKER_PREFIX + "containers.image";
   }
 
+  // Container configurations
+  public static final String CONTAINER_PREFIX = TONY_PREFIX + "container.";
+  public static final String CONTAINER_ALLOCATION_TIMEOUT = CONTAINER_PREFIX + "allocation.timeout";
+  public static final int DEFAULT_CONTAINER_ALLOCATION_TIMEOUT = 15 * 60 * 1000;
+
   // Worker configurations
   public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
   public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
@@ -222,6 +242,9 @@ public class TonyConfigurationKeys {
   // Job types that we don't wait to finish
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
   public static final String UNTRACKED_JOBTYPES_DEFAULT = "ps";
+
+  // Job types that we will short circuit when it failed
+  public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop.on.failure.jobtypes";
 
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";

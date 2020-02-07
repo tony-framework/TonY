@@ -5,7 +5,9 @@ import com.google.common.cache.CacheBuilder;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.models.JobConfig;
 import com.linkedin.tony.models.JobEvent;
+import com.linkedin.tony.events.Event;
 import com.linkedin.tony.models.JobMetadata;
+import com.linkedin.tony.models.JobLog;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.ParserUtils;
 import com.typesafe.config.Config;
@@ -19,7 +21,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import play.Logger;
 import utils.ConfigUtils;
-
+import com.linkedin.tony.util.JobLogMetaData;
 
 
 @Singleton
@@ -55,6 +57,14 @@ public class CacheWrapper {
    */
   private Cache<String, List<JobEvent>> eventCache;
 
+  /**
+   * logcache
+   * -key jobId (application_[0-9]+_[0-9]+)
+   * -value : List of joblog object. Each JobLog object
+   * represents an container logs url .
+   */
+  private Cache<String, List<JobLog>> logCache;
+
   @Inject
   public CacheWrapper(Config appConf, Configuration conf, Requirements reqs) {
     int maxCacheSz = Integer.parseInt(
@@ -63,7 +73,7 @@ public class CacheWrapper {
     metadataCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
     configCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
     eventCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
-
+    logCache = CacheBuilder.newBuilder().maximumSize(maxCacheSz).build();
     yarnConf = conf.getYarnConf();
     myFs = reqs.getFileSystem();
     finishedDir = reqs.getFinishedDir();
@@ -84,16 +94,26 @@ public class CacheWrapper {
     return eventCache;
   }
 
+  public Cache<String, List<JobLog>> getLogCache() {
+    return logCache;
+  }
+
   public void updateCaches(Path jobDir) {
     String jobId = HdfsUtils.getLastComponent(jobDir.toString());
     JobMetadata metadata = ParserUtils.parseMetadata(myFs, yarnConf, jobDir, JOB_FOLDER_REGEX);
     List<JobConfig> configs = ParserUtils.parseConfig(myFs, jobDir);
-    List<JobEvent> events = ParserUtils.mapEventToJobEvent(ParserUtils.parseEvents(myFs, jobDir));
+    List<Event> events = ParserUtils.parseEvents(myFs, jobDir);
+    List<JobEvent> jobEvents = ParserUtils.mapEventToJobEvent(events);
+
+    String userName = null;
     if (metadata != null) {
       metadataCache.put(jobId, metadata);
+      userName = metadata.getUser();
     }
+    List<JobLog> jobLogs = ParserUtils.mapEventToJobLog(events, new JobLogMetaData(yarnConf, userName));
     configCache.put(jobId, configs);
-    eventCache.put(jobId, events);
+    eventCache.put(jobId, jobEvents);
+    logCache.put(jobId, jobLogs);
   }
 
   private void initializeCachesAsync() {
@@ -104,5 +124,9 @@ public class CacheWrapper {
       listOfJobDirs.forEach(this::updateCaches);
       LOG.info("Done with background initialization of caches.");
     }).start();
+  }
+
+  public YarnConfiguration getYarnConf() {
+    return yarnConf;
   }
 }

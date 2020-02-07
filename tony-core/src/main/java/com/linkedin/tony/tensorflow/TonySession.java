@@ -43,7 +43,7 @@ public class TonySession {
   private static final Log LOG = LogFactory.getLog(TonySession.class);
   private Configuration tonyConf;
 
-  private Map<String, TensorFlowContainerRequest> containerRequests;
+  private Map<String, JobContainerRequest> containerRequests;
 
   // sessionId to distinguish different sessions. Currently used to distinguish
   // failed session and new session.
@@ -60,6 +60,8 @@ public class TonySession {
   // go straight to the cleaning phase.
   private boolean trainingFinished = false;
 
+  private int numExpectedTasks = 0;
+
   public enum TaskType {
     TASK_TYPE_CHIEF, TASK_TYPE_PARAMETER_SERVER, TASK_TYPE_OTHERS
   }
@@ -72,7 +74,7 @@ public class TonySession {
     return cmd.toString();
   }
 
-  private Map<ContainerId, TonyTask> containerIdMap = new HashMap<>();
+  private ConcurrentHashMap<ContainerId, TonyTask> containerIdMap = new ConcurrentHashMap<>();
 
   public TonySession() {
   }
@@ -82,7 +84,7 @@ public class TonySession {
     this.jvmArgs = builder.jvmArgs;
     this.tonyConf = builder.tonyConf;
 
-    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
+    for (Map.Entry<String, JobContainerRequest> entry : containerRequests.entrySet()) {
       jobTasks.put(entry.getKey(), new TonyTask[entry.getValue().getNumInstances()]);
     }
   }
@@ -133,20 +135,21 @@ public class TonySession {
     shellEnv.put("CLASSPATH", classPathEnv.toString());
   }
 
-  public List<TensorFlowContainerRequest> getContainersRequests() {
-    List<TensorFlowContainerRequest> requests = new ArrayList<>();
+  public List<JobContainerRequest> getContainersRequests() {
+    List<JobContainerRequest> requests = new ArrayList<>();
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
       for (TonyTask task : tasks) {
         if (task == null) {
           requests.add(getContainerRequestForType(entry.getKey()));
+          break;
         }
       }
     }
     return requests;
   }
 
-  public TensorFlowContainerRequest getContainerRequestForType(String jobType) {
+  public JobContainerRequest getContainerRequestForType(String jobType) {
     return containerRequests.get(jobType);
   }
 
@@ -173,7 +176,7 @@ public class TonySession {
 
   public int getNumCompletedTasks() {
     return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr))
-        .filter(task -> task.isCompleted()).count();
+        .filter(task -> task != null && task.isCompleted()).count();
   }
 
   public int getNumCompletedTrackedTasks() {
@@ -182,7 +185,16 @@ public class TonySession {
   }
 
   public int getNumFailedTasks() {
-    return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task.isFailed()).count();
+    return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task != null && task.isFailed()).count();
+  }
+
+  /** Number of expected tasks that have been scheduled at current time **/
+  public int getNumExpectedTasks() {
+    return numExpectedTasks;
+  }
+
+  public void addNumExpectedTask(int numExpectedTasksToAdd) {
+    numExpectedTasks += numExpectedTasksToAdd;
   }
 
   /**
@@ -193,7 +205,7 @@ public class TonySession {
    * @return task to be assigned to this allocation
    */
   public synchronized TonyTask getAndInitMatchingTaskByPriority(int priority) {
-    for (Map.Entry<String, TensorFlowContainerRequest> entry : containerRequests.entrySet()) {
+    for (Map.Entry<String, JobContainerRequest> entry : containerRequests.entrySet()) {
       String jobName = entry.getKey();
       if (entry.getValue().getPriority() != priority) {
         LOG.debug("Ignoring jobname {" + jobName + "} as priority doesn't match");
@@ -202,7 +214,7 @@ public class TonySession {
       TonyTask[] tasks = jobTasks.get(jobName);
       for (int i = 0; i < tasks.length; i++) {
         if (tasks[i] == null) {
-          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId);
+          tasks[i] = new TonyTask(jobName, String.valueOf(i), sessionId, System.currentTimeMillis());
           return tasks[i];
         }
       }
@@ -244,8 +256,10 @@ public class TonySession {
     // worker failures will also fail the job but we don't short circuit the training because the training can still
     // continue, while if chief worker is dead, TensorFlow training will hang.
     // Also note that, we only short circuit when the chief worker failed, not finished.
+    // In addition, we support custom jobtype config`tony.application.stop.on.failure.jobtypes`,
+    // and we short circuit when that jobtype instance failed.
     if (exitCode != ContainerExitStatus.SUCCESS && exitCode != ContainerExitStatus.KILLED_BY_APPMASTER) {
-      if (isChief(jobName, jobIndex)) {
+      if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName)) {
         trainingFinished = true;
       }
       setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
@@ -317,10 +331,12 @@ public class TonySession {
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
       for (TonyTask task : tasks) {
-        String job = task.getJobName();
-        String index = task.getTaskIndex();
-        if (job.equals(jobName) && index.equals(taskIndex)) {
-          return task;
+        if (task != null) {
+          String job = task.getJobName();
+          String index = task.getTaskIndex();
+          if (job.equals(jobName) && index.equals(taskIndex)) {
+            return task;
+          }
         }
       }
     }
@@ -333,6 +349,10 @@ public class TonySession {
   public boolean isChief(String jobName, String index) {
     return jobName.equals(CHIEF_JOB_NAME) || (!jobTasks.containsKey(CHIEF_JOB_NAME)
         && jobName.equals(WORKER_JOB_NAME) && index.equals("0"));
+  }
+
+  public boolean shouldStopOnFailure(String jobName) {
+    return Arrays.asList(Utils.getStopOnFailureJobTypes(tonyConf)).contains(jobName);
   }
 
   public TonyTask getTask(ContainerId containerId) {
@@ -371,6 +391,7 @@ public class TonySession {
     private String host;
     private int port = -1;
     private TaskInfo taskInfo;
+    private final long startTime;
 
     /**
      * The container the task is running in. Set once a container has been allocated for the task.
@@ -398,6 +419,10 @@ public class TonySession {
 
     public String getHost() {
       return host;
+    }
+
+    public long getStartTime() {
+      return startTime;
     }
 
     public Container getContainer() {
@@ -459,10 +484,11 @@ public class TonySession {
       taskInfo = new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
-    TonyTask(String jobName, String taskIndex, int sessionId) {
+    TonyTask(String jobName, String taskIndex, int sessionId, long startTime) {
       this.jobName = jobName;
       this.taskIndex = taskIndex;
       this.sessionId = sessionId;
+      this.startTime = startTime;
     }
 
     public void addContainer(Container container) {

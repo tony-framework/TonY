@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 
 import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Content that we want to run in the containers. TaskExecutor will register itself with AM and fetch cluster spec from
@@ -70,15 +71,15 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
+
   /**
-   * We bind to random ports and then release them, and these are the ports used by the task.
-   * However, there is the possibility that another process grabs the port between when it's released and used again.
+   * We bind to random ports and reserve them up until before the underlying TF process is launched.
+   * @See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for details.
    */
   private void setupPorts() throws IOException {
     // Reserve a rpcSocket rpcPort.
     this.rpcSocket = new ServerSocket(0);
     this.rpcPort = this.rpcSocket.getLocalPort();
-    this.rpcSocket.close();
     LOG.info("Reserved rpcPort: " + this.rpcPort);
 
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
@@ -86,17 +87,30 @@ public class TaskExecutor {
     if (isChief) {
       this.tbSocket = new ServerSocket(0);
       this.tbPort = this.tbSocket.getLocalPort();
-      this.tbSocket.close();
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort));
       LOG.info("Reserved tbPort: " + this.tbPort);
     }
   }
 
-  public static void main(String[] unused) throws Exception {
-    LOG.info("TaskExecutor is running..");
-    TaskExecutor executor = new TaskExecutor();
+  /**
+   * Release the reserved ports if any. This method has to be invoked after ports are created.
+   * @throws IOException
+   */
+  private void releasePorts() throws IOException {
+      try {
+        if (this.rpcSocket != null) {
+          this.rpcSocket.close();
+        }
+      } finally {
+        if (this.tbSocket != null) {
+          this.tbSocket.close();
+        }
+      }
+  }
 
+  private static TaskExecutor createExecutor() throws Exception {
+    TaskExecutor executor = new TaskExecutor();
     executor.initConfigs();
     Utils.extractResources();
 
@@ -105,7 +119,7 @@ public class TaskExecutor {
 
     LOG.info("Setting up metrics RPC client, connecting to: " + executor.amHost + ":" + executor.metricsRPCPort);
     executor.metricsProxy = RPC.getProxy(MetricsRpc.class, RPC.getProtocolVersion(MetricsRpc.class),
-            new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
+        new InetSocketAddress(executor.amHost, executor.metricsRPCPort), executor.yarnConf);
     executor.scheduledThreadPool.scheduleAtFixedRate(
         new TaskMonitor(executor.jobName, executor.taskIndex, executor.yarnConf, executor.tonyConf, executor.metricsProxy),
         0,
@@ -114,6 +128,7 @@ public class TaskExecutor {
 
     executor.setupPorts();
     executor.clusterSpec = executor.registerAndGetClusterSpec();
+
     if (executor.clusterSpec == null) {
       LOG.error("Failed to register worker with AM.");
       throw new Exception("Failed to register worker with AM.");
@@ -139,12 +154,45 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.RANK, String.valueOf(executor.taskIndex));
         executor.shellEnv.put(Constants.WORLD, String.valueOf(executor.numTasks));
         break;
+      case MXNET:
+        LOG.info("Setting up MXNet job...");
+        String[] dmlcServer = Utils.parseClusterSpecForMXNet(executor.clusterSpec);
+        if (dmlcServer == null) {
+          System.exit(-1);
+        }
+        int numServer = executor.tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.SERVER_JOB_NAME), 0);
+        int numWorker = executor.tonyConf.getInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 0);
+        LOG.info("init DMLC is: " + dmlcServer[0] + " port: " + dmlcServer[1]);
+        LOG.info("init DMLC ROLE: " + executor.jobName);
+        LOG.info("init DMLC NUM_PS: " + numServer);
+        LOG.info("init DMLC NUM_WORKER: " + numWorker);
+        executor.shellEnv.put(Constants.DMLC_ROLE, executor.jobName);
+        executor.shellEnv.put(Constants.DMLC_PS_ROOT_URI, dmlcServer[0]);
+        executor.shellEnv.put(Constants.DMLC_PS_ROOT_PORT, dmlcServer[1]);
+        executor.shellEnv.put("DMLC_LOCAL", "0");
+        //executor.shellEnv.put("DMLC_USE_KUBERNETES", "0");
+        executor.shellEnv.put(Constants.DMLC_NUM_SERVER, String.valueOf(numServer));
+        executor.shellEnv.put(Constants.DMLC_NUM_WORKER, String.valueOf(numWorker));
+        //executor.shellEnv.put(Constants.PS_VERBOSE, "2");
+        break;
       case HOROVOD:
         // No extra environment variables needed; horovodrun takes care of setup.
         // Setting TF_CONFIG causes problems if "chief" isn't set.
         break;
       default:
         throw new RuntimeException("Unsupported executor framework: " + executor.framework);
+    }
+    return executor;
+  }
+  public static void main(String[] unused) throws Exception {
+    LOG.info("TaskExecutor is running..");
+    TaskExecutor executor = null;
+    try {
+      executor = requireNonNull(createExecutor());
+    } finally {
+      if (executor != null) {
+        executor.releasePorts();
+      }
     }
 
     int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);

@@ -98,7 +98,7 @@ function driver_installation() {
  cat << 'EOF' > "${NVIDIA_PATH}/install-driver.sh"
 #!/bin/bash -eu
 export DRIVER_INSTALLER_FILE_NAME="driver_installer.run"
-wget -q https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_410.48_linux -O ${DRIVER_INSTALLER_FILE_NAME}
+wget -q https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.105_418.39_linux.run -O ${DRIVER_INSTALLER_FILE_NAME}
 chmod +x ${DRIVER_INSTALLER_FILE_NAME}
 ./${DRIVER_INSTALLER_FILE_NAME}  --driver --override --silent
 rm -rf ${DRIVER_INSTALLER_FILE_NAME}
@@ -118,7 +118,7 @@ EOF
 function cuda_installer() {
  export CUDA_INSTALLER_FILE_NAME="cuda_installer"
  cd /tmp/
- wget -q https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_410.48_linux -O $CUDA_INSTALLER_FILE_NAME
+ wget -q https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.105_418.39_linux.run -O $CUDA_INSTALLER_FILE_NAME
  chmod +x $CUDA_INSTALLER_FILE_NAME
  ./$CUDA_INSTALLER_FILE_NAME --toolkit --override --silent
  echo "/usr/local/cuda/lib64" >> /etc/ld.so.conf.d/nvidia.conf
@@ -131,7 +131,7 @@ function cuda_installer() {
 function cudnn_installer() {
  export CUDNN_INSTALLER_FILE_NAME="cudnn_installer"
  cd /tmp/
- gsutil cp gs://"${BUCKET}"/nvidia-drivers/cudnn-10.0-linux-x64-v7.5.0.56.tgz ./$CUDNN_INSTALLER_FILE_NAME
+ gsutil cp gs://"${BUCKET}"/nvidia-drivers/cudnn-10.1-linux-x64-v7.6.5.32.tgz ./$CUDNN_INSTALLER_FILE_NAME
  tar -xvzf ./$CUDNN_INSTALLER_FILE_NAME
  cp -r ./cuda/* /usr/local/cuda
  rm -rf $CUDNN_INSTALLER_FILE_NAME
@@ -144,11 +144,11 @@ function nccl_installer() {
  export NCCL_INSTALLER="nccl_installer"
  cd /tmp/
  mkdir -p $NCCL_DIR
- gsutil cp gs://"${BUCKET}"/nvidia-drivers/nccl_2.3.4-1+cuda10.0_x86_64.txz ./nccl_2.3.4-1+cuda10.0_x86_64.txz
- xz -d nccl_2.3.4-1+cuda10.0_x86_64.txz
- tar xvf nccl_2.3.4-1+cuda10.0_x86_64.tar
- cp -r nccl_2.3.4-1+cuda10.0_x86_64/* $NCCL_DIR
- rm -rf nccl_2.3.4-1+cuda10.0_x86_64.tar
+ gsutil cp gs://"${BUCKET}"/nvidia-drivers/nccl_2.5.6-1+cuda10.1_x86_64.txz ./nccl_2.5.6-1+cuda10.1_x86_64.txz
+ xz -d nccl_2.5.6-1+cuda10.1_x86_64.txz
+ tar xvf nccl_2.5.6-1+cuda10.1_x86_64.tar
+ cp -r nccl_2.5.6-1+cuda10.1_x86_64/* $NCCL_DIR
+ rm -rf nccl_2.5.6-1+cuda10.1_x86_64.tar
  echo "/usr/local/nccl2/lib" >> /etc/ld.so.conf.d/nvidia.conf
  ldconfig
 }

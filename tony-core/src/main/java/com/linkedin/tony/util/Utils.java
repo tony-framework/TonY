@@ -12,11 +12,14 @@ import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.tensorflow.TensorFlowContainerRequest;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
+import java.util.Objects;
+import java.util.TreeMap;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,6 +49,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.net.URL;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -64,6 +68,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+import static com.linkedin.tony.Constants.JOBS_SUFFIX;
 
 public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
@@ -184,8 +191,9 @@ public class Utils {
       Method method = resource.getClass().getMethod(Constants.SET_RESOURCE_VALUE_METHOD, String.class, long.class);
       method.invoke(resource, Constants.GPU_URI, gpuCount);
     } catch (NoSuchMethodException nsme) {
-      LOG.error("There is no '" + Constants.SET_RESOURCE_VALUE_METHOD + "' API in this version ("
-              + VersionInfo.getVersion() + ") of YARN", nsme);
+      LOG.error("API to set GPU capability(" + Constants.SET_RESOURCE_VALUE_METHOD + ") is not "
+          + "supported in this version (" + VersionInfo.getVersion() + ") of YARN. Please "
+          + "do not request GPU.");
       throw new RuntimeException(nsme);
     } catch (IllegalAccessException | InvocationTargetException e) {
       LOG.error("Failed to invoke '" + Constants.SET_RESOURCE_VALUE_METHOD + "' method to set GPU resources", e);
@@ -293,7 +301,7 @@ public class Utils {
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", taskCommand);
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
     taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-    // Unset MALLOC_ARENA_MAX for better performance, see https://github.com/linkedin/TonY/issues/346 
+    // Unset MALLOC_ARENA_MAX for better performance, see https://github.com/linkedin/TonY/issues/346
     taskProcessBuilder.environment().remove("MALLOC_ARENA_MAX");
     if (env != null) {
       taskProcessBuilder.environment().putAll(env);
@@ -349,10 +357,17 @@ public class Utils {
    * @param conf the TonY configuration.
    * @return map from configured job name to its corresponding resource request
    */
-  public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
+  public static Map<String, JobContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = getAllJobTypes(conf);
-    Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
+    Set<String> untrackedJobTypes = Arrays.stream(getUntrackedJobTypes(conf)).collect(Collectors.toSet());
+    Map<String, JobContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
+
+    List<String> prepareStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_PREPARE_STAGE));
+    List<String> trainingStageTasks = new ArrayList<>(conf.getTrimmedStringCollection(TonyConfigurationKeys.APPLICATION_TRAINING_STAGE));
+    ensureStagedTasksIntegrity(prepareStageTasks, trainingStageTasks, jobNames);
+    List<String> tasksToDependOn = prepareStageTasks.stream().filter(x -> !untrackedJobTypes.contains(x)).collect(Collectors.toList());
+
     for (String jobName : jobNames) {
       int numInstances = conf.getInt(TonyConfigurationKeys.getInstancesKey(jobName), 0);
       String memoryString = conf.get(TonyConfigurationKeys.getResourceKey(jobName, Constants.MEMORY),
@@ -362,6 +377,13 @@ public class Utils {
               TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
+      String nodeLabel = conf.get(TonyConfigurationKeys.getNodeLabelKey(jobName));
+
+      // Any task that belong to the training stage depend on prepare stage
+      List<String> dependsOn = new ArrayList<>();
+      if (trainingStageTasks.contains(jobName)) {
+        dependsOn.addAll(tasksToDependOn);
+      }
 
       /* The priority of different task types MUST be different.
        * Otherwise the requests will overwrite each other on the RM
@@ -371,11 +393,32 @@ public class Utils {
       if (numInstances > 0) {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName,
-                new TensorFlowContainerRequest(jobName, numInstances, memory, vCores, gpus, priority));
+                new JobContainerRequest(jobName, numInstances, memory, vCores, gpus, priority,
+                    nodeLabel, dependsOn));
         priority++;
       }
     }
     return containerRequests;
+  }
+
+  private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,
+      Set<String> allJobTypes) {
+    if (prepareStageTasks.isEmpty() && !trainingStageTasks.isEmpty()) {
+      prepareStageTasks.addAll(CollectionUtils.subtract(allJobTypes, trainingStageTasks));
+      LOG.warn("Found no prepare stage tasks, auto-filling with: " + Arrays.toString(prepareStageTasks.toArray()));
+    } else if ((!prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty())) {
+      trainingStageTasks.addAll(CollectionUtils.subtract(allJobTypes, prepareStageTasks));
+      LOG.warn("Found no training stage tasks, auto-filling with: " + Arrays.toString(trainingStageTasks.toArray()));
+    } else if (prepareStageTasks.isEmpty() && trainingStageTasks.isEmpty()) {
+      return;
+    }
+
+    if (prepareStageTasks.size() + trainingStageTasks.size() != allJobTypes.size()) {
+      throw new IllegalArgumentException("TonY cannot parse application stage command, "
+          + "there are " + prepareStageTasks.size() + " prepare-stage tasks, "
+          + trainingStageTasks.size() + " training-stage tasks."
+          + "However, you have " + allJobTypes.size() + " total jobs in total");
+    }
   }
 
   public static Set<String> getAllJobTypes(Configuration conf) {
@@ -526,6 +569,35 @@ public class Utils {
     return Constants.COMMUNICATION_BACKEND + chiefWorkerAddress;
   }
 
+  public static String[] parseClusterSpecForMXNet(String clusterSpec) throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    Map<String, List<String>> clusterSpecMap =
+            objectMapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+    String serverAddress = clusterSpecMap.get(Constants.SCHEDULER_JOB_NAME).get(0);
+    LOG.info("Parsed ServerAddress " + serverAddress);
+    if (serverAddress == null) {
+      LOG.error("Failed to get server address from cluster spec.");
+      return null;
+    }
+    String[] splitAddress = splitAddressPort(serverAddress);
+    if (splitAddress == null) {
+        LOG.error("Failed to split address: " + serverAddress);
+        return null;
+    }
+    try {
+        splitAddress[0] = resolveNameToIpAddress(splitAddress[0]);
+    } catch (UnknownHostException e) {
+        LOG.error("Cannot resolve ipaddress of " + splitAddress[0]);
+        return null;
+    }
+    return splitAddress;
+  }
+
+  public static String resolveNameToIpAddress(String hostname) throws UnknownHostException {
+    InetAddress address = InetAddress.getByName(hostname);
+    return address.getHostAddress();
+  }
+
   public static void createDirIfNotExists(FileSystem fs, Path dir, FsPermission permission) {
     String warningMsg;
     try {
@@ -550,6 +622,10 @@ public class Utils {
     return !Arrays.asList(getUntrackedJobTypes(tonyConf)).contains(taskName);
   }
 
+  public static String[] getStopOnFailureJobTypes(Configuration conf) {
+    return conf.getStrings(TonyConfigurationKeys.STOP_ON_FAILURE_JOBTYPES, "");
+  }
+
   public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,
                                                    Configuration tonyConf, FileSystem fs,
                                                    LocalResourceType resourceType, String resourceKey) throws IOException {
@@ -561,6 +637,16 @@ public class Utils {
       dstAddress += Constants.ARCHIVE_SUFFIX;
     }
     appendConfResources(resourceKey, dstAddress, tonyConf);
+  }
+
+  public static String[] splitAddressPort(String hostname) {
+    String hostPattern = "([\\w\\.\\-]+):(\\d+)";
+    Pattern p = Pattern.compile(hostPattern);
+    Matcher m = p.matcher(hostname);
+    if (m.matches()) {
+        return new String[]{m.group(1), m.group(2)};
+    }
+    return null;
   }
 
   public static void appendConfResources(String key, String resource, Configuration tonyConf) {
@@ -662,6 +748,21 @@ public class Utils {
       }
     }
     return containerEnv;
+  }
+
+  /**
+   * Prepares links which is to be displayed on job event and log page
+   * @param jobId : JobId for which links to be created
+   * @return Map with title and links
+   * TreeMap is used to maintain the key orders
+   */
+  public static Map<String, String> linksToBeDisplayedOnPage(String jobId) {
+    Map<String, String> titleAndLinks = new TreeMap<>();
+    if (Objects.nonNull(jobId)) {
+      titleAndLinks.put("Logs", "/" + LOGS_SUFFIX + "/" + jobId);
+      titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
+    }
+    return titleAndLinks;
   }
 
   private Utils() { }
