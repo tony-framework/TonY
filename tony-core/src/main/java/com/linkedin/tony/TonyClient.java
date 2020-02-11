@@ -690,7 +690,7 @@ public class TonyClient implements AutoCloseable {
     acls.put(ApplicationAccessType.MODIFY_APP, " ");
     amContainer.setApplicationACLs(acls);
 
-    String command = TonyClient.buildCommand(amMemory);
+    String command = buildCommand(amMemory);
 
     LOG.info("Completed setting up Application Master command " + command);
     amContainer.setCommands(ImmutableList.of(command));
@@ -704,7 +704,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static String buildCommand(long amMemory) {
+  String buildCommand(long amMemory) {
     List<String> arguments = new ArrayList<>(30);
     arguments.add(ApplicationConstants.Environment.JAVA_HOME.$$() + "/bin/java");
     // Set Xmx based on am memory size
@@ -712,6 +712,11 @@ public class TonyClient implements AutoCloseable {
     // Add configuration for log dir to retrieve log output from python subprocess in AM
     arguments.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+    // Add am jvm configuration
+    String amJvm = tonyConf.get(TonyConfigurationKeys.TASK_AM_JVM_OPTS);
+    if (org.apache.commons.lang3.StringUtils.isNotBlank(amJvm)) {
+      arguments.add(amJvm);
+    }
     // Set class name
     arguments.add("com.linkedin.tony.ApplicationMaster");
 
