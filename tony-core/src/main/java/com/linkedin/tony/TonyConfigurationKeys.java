@@ -104,6 +104,9 @@ public class TonyConfigurationKeys {
   public static final String APPLICATION_NAME = TONY_APPLICATION_PREFIX + "name";
   public static final String DEFAULT_APPLICATION_NAME = "TonyApplication";
 
+  public static final String APPLICATION_TYPE = TONY_APPLICATION_PREFIX + "type";
+  public static final String DEFAULT_APPLICATION_TYPE = Constants.APP_TYPE;
+
   public static final String FRAMEWORK_NAME = TONY_APPLICATION_PREFIX + "framework";
   public static final String DEFAULT_FRAMEWORK_NAME = "tensorflow";
 

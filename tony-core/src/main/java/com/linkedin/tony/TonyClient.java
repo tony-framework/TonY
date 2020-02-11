@@ -233,7 +233,9 @@ public class TonyClient implements AutoCloseable {
     String appName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
         TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
     appContext.setApplicationName(appName);
-    appContext.setApplicationType(Constants.APP_TYPE);
+    String appType = tonyConf.get(TonyConfigurationKeys.APPLICATION_TYPE,
+        TonyConfigurationKeys.DEFAULT_APPLICATION_TYPE);
+    appContext.setApplicationType(appType);
     if (!applicationTags.isEmpty()) {
       appContext.setApplicationTags(applicationTags);
     }

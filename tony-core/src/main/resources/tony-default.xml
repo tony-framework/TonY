@@ -25,6 +25,12 @@
   </property>
 
   <property>
+    <description>Type of your YARN application.</description>
+    <name>tony.application.type</name>
+    <value>TONY</value>
+  </property>
+
+  <property>
     <description>Tags of your YARN application.</description>
     <name>tony.application.tags</name>
     <value></value>
