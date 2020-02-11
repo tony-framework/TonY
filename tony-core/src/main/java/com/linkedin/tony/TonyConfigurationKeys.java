@@ -135,6 +135,8 @@ public class TonyConfigurationKeys {
   public static final String MAX_TOTAL_INSTANCES = TONY_TASK_PREFIX + "max-total-instances";
   public static final int DEFAULT_MAX_TOTAL_INSTANCES = -1;
 
+  public static final String TASK_AM_JVM_OPTS = TONY_TASK_PREFIX + "am.jvm.opts";
+
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
