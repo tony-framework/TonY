@@ -78,6 +78,12 @@
   </property>
 
   <property>
+    <description>JVM opts for am.</description>
+    <name>tony.task.am.jvm.opts</name>
+    <value></value>
+  </property>
+
+  <property>
     <description>JVM opts for each TaskExecutor.</description>
     <name>tony.task.executor.jvm.opts</name>
     <value>-Xmx1536m</value>
