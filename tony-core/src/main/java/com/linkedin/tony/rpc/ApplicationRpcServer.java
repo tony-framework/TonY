@@ -39,6 +39,13 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
     this.conf = conf;
   }
 
+  public ApplicationRpcServer(String hostname, ApplicationRpc rpc, Configuration conf, int rpcPort) {
+    this.rpcAddress = hostname;
+    this.rpcPort = rpcPort;
+    this.appRpc = rpc;
+    this.conf = conf;
+  }
+
   @Override
   public GetTaskInfosResponse getTaskInfos(GetTaskInfosRequest request) throws IOException, YarnException {
     GetTaskInfosResponse response = RECORD_FACTORY.newRecordInstance(GetTaskInfosResponse.class);
