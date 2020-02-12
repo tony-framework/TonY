@@ -385,10 +385,7 @@ public class ApplicationMaster {
 
     // Setup application RPC server
     String amHostname = Utils.getCurrentHostName();
-    ServerSocket amRpcSocket = new ServerSocket(0);
-    int amRpcPort = amRpcSocket.getLocalPort();
-    amRpcSocket.close();
-    applicationRpcServer = setupRPCService(amHostname, amRpcPort);
+    applicationRpcServer = setupRPCService(amHostname);
     containerEnv.put(Constants.AM_HOST, amHostname);
     containerEnv.put(Constants.AM_PORT, Integer.toString(amPort));
 
@@ -764,8 +761,8 @@ public class ApplicationMaster {
     }
   }
 
-  private ApplicationRpcServer setupRPCService(String hostname, int rpcPort) {
-    ApplicationRpcServer rpcServer = new ApplicationRpcServer(hostname, new RpcForClient(), yarnConf, rpcPort);
+  private ApplicationRpcServer setupRPCService(String hostname) throws IOException {
+    ApplicationRpcServer rpcServer = new ApplicationRpcServer(hostname, new RpcForClient(), yarnConf);
     amPort = rpcServer.getRpcPort();
     return rpcServer;
   }

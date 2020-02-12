@@ -8,6 +8,7 @@ import com.google.protobuf.BlockingService;
 import com.linkedin.tony.TonyPolicyProvider;
 import com.linkedin.tony.rpc.impl.pb.service.TensorFlowClusterPBServiceImpl;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -32,16 +33,11 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
   private Server server;
   private Configuration conf;
 
-  public ApplicationRpcServer(String hostname, ApplicationRpc rpc, Configuration conf) {
+  public ApplicationRpcServer(String hostname, ApplicationRpc rpc, Configuration conf) throws IOException {
     this.rpcAddress = hostname;
-    this.rpcPort = 10000 + RANDOM_NUMBER_GENERATOR.nextInt(5000) + 1;
-    this.appRpc = rpc;
-    this.conf = conf;
-  }
-
-  public ApplicationRpcServer(String hostname, ApplicationRpc rpc, Configuration conf, int rpcPort) {
-    this.rpcAddress = hostname;
-    this.rpcPort = rpcPort;
+    ServerSocket rpcSocket = new ServerSocket(0);
+    this.rpcPort = rpcSocket.getLocalPort();
+    rpcSocket.close();
     this.appRpc = rpc;
     this.conf = conf;
   }
