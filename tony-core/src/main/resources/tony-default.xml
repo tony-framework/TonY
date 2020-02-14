@@ -203,6 +203,13 @@
     <value>ps</value>
   </property>
 
+  <!-- Fail on worker tasks failure configurations -->
+  <property>
+    <description>Whether we return failure when a worker task failed</description>
+    <name>tony.application.fail.on.worker.failure.enabled</name>
+    <value>false</value>
+  </property>
+
   <!-- Docker configurations -->
   <property>
     <description>Whether we use docker container to launch the tasks</description>

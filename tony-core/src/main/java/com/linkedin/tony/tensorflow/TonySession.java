@@ -6,6 +6,7 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;
@@ -258,11 +259,14 @@ public class TonySession {
     // Also note that, we only short circuit when the chief worker failed, not finished.
     // In addition, we support custom jobtype config`tony.application.stop.on.failure.jobtypes`,
     // and we short circuit when that jobtype instance failed.
+    // We added a configuration parameter called `tony.application.fail.on.worker.failure.enabled` with default
+    // value “false” to continue training if some worker jobs failed. If we configured it “true” then it would
+    // immediately stop training if a worker failed.
     if (exitCode != ContainerExitStatus.SUCCESS && exitCode != ContainerExitStatus.KILLED_BY_APPMASTER) {
-      if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName)) {
+      if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName) || isFailOnWorkerFailure()) {
         trainingFinished = true;
+        setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
       }
-      setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
     }
   }
 
@@ -306,8 +310,15 @@ public class TonySession {
     }
 
     if (failureCount > 0) {
-      setFinalStatus(FinalApplicationStatus.FAILED,
-          "At least one job task exited with non-zero status, failedCnt=" + failureCount);
+      if (isFailOnWorkerFailure() || failureCount  >= getTotalTrackedTasks()) {
+        setFinalStatus(FinalApplicationStatus.FAILED,
+            "At least one job task exited with non-zero status, failedCnt=" + failureCount);
+      } else {
+        LOG.info("Session completed with some worker jobs failure, failedCnt=" + failureCount
+            + " and TotalTrackedTasks=" + getTotalTrackedTasks() + ", setting final status SUCCEEDED.");
+        setFinalStatus(FinalApplicationStatus.SUCCEEDED,
+            "Training completed with some worker jobs failure, failedCnt=" + failureCount);
+      }
     } else {
       LOG.info("Session completed with no job failures, setting final status SUCCEEDED.");
       setFinalStatus(FinalApplicationStatus.SUCCEEDED, null);
@@ -353,6 +364,14 @@ public class TonySession {
 
   public boolean shouldStopOnFailure(String jobName) {
     return Arrays.asList(Utils.getStopOnFailureJobTypes(tonyConf)).contains(jobName);
+  }
+
+  /**
+   * Returns true if tony.application.fail.on.worker.failure.enabled` is true otherwise false.
+   */
+  public boolean isFailOnWorkerFailure() {
+    return tonyConf.getBoolean(TonyConfigurationKeys.FAIL_ON_WORKER_FAILURE_ENABLED,
+        TonyConfigurationKeys.DEFAULT_FAIL_ON_WORKER_FAILURE_ENABLED);
   }
 
   public TonyTask getTask(ContainerId containerId) {
