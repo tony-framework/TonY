@@ -199,14 +199,14 @@
   <!-- Stop on failure job type configurations -->
   <property>
     <description>Job types that we will short circuit when it failed</description>
-    <name>tony.application.stop.on.failure.jobtypes</name>
+    <name>tony.application.stop-on-failure-jobtypes</name>
     <value>ps</value>
   </property>
 
   <!-- Fail on worker tasks failure configurations -->
   <property>
     <description>Whether we return failure when a worker task failed</description>
-    <name>tony.application.fail.on.worker.failure.enabled</name>
+    <name>tony.application.fail-on-worker-failure-enabled</name>
     <value>false</value>
   </property>
 
