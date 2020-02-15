@@ -62,6 +62,7 @@ public class Constants {
   // Distributed TensorFlow job name, e.g. "ps" or "worker",
   // as per https://www.tensorflow.org/deploy/distributed
   public static final String JOB_NAME = "JOB_NAME";
+  public static final String JOB_ID = "JOB_ID";
   public static final String SESSION_ID = "SESSION_ID";
   public static final String PREPROCESSING_JOB = "PREPROCESSING_JOB";
 
