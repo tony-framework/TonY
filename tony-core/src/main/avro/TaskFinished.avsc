@@ -6,6 +6,7 @@
     {"name": "taskType", "type": "string"},
     {"name": "taskIndex", "type": "int"},
     {"name": "status", "type":  "string"},
-    {"name": "metrics", "type": {"type": "array", "items": "Metric"}}
+    {"name": "metrics", "type": {"type": "array", "items": "Metric"}},
+    {"name": "containerDiagnostic", "type": ["null","string"], "default": null, "doc":  "Container error information"}
   ]
 }

@@ -191,13 +191,15 @@ public class TestParserUtils {
         .getContainerID());
     assertNull(JobLog.convertEventToJobLog(applicationEvents.get(3), new JobLogMetaData(yarnConf, "testuser"))
         .getContainerID());
+    //mock(ApplicationMaster)
   }
+
 
   private List<Event> eventBuilder() {
     ApplicationInited applicationInited = new ApplicationInited("fakeid123", 2, "fakehost2", "fakecontainerID");
     TaskStarted taskStarted = new TaskStarted("faketasktype", 3, "fakehost3", "fakecontainerID1");
     java.util.List<com.linkedin.tony.events.Metric> dummymetrics = new ArrayList<>();
-    TaskFinished taskFinished = new TaskFinished("fasktasktype", 4, "false", dummymetrics);
+    TaskFinished taskFinished = new TaskFinished("fasktasktype", 4, "false", dummymetrics, "File not found");
     ApplicationFinished applicationFinished = new ApplicationFinished("fakeid123", 4, 3, dummymetrics);
     List<Event> applicationEvents = new ArrayList<>();
     Event applicationInitedEvent = new Event(EventType.APPLICATION_INITED, applicationInited, 1L);
