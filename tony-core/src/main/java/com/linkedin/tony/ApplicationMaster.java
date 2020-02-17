@@ -761,7 +761,7 @@ public class ApplicationMaster {
     }
   }
 
-  private ApplicationRpcServer setupRPCService(String hostname) {
+  private ApplicationRpcServer setupRPCService(String hostname) throws IOException {
     ApplicationRpcServer rpcServer = new ApplicationRpcServer(hostname, new RpcForClient(), yarnConf);
     amPort = rpcServer.getRpcPort();
     return rpcServer;

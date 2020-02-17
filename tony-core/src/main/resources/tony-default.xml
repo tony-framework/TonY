@@ -25,6 +25,12 @@
   </property>
 
   <property>
+    <description>Type of your YARN application.</description>
+    <name>tony.application.type</name>
+    <value>TONY</value>
+  </property>
+
+  <property>
     <description>Tags of your YARN application.</description>
     <name>tony.application.tags</name>
     <value></value>
@@ -75,6 +81,12 @@
     <name>tony.task.max-total-gpus</name>
     <value>-1</value>
     <description>Maximum number of GPUs that can be requested across all tasks. -1 means no limit.</description>
+  </property>
+
+  <property>
+    <description>JVM opts for am.</description>
+    <name>tony.task.am.jvm.opts</name>
+    <value></value>
   </property>
 
   <property>
