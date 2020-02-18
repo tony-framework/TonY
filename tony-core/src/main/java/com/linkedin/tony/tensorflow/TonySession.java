@@ -312,7 +312,8 @@ public class TonySession {
     if (failureCount > 0) {
       // if `tony.application.fail-on-worker-failure-enabled` is true and there is at least one failed worker,
       // or if all worker jobs failed, we finally return "FAILED" otherwise, we return "SUCCEEDED" with some
-      // failure workers
+      // failure workers. We checked the parameter here to capture any worker task that was killed by the
+      // application master which was not short circuited to failure at onTaskCompleted().
       if (isFailOnWorkerFailure() || failureCount  >= getTotalTrackedTasks()) {
         setFinalStatus(FinalApplicationStatus.FAILED,
             "At least one job task exited with non-zero status, failedCnt=" + failureCount);
