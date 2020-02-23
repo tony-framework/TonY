@@ -953,7 +953,7 @@ public class ApplicationMaster {
   class NMCallbackHandler implements NMClientAsync.CallbackHandler {
     @Override
     public void onContainerStopped(ContainerId containerId) {
-      processFinishedContainer(containerId, ContainerExitStatus.KILLED_BY_APPMASTER);
+      processFinishedContainer(containerId, ContainerExitStatus.KILLED_BY_APPMASTER, "KILLED_BY_APPMASTER");
     }
 
     @Override
@@ -994,13 +994,14 @@ public class ApplicationMaster {
             + ", state = " + containerStatus.getState()
             + ", exitStatus = " + exitStatus);
         String diagnostics = containerStatus.getDiagnostics();
+        String errorInformation = null;
         if (ContainerExitStatus.SUCCESS != exitStatus) {
+          errorInformation = diagnostics;
           LOG.error(diagnostics);
         } else {
           LOG.info(diagnostics);
         }
-
-        processFinishedContainer(containerStatus.getContainerId(), exitStatus);
+        processFinishedContainer(containerStatus.getContainerId(), exitStatus, errorInformation);
       }
     }
 
@@ -1146,7 +1147,7 @@ public class ApplicationMaster {
     mainThread.interrupt();
   }
 
-  private void processFinishedContainer(ContainerId containerId, int exitStatus) {
+  private void processFinishedContainer(ContainerId containerId, int exitStatus, String diagnosticMessage) {
     TonyTask task = session.getTask(containerId);
     if (task != null) {
       // Ignore tasks from past sessions.
@@ -1157,11 +1158,19 @@ public class ApplicationMaster {
       LOG.info("Container " + containerId + " for task " + task + " finished with exitStatus " + exitStatus + ".");
       session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
       scheduler.registerDependencyCompleted(task.getJobName());
-      eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
-          new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
-              task.getTaskInfo().getStatus().toString(),
-              metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex()))),
-          System.currentTimeMillis()));
+      if (ContainerExitStatus.SUCCESS != exitStatus) {
+        eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
+            new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+                task.getTaskInfo().getStatus().toString(),
+                metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex())),
+                diagnosticMessage), System.currentTimeMillis()));
+      } else {
+        eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
+            new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+                task.getTaskInfo().getStatus().toString(),
+                metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex())), "NA"),
+            System.currentTimeMillis()));
+      }
 
       // Detect if an untracked task has crashed to prevent application hangups.
       if (!Utils.isJobTypeTracked(task.getJobName(), tonyConf) && task.isFailed()) {

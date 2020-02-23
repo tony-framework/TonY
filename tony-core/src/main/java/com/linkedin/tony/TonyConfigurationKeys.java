@@ -249,7 +249,11 @@ public class TonyConfigurationKeys {
   public static final String UNTRACKED_JOBTYPES_DEFAULT = "ps";
 
   // Job types that we will short circuit when it failed
-  public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop.on.failure.jobtypes";
+  public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop-on-failure-jobtypes";
+
+  // Tony configuration to return failure when a worker failed
+  public static final String FAIL_ON_WORKER_FAILURE_ENABLED = TONY_APPLICATION_PREFIX + "fail-on-worker-failure-enabled";
+  public static final boolean DEFAULT_FAIL_ON_WORKER_FAILURE_ENABLED = false;
 
   // Training chief configuration
   public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
