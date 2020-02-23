@@ -1094,6 +1094,7 @@ public class ApplicationMaster {
       Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, jobName);
       containerLaunchEnv.putAll(dockerEnv);
       containerLaunchEnv.put(Constants.JOB_NAME, jobName);
+      containerLaunchEnv.put(Constants.JOB_ID, appIdString);
       containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
       containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(session.getTotalTrackedTasks()));
       if (session.isChief(jobName, taskIndex)) {
