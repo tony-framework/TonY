@@ -90,11 +90,11 @@ The `src/` folder would contain all your training script. The `tony.xml` is used
         <value>3g</value>
       </property>
       <property>
-        <name>tony.application.docker.enabled</name>
+        <name>tony.docker.enabled</name>
         <value>true</value>
       </property>
       <property>
-        <name>tony.application.docker.image</name>
+        <name>tony.docker.containers.image</name>
         <value>YOUR_DOCKER_IMAGE_NAME</value>
       </property>
     </configuration>
