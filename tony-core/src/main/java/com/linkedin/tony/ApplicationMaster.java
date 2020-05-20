@@ -549,6 +549,9 @@ public class ApplicationMaster {
       LOG.info("Stop a task in container: containerId = " + container.getId() + ", containerNode = "
                + container.getNodeId().getHost());
     }
+    
+    // Reset the flag to track untracked processes.
+    untrackedTaskFailed = false;
 
     // Reset session
     session = sessionBuilder.build();
