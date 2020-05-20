@@ -1,0 +1,47 @@
+# This workflow will build a Java project with Gradle
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
+
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Configure GPG Key
+      run: |
+        mkdir -p ~/.gnupg/
+        mkdir -p ~/.gradle
+        printf "$GPG_SIGNING_KEY" | base64 --decode > ~/.gnupg/private.key
+        gpg --batch --import ~/.gnupg/private.key
+        echo "signing.keyId=${GPG_KEY_ID}" >> ~/.gradle/gradle.properties
+        echo "signing.secretKeyRingFile=/home/runner/.gnupg/private.key" >> ~/.gradle/gradle.properties
+        echo "signing.password=${SIGNING_PASSWORD}" >> ~/.gradle/gradle.properties
+        echo "mavenUser=${MAVEN_USERNAME}" >> ~/.gradle/gradle.properties
+        echo "mavenPassword=${MAVEN_PASSWORD}" >> ~/.gradle/gradle.properties
+        echo "nexusUsername=${MAVEN_USERNAME}" >> ~/.gradle/gradle.properties
+        echo "nexusPassword=${MAVEN_PASSWORD}" >> ~/.gradle/gradle.properties
+      env:
+        GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        SIGNING_PASSWORD: ${{ secrets.GPG_PF }}      
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}  
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}  
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      run: ./gradlew build
+    - name: Publish with Gradle
+      run: ./gradlew publish
