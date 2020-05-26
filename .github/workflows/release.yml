@@ -1,0 +1,53 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+    - name: Configure GPG Key and create gradle properties file
+      run: |
+        mkdir -p ${HOME}/.gnupg/ ${HOME}/.gradle
+
+        # Decode and create the private key file
+        printf "$GPG_SIGNING_KEY" | base64 --decode > ${HOME}/.gnupg/private.key
+        chmod 500 ${HOME}/.gnupg/private.key
+
+        # Try importing the key.
+        gpg --batch --import ${HOME}/.gnupg/private.key
+
+        # Create the gradle.properties file.
+        cat > ${HOME}/.gradle/gradle.properties <<EOF
+        signing.keyId=${GPG_KEY_ID}
+        signing.secretKeyRingFile=${HOME}/.gnupg/private.key
+        signing.password=${SIGNING_PASSWORD}
+        mavenUser=${MAVEN_USERNAME}
+        mavenPassword=${MAVEN_AUTH_TOKEN}
+        nexusUsername=${MAVEN_USERNAME}
+        nexusPassword=${MAVEN_AUTH_TOKEN}
+        EOF
+
+      env:
+        GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        SIGNING_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_AUTH_TOKEN: ${{ secrets.MAVEN_AUTH_TOKEN }}
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    - name: Build with Gradle
+      run: ./gradlew build
+    - name: Publish with Gradle
+      run: ./gradlew publish closeAndReleaseRepository
