@@ -159,6 +159,7 @@ subprojects {
   publishing {
     publications {
       mavenJava(MavenPublication) {
+        artifactId = "${project.name}"
         if (project.name.equals("tony-portal")) {
           artifact source: "$buildDir/distributions/${project.name}-${project.version}.zip", builtBy: { tasks.createPlayBinaryZipDist }
         } else {
