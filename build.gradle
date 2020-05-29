@@ -159,10 +159,14 @@ subprojects {
   publishing {
     publications {
       mavenJava(MavenPublication) {
-        from components.java
         artifactId = "${project.name}"
-        artifact sourcesJar
-        artifact javadocJar
+        if (project.name.equals("tony-portal")) {
+          artifact source: "$buildDir/distributions/${project.name}-${project.version}.zip", builtBy: { tasks.createPlayBinaryZipDist }
+        } else {
+          from components.java
+          artifact sourcesJar
+          artifact javadocJar
+        }
         if (project.name.equals("tony-cli")) {
           artifact shadowJar
         }
