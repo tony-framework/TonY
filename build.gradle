@@ -134,6 +134,7 @@ subprojects {
         exclude(dependency('org.spark-project:'))
       }
       zip64 true
+      classifier "uber"
     }
 
     build.dependsOn(shadowJar)
