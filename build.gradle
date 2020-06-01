@@ -1,3 +1,5 @@
+import java.time.Duration
+
 apply plugin: "java"
 apply plugin: "eclipse"
 apply plugin: "idea"
@@ -16,10 +18,20 @@ buildscript {
     classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.1"
     classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
     classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.20.0"
+    classpath "de.marcphilipp.gradle:nexus-publish-plugin:0.4.0"
   }
 }
 
 apply plugin: 'io.codearte.nexus-staging'
+nexusStaging {
+  packageGroup = "com.linkedin.tony"
+  stagingProfileId = "6f8a92e81628a4"
+  username = findProperty('mavenUser')
+  password = findProperty('mavenPassword')
+  delayBetweenRetriesInMillis = 3000
+  numberOfRetries = 50
+}
+
 
 def hadoopVersion = "2.7.3"
 ext.playVersion = "2.6.20"
@@ -103,6 +115,7 @@ subprojects {
   apply plugin: "idea"
   apply plugin: "maven-publish"
   apply plugin: "signing"
+  apply plugin: 'de.marcphilipp.nexus-publish'
 
   apply from: "$rootDir/gradle/version-info.gradle"
 
@@ -202,17 +215,16 @@ subprojects {
         }
       }
     }
+  }
+  nexusPublishing {
     repositories {
-      maven {
-        def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-        def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots"
-        url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-        credentials {
-          username findProperty("mavenUser")
-          password findProperty("mavenPassword")
-        }
+      sonatype() {
+        username = project.findProperty('mavenUser')
+        password = project.findProperty('mavenPassword')
       }
     }
+    clientTimeout = Duration.ofMinutes(5)
+    connectTimeout = Duration.ofMinutes(5)
   }
   signing {
     sign publishing.publications.mavenJava
