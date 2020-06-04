@@ -6,6 +6,6 @@
     {"name": "taskType", "type": "string"},
     {"name": "taskIndex", "type": "int"},
     {"name": "host", "type": "string"},
-    {"name": "containerID", "type": "string", "doc":  "Container  id"}
+    {"name": "containerID", "type": ["null","string"], "default": null, "doc":  "Container  id"}
   ]
 }
