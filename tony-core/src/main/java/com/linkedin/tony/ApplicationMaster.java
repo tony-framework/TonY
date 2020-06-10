@@ -353,6 +353,10 @@ public class ApplicationMaster {
       // Prepare for retryCount.
       reset();
       LOG.info("Retrying, remaining retry count" + amRetryCount);
+
+      //Set an environment variable when restarting due to preemption
+      containerEnv.put(Constants.AM_RETRY_COUNT, Integer.toString(amRetryCount));
+
       amRetryCount -= 1;
     } while (!singleNode); // We don't retry on single node training.
     // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
@@ -549,7 +553,7 @@ public class ApplicationMaster {
       LOG.info("Stop a task in container: containerId = " + container.getId() + ", containerNode = "
                + container.getNodeId().getHost());
     }
-    
+
     // Reset the flag to track untracked processes.
     untrackedTaskFailed = false;
 
