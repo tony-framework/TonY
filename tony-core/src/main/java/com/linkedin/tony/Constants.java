@@ -109,6 +109,7 @@ public class Constants {
   public static final String DRIVER_JOB_NAME = "driver";
 
   public static final String ATTEMPT_NUMBER = "ATTEMPT_NUMBER";
+  public static final String NUM_AM_RETRIES = "NUM_AM_RETRIES";
 
   public static final String TEST_AM_CRASH = "TEST_AM_CRASH";
   public static final String TEST_WORKER_TERMINATED = "TEST_WORKER_TERMINATION";

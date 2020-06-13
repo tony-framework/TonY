@@ -115,6 +115,7 @@ public class ApplicationMaster {
   private Map<String, LocalResource> localResources = new ConcurrentHashMap<>();
   private Configuration tonyConf = new Configuration(false);
   private ContainerId containerId;
+  private int numAMRetries = 0;
 
   /** The environment set up for the TaskExecutor **/
   private Map<String, String> containerEnv = new ConcurrentHashMap<>();
@@ -353,7 +354,14 @@ public class ApplicationMaster {
       // Prepare for retryCount.
       reset();
       LOG.info("Retrying, remaining retry count" + amRetryCount);
+
       amRetryCount -= 1;
+
+      numAMRetries += 1;
+
+      //Set an environment variable when restarting due to preemption
+      containerEnv.put(Constants.NUM_AM_RETRIES, Integer.toString(numAMRetries));
+
     } while (!singleNode); // We don't retry on single node training.
     // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
     stop();
@@ -549,7 +557,7 @@ public class ApplicationMaster {
       LOG.info("Stop a task in container: containerId = " + container.getId() + ", containerNode = "
                + container.getNodeId().getHost());
     }
-    
+
     // Reset the flag to track untracked processes.
     untrackedTaskFailed = false;
 
