@@ -356,6 +356,7 @@ public class ApplicationMaster {
       LOG.info("Retrying, remaining retry count" + amRetryCount);
 
       amRetryCount -= 1;
+
       numAMRetries += 1;
 
       //Set an environment variable when restarting due to preemption
