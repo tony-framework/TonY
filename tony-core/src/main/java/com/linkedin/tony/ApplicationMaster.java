@@ -558,8 +558,9 @@ public class ApplicationMaster {
                + container.getNodeId().getHost());
     }
 
-    // Reset the flag to track untracked processes.
+    // Reset the flags that indicate failure.
     untrackedTaskFailed = false;
+    taskHasMissesHB = false;
 
     // Reset session
     session = sessionBuilder.build();
