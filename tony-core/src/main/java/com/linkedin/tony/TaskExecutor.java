@@ -70,7 +70,6 @@ public class TaskExecutor {
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
-  // port range [1, 65535]
   public static final Range<Integer> PORT_RANGE = Range.between(1, 65535);
   public static final String PORT_FILE_PREFIX = "___port___";
   public static final java.nio.file.Path PORT_FILE_DIR = Paths.get(System.getProperty("java.io"
@@ -270,6 +269,7 @@ public class TaskExecutor {
       executor = requireNonNull(createExecutor());
     } finally {
       if (executor != null) {
+        // release ports so that subsequent taskCommand process can consume them.
         executor.releasePorts();
       }
     }
