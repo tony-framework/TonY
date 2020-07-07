@@ -50,7 +50,7 @@ public class TestTaskExecutor {
   @Test
   public void testPortRangeIsValid() {
     Assert.assertEquals(TaskExecutor.PORT_RANGE.getMinimum().intValue(), 1);
-    Assert.assertEquals(TaskExecutor.PORT_RANGE.getMaximum().intValue(), 65536);
+    Assert.assertEquals(TaskExecutor.PORT_RANGE.getMaximum().intValue(), 65535);
   }
 
   @Test
