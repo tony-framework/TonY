@@ -4,6 +4,11 @@
  */
 package com.linkedin.tony;
 
+import org.testng.Assert;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.apache.hadoop.conf.Configuration;
 import org.testng.annotations.Test;
 
@@ -28,6 +33,64 @@ public class TestTaskExecutor {
     }
     // Should throw exception since we didn't set up Task Command.
     taskExecutor.initConfigs();
+  }
+
+  private int getAvailablePort() throws IOException {
+    ServerSocket serverSocket = new ServerSocket(0);
+    int port = serverSocket.getLocalPort();
+    serverSocket.close();
+    assert serverSocket.isClosed();
+    return port;
+  }
+
+  private Path getPortFile(int port) {
+    return TaskExecutor.PORT_FILE_DIR.resolve(TaskExecutor.PORT_FILE_PREFIX + port);
+  }
+
+  @Test
+  public void testCreateServerSocketSuccess() throws IOException {
+    TaskExecutor taskExecutor = new TaskExecutor();
+    int port = this.getAvailablePort();
+    ServerSocket serverSocket = taskExecutor.createServerSocket(port);
+    Path portFilePath = null;
+    try {
+      Assert.assertNotEquals(null, serverSocket);
+      Assert.assertEquals(port, serverSocket.getLocalPort());
+      portFilePath = getPortFile(serverSocket.getLocalPort());
+      Assert.assertTrue(Files.exists(portFilePath));
+    } finally {
+      Files.deleteIfExists(portFilePath);
+      serverSocket.close();
+    }
+  }
+
+  @Test
+  public void testCreateServerSocketFailWithDuplicatePortBind() throws IOException {
+    TaskExecutor taskExecutor = new TaskExecutor();
+    int port = this.getAvailablePort();
+    ServerSocket serverSocket = taskExecutor.createServerSocket(port);
+    try {
+      ServerSocket anotherSocket = taskExecutor.createServerSocket(port);
+      Assert.assertNull(anotherSocket);
+    } finally {
+      Files.deleteIfExists(getPortFile(serverSocket.getLocalPort()));
+      serverSocket.close();
+    }
+  }
+
+  @Test
+  public void testCreateServerSocketFailWithExistingPortFile() throws IOException {
+    TaskExecutor taskExecutor = new TaskExecutor();
+    int port = this.getAvailablePort();
+    ServerSocket serverSocket = taskExecutor.createServerSocket(port);
+    serverSocket.close();
+    Assert.assertTrue(Files.exists(getPortFile(serverSocket.getLocalPort())));
+    try {
+      ServerSocket anotherSocket = taskExecutor.createServerSocket(port);
+      Assert.assertNull(anotherSocket);
+    } finally {
+      Files.deleteIfExists(getPortFile(serverSocket.getLocalPort()));
+    }
   }
 
 }

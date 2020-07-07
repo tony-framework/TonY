@@ -11,11 +11,15 @@ import com.linkedin.tony.util.Utils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -40,10 +44,8 @@ public class TaskExecutor {
   protected Configuration tonyConf = new Configuration(false);
 
   private ServerSocket rpcSocket;
-  private int rpcPort;
 
   private ServerSocket tbSocket;
-  private int tbPort;
 
   private int timeOut;
   private String amHost;
@@ -68,33 +70,95 @@ public class TaskExecutor {
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
+  // port range [1, 65535]
+  public static final Range<Integer> PORT_RANGE = Range.between(1, 65535);
+  public static final String PORT_FILE_PREFIX = "___port___";
+  public static final java.nio.file.Path PORT_FILE_DIR = Paths.get(System.getProperty("java.io"
+      + ".tmpdir"));
+
 
   protected TaskExecutor() { }
 
+  /**
+   * Creates a ServerSocket{@link java.net.ServerSocket} with specified port
+   * @return the created ServerSocket{@link java.net.ServerSocket}, returns null
+   *         if not successfully created.
+   */
+  @VisibleForTesting
+  ServerSocket createServerSocket(int port) throws IOException {
+    ServerSocket serverSocket;
+    try {
+      serverSocket = new ServerSocket(port);
+    } catch (IOException e) {
+      LOG.debug("Port " + port + " is not available");
+      return null;
+    } catch (Exception e) {
+      LOG.error(e);
+      return null;
+    }
+
+    try {
+      Files.createFile(PORT_FILE_DIR.resolve(PORT_FILE_PREFIX + port));
+    } catch (FileAlreadyExistsException e) {
+      LOG.debug("Port " + port + " is not available");
+      serverSocket.close();
+      return null;
+    } catch (Exception e) {
+      LOG.error(e);
+      serverSocket.close();
+      return null;
+    }
+    return serverSocket;
+  }
 
   /**
-   * We bind to random ports and reserve them up until before the underlying TF process is launched.
-   * @See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for details.
+   * Creates a ServerSocket{@link java.net.ServerSocket} with port within the defined range
+   * {@link TaskExecutor#PORT_RANGE}
+   * @return the created ServerSocket{@link java.net.ServerSocket},
+   *         returns null if all ports within the range are iterated through but still fails to
+   *         create a server socket.
+   */
+  private ServerSocket createServerSocket() throws IOException {
+    // To prevent other process grabbing the reserved port between releasing the port{@link #releasePorts()}
+    // and task command process {@link #taskCommand} starts, task executor reserves the port till
+    // the task command finishes by following below approach -
+    // Task executor will iterate over defined port range {@link #PORT_RANGE} and check a port's
+    // availability based on the existence of corresponding port file. If socket can be created with
+    // the port and corresponding port file doesn't exist, a temp file tracking that port will be
+    // created under a shared directory {@link #PORT_FILE_DIR} and that port will be reserved for
+    // the process{@link #taskCommand}. The file will be deleted upon the process finishes.
+    ServerSocket serverSocket = null;
+    for (int port = PORT_RANGE.getMinimum(); port <= PORT_RANGE.getMaximum(); port++) {
+      serverSocket = createServerSocket(port);
+      if (serverSocket != null) {
+        LOG.info("Successfully created server socket with " + serverSocket.getLocalPort());
+        return serverSocket;
+      }
+    }
+    return serverSocket;
+  }
+
+  /**
+   * We bind to available ports.
    */
   private void setupPorts() throws IOException {
     // Reserve a rpcSocket rpcPort.
-    this.rpcSocket = new ServerSocket(0);
-    this.rpcPort = this.rpcSocket.getLocalPort();
-    LOG.info("Reserved rpcPort: " + this.rpcPort);
+    this.rpcSocket = requireNonNull(this.createServerSocket());
+    LOG.info("Reserved rpcPort: " + this.rpcSocket.getLocalPort());
 
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
     if (isChief) {
-      this.tbSocket = new ServerSocket(0);
-      this.tbPort = this.tbSocket.getLocalPort();
+      this.tbSocket = requireNonNull(this.createServerSocket());
       this.registerTensorBoardUrl();
-      this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort));
-      LOG.info("Reserved tbPort: " + this.tbPort);
+      this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbSocket.getLocalPort()));
+      LOG.info("Reserved tbPort: " + this.tbSocket.getLocalPort());
     }
   }
 
   /**
-   * Release the reserved ports if any. This method has to be invoked after ports are created.
+   * Release the reserved ports if any. This method has to be invoked before the task command
+   * process {@link #taskCommand} starts so that the ports can be available to the process.
    * @throws IOException
    */
   private void releasePorts() throws IOException {
@@ -107,6 +171,20 @@ public class TaskExecutor {
           this.tbSocket.close();
         }
       }
+  }
+
+  /**
+   * Delete port files if any. This method has to be invoked after task command
+   * process {@link #taskCommand} finishes.
+   * @throws IOException
+   */
+  private void deletePortFiles() throws IOException {
+    if (this.rpcSocket != null) {
+      Files.deleteIfExists(PORT_FILE_DIR.resolve(PORT_FILE_PREFIX + this.rpcSocket.getLocalPort()));
+    }
+    if (this.tbSocket != null) {
+      Files.deleteIfExists(PORT_FILE_DIR.resolve(PORT_FILE_PREFIX + this.tbSocket.getLocalPort()));
+    }
   }
 
   private static TaskExecutor createExecutor() throws Exception {
@@ -184,6 +262,7 @@ public class TaskExecutor {
     }
     return executor;
   }
+
   public static void main(String[] unused) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = null;
@@ -195,7 +274,12 @@ public class TaskExecutor {
       }
     }
 
-    int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
+    int exitCode = -1;
+    try {
+      exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
+    } finally {
+      executor.deletePortFiles();
+    }
     // START - worker skew testing:
     executor.skewAndHangIfTesting();
     // END - worker skew testing:
@@ -254,15 +338,15 @@ public class TaskExecutor {
         0, hbInterval, TimeUnit.MILLISECONDS);
 
     LOG.info("Connecting to " + amHost + ":" + amPort + " to register worker spec: " + jobName + " " + taskIndex + " "
-             + hostName + ":" + rpcPort);
+             + hostName + ":" + this.rpcSocket.getLocalPort());
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
-            hostName + ":" + rpcPort), 3, 0);
+            hostName + ":" + this.rpcSocket.getLocalPort()), 3, 0);
   }
 
   private void registerTensorBoardUrl() {
     String hostName = Utils.getCurrentHostName();
-    String tbUrl = hostName + ":" + tbPort;
+    String tbUrl = hostName + ":" + this.tbSocket.getLocalPort();
     LOG.info("TensorBoard address : " + tbUrl);
     String response = Utils.pollTillNonNull(() -> proxy.registerTensorBoardUrl(tbUrl), 1, 60);
     if (response != null) {
