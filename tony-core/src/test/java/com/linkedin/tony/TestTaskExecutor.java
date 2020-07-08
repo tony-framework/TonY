@@ -91,12 +91,15 @@ public class TestTaskExecutor {
     ServerSocket serverSocket = taskExecutor.createServerSocket(port);
     serverSocket.close();
     Assert.assertTrue(Files.exists(getPortFile(serverSocket.getLocalPort())));
+    ServerSocket anotherSocket = null;
     try {
-      ServerSocket anotherSocket = taskExecutor.createServerSocket(port);
+      anotherSocket = taskExecutor.createServerSocket(port);
       Assert.assertNull(anotherSocket);
     } finally {
       Files.deleteIfExists(getPortFile(serverSocket.getLocalPort()));
+      if(anotherSocket != null) {
+        anotherSocket.close();
+      }
     }
   }
-
 }

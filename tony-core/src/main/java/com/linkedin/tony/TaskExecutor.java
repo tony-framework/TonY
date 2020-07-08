@@ -8,6 +8,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -97,11 +98,15 @@ public class TaskExecutor {
     }
 
     try {
-      Files.createFile(PORT_FILE_DIR.resolve(PORT_FILE_PREFIX + port));
-    } catch (FileAlreadyExistsException e) {
-      LOG.debug("Port " + port + " is not available");
-      serverSocket.close();
-      return null;
+      File file = PORT_FILE_DIR.resolve(PORT_FILE_PREFIX + port).toFile();
+      // in case task executor is killed abruptly, delete port file
+      file.deleteOnExit();
+      boolean fileCreated = file.createNewFile();
+      if(!fileCreated) {
+        LOG.debug("Port " + port + " is not available");
+        serverSocket.close();
+        return null;
+      }
     } catch (Exception e) {
       LOG.error(e);
       serverSocket.close();
