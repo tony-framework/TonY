@@ -97,7 +97,7 @@ public class TestTaskExecutor {
       Assert.assertNull(anotherSocket);
     } finally {
       Files.deleteIfExists(getPortFile(serverSocket.getLocalPort()));
-      if(anotherSocket != null) {
+      if (anotherSocket != null) {
         anotherSocket.close();
       }
     }

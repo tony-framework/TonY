@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -102,7 +101,7 @@ public class TaskExecutor {
       // in case task executor is killed abruptly, delete port file
       file.deleteOnExit();
       boolean fileCreated = file.createNewFile();
-      if(!fileCreated) {
+      if (!fileCreated) {
         LOG.debug("Port " + port + " is not available");
         serverSocket.close();
         return null;
