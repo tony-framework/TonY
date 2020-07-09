@@ -70,6 +70,8 @@ public class TaskExecutor {
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
+  // Port numbers range from 0 to 65535, but 0 to 1023 are reserved for privileged
+  // services and designated as well-known ports.
   public static final Range<Integer> PORT_RANGE = Range.between(1024, 65535);
   public static final String PORT_FILE_PREFIX = "___port___";
   public static final java.nio.file.Path PORT_FILE_DIR = Paths.get(System.getProperty("java.io"
