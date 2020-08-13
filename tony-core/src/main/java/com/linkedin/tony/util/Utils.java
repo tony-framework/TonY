@@ -230,6 +230,10 @@ public class Utils {
     log.info(String.format("Link for %s's events/metrics: %s/%s/%s", appId, portalUrl, Constants.JOBS_SUFFIX, appId));
   }
 
+  public static String getTonySrcZipName(String appId) {
+      return "tony_src_" + appId + ".zip";
+  }
+
   /**
    * Parse a list of env key-value pairs like PATH=ABC to a map of key value entries.
    * @param keyValues the input key value pairs
@@ -692,10 +696,11 @@ public class Utils {
     }
   }
 
-  public static void extractResources() {
-    if (new File(Constants.TONY_SRC_ZIP_NAME).exists()) {
+  public static void extractResources(String appId) {
+    String tonySrcZipName = getTonySrcZipName(appId);
+    if (new File(tonySrcZipName).exists()) {
       LOG.info("Unpacking src directory..");
-      Utils.unzipArchive(Constants.TONY_SRC_ZIP_NAME, "./");
+      Utils.unzipArchive(tonySrcZipName, "./");
     }
     File venvZip = new File(Constants.PYTHON_VENV_ZIP);
     if (venvZip.exists() && venvZip.isFile()) {

@@ -260,6 +260,8 @@ public class ApplicationMaster {
         TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
     tonyHistoryFolder = tonyConf.get(TonyConfigurationKeys.TONY_HISTORY_LOCATION,
                                      TonyConfigurationKeys.DEFAULT_TONY_HISTORY_LOCATION);
+    // Set an environment variable to pass the appid
+    containerEnv.put(Constants.APPID, appIdString);
 
     try {
       historyFs = new Path(tonyHistoryFolder).getFileSystem(hdfsConf);
@@ -361,7 +363,6 @@ public class ApplicationMaster {
 
       //Set an environment variable when restarting due to preemption
       containerEnv.put(Constants.NUM_AM_RETRIES, Integer.toString(numAMRetries));
-
     } while (!singleNode); // We don't retry on single node training.
     // Wait for the worker nodes to finish (The interval between registering the exit code to final exit)
     stop();
@@ -707,7 +708,7 @@ public class ApplicationMaster {
   // Run the preprocessing job and set up the common env variables for worker jobs.
   private int doPreprocessingJob() throws Exception {
 
-    Utils.extractResources();
+    Utils.extractResources(appIdString);
     HashMap<String, String> extraEnv = new HashMap<>(shellEnv);
     if (singleNode) {
       ServerSocket tbSocket = new ServerSocket(0);

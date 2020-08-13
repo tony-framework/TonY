@@ -188,14 +188,15 @@ public class TonyClient implements AutoCloseable {
   @VisibleForTesting
   public String processFinalTonyConf() throws IOException, ParseException {
     FileSystem fs = FileSystem.get(hdfsConf);
+    String tonySrcZipName = Utils.getTonySrcZipName(appId.toString());
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
         Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
-            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+            tonySrcZipName, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       } else {
-        Utils.zipFolder(Paths.get(srcDir), Paths.get(Constants.TONY_SRC_ZIP_NAME));
-        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(Constants.TONY_SRC_ZIP_NAME),
-            Constants.TONY_SRC_ZIP_NAME, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+        Utils.zipFolder(Paths.get(srcDir), Paths.get(tonySrcZipName));
+        Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(tonySrcZipName),
+            tonySrcZipName, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       }
     }
 
