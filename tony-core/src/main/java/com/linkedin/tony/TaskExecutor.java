@@ -68,7 +68,7 @@ public class TaskExecutor {
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
   private MLFramework framework;
-
+  private String appIdString;
   protected TaskExecutor() { }
 
 
@@ -112,7 +112,7 @@ public class TaskExecutor {
   private static TaskExecutor createExecutor() throws Exception {
     TaskExecutor executor = new TaskExecutor();
     executor.initConfigs();
-    Utils.extractResources();
+    Utils.extractResources(executor.appIdString);
 
     LOG.info("Setting up application RPC client, connecting to: " + executor.amHost + ":" + executor.amPort);
     executor.proxy = ApplicationRpcClient.getInstance(executor.amHost, executor.amPort, executor.yarnConf);
@@ -207,6 +207,7 @@ public class TaskExecutor {
 
   protected void initConfigs() {
     jobName = System.getenv(Constants.JOB_NAME);
+    appIdString = System.getenv(Constants.APPID);
     taskIndex = Integer.parseInt(System.getenv(Constants.TASK_INDEX));
     numTasks = Integer.parseInt(System.getenv(Constants.TASK_NUM));
     taskId = jobName + ":" + taskIndex;

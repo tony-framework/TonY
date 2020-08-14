@@ -4,6 +4,7 @@
  */
 package com.linkedin.tony;
 
+
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -75,7 +76,6 @@ public class Constants {
   public static final String TIMESTAMP_SUFFIX = "_TIMESTAMP";
   public static final String LENGTH_SUFFIX = "_LENGTH";
 
-  public static final String TONY_SRC_ZIP_NAME = "tony_src.zip";
   public static final String TONY_JAR_NAME = "tony.jar";
 
   public static final String PYTHON_VENV_ZIP = "venv.zip";
@@ -107,6 +107,7 @@ public class Constants {
   public static final String WORKER_JOB_NAME = "worker";
   public static final String NOTEBOOK_JOB_NAME = "notebook";
   public static final String DRIVER_JOB_NAME = "driver";
+  public static final String APPID = "appid";
 
   public static final String ATTEMPT_NUMBER = "ATTEMPT_NUMBER";
   public static final String NUM_AM_RETRIES = "NUM_AM_RETRIES";
