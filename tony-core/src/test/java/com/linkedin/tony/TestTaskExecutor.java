@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 
-
 public class TestTaskExecutor {
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -29,5 +28,4 @@ public class TestTaskExecutor {
     // Should throw exception since we didn't set up Task Command.
     taskExecutor.initConfigs();
   }
-
 }
