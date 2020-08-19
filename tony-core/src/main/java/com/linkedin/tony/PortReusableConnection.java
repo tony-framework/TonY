@@ -89,16 +89,16 @@ final class PortReusableConnection implements Connection {
   }
 
   /**
-   * Creates connection binding to an available port with SO_REUSEPORT
+   * Creates a connection binding to an available port with SO_REUSEPORT.
    *  See <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a>
    *  about SO_REUSEPORT.
    * @return the created connection
    */
   static PortReusableConnection create() {
-    // Why not using port 0 to obtain the port?
-    // - Since another tony executor can bind to the same port when SO_REUSEPORT is used.
-    //   See how a port is selected by kernel based on a free-list and socket options:
-    //   https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation .
+    // Why not using port 0 which lets kernel pick an available port?
+    // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
+    //   used together. See how a port is selected by kernel based on a free-list and socket
+    //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
     final Range<Integer> portRange = Range.between(1024, 65535);
     PortReusableConnection nettyConnection = null;
     for (int port = portRange.getMinimum(); port <= portRange.getMaximum(); port++) {
@@ -134,10 +134,10 @@ final class PortReusableConnection implements Connection {
     // https://docs.oracle.com/javase/9/docs/api/java/net/StandardSocketOptions.html#SO_REUSEPORT.
     //
     // Why not upgrading Tony to Java 9+ given port reuse is supported in Java 9+?
-    // - In Linkedin, only Java 8 and 11 are officially supported, but Java 11 introduces
-    //   incompatibility with Play version tony-portal(https://github.com/linkedin/TonY/tree/master/tony-portal)
-    //   is using. Upgrading Play to a Java 11-compatible version requires non-trivial amount of
-    //   effort.
+    // - In Linkedin, as of now(2020/08), only Java 8 and 11 are officially supported, but Java 11
+    //   introduces incompatibility with Play version tony-portal
+    //   (https://github.com/linkedin/TonY/tree/master/tony-portal) is using. Upgrading Play to a
+    //   Java 11-compatible version requires non-trivial amount of effort.
 
     final EventLoopGroup bossGroup = new EpollEventLoopGroup();
     ServerBootstrap b = new ServerBootstrap();

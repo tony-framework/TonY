@@ -36,7 +36,7 @@ final class NonPortReusableConnection implements Connection {
     // - Since PortReusableConnection with Netty's EpollEventLoopGroup only works with
     //   Linux(https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html). Having
     //   a separate implementation with ServerSocket when SO_REUSEPORT is not being used enables
-    //   tony and e2e unit tests on Mac.
+    //   tony, its e2e unit tests and build on Mac.
     try {
       ServerSocket serverSocket = new ServerSocket(0);
       return new NonPortReusableConnection(serverSocket);
