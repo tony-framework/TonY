@@ -24,11 +24,11 @@ public class TestConnection {
    * @param connection
    */
   private static void assertConnectionIsOpen(Connection connection) {
-    if (connection instanceof PortReusableConnection) {
-      assertFalse(((PortReusableConnection) connection).eventLoopGroup.isShutdown());
-      assertTrue(((PortReusableConnection) connection).future.channel().isOpen());
-    } else if (connection instanceof NonPortReusableConnection) {
-      assertFalse((((NonPortReusableConnection) connection).serverSocket).isClosed());
+    if (connection instanceof NettyConnection) {
+      assertFalse(((NettyConnection) connection).eventLoopGroup.isShutdown());
+      assertTrue(((NettyConnection) connection).future.channel().isOpen());
+    } else if (connection instanceof ServerSocketConnection) {
+      assertFalse((((ServerSocketConnection) connection).serverSocket).isClosed());
     }
   }
 
@@ -37,16 +37,16 @@ public class TestConnection {
    * @param connection
    */
   private static void assertConnectionIsClosed(Connection connection) {
-    if (connection instanceof PortReusableConnection) {
-      assertTrue(((PortReusableConnection) connection).eventLoopGroup.isShutdown());
-      assertFalse(((PortReusableConnection) connection).future.channel().isOpen());
-    } else if (connection instanceof NonPortReusableConnection) {
-      assertTrue((((NonPortReusableConnection) connection).serverSocket).isClosed());
+    if (connection instanceof NettyConnection) {
+      assertTrue(((NettyConnection) connection).eventLoopGroup.isShutdown());
+      assertFalse(((NettyConnection) connection).future.channel().isOpen());
+    } else if (connection instanceof ServerSocketConnection) {
+      assertTrue((((ServerSocketConnection) connection).serverSocket).isClosed());
     }
   }
 
   /**
-   * Tests {@link PortReusableConnection#create()} works
+   * Tests {@link NettyConnection#create()} works
    */
   @Test
   public void testCreateConnection() throws Exception {
@@ -59,10 +59,10 @@ public class TestConnection {
     Connection connWithPortReuse = null;
     try {
       // Verify createConnection WITHOUT port reuse works
-      connWithoutPortReuse = NonPortReusableConnection.create();
+      connWithoutPortReuse = ServerSocketConnection.create();
       assertConnectionIsOpen(connWithoutPortReuse);
       // Verify createConnection WITH port reuse works
-      connWithPortReuse = PortReusableConnection.create();
+      connWithPortReuse = NettyConnection.create();
       assertConnectionIsOpen(connWithPortReuse);
     } finally {
       // Make sure connection is always closed
@@ -90,9 +90,9 @@ public class TestConnection {
       return;
     }
 
-    PortReusableConnection nettyConn = null;
+    NettyConnection nettyConn = null;
     try {
-      nettyConn = PortReusableConnection.create();
+      nettyConn = NettyConnection.create();
       assertConnectionIsOpen(nettyConn);
       nettyConn.close();
       assertConnectionIsClosed(nettyConn);
@@ -118,17 +118,17 @@ public class TestConnection {
 
     // Given one established connection without port reuse, creating another connection with same
     // port should fail.
-    NonPortReusableConnection connWithoutPortReuse = null;
-    PortReusableConnection connWithPortReuse = null;
+    ServerSocketConnection connWithoutPortReuse = null;
+    NettyConnection connWithPortReuse = null;
     try {
-      connWithoutPortReuse = NonPortReusableConnection.create();
+      connWithoutPortReuse = ServerSocketConnection.create();
       // Ensure this is an valid connection
       assertConnectionIsOpen(connWithoutPortReuse);
       int port = connWithoutPortReuse.getPort();
 
       // Expect connection creation with same port should throw exception
       try {
-        connWithPortReuse = PortReusableConnection.create(port);
+        connWithPortReuse = NettyConnection.create(port);
         fail("createConnection should throw exception when binding to a used port without port "
             + "reuse");
       } catch (BindException exception) {
@@ -148,7 +148,7 @@ public class TestConnection {
   }
 
   /**
-   * Tests {@link PortReusableConnection#getPort()}
+   * Tests {@link NettyConnection#getPort()}
    */
   @Test
   public void testPortReusableConnectionGetPort() throws Exception {
@@ -157,10 +157,10 @@ public class TestConnection {
       System.out.println(SKIP_TEST_MESSAGE);
       return;
     }
-    NonPortReusableConnection conn1 = null;
+    ServerSocketConnection conn1 = null;
     int port = -1;
     try {
-      conn1 = NonPortReusableConnection.create();
+      conn1 = ServerSocketConnection.create();
       port = conn1.getPort();
     } finally {
       if (conn1 != null) {
@@ -168,9 +168,9 @@ public class TestConnection {
       }
     }
 
-    PortReusableConnection conn2 = null;
+    NettyConnection conn2 = null;
     try {
-      conn2 = PortReusableConnection.create(port);
+      conn2 = NettyConnection.create(port);
       assertEquals(conn2.getPort(), port);
     } finally {
       if (conn2 != null) {
@@ -193,13 +193,13 @@ public class TestConnection {
 
     // Given one established connection with port reuse, creating another connection with same
     // port should work.
-    PortReusableConnection nettyConn1 = null;
-    PortReusableConnection nettyConn2 = null;
+    NettyConnection nettyConn1 = null;
+    NettyConnection nettyConn2 = null;
 
     try {
-      nettyConn1 = PortReusableConnection.create();
+      nettyConn1 = NettyConnection.create();
       int port = nettyConn1.getPort();
-      nettyConn2 = PortReusableConnection.create(port);
+      nettyConn2 = NettyConnection.create(port);
 
       // Assert connections are successfully created
       assertConnectionIsOpen(nettyConn1);

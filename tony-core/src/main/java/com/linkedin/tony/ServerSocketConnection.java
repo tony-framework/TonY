@@ -23,14 +23,14 @@ import java.net.ServerSocket;
  * This class represents an established socket connection. It's being used by TaskExecutor when
  * SO_REUSEPORT is not required.
  */
-final class NonPortReusableConnection extends Connection {
+final class ServerSocketConnection extends Connection {
   final ServerSocket serverSocket;
 
-  private NonPortReusableConnection(ServerSocket serverSocket) {
+  private ServerSocketConnection(ServerSocket serverSocket) {
     this.serverSocket = serverSocket;
   }
 
-  static NonPortReusableConnection create() {
+  static ServerSocketConnection create() {
     // Why do we need a separate connection implementation with ServerSocket for connection
     // where SO_REUSEPORT is not required?
     // - Since PortReusableConnection with Netty's EpollEventLoopGroup only works with
@@ -39,7 +39,7 @@ final class NonPortReusableConnection extends Connection {
     //   tony, its e2e unit tests and build on Mac.
     try {
       ServerSocket serverSocket = new ServerSocket(0);
-      return new NonPortReusableConnection(serverSocket);
+      return new ServerSocketConnection(serverSocket);
     } catch (IOException e) {
       return null;
     }

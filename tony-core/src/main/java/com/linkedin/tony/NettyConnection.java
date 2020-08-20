@@ -37,15 +37,15 @@ import org.apache.commons.logging.LogFactory;
 /**
  * This class encapsulates netty objects related to an established connection which
  * allows SO_REUSEPORT. It only works with Linux platform since EpollEventLoopGroup used
- * in {@link PortReusableConnection#create(int)} is not supported via other platforms. See
+ * in {@link NettyConnection#create(int)} is not supported via other platforms. See
  * <a href="https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html">
  *   https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html</a>.
  */
-final class PortReusableConnection extends Connection {
-  private static final Log LOG = LogFactory.getLog(PortReusableConnection.class);
+final class NettyConnection extends Connection {
+  private static final Log LOG = LogFactory.getLog(NettyConnection.class);
   final EventLoopGroup eventLoopGroup;
   final ChannelFuture future;
-  private PortReusableConnection(EventLoopGroup loopGroup, ChannelFuture future) {
+  private NettyConnection(EventLoopGroup loopGroup, ChannelFuture future) {
     this.eventLoopGroup = loopGroup;
     this.future = future;
   }
@@ -94,13 +94,13 @@ final class PortReusableConnection extends Connection {
    *  about SO_REUSEPORT.
    * @return the created connection
    */
-  static PortReusableConnection create() {
+  static NettyConnection create() {
     // Why not using port 0 which lets kernel pick an available port?
     // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
     //   used together. See how a port is selected by kernel based on a free-list and socket
     //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
     final Range<Integer> portRange = Range.between(1024, 65535);
-    PortReusableConnection nettyConnection = null;
+    NettyConnection nettyConnection = null;
     for (int port = portRange.getMinimum(); port <= portRange.getMaximum(); port++) {
       try {
         if (isPortAvailable(port)) {
@@ -126,7 +126,7 @@ final class PortReusableConnection extends Connection {
    * @throws InterruptedException if the thread waiting for incoming connection is interrupted
    */
   @VisibleForTesting
-  static PortReusableConnection create(int port) throws InterruptedException,
+  static NettyConnection create(int port) throws InterruptedException,
       BindException {
     // Why creating connection with port reuse using netty instead of native socket library
     //(https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html)?
@@ -155,7 +155,7 @@ final class PortReusableConnection extends Connection {
     if (!future.isSuccess()) {
       throw new BindException("Fail to bind to any port");
     }
-    return new PortReusableConnection(bossGroup, future);
+    return new NettyConnection(bossGroup, future);
   }
 }
 

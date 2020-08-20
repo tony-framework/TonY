@@ -73,8 +73,8 @@ public class TaskExecutor {
     // executor reserves the port with port reuse enabled on user's request. When port reuse
     // is enabled, other process can grab the same port only when port reuse is turned on when
     // creating the connection.
-    return this.isReusingPort() ? PortReusableConnection.create()
-        : NonPortReusableConnection.create();
+    return this.isReusingPort() ? NettyConnection.create()
+        : ServerSocketConnection.create();
   }
 
   /**
