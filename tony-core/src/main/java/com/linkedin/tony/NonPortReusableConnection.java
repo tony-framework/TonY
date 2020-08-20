@@ -23,7 +23,7 @@ import java.net.ServerSocket;
  * This class represents an established socket connection. It's being used by TaskExecutor when
  * SO_REUSEPORT is not required.
  */
-final class NonPortReusableConnection implements Connection {
+final class NonPortReusableConnection extends Connection {
   final ServerSocket serverSocket;
 
   private NonPortReusableConnection(ServerSocket serverSocket) {

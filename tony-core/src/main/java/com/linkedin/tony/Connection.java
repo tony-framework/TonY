@@ -16,11 +16,11 @@
 
 package com.linkedin.tony;
 
-interface Connection extends AutoCloseable {
+abstract class Connection implements AutoCloseable {
 
   /**
    * @return the port this connection binding to.
    */
-  int getPort();
+  abstract int getPort();
 }
 

@@ -41,11 +41,11 @@ import org.apache.commons.logging.LogFactory;
  * <a href="https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html">
  *   https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html</a>.
  */
-final class PortReusableConnection implements Connection {
+final class PortReusableConnection extends Connection {
   private static final Log LOG = LogFactory.getLog(PortReusableConnection.class);
   final EventLoopGroup eventLoopGroup;
   final ChannelFuture future;
-  PortReusableConnection(EventLoopGroup loopGroup, ChannelFuture future) {
+  private PortReusableConnection(EventLoopGroup loopGroup, ChannelFuture future) {
     this.eventLoopGroup = loopGroup;
     this.future = future;
   }
