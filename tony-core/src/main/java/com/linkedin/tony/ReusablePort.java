@@ -33,9 +33,10 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 
 /**
- * This class encapsulates netty objects related to an established connection which
- * allows SO_REUSEPORT. It only works with Linux platform since EpollEventLoopGroup used
- * in {@link ReusablePort#create(int)} is not supported via other platforms. See
+ * This class encapsulates netty objects related to an established port which enables SO_REUSEPORT.
+ * See <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a> about
+ * SO_REUSEPORT. It only works with Linux platform since EpollEventLoopGroup used in
+ * {@link ReusablePort#create(int)} is not supported via other platforms. See
  * <a href="https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html">
  *   https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html</a>.
  */
@@ -83,8 +84,8 @@ final class ReusablePort extends ServerPort {
 
   /**
    * Creates a binding port with SO_REUSEPORT.
-   *  See <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a>
-   *  about SO_REUSEPORT.
+   * See <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a> about
+   * SO_REUSEPORT.
    * @return the created port
    */
   static ReusablePort create() throws IOException, InterruptedException {

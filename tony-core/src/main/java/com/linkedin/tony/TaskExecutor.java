@@ -208,21 +208,21 @@ public class TaskExecutor {
   public static void main(String[] unused) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = null;
-      try {
-        executor = requireNonNull(createExecutor());
-      } catch (Exception ex) {
-        if (executor != null) {
-          executor.releasePorts();
-        }
-        throw ex;
-      }
-
-      // If not reusing port, then reserve them up until before the underlying TF process is
-      // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
-      // details.
-      if (executor != null && !executor.isReusingPort()) {
+    try {
+      executor = requireNonNull(createExecutor());
+    } catch (Exception ex) {
+      if (executor != null) {
         executor.releasePorts();
       }
+      throw ex;
+    }
+
+    // If not reusing port, then reserve them up until before the underlying TF process is
+    // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
+    // details.
+    if (executor != null && !executor.isReusingPort()) {
+      executor.releasePorts();
+    }
 
     try {
       int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);

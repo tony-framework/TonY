@@ -22,5 +22,6 @@ abstract class ServerPort implements AutoCloseable {
    * @return the port.
    */
   abstract int getPort();
+
 }
 
