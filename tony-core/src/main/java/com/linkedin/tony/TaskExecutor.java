@@ -110,7 +110,7 @@ public class TaskExecutor {
   }
 
   /**
-   * @return if reusing port is enabled by user
+   * @return true if reusing port is enabled by user, false otherwise.
    */
   private boolean isReusingPort() {
     // TF_GRPC_REUSE_PORT corresponds to the environment variable defined in tensorflow, check
