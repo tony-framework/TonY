@@ -81,7 +81,7 @@ public class TaskExecutor {
    * We bind to random ports.
    */
   private void setupPorts() throws IOException, InterruptedException {
-    // Reserve a rpcSocket rpcPort.
+    // Reserve a rpcPort.
     this.rpcPort = requireNonNull(allocatePort());
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
