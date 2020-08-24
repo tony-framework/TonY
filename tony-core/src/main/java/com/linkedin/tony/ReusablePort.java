@@ -143,7 +143,7 @@ final class ReusablePort extends ServerPort {
         throw new BindException("Fail to bind to any port");
       }
       return new ReusablePort(bossGroup, future);
-    } catch (Exception e){
+    } catch (Exception e) {
       close(bossGroup, future);
       throw e;
     }
