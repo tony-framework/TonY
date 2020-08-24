@@ -30,22 +30,18 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import org.apache.commons.lang3.Range;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * This class encapsulates netty objects related to an established connection which
  * allows SO_REUSEPORT. It only works with Linux platform since EpollEventLoopGroup used
- * in {@link NettyConnection#create(int)} is not supported via other platforms. See
+ * in {@link ReusablePort#create(int)} is not supported via other platforms. See
  * <a href="https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html">
  *   https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html</a>.
  */
-final class NettyConnection extends Connection {
-  private static final Log LOG = LogFactory.getLog(NettyConnection.class);
+final class ReusablePort extends ServerPort {
   final EventLoopGroup eventLoopGroup;
   final ChannelFuture future;
-  private NettyConnection(EventLoopGroup loopGroup, ChannelFuture future) {
+  private ReusablePort(EventLoopGroup loopGroup, ChannelFuture future) {
     this.eventLoopGroup = loopGroup;
     this.future = future;
   }
@@ -74,17 +70,9 @@ final class NettyConnection extends Connection {
     return socketAddress.getPort();
   }
 
-  private static boolean isPortAvailable(int port) throws IOException {
-    ServerSocket serverSocket = null;
-    try {
-      serverSocket = new ServerSocket(port);
-      return true;
-    } catch (Exception e) {
-      return false;
-    } finally {
-      if (serverSocket != null) {
-        serverSocket.close();
-      }
+  private static int getAvailablePort() throws IOException {
+    try (ServerSocket serverSocket = new ServerSocket(0)) {
+      return serverSocket.getLocalPort();
     }
   }
 
@@ -94,24 +82,9 @@ final class NettyConnection extends Connection {
    *  about SO_REUSEPORT.
    * @return the created connection
    */
-  static NettyConnection create() {
-    // Why not using port 0 which lets kernel pick an available port?
-    // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
-    //   used together. See how a port is selected by kernel based on a free-list and socket
-    //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
-    final Range<Integer> portRange = Range.between(1024, 65535);
-    NettyConnection nettyConnection = null;
-    for (int port = portRange.getMinimum(); port <= portRange.getMaximum(); port++) {
-      try {
-        if (isPortAvailable(port)) {
-          nettyConnection = create(port);
-          break;
-        }
-      } catch (Exception exception) {
-        LOG.debug("Fail to create connection to port " + port);
-      }
-    }
-    return nettyConnection;
+  static ReusablePort create() throws IOException, InterruptedException {
+    ReusablePort reusablePort = create(getAvailablePort());
+    return reusablePort;
   }
 
   /**
@@ -126,7 +99,7 @@ final class NettyConnection extends Connection {
    * @throws InterruptedException if the thread waiting for incoming connection is interrupted
    */
   @VisibleForTesting
-  static NettyConnection create(int port) throws InterruptedException,
+  static ReusablePort create(int port) throws InterruptedException,
       BindException {
     // Why creating connection with port reuse using netty instead of native socket library
     //(https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html)?
@@ -151,11 +124,15 @@ final class NettyConnection extends Connection {
         }).option(EpollChannelOption.SO_REUSEPORT, true)
         .option(ChannelOption.SO_KEEPALIVE, true);
 
+    // Why not using port 0 here which lets kernel pick an available port?
+    // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
+    //   used together. See how a port is selected by kernel based on a free-list and socket
+    //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
     ChannelFuture future = b.bind(port).await();
     if (!future.isSuccess()) {
       throw new BindException("Fail to bind to any port");
     }
-    return new NettyConnection(bossGroup, future);
+    return new ReusablePort(bossGroup, future);
   }
 }
 

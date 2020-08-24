@@ -16,7 +16,7 @@
 
 package com.linkedin.tony;
 
-abstract class Connection implements AutoCloseable {
+abstract class ServerPort implements AutoCloseable {
 
   /**
    * @return the port this connection binding to.

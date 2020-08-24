@@ -8,6 +8,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,8 +38,8 @@ public class TaskExecutor {
   @VisibleForTesting
   protected Configuration tonyConf = new Configuration(false);
 
-  private Connection rpcConnection;
-  private Connection tbConnection;
+  private ServerPort rpcConnection;
+  private ServerPort tbConnection;
 
   private int timeOut;
   private String amHost;
@@ -67,20 +68,19 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
-  private Connection createConnection() {
+  private ServerPort createConnection() throws IOException, InterruptedException {
     // To prevent other process grabbing the reserved port between releasing the
     // port{@link #releasePorts()} and task command process {@link #taskCommand} starts, task
     // executor reserves the port with port reuse enabled on user's request. When port reuse
     // is enabled, other process can grab the same port only when port reuse is turned on when
     // creating the connection.
-    return this.isReusingPort() ? NettyConnection.create()
-        : ServerSocketConnection.create();
+    return this.isReusingPort() ? ReusablePort.create() : EphemeralPort.create();
   }
 
   /**
    * We bind to random ports.
    */
-  private void setupPorts() {
+  private void setupPorts() throws IOException, InterruptedException {
     // Reserve a rpcSocket rpcPort.
     this.rpcConnection = requireNonNull(createConnection());
     LOG.info("Reserved rpcPort: " + this.rpcConnection.getPort());
@@ -208,15 +208,18 @@ public class TaskExecutor {
   public static void main(String[] unused) throws Exception {
     LOG.info("TaskExecutor is running..");
     TaskExecutor executor = null;
-    try {
-      executor = requireNonNull(createExecutor());
-      // If not reusing port, then reserve them up until before the underlying TF process is
-      // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
-      // details.
-      if (executor != null && !executor.isReusingPort()) {
-        executor.releasePorts();
+      try {
+        executor = requireNonNull(createExecutor());
+      } finally {
+        // If not reusing port, then reserve them up until before the underlying TF process is
+        // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
+        // details.
+        if (executor != null && !executor.isReusingPort()) {
+          executor.releasePorts();
+        }
       }
 
+    try {
       int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
@@ -225,7 +228,7 @@ public class TaskExecutor {
       LOG.info("Child process exited with exit code " + exitCode);
       System.exit(exitCode);
     } finally {
-      if (executor != null && executor.isReusingPort()) {
+      if (executor.isReusingPort()) {
         executor.releasePorts();
       }
     }
