@@ -69,7 +69,7 @@ final class ReusablePort extends ServerPort {
    * @return the binding port associated with the connection
    */
   @Override
-  public int getPort() {
+  int getPort() {
     InetSocketAddress socketAddress =
         (InetSocketAddress) this.future.channel().localAddress();
     return socketAddress.getPort();

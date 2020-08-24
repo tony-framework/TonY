@@ -51,7 +51,7 @@ final class EphemeralPort extends ServerPort {
   }
 
   @Override
-  public int getPort() {
+  int getPort() {
     return this.serverSocket.getLocalPort();
   }
 }
