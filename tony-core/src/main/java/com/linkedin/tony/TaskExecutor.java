@@ -38,8 +38,8 @@ public class TaskExecutor {
   @VisibleForTesting
   protected Configuration tonyConf = new Configuration(false);
 
-  private ServerPort rpcConnection;
-  private ServerPort tbConnection;
+  private ServerPort rpcPort;
+  private ServerPort tbPort;
 
   private int timeOut;
   private String amHost;
@@ -68,12 +68,12 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
-  private ServerPort createConnection() throws IOException, InterruptedException {
+  private ServerPort allocatePort() throws IOException, InterruptedException {
     // To prevent other process grabbing the reserved port between releasing the
     // port{@link #releasePorts()} and task command process {@link #taskCommand} starts, task
     // executor reserves the port with port reuse enabled on user's request. When port reuse
     // is enabled, other process can grab the same port only when port reuse is turned on when
-    // creating the connection.
+    // creating the port.
     return this.isReusingPort() ? ReusablePort.create() : EphemeralPort.create();
   }
 
@@ -82,15 +82,15 @@ public class TaskExecutor {
    */
   private void setupPorts() throws IOException, InterruptedException {
     // Reserve a rpcSocket rpcPort.
-    this.rpcConnection = requireNonNull(createConnection());
-    LOG.info("Reserved rpcPort: " + this.rpcConnection.getPort());
+    this.rpcPort = requireNonNull(allocatePort());
+    LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
     if (isChief) {
-      this.tbConnection = requireNonNull(createConnection());
+      this.tbPort = requireNonNull(allocatePort());
       this.registerTensorBoardUrl();
-      this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbConnection.getPort()));
-      LOG.info("Reserved tbPort: " + this.tbConnection.getPort());
+      this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort.getPort()));
+      LOG.info("Reserved tbPort: " + this.tbPort.getPort());
     }
   }
 
@@ -99,12 +99,12 @@ public class TaskExecutor {
    */
   private void releasePorts() throws Exception {
     try {
-      if (this.rpcConnection != null) {
-        this.rpcConnection.close();
+      if (this.rpcPort != null) {
+        this.rpcPort.close();
       }
     } finally {
-      if (this.tbConnection != null) {
-        this.tbConnection.close();
+      if (this.tbPort != null) {
+        this.tbPort.close();
       }
     }
   }
@@ -210,6 +210,11 @@ public class TaskExecutor {
     TaskExecutor executor = null;
       try {
         executor = requireNonNull(createExecutor());
+      } catch (Exception ex) {
+        if (executor != null) {
+          executor.releasePorts();
+        }
+        throw ex;
       } finally {
         // If not reusing port, then reserve them up until before the underlying TF process is
         // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
@@ -284,15 +289,15 @@ public class TaskExecutor {
         0, hbInterval, TimeUnit.MILLISECONDS);
 
     LOG.info("Connecting to " + amHost + ":" + amPort + " to register worker spec: " + jobName + " " + taskIndex + " "
-             + hostName + ":" + this.rpcConnection.getPort());
+             + hostName + ":" + this.rpcPort.getPort());
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
-            hostName + ":" + this.rpcConnection.getPort()), 3, 0);
+            hostName + ":" + this.rpcPort.getPort()), 3, 0);
   }
 
   private void registerTensorBoardUrl() {
     String hostName = Utils.getCurrentHostName();
-    String tbUrl = hostName + ":" + this.tbConnection.getPort();
+    String tbUrl = hostName + ":" + this.tbPort.getPort();
     LOG.info("TensorBoard address : " + tbUrl);
     String response = Utils.pollTillNonNull(() -> proxy.registerTensorBoardUrl(tbUrl), 1, 60);
     if (response != null) {

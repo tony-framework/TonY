@@ -17,6 +17,7 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -46,18 +47,22 @@ final class ReusablePort extends ServerPort {
     this.future = future;
   }
 
+  private static void close(EventLoopGroup loopGroup, ChannelFuture future) {
+    if (future != null && future.channel().isOpen()) {
+      future.channel().close().awaitUninterruptibly();
+    }
+
+    if (loopGroup != null && !loopGroup.isShutdown()) {
+      loopGroup.shutdownGracefully().awaitUninterruptibly();
+    }
+  }
+
   /**
-   * Closes the netty connection
+   * Closes the port.
    */
   @Override
   public void close() {
-    if (this.future.channel().isOpen()) {
-      this.future.channel().close().awaitUninterruptibly();
-    }
-
-    if (!this.eventLoopGroup.isShutdown()) {
-      this.eventLoopGroup.shutdownGracefully().awaitUninterruptibly();
-    }
+    ReusablePort.close(this.eventLoopGroup, this.future);
   }
 
   /**
@@ -77,10 +82,10 @@ final class ReusablePort extends ServerPort {
   }
 
   /**
-   * Creates a connection binding to an available port with SO_REUSEPORT.
+   * Creates a binding port with SO_REUSEPORT.
    *  See <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a>
    *  about SO_REUSEPORT.
-   * @return the created connection
+   * @return the created port
    */
   static ReusablePort create() throws IOException, InterruptedException {
     ReusablePort reusablePort = create(getAvailablePort());
@@ -88,13 +93,14 @@ final class ReusablePort extends ServerPort {
   }
 
   /**
-   * Creates connection with netty library which has built-in port reuse support.
+   * Creates a binding port with netty library which has built-in port reuse support.
    * <p>port reuse feature is detailed in:
    * <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a>
    * </p>
    *
-   * @param port the port to bind to, 0 to bind to a random port
-   * @return the created connection
+   * @param port the port to bind to, cannot be 0 to pick a random port. Since another tony
+   *             executor can bind to the same port when port 0 and SO_REUSEPORT are used together.
+   * @return the binding port
    * @throws BindException if fails to bind to any port
    * @throws InterruptedException if the thread waiting for incoming connection is interrupted
    */
@@ -112,27 +118,34 @@ final class ReusablePort extends ServerPort {
     //   (https://github.com/linkedin/TonY/tree/master/tony-portal) is using. Upgrading Play to a
     //   Java 11-compatible version requires non-trivial amount of effort.
 
+    Preconditions.checkArgument(port > 0, "port must > 0");
     final EventLoopGroup bossGroup = new EpollEventLoopGroup();
     ServerBootstrap b = new ServerBootstrap();
+    ChannelFuture future = null;
 
-    b.group(bossGroup)
-        .channel(EpollServerSocketChannel.class)
-        .childHandler(new ChannelInitializer<SocketChannel>() {
-          @Override
-          public void initChannel(SocketChannel ch) {
-          }
-        }).option(EpollChannelOption.SO_REUSEPORT, true)
-        .option(ChannelOption.SO_KEEPALIVE, true);
+    try {
+      b.group(bossGroup)
+          .channel(EpollServerSocketChannel.class)
+          .childHandler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) {
+            }
+          }).option(EpollChannelOption.SO_REUSEPORT, true)
+          .option(ChannelOption.SO_KEEPALIVE, true);
 
-    // Why not using port 0 here which lets kernel pick an available port?
-    // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
-    //   used together. See how a port is selected by kernel based on a free-list and socket
-    //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
-    ChannelFuture future = b.bind(port).await();
-    if (!future.isSuccess()) {
-      throw new BindException("Fail to bind to any port");
+      // Why not using port 0 here which lets kernel pick an available port?
+      // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
+      //   used together. See how a port is selected by kernel based on a free-list and socket
+      //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
+      future = b.bind(port).await();
+      if (!future.isSuccess()) {
+        throw new BindException("Fail to bind to any port");
+      }
+
+      return new ReusablePort(bossGroup, future);
+    } finally {
+      close(bossGroup, future);
     }
-    return new ReusablePort(bossGroup, future);
   }
 }
 

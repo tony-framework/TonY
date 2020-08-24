@@ -19,7 +19,7 @@ package com.linkedin.tony;
 abstract class ServerPort implements AutoCloseable {
 
   /**
-   * @return the port this connection binding to.
+   * @return the port.
    */
   abstract int getPort();
 }

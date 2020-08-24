@@ -21,22 +21,26 @@ import java.net.ServerSocket;
 
 /**
  * This class represents an established socket connection. It's being used by TaskExecutor when
- * SO_REUSEPORT is not required.
+ * SO_REUSEPORT is not required. The reason for a separate {@link ServerSocket} implementation
+ * for non-port-reuse cases is given {@link ReusablePort} with Netty's EpollEventLoopGroup only
+ * works with Linux(https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html),
+ * having a separate implementation when SO_REUSEPORT is not being used enables tony, its e2e
+ * unit tests and build on Mac.
  */
 final class EphemeralPort extends ServerPort {
+
   final ServerSocket serverSocket;
 
   private EphemeralPort(ServerSocket serverSocket) {
     this.serverSocket = serverSocket;
   }
 
+  /**
+   * Creates a binding port which cannot be reused.
+   * @return the binding port
+   * @throws IOException when port allocation failed.
+   */
   static EphemeralPort create() throws IOException {
-    // Why do we need a separate connection implementation with ServerSocket for connection
-    // where SO_REUSEPORT is not required?
-    // - Since PortReusableConnection with Netty's EpollEventLoopGroup only works with
-    //   Linux(https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html). Having
-    //   a separate implementation with ServerSocket when SO_REUSEPORT is not being used enables
-    //   tony, its e2e unit tests and build on Mac.
     ServerSocket serverSocket = new ServerSocket(0);
     return new EphemeralPort(serverSocket);
   }
