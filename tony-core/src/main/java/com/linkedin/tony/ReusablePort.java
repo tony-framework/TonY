@@ -114,11 +114,11 @@ final class ReusablePort extends ServerPort {
         reusablePort = create(getAvailablePort());
         return reusablePort;
       } catch (BindException ex) {
-        LOG.info("port binding attempt " + (i + 1) + " failed");
+        LOG.info("port binding attempt " + (i + 1) + " failed.");
       }
     }
 
-    throw new BindException("Unable to bind port after " + portBindingRetry + " attempt(s)");
+    throw new BindException("Unable to bind port after " + portBindingRetry + " attempt(s).");
   }
 
   /**
@@ -146,7 +146,7 @@ final class ReusablePort extends ServerPort {
     //   (https://github.com/linkedin/TonY/tree/master/tony-portal) is using. Upgrading Play to a
     //   Java 11-compatible version requires non-trivial amount of effort.
 
-    Preconditions.checkArgument(port > 0, "port must > 0");
+    Preconditions.checkArgument(port > 0, "Port must > 0.");
     final EventLoopGroup bossGroup = new EpollEventLoopGroup();
     ServerBootstrap b = new ServerBootstrap();
     ChannelFuture future = null;
@@ -176,11 +176,11 @@ final class ReusablePort extends ServerPort {
         }
         return new ReusablePort(bossGroup, future);
       } else {
-        LOG.info("Port " + port + " is no longer available");
+        LOG.info("Port " + port + " is no longer available.");
         throw new BindException("Fail to bind to the port" + port);
       }
     } catch (Exception e) {
-      LOG.info("Reusable port allocation failed", e);
+      LOG.info("Reusable port allocation failed.", e);
       close(bossGroup, future);
       throw e;
     }
