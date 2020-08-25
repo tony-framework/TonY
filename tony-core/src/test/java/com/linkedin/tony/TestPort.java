@@ -9,7 +9,6 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
-import com.google.common.base.Preconditions;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -21,7 +20,6 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
 import java.io.IOException;
 import java.net.BindException;
-import java.net.ServerSocket;
 import org.apache.commons.lang.SystemUtils;
 import org.testng.annotations.Test;
 
