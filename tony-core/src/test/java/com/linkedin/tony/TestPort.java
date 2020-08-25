@@ -188,6 +188,9 @@ public class TestPort {
     }
   }
 
+  /**
+   * A method mocking tensorflow process reserves the port with port reuse.
+   */
   private static ReusablePort createPortWithPortReuse(int port) throws InterruptedException,
       IOException {
     final EventLoopGroup bossGroup = new EpollEventLoopGroup();
