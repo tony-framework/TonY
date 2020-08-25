@@ -20,7 +20,7 @@ public class TestPort {
       + "which has reuse port feature";
 
   /**
-   * An util method asserting given connection is open.
+   * An util method asserting given port is open.
    * @param port
    */
   private static void assertPortIsOpen(ServerPort port) {
@@ -33,7 +33,7 @@ public class TestPort {
   }
 
   /**
-   * An util method asserting given connection is closed
+   * An util method asserting given port is closed
    * @param port
    */
   private static void assertPortIsClosed(ServerPort port) {
@@ -55,24 +55,24 @@ public class TestPort {
       System.out.println(SKIP_TEST_MESSAGE);
       return;
     }
-    ServerPort connWithoutPortReuse = null;
-    ServerPort connWithPortReuse = null;
+    ServerPort portWithoutPortReuse = null;
+    ServerPort portWithPortReuse = null;
     try {
       // Verify createPort WITHOUT port reuse works
-      connWithoutPortReuse = EphemeralPort.create();
-      assertPortIsOpen(connWithoutPortReuse);
+      portWithoutPortReuse = EphemeralPort.create();
+      assertPortIsOpen(portWithoutPortReuse);
       // Verify createPort WITH port reuse works
-      connWithPortReuse = ReusablePort.create();
-      assertPortIsOpen(connWithPortReuse);
+      portWithPortReuse = ReusablePort.create();
+      assertPortIsOpen(portWithPortReuse);
     } finally {
       // Make sure port is always closed
       try {
-        if (connWithoutPortReuse != null) {
-          connWithoutPortReuse.close();
+        if (portWithoutPortReuse != null) {
+          portWithoutPortReuse.close();
         }
       } finally {
-        if (connWithPortReuse != null) {
-          connWithPortReuse.close();
+        if (portWithPortReuse != null) {
+          portWithPortReuse.close();
         }
       }
     }
@@ -118,17 +118,17 @@ public class TestPort {
 
     // Given one established port without port reuse, creating another port with same
     // port should fail.
-    EphemeralPort connWithoutPortReuse = null;
-    ReusablePort connWithPortReuse = null;
+    EphemeralPort reusablePort = null;
+    ReusablePort nonReusablePort = null;
     try {
-      connWithoutPortReuse = EphemeralPort.create();
+      reusablePort = EphemeralPort.create();
       // Ensure this is a valid port
-      assertPortIsOpen(connWithoutPortReuse);
-      int port = connWithoutPortReuse.getPort();
+      assertPortIsOpen(reusablePort);
+      int port = reusablePort.getPort();
 
       // Expect port creation with same port should throw exception
       try {
-        connWithPortReuse = ReusablePort.create(port);
+        nonReusablePort = ReusablePort.create(port);
         fail("createPort should throw exception when binding to a used port without port "
             + "reuse");
       } catch (BindException exception) {
@@ -136,12 +136,12 @@ public class TestPort {
     } finally {
       // Make sure port is always closed
       try {
-        if (connWithoutPortReuse != null) {
-          connWithoutPortReuse.close();
+        if (reusablePort != null) {
+          reusablePort.close();
         }
       } finally {
-        if (connWithPortReuse != null) {
-          connWithPortReuse.close();
+        if (nonReusablePort != null) {
+          nonReusablePort.close();
         }
       }
     }
@@ -151,30 +151,30 @@ public class TestPort {
    * Tests {@link ReusablePort#getPort()}
    */
   @Test
-  public void testPortReusablePortGetPort() throws Exception {
+  public void testReusablePortGetPort() throws Exception {
     // Port reuse feature is only available in Linux, so skip other OSes.
     if (!SystemUtils.IS_OS_LINUX) {
       System.out.println(SKIP_TEST_MESSAGE);
       return;
     }
-    EphemeralPort conn1 = null;
+    EphemeralPort port1 = null;
     int port = -1;
     try {
-      conn1 = EphemeralPort.create();
-      port = conn1.getPort();
+      port1 = EphemeralPort.create();
+      port = port1.getPort();
     } finally {
-      if (conn1 != null) {
-        conn1.close();
+      if (port1 != null) {
+        port1.close();
       }
     }
 
-    ReusablePort conn2 = null;
+    ReusablePort port2 = null;
     try {
-      conn2 = ReusablePort.create(port);
-      assertEquals(conn2.getPort(), port);
+      port2 = ReusablePort.create(port);
+      assertEquals(port2.getPort(), port);
     } finally {
-      if (conn2 != null) {
-        conn2.close();
+      if (port2 != null) {
+        port2.close();
       }
     }
   }
