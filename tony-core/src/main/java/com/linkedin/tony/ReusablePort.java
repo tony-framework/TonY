@@ -161,15 +161,14 @@ final class ReusablePort extends ServerPort {
           }).option(EpollChannelOption.SO_REUSEPORT, true)
           .option(ChannelOption.SO_KEEPALIVE, true);
 
-      // Why not using port 0 here which lets kernel pick an available port?
-      // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
-      //   used together. See how a port is selected by kernel based on a free-list and socket
-      //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
-
       // Note it's still slightly possible that another tony processes grab the same port after
       // {@link #getAvailablePort()}, leading to two tensorflow process using the same port.
       // So adding an extra port check to reduce the risk.
       if (isPortAvailable(port)) {
+        // Why not using port 0 here which lets kernel pick an available port?
+        // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
+        //   used together. See how a port is selected by kernel based on a free-list and socket
+        //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
         future = b.bind(port).await();
         if (!future.isSuccess()) {
           throw new BindException("Fail to bind to the port " + port);
