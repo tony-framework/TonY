@@ -141,6 +141,10 @@ final class ReusablePort extends ServerPort {
       // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
       //   used together. See how a port is selected by kernel based on a free-list and socket
       //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
+
+      // Note it's still slightly possible that another tony processes grabs the same port after
+      // {@link #getAvailablePort()}, leading to two tensorflow process uses the same port,
+      // though it would be rare.
       future = b.bind(port).await();
       if (!future.isSuccess()) {
         throw new BindException("Fail to bind to any port");
