@@ -115,11 +115,11 @@ public class TaskExecutor {
   private boolean isReusingPort() {
     // TF_GRPC_REUSE_PORT corresponds to the environment variable defined in tensorflow, check
     // https://github.com/tensorflow/tensorflow/pull/38705 for more details.
-    //
+
     // Why is port reuse optional to users?
     // - Port reuse in TF is only supported in TF 2.3+. User jobs might run with older TF
     //   versions with no port reuse feature.
-    //
+
     // Why is port reuse false by default?
     // - If port reuse is true by default, it requires users working with tensorflow version without
     //   port reuse support to disable port reuse explicitly, otherwise tensorflow job will fail due
@@ -212,6 +212,7 @@ public class TaskExecutor {
       executor = requireNonNull(createExecutor());
     } catch (Exception ex) {
       if (executor != null) {
+        LOG.info("Failed to create TaskExecutor, releasing any reserved ports.");
         executor.releasePorts();
       }
       throw ex;
@@ -221,6 +222,7 @@ public class TaskExecutor {
     // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
     // details.
     if (executor != null && !executor.isReusingPort()) {
+      LOG.info("Releasing reserved ports before launching tensorflow process.");
       executor.releasePorts();
     }
 
@@ -234,6 +236,7 @@ public class TaskExecutor {
       System.exit(exitCode);
     } finally {
       if (executor.isReusingPort()) {
+        LOG.info("Tensorflow process exited, releasing reserved ports.");
         executor.releasePorts();
       }
     }

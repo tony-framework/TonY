@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * This class encapsulates netty objects related to an established port which enables SO_REUSEPORT.
@@ -41,6 +43,7 @@ import java.net.ServerSocket;
  *   https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html</a>.
  */
 final class ReusablePort extends ServerPort {
+  private static final Log LOG = LogFactory.getLog(ReusablePort.class);
   final EventLoopGroup eventLoopGroup;
   final ChannelFuture future;
   private ReusablePort(EventLoopGroup loopGroup, ChannelFuture future) {
@@ -111,7 +114,7 @@ final class ReusablePort extends ServerPort {
     // Why creating connection with port reuse using netty instead of native socket library
     //(https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html)?
     // - Tony's default Java version is 8 and port reuse feature is only available in Java 9+:
-    // https://docs.oracle.com/javase/9/docs/api/java/net/StandardSocketOptions.html#SO_REUSEPORT.
+    //   https://docs.oracle.com/javase/9/docs/api/java/net/StandardSocketOptions.html#SO_REUSEPORT.
     //
     // Why not upgrading Tony to Java 9+ given port reuse is supported in Java 9+?
     // - In Linkedin, as of now(2020/08), only Java 8 and 11 are officially supported, but Java 11
@@ -144,6 +147,7 @@ final class ReusablePort extends ServerPort {
       }
       return new ReusablePort(bossGroup, future);
     } catch (Exception e) {
+      LOG.info("Reusable port allocation failed", e);
       close(bossGroup, future);
       throw e;
     }

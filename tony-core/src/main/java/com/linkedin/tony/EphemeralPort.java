@@ -21,7 +21,7 @@ import java.net.ServerSocket;
 
 /**
  * This class represents an established socket port. It's being used by {@link TaskExecutor} when
- * SO_REUSEPORT is not required. The reason for a separate {@link ServerSocket} implementation
+ * SO_REUSEPORT is not required. The reason for a separated {@link ServerSocket} implementation
  * for non-port-reuse cases is given {@link ReusablePort} with Netty's EpollEventLoopGroup only
  * works with Linux(https://netty.io/4.0/api/io/netty/channel/epoll/EpollEventLoopGroup.html),
  * having a separate implementation when SO_REUSEPORT is not being used enables tony, its e2e
