@@ -79,6 +79,21 @@ final class ReusablePort extends ServerPort {
     return socketAddress.getPort();
   }
 
+  private static boolean isPortAvailable(int port) throws IOException {
+    ServerSocket serverSocket = null;
+    try {
+      serverSocket = new ServerSocket(port);
+      return true;
+    } catch (Exception e) {
+      LOG.info(e);
+      return false;
+    } finally {
+      if (serverSocket != null) {
+        serverSocket.close();
+      }
+    }
+  }
+
   private static int getAvailablePort() throws IOException {
     try (ServerSocket serverSocket = new ServerSocket(0)) {
       return serverSocket.getLocalPort();
@@ -92,8 +107,18 @@ final class ReusablePort extends ServerPort {
    * @return the created port
    */
   static ReusablePort create() throws IOException, InterruptedException {
-    ReusablePort reusablePort = create(getAvailablePort());
-    return reusablePort;
+    ReusablePort reusablePort;
+    final int portBindingRetry = 5;
+    for (int i = 0; i < portBindingRetry; i++) {
+      try {
+        reusablePort = create(getAvailablePort());
+        return reusablePort;
+      } catch (BindException ex) {
+        LOG.info("port binding attempt " + (i + 1) + " failed");
+      }
+    }
+
+    throw new BindException("Unable to bind port after " + portBindingRetry + " attempt(s)");
   }
 
   /**
@@ -109,8 +134,7 @@ final class ReusablePort extends ServerPort {
    * @throws InterruptedException if the thread waiting for incoming connection is interrupted
    */
   @VisibleForTesting
-  static ReusablePort create(int port) throws InterruptedException,
-      BindException {
+  static ReusablePort create(int port) throws InterruptedException, IOException {
     // Why creating connection with port reuse using netty instead of native socket library
     //(https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html)?
     // - Tony's default Java version is 8 and port reuse feature is only available in Java 9+:
@@ -142,14 +166,19 @@ final class ReusablePort extends ServerPort {
       //   used together. See how a port is selected by kernel based on a free-list and socket
       //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
 
-      // Note it's still slightly possible that another tony processes grabs the same port after
-      // {@link #getAvailablePort()}, leading to two tensorflow process uses the same port,
-      // though it would be rare.
-      future = b.bind(port).await();
-      if (!future.isSuccess()) {
-        throw new BindException("Fail to bind to any port");
+      // Note it's still slightly possible that another tony processes grab the same port after
+      // {@link #getAvailablePort()}, leading to two tensorflow process using the same port.
+      // So adding an extra port check to reduce the risk.
+      if (isPortAvailable(port)) {
+        future = b.bind(port).await();
+        if (!future.isSuccess()) {
+          throw new BindException("Fail to bind to the port " + port);
+        }
+        return new ReusablePort(bossGroup, future);
+      } else {
+        LOG.info("Port " + port + " is no longer available");
+        throw new BindException("Fail to bind to the port" + port);
       }
-      return new ReusablePort(bossGroup, future);
     } catch (Exception e) {
       LOG.info("Reusable port allocation failed", e);
       close(bossGroup, future);
