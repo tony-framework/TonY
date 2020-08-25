@@ -46,7 +46,8 @@ final class ReusablePort extends ServerPort {
   private static final Log LOG = LogFactory.getLog(ReusablePort.class);
   final EventLoopGroup eventLoopGroup;
   final ChannelFuture future;
-  private ReusablePort(EventLoopGroup loopGroup, ChannelFuture future) {
+
+  ReusablePort(EventLoopGroup loopGroup, ChannelFuture future) {
     this.eventLoopGroup = loopGroup;
     this.future = future;
   }
@@ -176,7 +177,7 @@ final class ReusablePort extends ServerPort {
         return new ReusablePort(bossGroup, future);
       } else {
         LOG.info("Port " + port + " is no longer available.");
-        throw new BindException("Fail to bind to the port" + port);
+        throw new BindException("Fail to bind to the port " + port);
       }
     } catch (Exception e) {
       LOG.info("Reusable port allocation failed.", e);

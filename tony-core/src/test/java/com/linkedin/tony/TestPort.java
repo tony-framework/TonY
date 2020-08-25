@@ -9,8 +9,19 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
+import com.google.common.base.Preconditions;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.EpollChannelOption;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.socket.SocketChannel;
 import java.io.IOException;
 import java.net.BindException;
+import java.net.ServerSocket;
 import org.apache.commons.lang.SystemUtils;
 import org.testng.annotations.Test;
 
@@ -105,10 +116,10 @@ public class TestPort {
   }
 
   /**
-   * Tests server socket creation failure when binding to the same port without port reuse
+   * Tests port allocation failure when binding to the same port without port reuse
    */
   @Test
-  public void testCreateServerSocketFailWithoutPortReuse() throws IOException,
+  public void testAllocatePortFailWithoutPortReuse() throws IOException,
       InterruptedException {
     // Port reuse feature is only available in Linux, so skip other OSes.
     if (!SystemUtils.IS_OS_LINUX) {
@@ -129,7 +140,7 @@ public class TestPort {
       // Expect port creation with same port should throw exception
       try {
         nonReusablePort = ReusablePort.create(port);
-        fail("createPort should throw exception when binding to a used port without port "
+        fail("ReusablePort.create should throw exception when binding to a used port without port "
             + "reuse");
       } catch (BindException exception) {
       }
@@ -179,31 +190,98 @@ public class TestPort {
     }
   }
 
+  private static ReusablePort createPortWithPortReuse(int port) throws InterruptedException,
+      IOException {
+    final EventLoopGroup bossGroup = new EpollEventLoopGroup();
+    ServerBootstrap b = new ServerBootstrap();
+    ChannelFuture future;
+    try {
+      b.group(bossGroup)
+          .channel(EpollServerSocketChannel.class)
+          .childHandler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) {
+            }
+          }).option(EpollChannelOption.SO_REUSEPORT, true)
+          .option(ChannelOption.SO_KEEPALIVE, true);
+
+      future = b.bind(port).await();
+      if (!future.isSuccess()) {
+        throw new BindException("Fail to bind to the port " + port);
+      }
+      return new ReusablePort(bossGroup, future);
+    } catch (Exception e) {
+      throw e;
+    }
+  }
+
   /**
-   * Tests server socket creation works with port reuse when binding to the same port
+   * Tests port allocation succeed with port reuse when another non-tony process previously binds
+   * to a reusable port.
    */
   @Test
-  public void testCreateServerSocketSuccessWithPortReuse() throws IOException,
-      InterruptedException {
+  public void testAllocatePortSucceedWithPortReuse() {
     // Port reuse feature is only available in Linux, so skip other OSes.
     if (!SystemUtils.IS_OS_LINUX) {
       System.out.println(SKIP_TEST_MESSAGE);
       return;
     }
 
-    // Given one established port with port reuse, creating another port with same
-    // port should work.
     ReusablePort reusablePort1 = null;
     ReusablePort reusablePort2 = null;
 
     try {
+      // Tony reserves a port with port reuse
       reusablePort1 = ReusablePort.create();
       int port = reusablePort1.getPort();
-      reusablePort2 = ReusablePort.create(port);
+
+      // Mock another non-tony process creates the same port with port reuse.
+      // In real-world case, this should be underlying tensorflow process. But for convenience
+      // purpose, we use netty to create a reusable port.
+      reusablePort2 = createPortWithPortReuse(port);
 
       // Assert ports are successfully created
       assertPortIsOpen(reusablePort1);
       assertPortIsOpen(reusablePort2);
+    } catch (Exception e) {
+    } finally {
+      try {
+        if (reusablePort1 != null) {
+          reusablePort1.close();
+        }
+      } finally {
+        if (reusablePort2 != null) {
+          reusablePort2.close();
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests port allocation fails with port reuse when another tony process binds to the
+   * same port.
+   */
+  @Test
+  public void testAllocatePortFailWithPortReuse() {
+    // Port reuse feature is only available in Linux, so skip other OSes.
+    if (!SystemUtils.IS_OS_LINUX) {
+      System.out.println(SKIP_TEST_MESSAGE);
+      return;
+    }
+
+    ReusablePort reusablePort1 = null;
+    ReusablePort reusablePort2 = null;
+
+    try {
+      // Tony creates a reusable port
+      reusablePort1 = ReusablePort.create();
+      int port = reusablePort1.getPort();
+
+      // Mock another Tony process creates the same reusable port and it should fail
+      reusablePort2 = ReusablePort.create(port);
+
+      fail("ReusablePort.create should throw exception when binding to a used port");
+    } catch (Exception e) {
     } finally {
       try {
         if (reusablePort1 != null) {
