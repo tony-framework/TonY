@@ -226,10 +226,10 @@ public class TaskExecutor {
     // details.
     if (executor != null) {
       LOG.info("Releasing reserved port(s) before launching tensorflow process.");
-      if (!executor.isReusingPort()) {
-        executor.releasePorts();
-      } else {
+      if (executor.isReusingPort()) {
         executor.releasePort(executor.tbPort);
+      } else {
+        executor.releasePorts();
       }
     }
 
