@@ -225,7 +225,7 @@ public class TaskExecutor {
     // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
     // details.
     if (executor != null) {
-      LOG.info("Releasing reserved ports before launching tensorflow process.");
+      LOG.info("Releasing reserved port(s) before launching tensorflow process.");
       if (!executor.isReusingPort()) {
         executor.releasePorts();
       } else {
