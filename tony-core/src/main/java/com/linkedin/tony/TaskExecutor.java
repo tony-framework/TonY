@@ -224,12 +224,11 @@ public class TaskExecutor {
     // If not reusing port, then reserve them up until before the underlying TF process is
     // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
     // details.
-    if (executor != null ) {
+    if (executor != null) {
       LOG.info("Releasing reserved ports before launching tensorflow process.");
       if (!executor.isReusingPort()) {
         executor.releasePorts();
-      }
-      else {
+      } else {
         executor.releasePort(executor.tbPort);
       }
     }
