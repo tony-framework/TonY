@@ -18,19 +18,14 @@ package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollChannelOption;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollServerSocketChannel;
-import io.netty.channel.socket.SocketChannel;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.BindException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -44,22 +39,12 @@ import org.apache.commons.logging.LogFactory;
  */
 final class ReusablePort extends ServerPort {
   private static final Log LOG = LogFactory.getLog(ReusablePort.class);
-  final EventLoopGroup eventLoopGroup;
-  final ChannelFuture future;
+  final Process socketProcess;
+  final int port;
 
-  ReusablePort(EventLoopGroup loopGroup, ChannelFuture future) {
-    this.eventLoopGroup = loopGroup;
-    this.future = future;
-  }
-
-  private static void close(EventLoopGroup loopGroup, ChannelFuture future) {
-    if (future != null && future.channel().isOpen()) {
-      future.channel().close().awaitUninterruptibly();
-    }
-
-    if (loopGroup != null && !loopGroup.isShutdown()) {
-      loopGroup.shutdownGracefully().awaitUninterruptibly();
-    }
+  ReusablePort(Process socketProcess, int port) {
+    this.socketProcess = socketProcess;
+    this.port = port;
   }
 
   /**
@@ -67,7 +52,7 @@ final class ReusablePort extends ServerPort {
    */
   @Override
   public void close() {
-    ReusablePort.close(this.eventLoopGroup, this.future);
+    this.socketProcess.destroy();
   }
 
   /**
@@ -75,9 +60,7 @@ final class ReusablePort extends ServerPort {
    */
   @Override
   int getPort() {
-    InetSocketAddress socketAddress =
-        (InetSocketAddress) this.future.channel().localAddress();
-    return socketAddress.getPort();
+    return this.port;
   }
 
   private static boolean isPortAvailable(int port) throws IOException {
@@ -107,11 +90,12 @@ final class ReusablePort extends ServerPort {
    * SO_REUSEPORT.
    * @return the created port
    */
-  static ReusablePort create() throws IOException, InterruptedException {
+  static ReusablePort create() throws IOException {
     ReusablePort reusablePort;
     final int portBindingRetry = 5;
     for (int i = 0; i < portBindingRetry; i++) {
       try {
+        LOG.info("port binding attempt " + (i + 1) + " ....");
         reusablePort = create(getAvailablePort());
         return reusablePort;
       } catch (BindException ex) {
@@ -135,12 +119,7 @@ final class ReusablePort extends ServerPort {
    * @throws InterruptedException if the thread waiting for incoming connection is interrupted
    */
   @VisibleForTesting
-  static ReusablePort create(int port) throws InterruptedException, IOException {
-    // Why creating connection with port reuse using netty instead of native socket library
-    //(https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html)?
-    // - Tony's default Java version is 8 and port reuse feature is only available in Java 9+:
-    //   https://docs.oracle.com/javase/9/docs/api/java/net/StandardSocketOptions.html#SO_REUSEPORT.
-    //
+  static ReusablePort create(int port) throws IOException {
     // Why not upgrading Tony to Java 9+ given port reuse is supported in Java 9+?
     // - In Linkedin, as of now(2020/08), only Java 8 and 11 are officially supported, but Java 11
     //   introduces incompatibility with Play version tony-portal
@@ -148,41 +127,31 @@ final class ReusablePort extends ServerPort {
     //   Java 11-compatible version requires non-trivial amount of effort.
 
     Preconditions.checkArgument(port > 0, "Port must > 0.");
-    final EventLoopGroup bossGroup = new EpollEventLoopGroup();
-    ServerBootstrap b = new ServerBootstrap();
-    ChannelFuture future = null;
+    ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+    // copy portreuse
+    Path tempDir = Files.createTempDirectory("reserve_reusable_port");
+    tempDir.toFile().deleteOnExit();
+    final String reservePortScript = "reserve_reusable_port.py";
+    try (InputStream stream = classloader.getResourceAsStream(reservePortScript)) {
+      Files.copy(stream, Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript));
+    }
 
-    try {
-      b.group(bossGroup)
-          .channel(EpollServerSocketChannel.class)
-          .childHandler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            public void initChannel(SocketChannel ch) {
-            }
-          }).option(EpollChannelOption.SO_REUSEPORT, true)
-          .option(ChannelOption.SO_KEEPALIVE, true);
 
-      // Note it's still slightly possible that another tony processes grab the same port after
-      // {@link #getAvailablePort()}, leading to two tensorflow process using the same port.
-      // So adding an extra port check to reduce the risk.
-      if (isPortAvailable(port)) {
-        // Why not using port 0 here which lets kernel pick an available port?
-        // - Since another tony executor can bind to the same port when port 0 and SO_REUSEPORT are
-        //   used together. See how a port is selected by kernel based on a free-list and socket
-        //   options: https://idea.popcount.org/2014-04-03-bind-before-connect/#port-allocation.
-        future = b.bind(port).await();
-        if (!future.isSuccess()) {
-          throw new BindException("Fail to bind to the port " + port);
-        }
-        return new ReusablePort(bossGroup, future);
-      } else {
-        LOG.info("Port " + port + " is no longer available.");
-        throw new BindException("Fail to bind to the port " + port);
-      }
-    } catch (Exception e) {
-      LOG.info("Reusable port allocation failed.", e);
-      close(bossGroup, future);
-      throw e;
+    String bindSocket = String.format("/export/apps/python/3.7/bin/python3 %s -p %s -t %s",
+        Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript),
+        port,
+        Duration.ofHours(1).getSeconds());
+
+    ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", bindSocket);
+    taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+    taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+    if (isPortAvailable(port)) {
+      LOG.info("starting process " + bindSocket);
+      Process taskProcess = taskProcessBuilder.start();
+      return new ReusablePort(taskProcess, port);
+    } else {
+      LOG.info("Port " + port + " is no longer available.");
+      throw new BindException("Fail to bind to the port " + port);
     }
   }
 }
