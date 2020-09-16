@@ -10,9 +10,9 @@ import signal
 from optparse import OptionParser
 
 def close_socket(*args):
-  logging.info("closing port %s...", options.port)
+  logging.info("closing port %s", options.port)
   s.close();
-  logging.info("port closed %s...", options.port)
+  logging.info("port closed %s", options.port)
   sys.exit(0)
 
 if __name__ == "__main__":
@@ -24,12 +24,13 @@ if __name__ == "__main__":
   parser.add_option(
       "-p", "--port", dest="port", type="int", help="port to run on")
   parser.add_option(
-      "-t", "--timeout", dest="timeout", type="int", help="timeout")
+      "-d", "--duration", dest="duration", type="int", help="duration to hold "
+                                                            "the port in sec")
 
   (options, args) = parser.parse_args(sys.argv)
   if not options.port:
     parser.error('port not given')
-  if not options.timeout:
+  if not options.duration:
     parser.error('timeout not given')
 
   global s
@@ -47,7 +48,7 @@ if __name__ == "__main__":
     close_socket()
     sys.exit(1)
 
-  logging.info("sleeping for %s sec(s)...", options.timeout)
-  time.sleep(options.timeout)
+  logging.info("sleeping for %s sec(s)...", options.duration)
+  time.sleep(options.duration)
   close_socket()
   sys.exit(0)

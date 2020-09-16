@@ -148,7 +148,7 @@ final class ReusablePort extends ServerPort {
 
     Preconditions.checkArgument(port > 0, "Port must > 0.");
 
-    String bindSocket = String.format("python %s -p %s -t %s",
+    String bindSocket = String.format("python %s -p %s -d %s",
         RESERVE_PORT_SCRIPT_PATH, port, Duration.ofHours(1).getSeconds());
 
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", bindSocket);
