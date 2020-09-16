@@ -5,21 +5,20 @@
 import socket
 import sys
 import time
-import atexit
 import logging
 import signal
 from optparse import OptionParser
 
-
-# import os # uncomment if you want to change directories within the program
-
-def close_socket():
-  print("closing port")
+def close_socket(*args):
+  logging.info("closing port %s...", options.port)
   s.close();
-  print("port closed")
+  logging.info("port closed %s...", options.port)
+  sys.exit(0)
 
 if __name__ == "__main__":
-  logging.basicConfig(format='%(asctime)s %(message)s')
+  logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s:%('
+                             'lineno)d - %(message)s',
+                      level=logging.INFO)
   parser = OptionParser()
 
   parser.add_option(
@@ -34,14 +33,21 @@ if __name__ == "__main__":
     parser.error('timeout not given')
 
   global s
-  logging.warn("binding the port with SO_REUSEPORT...")
-  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-  # todo: teriminate if bind fails
-  s.bind(("localhost", options.port))
-  atexit.register(close_socket)
-  signal.signal(signal.SIGTERM, close_socket)
-  signal.signal(signal.SIGINT, close_socket)
-  signal.signal(signal.SIGILL, close_socket)
+  try:
+    logging.info("binding port %s with SO_REUSEPORT...", options.port)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    signal.signal(signal.SIGTERM, close_socket)
+    signal.signal(signal.SIGINT, close_socket)
+    signal.signal(signal.SIGILL, close_socket)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    s.bind(("localhost", options.port))
+    logging.info("port %s with SO_REUSEPORT binded...", options.port)
+  except:
+    logging.exception("error in creating the socket")
+    close_socket()
+    sys.exit(1)
 
+  logging.info("sleeping for %s sec(s)...", options.timeout)
   time.sleep(options.timeout)
+  close_socket()
+  sys.exit(0)

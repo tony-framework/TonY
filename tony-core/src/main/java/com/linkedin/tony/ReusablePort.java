@@ -16,6 +16,8 @@
 
 package com.linkedin.tony;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
@@ -39,8 +41,26 @@ import org.apache.commons.logging.LogFactory;
  */
 final class ReusablePort extends ServerPort {
   private static final Log LOG = LogFactory.getLog(ReusablePort.class);
-  final Process socketProcess;
-  final int port;
+  private final Process socketProcess;
+  private final int port;
+  private static final Path RESERVE_PORT_SCRIPT_PATH = requireNonNull(createPortReserveScript());
+
+  private static Path createPortReserveScript() {
+    ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+    final String reservePortScript = "reserve_reusable_port.py";
+    try {
+      // copy reserve_reusable_port.py from resource dir to a tmp dir
+      Path tempDir = Files.createTempDirectory("reserve_reusable_port");
+      tempDir.toFile().deleteOnExit();
+      try (InputStream stream = classloader.getResourceAsStream(reservePortScript)) {
+        Files.copy(stream, Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript));
+      }
+      return Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript);
+    } catch (Exception ex) {
+      return null;
+    }
+  }
+
 
   ReusablePort(Process socketProcess, int port) {
     this.socketProcess = socketProcess;
@@ -107,7 +127,7 @@ final class ReusablePort extends ServerPort {
   }
 
   /**
-   * Creates a binding port with netty library which has built-in port reuse support.
+   * Creates a binding port with python which has built-in port reuse support.
    * <p>port reuse feature is detailed in:
    * <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a>
    * </p>
@@ -127,20 +147,9 @@ final class ReusablePort extends ServerPort {
     //   Java 11-compatible version requires non-trivial amount of effort.
 
     Preconditions.checkArgument(port > 0, "Port must > 0.");
-    ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-    // copy portreuse
-    Path tempDir = Files.createTempDirectory("reserve_reusable_port");
-    tempDir.toFile().deleteOnExit();
-    final String reservePortScript = "reserve_reusable_port.py";
-    try (InputStream stream = classloader.getResourceAsStream(reservePortScript)) {
-      Files.copy(stream, Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript));
-    }
 
-
-    String bindSocket = String.format("/export/apps/python/3.7/bin/python3 %s -p %s -t %s",
-        Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript),
-        port,
-        Duration.ofHours(1).getSeconds());
+    String bindSocket = String.format("python %s -p %s -t %s",
+        RESERVE_PORT_SCRIPT_PATH, port, Duration.ofHours(1).getSeconds());
 
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", bindSocket);
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
