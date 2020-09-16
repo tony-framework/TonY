@@ -68,7 +68,7 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
-  private ServerPort allocatePort() throws IOException, InterruptedException {
+  private ServerPort allocatePort() throws IOException {
     // To prevent other process grabbing the reserved port between releasing the
     // port{@link #releasePorts()} and task command process {@link #taskCommand} starts, task
     // executor reserves the port with port reuse enabled on user's request. When port reuse
@@ -80,7 +80,7 @@ public class TaskExecutor {
   /**
    * We bind to random ports.
    */
-  private void setupPorts() throws IOException, InterruptedException {
+  private void setupPorts() throws IOException {
     // Reserve a rpcPort.
     this.rpcPort = requireNonNull(allocatePort());
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());

@@ -56,7 +56,7 @@ final class ReusablePort extends ServerPort {
         Files.copy(stream, Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript));
       }
       return Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript);
-    } catch (Exception ex) {
+    } catch (IOException ex) {
       return null;
     }
   }
