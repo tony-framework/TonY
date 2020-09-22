@@ -54,7 +54,7 @@ if __name__ == "__main__":
   Note it only binds to the port but do not accepts any inbound connection to 
   the port. See https://github.com/linkedin/TonY/pull/465  
   
-  Following command reserves port 1024 for 3600 secs
+  Following command reserves port 1024 for 3600 secs:
   python ./reserve_reusable_port -p 1024 -d 3600
   """
 
