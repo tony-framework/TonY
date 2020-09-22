@@ -38,9 +38,13 @@ def delete_port_file(port):
 
 
 def handle_exit(*args):
-  logging.info("Closing port %s", options.port)
-  s.close();
-  logging.info("Port closed %s", options.port)
+  try:
+    logging.info("Closing port %s", options.port)
+    s.close();
+    logging.info("Port closed %s", options.port)
+  except :
+    logging.exception("Failed to close port " + options.port)
+
   delete_port_file(options.port)
   sys.exit(0)
 

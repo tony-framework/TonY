@@ -58,7 +58,7 @@ public class TestPortAllocation {
    * Tests port can be shutdown successfully
    */
   @Test
-  public void testShutDownPort() throws IOException, InterruptedException {
+  public void testShutDownPort() throws IOException {
     // Port reuse feature is not available in Windows
     if (SystemUtils.IS_OS_WINDOWS) {
       System.out.println(SKIP_TEST_MESSAGE);
@@ -83,8 +83,7 @@ public class TestPortAllocation {
    * Tests port allocation failure when binding to the same port without port reuse
    */
   @Test
-  public void testAllocatePortFailWithoutPortReuse() throws IOException,
-      InterruptedException {
+  public void testAllocatePortFailWithoutPortReuse() throws IOException {
     // Port reuse feature is not available in Windows
     if (SystemUtils.IS_OS_WINDOWS) {
       System.out.println(SKIP_TEST_MESSAGE);
@@ -188,7 +187,7 @@ public class TestPortAllocation {
    * to a reusable port.
    */
   @Test
-  public void testAllocatePortSucceedWithPortReuse() throws InterruptedException {
+  public void testAllocatePortSucceedWithPortReuse() {
     // Port reuse feature is not available in Windows
     if (SystemUtils.IS_OS_WINDOWS) {
       System.out.println(SKIP_TEST_MESSAGE);

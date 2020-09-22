@@ -83,7 +83,7 @@ final class ReusablePort extends ServerPort {
     int maxCheckCount = 10;
     while (process.isAlive() && (checkCount++) < maxCheckCount) {
       try {
-        Thread.sleep(Duration.ofSeconds(1).toMinutes());
+        Thread.sleep(Duration.ofSeconds(1).toMillis());
       } catch (InterruptedException e) {
         LOG.info(e);
       }
