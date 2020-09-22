@@ -23,6 +23,8 @@ import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.BindException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,7 +45,8 @@ final class ReusablePort extends ServerPort {
   private static final Log LOG = LogFactory.getLog(ReusablePort.class);
   private final Process socketProcess;
   private final int port;
-  private static final Path RESERVE_PORT_SCRIPT_PATH = requireNonNull(createPortReserveScript());
+  public static final Path RESERVE_PORT_SCRIPT_PATH = requireNonNull(createPortReserveScript());
+  public static final String PORT_FILE_NAME_SUFFIX = "___PORT___";
 
   private static Path createPortReserveScript() {
     ClassLoader classloader = Thread.currentThread().getContextClassLoader();
@@ -67,12 +70,32 @@ final class ReusablePort extends ServerPort {
     this.port = port;
   }
 
+  private void killSocketBindingProcess() {
+    LOG.info("Killing the socket binding process..");
+    this.socketProcess.destroy();
+    int checkCount = 0, maxCheckCount = 10;
+    while (this.socketProcess.isAlive() && (checkCount++) < maxCheckCount) {
+      try {
+        Thread.sleep(Duration.ofSeconds(1).toMinutes());
+      } catch (InterruptedException e) {
+        LOG.info(e);
+      }
+    }
+
+    if (this.socketProcess.isAlive()) {
+      LOG.info("Killing the socket binding process forcibly...");
+      this.socketProcess.destroyForcibly();
+    }
+
+    LOG.info("Successfully killed the socket binding process");
+  }
+
   /**
    * Closes the port.
    */
   @Override
   public void close() {
-    this.socketProcess.destroy();
+    killSocketBindingProcess();
   }
 
   /**
@@ -83,18 +106,15 @@ final class ReusablePort extends ServerPort {
     return this.port;
   }
 
-  private static boolean isPortAvailable(int port) throws IOException {
-    ServerSocket serverSocket = null;
-    try {
-      serverSocket = new ServerSocket(port);
+  static boolean isPortAvailable(int port) {
+    try (ServerSocket serverSocket = new ServerSocket()) {
+      // setReuseAddress(false) is required only on OSX,
+      // otherwise the code will not work correctly on that platform
+      serverSocket.setReuseAddress(false);
+      serverSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), port), 1);
       return true;
-    } catch (Exception e) {
-      LOG.info(e);
+    } catch (Exception ex) {
       return false;
-    } finally {
-      if (serverSocket != null) {
-        serverSocket.close();
-      }
     }
   }
 
@@ -115,15 +135,30 @@ final class ReusablePort extends ServerPort {
     final int portBindingRetry = 5;
     for (int i = 0; i < portBindingRetry; i++) {
       try {
-        LOG.info("port binding attempt " + (i + 1) + " ....");
+        LOG.info("Port binding attempt " + (i + 1) + " ....");
         reusablePort = create(getAvailablePort());
         return reusablePort;
       } catch (BindException ex) {
-        LOG.info("port binding attempt " + (i + 1) + " failed.");
+        LOG.info("Port binding attempt " + (i + 1) + " failed.");
       }
     }
 
     throw new BindException("Unable to bind port after " + portBindingRetry + " attempt(s).");
+  }
+
+  private static boolean waitTillPortReserved(int port) {
+    Path fileToWait = Paths.get(RESERVE_PORT_SCRIPT_PATH.getParent().toString(), port + PORT_FILE_NAME_SUFFIX);
+    int checkCount = 0, maxCheckCount = 5;
+    while(!Files.exists(fileToWait) && (checkCount++) < maxCheckCount) {
+      try {
+        Duration checkInterval = Duration.ofSeconds(2);
+        LOG.info(fileToWait + " doesn't exist, sleep for " + checkInterval.getSeconds() + " seconds");
+        Thread.sleep(checkInterval.toMillis());
+      } catch (InterruptedException e) {
+        LOG.warn(e);
+      }
+    }
+    return Files.exists(fileToWait);
   }
 
   /**
@@ -148,19 +183,26 @@ final class ReusablePort extends ServerPort {
 
     Preconditions.checkArgument(port > 0, "Port must > 0.");
 
-    String bindSocket = String.format("python %s -p %s -d %s",
+    String socketBindingProcess = String.format("python %s -p %s -d %s",
         RESERVE_PORT_SCRIPT_PATH, port, Duration.ofHours(1).getSeconds());
 
-    ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", bindSocket);
+    ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", socketBindingProcess);
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
     taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     if (isPortAvailable(port)) {
-      LOG.info("starting process " + bindSocket);
+      LOG.info("Starting process " + socketBindingProcess);
       Process taskProcess = taskProcessBuilder.start();
+      boolean portSuccessfulyCreated = waitTillPortReserved(port);
+      if(!portSuccessfulyCreated) {
+        LOG.info("Port " + port + " failed to be reserved.");
+        taskProcess.destroy();
+        throw new IOException("Fail to bind to the port " + port);
+      }
+      LOG.info("Port " + port + " is reserved.");
       return new ReusablePort(taskProcess, port);
     } else {
       LOG.info("Port " + port + " is no longer available.");
-      throw new BindException("Fail to bind to the port " + port);
+      throw new IOException("Fail to bind to the port " + port);
     }
   }
 }
