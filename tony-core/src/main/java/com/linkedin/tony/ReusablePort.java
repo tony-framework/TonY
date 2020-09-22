@@ -26,6 +26,7 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.SocketException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -73,7 +74,8 @@ final class ReusablePort extends ServerPort {
   private void killSocketBindingProcess() {
     LOG.info("Killing the socket binding process..");
     this.socketProcess.destroy();
-    int checkCount = 0, maxCheckCount = 10;
+    int checkCount = 0;
+    int maxCheckCount = 10;
     while (this.socketProcess.isAlive() && (checkCount++) < maxCheckCount) {
       try {
         Thread.sleep(Duration.ofSeconds(1).toMinutes());
@@ -106,14 +108,14 @@ final class ReusablePort extends ServerPort {
     return this.port;
   }
 
-  static boolean isPortAvailable(int port) {
+  static boolean isPortAvailable(int port) throws IOException {
     try (ServerSocket serverSocket = new ServerSocket()) {
       // setReuseAddress(false) is required only on OSX,
       // otherwise the code will not work correctly on that platform
       serverSocket.setReuseAddress(false);
       serverSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), port), 1);
       return true;
-    } catch (Exception ex) {
+    } catch (SocketException e) {
       return false;
     }
   }
@@ -147,9 +149,14 @@ final class ReusablePort extends ServerPort {
   }
 
   private static boolean waitTillPortReserved(int port) {
-    Path fileToWait = Paths.get(RESERVE_PORT_SCRIPT_PATH.getParent().toString(), port + PORT_FILE_NAME_SUFFIX);
-    int checkCount = 0, maxCheckCount = 5;
-    while(!Files.exists(fileToWait) && (checkCount++) < maxCheckCount) {
+    assert RESERVE_PORT_SCRIPT_PATH != null;
+    Path parentPath = RESERVE_PORT_SCRIPT_PATH.getParent();
+    assert parentPath != null;
+    Path fileToWait = Paths.get(parentPath.toString(), port + PORT_FILE_NAME_SUFFIX);
+
+    int checkCount = 0;
+    int maxCheckCount = 5;
+    while (!Files.exists(fileToWait) && (checkCount++) < maxCheckCount) {
       try {
         Duration checkInterval = Duration.ofSeconds(2);
         LOG.info(fileToWait + " doesn't exist, sleep for " + checkInterval.getSeconds() + " seconds");
@@ -193,7 +200,7 @@ final class ReusablePort extends ServerPort {
       LOG.info("Starting process " + socketBindingProcess);
       Process taskProcess = taskProcessBuilder.start();
       boolean portSuccessfulyCreated = waitTillPortReserved(port);
-      if(!portSuccessfulyCreated) {
+      if (!portSuccessfulyCreated) {
         LOG.info("Port " + port + " failed to be reserved.");
         taskProcess.destroy();
         throw new IOException("Fail to bind to the port " + port);

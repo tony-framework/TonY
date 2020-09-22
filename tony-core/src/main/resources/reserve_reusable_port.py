@@ -66,6 +66,7 @@ if __name__ == "__main__":
   global s
   try:
     logging.info("Binding port %s with SO_REUSEPORT...", options.port)
+    # binding to the port but NOT accepting any inbound connection
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     s.bind(("localhost", options.port))

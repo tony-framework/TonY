@@ -122,11 +122,11 @@ public class TestPortAllocation {
     }
   }
 
-  private void assertPortIsReserved(int port) {
+  private void assertPortIsReserved(int port) throws IOException {
     assertFalse(ReusablePort.isPortAvailable(port));
   }
 
-  private void assertPortIsReleased(int port) {
+  private void assertPortIsReleased(int port) throws IOException {
     assertTrue(ReusablePort.isPortAvailable(port));
   }
 
