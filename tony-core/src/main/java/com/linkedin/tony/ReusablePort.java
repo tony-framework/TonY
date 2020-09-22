@@ -163,6 +163,8 @@ final class ReusablePort extends ServerPort {
   }
 
   private static boolean waitTillPortReserved(int port) {
+    // Doing assert checking here to bypass NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE by findbugs
+    // plugin.
     assert RESERVE_PORT_SCRIPT_PATH != null;
     Path parentPath = RESERVE_PORT_SCRIPT_PATH.getParent();
     assert parentPath != null;
