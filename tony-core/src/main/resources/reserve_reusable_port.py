@@ -42,7 +42,7 @@ def handle_exit(*args):
     logging.info("Closing port %s", options.port)
     s.close();
     logging.info("Port closed %s", options.port)
-  except :
+  except:
     logging.exception("Failed to close port " + options.port)
 
   delete_port_file(options.port)
@@ -50,9 +50,16 @@ def handle_exit(*args):
 
 
 if __name__ == "__main__":
+  """Reserving a port with PORT_REUSE for a period of time. 
+  Note it only binds to the port but do not accepts any inbound connection to 
+  the port. See https://github.com/linkedin/TonY/pull/465  
+  
+  Following command reserves port 1024 for 3600 secs
+  python ./reserve_reusable_port -p 1024 -d 3600
+  """
+
   logging.basicConfig(format='%(asctime)s %(levelname)s %(filename)s:%('
-                             'lineno)d - %(message)s',
-                      level=logging.INFO)
+                             'lineno)d - %(message)s', level=logging.INFO)
   parser = OptionParser()
 
   parser.add_option(
@@ -82,9 +89,7 @@ if __name__ == "__main__":
   except:
     logging.exception("error in creating the socket")
     handle_exit()
-    sys.exit(1)
 
   logging.info("Sleeping for %s sec(s)...", options.duration)
   time.sleep(options.duration)
   handle_exit()
-  sys.exit(0)
