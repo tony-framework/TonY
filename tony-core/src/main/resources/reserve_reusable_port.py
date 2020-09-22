@@ -13,13 +13,13 @@ from optparse import OptionParser
 PORT_FILE_NAME_SUFFIX = "___PORT___"
 
 
-def __port_file_path(port: int):
+def __port_file_path(port):
   path_dir = os.path.dirname(os.path.abspath(__file__))
   port_file_path = os.path.join(path_dir, str(port) + PORT_FILE_NAME_SUFFIX)
   return port_file_path
 
 
-def create_port_file(port: int):
+def create_port_file(port):
   port_file = __port_file_path(port)
   logging.info("Creating port file %s", port_file)
   with open(__port_file_path(port), 'w'):
@@ -27,7 +27,7 @@ def create_port_file(port: int):
     pass
 
 
-def delete_port_file(port: int):
+def delete_port_file(port):
   port_file = __port_file_path(port)
   logging.info("Deleting port file %s", port_file)
   try:
