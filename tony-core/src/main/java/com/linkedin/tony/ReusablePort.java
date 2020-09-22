@@ -71,12 +71,17 @@ final class ReusablePort extends ServerPort {
     this.port = port;
   }
 
-  private void killSocketBindingProcess() {
+  private static void killSocketBindingProcess(Process process) {
+    Preconditions.checkNotNull(process);
+    if (!process.isAlive()) {
+      return;
+    }
+
     LOG.info("Killing the socket binding process..");
-    this.socketProcess.destroy();
+    process.destroy();
     int checkCount = 0;
     int maxCheckCount = 10;
-    while (this.socketProcess.isAlive() && (checkCount++) < maxCheckCount) {
+    while (process.isAlive() && (checkCount++) < maxCheckCount) {
       try {
         Thread.sleep(Duration.ofSeconds(1).toMinutes());
       } catch (InterruptedException e) {
@@ -84,9 +89,9 @@ final class ReusablePort extends ServerPort {
       }
     }
 
-    if (this.socketProcess.isAlive()) {
+    if (process.isAlive()) {
       LOG.info("Killing the socket binding process forcibly...");
-      this.socketProcess.destroyForcibly();
+      process.destroyForcibly();
     }
 
     LOG.info("Successfully killed the socket binding process");
@@ -97,7 +102,7 @@ final class ReusablePort extends ServerPort {
    */
   @Override
   public void close() {
-    killSocketBindingProcess();
+    killSocketBindingProcess(this.socketProcess);
   }
 
   /**
@@ -201,14 +206,14 @@ final class ReusablePort extends ServerPort {
       Process taskProcess = taskProcessBuilder.start();
       boolean portSuccessfulyCreated = waitTillPortReserved(port);
       if (!portSuccessfulyCreated) {
-        LOG.info("Port " + port + " failed to be reserved.");
-        taskProcess.destroy();
+        LOG.info("Port " + port + " failed to be reserved");
+        killSocketBindingProcess(taskProcess);
         throw new IOException("Fail to bind to the port " + port);
       }
-      LOG.info("Port " + port + " is reserved.");
+      LOG.info("Port " + port + " is reserved");
       return new ReusablePort(taskProcess, port);
     } else {
-      LOG.info("Port " + port + " is no longer available.");
+      LOG.info("Port " + port + " is no longer available");
       throw new IOException("Fail to bind to the port " + port);
     }
   }
