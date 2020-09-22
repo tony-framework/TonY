@@ -226,28 +226,30 @@ public class TaskExecutor {
     // details.
     if (executor != null) {
       if (executor.isReusingPort()) {
-        LOG.info("Releasing reserved TB port before launching tensorflow process.");
+        LOG.info("Releasing reserved TB port before launching TensorFlow process.");
         executor.releasePort(executor.tbPort);
       } else {
-        LOG.info("Releasing reserved port(s) before launching tensorflow process.");
+        LOG.info("Releasing reserved port(s) before launching TensorFlow process.");
         executor.releasePorts();
       }
     }
 
+    int exitCode;
     try {
-      int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
+      exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:
       executor.registerExecutionResult(exitCode, executor.jobName, String.valueOf(executor.taskIndex));
-      LOG.info("Child process exited with exit code " + exitCode);
-      System.exit(exitCode);
     } finally {
       if (executor.isReusingPort()) {
-        LOG.info("Tensorflow process exited, releasing reserved RPC port.");
+        LOG.info("TensorFlow process exited, releasing reserved RPC port.");
         executor.releasePort(executor.rpcPort);
       }
     }
+
+    LOG.info("Child process exited with exit code " + exitCode);
+    System.exit(exitCode);
   }
 
   protected void initConfigs() {
