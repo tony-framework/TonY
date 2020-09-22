@@ -49,6 +49,11 @@ final class ReusablePort extends ServerPort {
   public static final Path RESERVE_PORT_SCRIPT_PATH = requireNonNull(createPortReserveScript());
   public static final String PORT_FILE_NAME_SUFFIX = "___PORT___";
 
+  /**
+   * Copy "reserve_reusable_port.py" from resource dir to a temp directory so that the python
+   * script can be ran by TonY process.
+   * @return
+   */
   private static Path createPortReserveScript() {
     ClassLoader classloader = Thread.currentThread().getContextClassLoader();
     final String reservePortScript = "reserve_reusable_port.py";
@@ -61,6 +66,7 @@ final class ReusablePort extends ServerPort {
       }
       return Paths.get(tempDir.toAbsolutePath().toString(), reservePortScript);
     } catch (IOException ex) {
+      LOG.info(ex);
       return null;
     }
   }
@@ -72,7 +78,8 @@ final class ReusablePort extends ServerPort {
   }
 
   private static void killSocketBindingProcess(Process process) {
-    Preconditions.checkNotNull(process);
+    requireNonNull(process);
+
     if (!process.isAlive()) {
       return;
     }
@@ -102,7 +109,9 @@ final class ReusablePort extends ServerPort {
    */
   @Override
   public void close() {
-    killSocketBindingProcess(this.socketProcess);
+    if (this.socketProcess != null) {
+      killSocketBindingProcess(this.socketProcess);
+    }
   }
 
   /**
@@ -161,9 +170,12 @@ final class ReusablePort extends ServerPort {
 
     int checkCount = 0;
     int maxCheckCount = 5;
+    Duration checkInterval = Duration.ofSeconds(2);
+
+    // Given wait time is usually very short(few secs), periodically checking the file creation
+    // is effective and simple comparing to WatchService.
     while (!Files.exists(fileToWait) && (checkCount++) < maxCheckCount) {
       try {
-        Duration checkInterval = Duration.ofSeconds(2);
         LOG.info(fileToWait + " doesn't exist, sleep for " + checkInterval.getSeconds() + " seconds");
         Thread.sleep(checkInterval.toMillis());
       } catch (InterruptedException e) {
@@ -179,7 +191,7 @@ final class ReusablePort extends ServerPort {
    * <a href="https://lwn.net/Articles/542629/">https://lwn.net/Articles/542629/</a>
    * </p>
    *
-   * @param port the port to bind to, cannot be 0 to pick a random port. Since another tony
+   * @param port the port to bind to, cannot be 0 to pick a random port. Since another TonY
    *             executor can bind to the same port when port 0 and SO_REUSEPORT are used together.
    * @return the binding port
    * @throws BindException if fails to bind to any port
@@ -187,7 +199,7 @@ final class ReusablePort extends ServerPort {
    */
   @VisibleForTesting
   static ReusablePort create(int port) throws IOException {
-    // Why not upgrading Tony to Java 9+ given port reuse is supported in Java 9+?
+    // Why not upgrading TonY to Java 9+ given port reuse is supported in Java 9+?
     // - In Linkedin, as of now(2020/08), only Java 8 and 11 are officially supported, but Java 11
     //   introduces incompatibility with Play version tony-portal
     //   (https://github.com/linkedin/TonY/tree/master/tony-portal) is using. Upgrading Play to a
@@ -203,6 +215,8 @@ final class ReusablePort extends ServerPort {
     taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     if (isPortAvailable(port)) {
       LOG.info("Starting process " + socketBindingProcess);
+      // Launching the python process binding the socket. The python process will create a file
+      // after port is bound. TonY needs to wait the file creation.
       Process taskProcess = taskProcessBuilder.start();
       boolean portSuccessfulyCreated = waitTillPortReserved(port);
       if (!portSuccessfulyCreated) {
