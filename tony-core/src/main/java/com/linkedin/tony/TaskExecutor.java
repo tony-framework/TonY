@@ -68,7 +68,7 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
-  private ServerPort allocatePort() throws IOException, InterruptedException {
+  private ServerPort allocatePort() throws IOException {
     // To prevent other process grabbing the reserved port between releasing the
     // port{@link #releasePorts()} and task command process {@link #taskCommand} starts, task
     // executor reserves the port with port reuse enabled on user's request. When port reuse
@@ -80,7 +80,7 @@ public class TaskExecutor {
   /**
    * We bind to random ports.
    */
-  private void setupPorts() throws IOException, InterruptedException {
+  private void setupPorts() throws IOException {
     // Reserve a rpcPort.
     this.rpcPort = requireNonNull(allocatePort());
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
@@ -225,28 +225,31 @@ public class TaskExecutor {
     // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
     // details.
     if (executor != null) {
-      LOG.info("Releasing reserved port(s) before launching tensorflow process.");
       if (executor.isReusingPort()) {
+        LOG.info("Releasing reserved TB port before launching TensorFlow process.");
         executor.releasePort(executor.tbPort);
       } else {
+        LOG.info("Releasing reserved port(s) before launching TensorFlow process.");
         executor.releasePorts();
       }
     }
 
+    int exitCode;
     try {
-      int exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
+      exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:
       executor.registerExecutionResult(exitCode, executor.jobName, String.valueOf(executor.taskIndex));
-      LOG.info("Child process exited with exit code " + exitCode);
-      System.exit(exitCode);
     } finally {
       if (executor.isReusingPort()) {
-        LOG.info("Tensorflow process exited, releasing reserved ports.");
+        LOG.info("TensorFlow process exited, releasing reserved RPC port.");
         executor.releasePort(executor.rpcPort);
       }
     }
+
+    LOG.info("Child process exited with exit code " + exitCode);
+    System.exit(exitCode);
   }
 
   protected void initConfigs() {
