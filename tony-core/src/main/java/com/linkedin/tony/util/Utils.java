@@ -21,6 +21,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -737,16 +738,25 @@ public class Utils {
         }
         if (dockerRuntimeClass != null) {
           try {
+            String containerMounts = tonyConf.get(TonyConfigurationKeys.getContainerDockerMountKey());
+            if (StringUtils.isNotEmpty(containerMounts)) {
+              String envDockerContainerMounts =
+                      (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_MOUNTS).get(null);
+              containerEnv.put(envDockerContainerMounts, containerMounts);
+            }
+
             String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
             String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_IMAGE).get(null);
             containerEnv.put(envContainerType, "docker");
             containerEnv.put(envDockerImage, imagePath);
           } catch (NoSuchFieldException e) {
-            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
-                          + "found in " + containerRuntimeClass.getName() + " or " + dockerRuntimeClass.getName(), e);
+            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE
+                          + " or " + Constants.ENV_DOCKER_CONTAINER_MOUNTS + " not found in "
+                          + containerRuntimeClass.getName() + " or " + dockerRuntimeClass.getName(), e);
           } catch (IllegalAccessException e) {
             LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
-                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.", e);
+                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " or " + Constants.ENV_DOCKER_CONTAINER_MOUNTS
+                          + " fields.", e);
           }
         }
       }
