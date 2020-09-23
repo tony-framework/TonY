@@ -20,6 +20,7 @@ public class Constants {
       "org.apache.hadoop.yarn.server.nodemanager.containermanager.linux.runtime.DockerLinuxContainerRuntime";
   public static final String ENV_CONTAINER_TYPE = "ENV_CONTAINER_TYPE";
   public static final String ENV_DOCKER_CONTAINER_IMAGE = "ENV_DOCKER_CONTAINER_IMAGE";
+  public static final String ENV_DOCKER_CONTAINER_MOUNTS = "ENV_DOCKER_CONTAINER_MOUNTS";
   public static final String SET_MONITOR_INTERVAL_METHOD = "setMonitorInterval";
 
   // File Permission

@@ -234,6 +234,10 @@ public class TonyConfigurationKeys {
     return DOCKER_PREFIX + "containers.image";
   }
 
+  public static String getContainerDockerMountKey() {
+    return DOCKER_PREFIX + "containers.mount";
+  }
+
   // Container configurations
   public static final String CONTAINER_PREFIX = TONY_PREFIX + "container.";
   public static final String CONTAINER_ALLOCATION_TIMEOUT = CONTAINER_PREFIX + "allocation.timeout";
