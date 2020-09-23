@@ -743,10 +743,10 @@ public class Utils {
             containerEnv.put(envDockerImage, imagePath);
           } catch (NoSuchFieldException e) {
             LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE + " not "
-                          + "found in " + containerRuntimeClass.getName());
+                          + "found in " + containerRuntimeClass.getName() + " or " + dockerRuntimeClass.getName(), e);
           } catch (IllegalAccessException e) {
             LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
-                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.");
+                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " fields.", e);
           }
         }
       }
