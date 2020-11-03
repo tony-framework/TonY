@@ -326,7 +326,11 @@ public class ApplicationMaster {
         .setStarted(started)
         .setUser(user);
     JobMetadata metadata = metadataBuilder.build();
-    eventHandler.setUpThread(jobDir, metadata);
+
+    if (!eventHandler.setUpThread(jobDir, metadata)) {
+      return false;
+    }
+
     eventHandler.start();
     boolean succeeded;
     do {
