@@ -40,18 +40,23 @@ public class EventHandler extends Thread {
     myFs = fs;
   }
 
-  public void setUpThread(Path intermDir, JobMetadata metadata) {
+  public boolean setUpThread(Path intermDir, JobMetadata metadata) {
     if (intermDir == null) {
-      return;
+      return true;
     }
     inProgressHistFile = new Path(intermDir, HistoryFileUtils.generateFileName(metadata));
     try {
       out = myFs.create(inProgressHistFile);
       dataFileWriter.create(Event.SCHEMA$, out);
       LOG.info("Writing events to " + inProgressHistFile);
+    } catch (NoSuchMethodError e) {
+      LOG.error("Failed due to incompatible avro version", e);
+      return false;
     } catch (IOException e) {
       LOG.error("Failed to set up writer", e);
+      return false;
     }
+    return true;
   }
 
   @VisibleForTesting
