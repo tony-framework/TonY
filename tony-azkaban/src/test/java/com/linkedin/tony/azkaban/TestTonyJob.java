@@ -79,6 +79,7 @@ public class TestTonyJob {
     jobProps.put(CommonJobProperties.PROJECT_NAME, "unit_test");
     jobProps.put(CommonJobProperties.FLOW_ID, "1");
     jobProps.put(CommonJobProperties.EXEC_ID, "0");
+    jobProps.put(TonyJob.AZKABAN_WEB_HOST, "localhost:9999");
 
     final TonyJob tonyJob = new TonyJob("test_tony_job", new Props(), jobProps, log) {
       @Override
@@ -102,6 +103,7 @@ public class TestTonyJob {
     Assert.assertEquals(parsedTags.get(CommonJobProperties.EXEC_ID), "0");
     Assert.assertEquals(parsedTags.get(CommonJobProperties.FLOW_ID), "1");
     Assert.assertEquals(parsedTags.get(CommonJobProperties.PROJECT_NAME), "unit_test");
+    Assert.assertEquals(parsedTags.get(TonyJob.AZKABAN_WEB_HOST), "locahost:9999");
   }
 
   @Test

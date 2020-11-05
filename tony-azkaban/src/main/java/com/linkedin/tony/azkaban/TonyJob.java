@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
  * env and jvm properties.
  */
 public class TonyJob extends HadoopJavaJob {
+  public static final String AZKABAN_WEB_HOST = "azkaban.webserverhost";
   public static final String HADOOP_OPTS = ENV_PREFIX + "HADOOP_OPTS";
   public static final String HADOOP_GLOBAL_OPTS = "hadoop.global.opts";
   public static final String WORKER_ENV_PREFIX = "worker_env.";
@@ -51,7 +52,7 @@ public class TonyJob extends HadoopJavaJob {
 
     // pass flow information to the tony job through configuration
     String[] tagKeys = new String[] { CommonJobProperties.EXEC_ID,
-        CommonJobProperties.FLOW_ID, CommonJobProperties.PROJECT_NAME };
+        CommonJobProperties.FLOW_ID, CommonJobProperties.PROJECT_NAME, AZKABAN_WEB_HOST };
     String applicationTags =
         HadoopJobUtils.constructHadoopTags(getJobProps(), tagKeys);
     tonyConf.set(TONY_APPLICATION_TAGS, applicationTags);
