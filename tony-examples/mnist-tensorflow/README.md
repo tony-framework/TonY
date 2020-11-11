@@ -2,8 +2,8 @@
 
 To run the examples here, you need to:
 
-* Build a Python virtual environment with TensorFlow 1.13.1 installed
-* Install Hadoop 3.1.1+
+* Build a Python virtual environment with TensorFlow 2.3 installed
+* Install Hadoop 2.10+ for Hadoop v2 or 3.1.1+ for Hadoop v3
 
 If you don't have security enabled, you'll also need to provide a custom config file with security turned off.
 
@@ -19,13 +19,13 @@ tar xf virtualenv-16.0.0.tar.gz
 # Make sure to install using Python 3, as TensorFlow only provides Python 3 artifacts
 python virtualenv-16.0.0/virtualenv.py venv
 . venv/bin/activate
-pip install tensorflow==1.13.1
+pip install tensorflow
 zip -r venv.zip venv
 ```
 
 ### TensorFlow version: 
 
- - Version 1.13.1
+ - Version 2.3
 
 **Note:** If you require a past version of TensorFlow and TensorBoard, take a look at [this](https://github.com/linkedin/TonY/issues/42) issue.
 
@@ -37,22 +37,18 @@ TonY only requires YARN, not HDFS. Please see the [open-source documentation](ht
 
 ### Configuration
 
-Below is an example config file to request 2 workers and 1 parameter server. We also assume our Hadoop cluster
+Below is an example config file to request 3 workers. We also assume our Hadoop cluster
 does NOT have security enabled (e.g.: for local testing), so we disable TonY's security support.
 
 ```
 <configuration>
   <property>
     <name>tony.worker.instances</name>
-    <value>2</value>
+    <value>3</value>
   </property>
   <property>
     <name>tony.worker.memory</name>
     <value>4g</value>
-  </property>
-  <property>
-    <name>tony.ps.instances</name>
-    <value>1</value>
   </property>
   <property>
     <name>tony.application.security.enabled</name>
@@ -96,4 +92,4 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 --python_binary_path=venv/bin/python # relative path inside venv.zip
 ```
 
-We have tested this example with 1 Parameter Server (4GB RAM + 1 vCPU)  + 2 Workers (4GB RAM + 1 vCPU)
+We have tested this example with 3 Workers (4GB RAM + 1 vCPU) using MultiWorkerMirror strategy
