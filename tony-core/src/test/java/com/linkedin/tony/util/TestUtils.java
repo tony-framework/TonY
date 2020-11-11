@@ -299,7 +299,10 @@ public class TestUtils {
     when(conf.get(TonyConfigurationKeys
             .getDockerImageKey("tony.worker.gpus"))).thenReturn("foo");
     assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
-            new HashMap<>());
+        new HashMap<String, String>() {{
+          put("YARN_CONTAINER_RUNTIME_TYPE", "docker");
+          put("YARN_CONTAINER_RUNTIME_DOCKER_IMAGE", "foo");
+        }});
   }
 
   @Test

@@ -33,7 +33,7 @@ nexusStaging {
 }
 
 
-def hadoopVersion = "2.7.3"
+def hadoopVersion = "2.10.0"
 ext.playVersion = "2.6.20"
 ext.scalaVersionFull = System.getProperty("scala.binary.version", "2.11.12")
 ext.scalaVersion = scalaVersionFull
@@ -92,7 +92,7 @@ ext.deps = [
 
 allprojects {
   group = "com.linkedin.tony"
-  project.version = "0.3.35"
+  project.version = "0.4.0"
 }
 
 task sourcesJar(type: Jar) {
