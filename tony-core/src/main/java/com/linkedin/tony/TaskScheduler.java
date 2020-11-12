@@ -23,8 +23,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 
@@ -93,7 +91,7 @@ public class TaskScheduler {
   }
 
   private void scheduleJob(JobContainerRequest request) {
-    AMRMClient.ContainerRequest containerAsk = setupContainerRequestForRM(request);
+    AMRMClient.ContainerRequest containerAsk = Utils.setupContainerRequestForRM(request);
     String jobName = request.getJobName();
     if (!jobTypeToContainerRequestsMap.containsKey(jobName)) {
       jobTypeToContainerRequestsMap.put(jobName, new ArrayList<>());
@@ -104,15 +102,6 @@ public class TaskScheduler {
       amRMClient.addContainerRequest(containerAsk);
     }
     session.addNumExpectedTask(request.getNumInstances());
-  }
-
-  private AMRMClient.ContainerRequest setupContainerRequestForRM(JobContainerRequest request) {
-    Priority priority = Priority.newInstance(request.getPriority());
-    Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
-    Utils.setCapabilityGPU(capability, request.getGPU());
-    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
-    LOG.info("Requested container ask: " + containerRequest.toString());
-    return containerRequest;
   }
 
   private Map<String, LocalResource> getContainerResources(String jobName) {
