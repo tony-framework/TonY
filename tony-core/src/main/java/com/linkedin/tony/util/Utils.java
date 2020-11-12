@@ -38,7 +38,9 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
@@ -403,6 +405,15 @@ public class Utils {
       }
     }
     return containerRequests;
+  }
+
+  public static AMRMClient.ContainerRequest setupContainerRequestForRM(JobContainerRequest request) {
+    Priority priority = Priority.newInstance(request.getPriority());
+    Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
+    Utils.setCapabilityGPU(capability, request.getGPU());
+    AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
+    LOG.info("Requested container ask: " + containerRequest.toString());
+    return containerRequest;
   }
 
   private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,

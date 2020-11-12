@@ -21,6 +21,7 @@ import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.MetricsRpcServer;
 import com.linkedin.tony.rpc.impl.TaskStatus;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.tensorflow.TonySession.TonyTask;
 import com.linkedin.tony.util.Utils;
@@ -1036,10 +1037,29 @@ public class ApplicationMaster {
       }
     }
 
+    private String getNodeLabelsExpression(int priority) {
+      final List<JobContainerRequest> requests = session.getContainersRequests();
+      for (JobContainerRequest request : requests) {
+        if (request.getPriority() == priority) {
+          return request.getNodeLabelsExpression();
+        }
+      }
+      return null;
+    }
+
     @Override
     public void onContainersAllocated(List<Container> containers) {
       LOG.info("Allocated: " + containers.size() + " containers.");
       for (Container container : containers) {
+        // Need to explicitly remove container requests from remoteRequestsTable in AMRMClient, otherwise
+        // resources get double-requested (YARN-1902)
+        amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
+            "", 1, container.getResource().getMemorySize(),
+            container.getResource().getVirtualCores(),
+            (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue(),
+            container.getPriority().getPriority(),
+            getNodeLabelsExpression(container.getPriority().getPriority()),
+            new ArrayList<>())));
         LOG.info("Launching a task in container"
             + ", containerId = " + container.getId()
             + ", containerNode = " + container.getNodeId().getHost() + ":" + container.getNodeId().getPort()
