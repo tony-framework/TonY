@@ -221,6 +221,7 @@ public class TonyClient implements AutoCloseable {
     // Write user's overridden conf to an xml to be localized.
     try (OutputStream os = new FileOutputStream(tonyFinalConf)) {
       tonyConf.writeXml(os);
+      LOG.info("TonY conf " + tonyFinalConf + " is created locally.");
     } catch (IOException exception) {
       LOG.error("Failed to write tony final conf to: " + tonyFinalConf, exception);
     }
@@ -742,6 +743,7 @@ public class TonyClient implements AutoCloseable {
     Path src = new Path(srcPath);
     Path dst = new Path(appResourcesPath, dstPath);
     HdfsUtils.copySrcToDest(src, dst, hdfsConf);
+    LOG.info(src + " is copied to HDFS location " + dst + ".");
     fs.setPermission(dst, new FsPermission((short) 0770));
     FileStatus scFileStatus = fs.getFileStatus(dst);
     LocalResource scRsrc =

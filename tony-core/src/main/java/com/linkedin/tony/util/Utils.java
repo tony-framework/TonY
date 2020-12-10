@@ -646,6 +646,7 @@ public class Utils {
                                                    LocalResourceType resourceType, String resourceKey) throws IOException {
     Path dst = new Path(hdfsPath, fileName);
     HdfsUtils.copySrcToDest(filePath, dst, tonyConf);
+    LOG.info(filePath + " is copied to HDFS location " + dst + ".");
     fs.setPermission(dst, new FsPermission((short) 0770));
     String dstAddress = dst.toString();
     if (resourceType == LocalResourceType.ARCHIVE) {
