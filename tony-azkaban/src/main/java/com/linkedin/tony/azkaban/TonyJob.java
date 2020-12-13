@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
@@ -38,7 +39,8 @@ public class TonyJob extends HadoopJavaJob {
   public TonyJob(String jobid, Props sysProps, Props jobProps, Logger log) {
     super(jobid, sysProps, jobProps, log);
 
-    tonyXml = String.format("_tony-conf-%s/tony.xml", jobid);
+    UUID uuid = UUID.randomUUID();
+    tonyXml = String.format("_tony-conf-%s-%s/tony.xml", jobid, uuid);
     tonyConfFile = new File(getWorkingDirectory(), tonyXml);
     tonyConf = getJobConfiguration();
   }
