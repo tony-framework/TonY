@@ -216,7 +216,7 @@ final class ReusablePort extends ServerPort {
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
     taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     if (isPortAvailable(port)) {
-      LOG.info("Starting process " + socketBindingProcess);
+      LOG.debug("Starting process " + socketBindingProcess);
       // Launching the python process binding the socket. The python process will create a file
       // after port is bound. TonY needs to wait the file creation.
       Process taskProcess = taskProcessBuilder.start();

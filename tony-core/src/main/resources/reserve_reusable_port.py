@@ -21,25 +21,25 @@ def __port_file_path(port):
 
 def create_port_file(port):
   port_file = __port_file_path(port)
-  logging.info("Creating port file %s", port_file)
+  logging.debug("Creating port file %s", port_file)
   with open(__port_file_path(port), 'w'):
-    logging.info("Port file for %s created", port_file)
+    logging.debug("Port file for %s created", port_file)
     pass
 
 
 def delete_port_file(port):
   port_file = __port_file_path(port)
-  logging.info("Deleting port file %s", port_file)
+  logging.debug("Deleting port file %s", port_file)
   try:
     os.remove(__port_file_path(port))
-    logging.info("Port file %s deleted", port_file)
+    logging.debug("Port file %s deleted", port_file)
   except OSError:
     pass
 
 
 def handle_exit(*args):
   try:
-    logging.info("Closing port %s", options.port)
+    logging.debug("Closing port %s", options.port)
     s.close();
     logging.info("Port closed %s", options.port)
   except:
@@ -76,12 +76,12 @@ if __name__ == "__main__":
 
   global s
   try:
-    logging.info("Binding port %s with SO_REUSEPORT...", options.port)
+    logging.debug("Binding port %s with SO_REUSEPORT...", options.port)
     # binding to the port but NOT accepting any inbound connection
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     s.bind(("localhost", options.port))
-    logging.info("Port %s with SO_REUSEPORT bound...", options.port)
+    logging.debug("Port %s with SO_REUSEPORT bound...", options.port)
     create_port_file(options.port)
     signal.signal(signal.SIGTERM, handle_exit)
     signal.signal(signal.SIGINT, handle_exit)
@@ -90,6 +90,6 @@ if __name__ == "__main__":
     logging.exception("error in creating the socket")
     handle_exit()
 
-  logging.info("Sleeping for %s sec(s)...", options.duration)
+  logging.debug("Sleeping for %s sec(s)...", options.duration)
   time.sleep(options.duration)
   handle_exit()
