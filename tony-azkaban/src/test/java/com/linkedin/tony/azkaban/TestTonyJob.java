@@ -121,12 +121,17 @@ public class TestTonyJob {
     };
     List<String> paths = tonyJob.getClassPaths();
     int counter = 0;
+    String tonyConfigPath = new File(tonyJob.getWorkingDirectory(), "_tony-conf"
+        + "-test_tony_job_class_path").toString();
+    boolean hasTonYConfigInClassPath = false;
     for (String path : paths) {
       if (path.contains("Plugins/123") || path.contains("Plugins/456") || path.contains("Plugins/789")) {
         counter += 1;
+      } else if (path.startsWith(tonyConfigPath)) {
+        hasTonYConfigInClassPath = true;
       }
     }
     Assert.assertTrue(counter == 3);
-    Assert.assertTrue(paths.contains(new File(tonyJob.getWorkingDirectory(), "_tony-conf-test_tony_job_class_path").toString()));
+    Assert.assertTrue(hasTonYConfigInClassPath);
   }
 }
