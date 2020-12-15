@@ -16,10 +16,6 @@
 
 package com.linkedin.tony;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.BindException;
@@ -31,8 +27,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * This class encapsulates netty objects related to an established port which enables SO_REUSEPORT.
@@ -209,8 +211,8 @@ final class ReusablePort extends ServerPort {
 
     Preconditions.checkArgument(port > 0, "Port must > 0.");
 
-    String socketBindingProcess = String.format("python %s -p %s -d %s",
-        RESERVE_PORT_SCRIPT_PATH, port, Duration.ofHours(1).getSeconds());
+    String socketBindingProcess = String.format("python %s -p %s",
+        RESERVE_PORT_SCRIPT_PATH, port);
 
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", socketBindingProcess);
     taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);

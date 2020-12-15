@@ -64,15 +64,10 @@ if __name__ == "__main__":
 
   parser.add_option(
       "-p", "--port", dest="port", type="int", help="port to run on")
-  parser.add_option(
-      "-d", "--duration", dest="duration", type="int", help="duration to hold "
-                                                            "the port in sec")
 
   (options, args) = parser.parse_args(sys.argv)
   if not options.port:
     parser.error('port not given')
-  if not options.duration:
-    parser.error('timeout not given')
 
   global s
   try:
@@ -90,6 +85,5 @@ if __name__ == "__main__":
     logging.exception("error in creating the socket")
     handle_exit()
 
-  logging.debug("Sleeping for %s sec(s)...", options.duration)
-  time.sleep(options.duration)
+  signal.pause()
   handle_exit()
