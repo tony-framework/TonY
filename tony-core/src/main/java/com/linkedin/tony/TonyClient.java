@@ -19,6 +19,7 @@ import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -532,13 +533,16 @@ public class TonyClient implements AutoCloseable {
         continue;
       }
       for (String resource: resources) {
+        // If a hdfs classpath does not exist, we skip it rather than failing the job.
+        // This is because there are some cases where while constructing a ML flow, we have a hdfs classpath that might
+        // or might not exist depending on run time behavior. So we specify both paths in that case and disregard the
+        // non-existent once
         LocalizableResource lr;
-        // If a path does not exist, skip rather than failing only for hdfs classpaths.
         try {
           lr = new LocalizableResource(resource, fs);
-        } catch (IOException ex) {
-          LOG.info("Resource path does not exist for: " + resource);
+        } catch (FileNotFoundException ex) {
           if (hdfsClasspath.contains(resource)) {
+            LOG.warn("HDFS classpath does not exist for: " + resource);
             continue;
           } else {
             throw ex;
