@@ -599,7 +599,7 @@ public class TonyClient implements AutoCloseable {
       // Filter out original local file locations
       resources = tonyConf.getStrings(resourceKey);
       resources = Stream.of(resources).filter((filePath) ->
-              new Path(filePath).toUri().getScheme() != null || !resourcesToBeRemoved.contains(filePath)
+              new Path(filePath).toUri().getScheme() != null && !resourcesToBeRemoved.contains(filePath)
       ).toArray(String[]::new);
       tonyConf.setStrings(resourceKey, resources);
     }
