@@ -491,7 +491,7 @@ public class TestTonyE2E  {
   public void testTonyFinalConfWithNonExistentHDFSClasspath() throws IOException, YarnException, ParseException,
                                          InterruptedException, URISyntaxException {
     TonyClient client = spy(this.client);
-    String missingClasspath = "random/path";
+    String missingClasspath = cluster.getHdfsConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY) + "/random/path";
     client.init(new String[]{
         "--executes", "ls",
         "--hdfs_classpath", missingClasspath + "," + libPath,
