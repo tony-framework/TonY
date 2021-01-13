@@ -532,6 +532,7 @@ public class TonyClient implements AutoCloseable {
       if (resources == null) {
         continue;
       }
+      Set<String> resourcesToBeRemoved = new HashSet<>();
       for (String resource: resources) {
         // If a hdfs classpath does not exist, we skip it rather than failing the job.
         // This is because there are some cases where while constructing a ML flow, we have a hdfs classpath that might
@@ -543,6 +544,7 @@ public class TonyClient implements AutoCloseable {
         } catch (FileNotFoundException ex) {
           if (hdfsClasspath.contains(resource)) {
             LOG.warn("HDFS classpath does not exist for: " + resource);
+            resourcesToBeRemoved.add(resource);
             continue;
           } else {
             throw ex;
@@ -596,11 +598,9 @@ public class TonyClient implements AutoCloseable {
       }
       // Filter out original local file locations
       resources = tonyConf.getStrings(resourceKey);
-      LOG.info("A: " + Arrays.toString(resources));
       resources = Stream.of(resources).filter((filePath) ->
-              new Path(filePath).toUri().getScheme() != null
+              new Path(filePath).toUri().getScheme() != null || !resourcesToBeRemoved.contains(filePath)
       ).toArray(String[]::new);
-      LOG.info("B: " + Arrays.toString(resources));
       tonyConf.setStrings(resourceKey, resources);
     }
 
