@@ -394,11 +394,16 @@ public class TonyClient implements AutoCloseable {
 
     // Set hdfsClassPath for all workers
     // Prepend hdfs:// if missing
-    hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
-    if (hdfsClasspath != null && !hdfsClasspath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
-      hdfsClasspath = FileSystem.getDefaultUri(hdfsConf) + hdfsClasspath;
+    String[] allHdfsClasspaths = cliParser.getOptionValue("hdfs_classpath").split(",");
+    for (int i = 0; i < allHdfsClasspaths.length; i++) {
+      String validPath = allHdfsClasspaths[i];
+      if (validPath != null && !validPath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
+        validPath = FileSystem.getDefaultUri(hdfsConf) + validPath;
+      }
+      Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), validPath, tonyConf);
+      allHdfsClasspaths[i] = validPath;
     }
-    Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath, tonyConf);
+    hdfsClasspath = String.join(",", allHdfsClasspaths);
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
