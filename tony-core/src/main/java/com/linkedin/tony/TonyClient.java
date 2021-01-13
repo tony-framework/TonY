@@ -533,12 +533,16 @@ public class TonyClient implements AutoCloseable {
       }
       for (String resource: resources) {
         LocalizableResource lr;
-        // If a path does not exist, skip rather than failing.
+        // If a path does not exist, skip rather than failing only for hdfs classpaths.
         try {
           lr = new LocalizableResource(resource, fs);
         } catch (IOException ex) {
           LOG.info("Resource path does not exist for: " + resource);
-          continue;
+          if (hdfsClasspath.contains(resource)) {
+            continue;
+          } else {
+            throw ex;
+          }
         }
         // If it is local file, we upload to remote fs first
         if (lr.isLocalFile()) {
