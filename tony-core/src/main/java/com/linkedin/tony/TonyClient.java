@@ -395,18 +395,7 @@ public class TonyClient implements AutoCloseable {
     // Set hdfsClassPath for all workers
     // Prepend hdfs:// if missing
     String allHdfsClasspathsString = cliParser.getOptionValue("hdfs_classpath");
-    if (allHdfsClasspathsString != null) {
-      String[] allHdfsClasspaths = allHdfsClasspathsString.split(",");
-      for (int i = 0; i < allHdfsClasspaths.length; i++) {
-        String validPath = allHdfsClasspaths[i];
-        if (validPath != null && !validPath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
-          validPath = FileSystem.getDefaultUri(hdfsConf) + validPath;
-        }
-        Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), validPath, tonyConf);
-        allHdfsClasspaths[i] = validPath;
-      }
-      hdfsClasspath = String.join(",", allHdfsClasspaths);
-    }
+    hdfsClasspath = parseHdfsClasspaths(allHdfsClasspathsString);
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -974,6 +963,29 @@ public class TonyClient implements AutoCloseable {
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken, serviceAddr);
       UserGroupInformation.getCurrentUser().addToken(token);
     }
+  }
+
+  /**
+   * Parse HDFS class paths by prepending hdfs:// if missing and adding to conf resources.
+   * @param rawHdfsClasspaths Comma separated hdfs class paths.
+   * @return Comma separated hdfs classpaths that have been parsed and prepended with hdfs://.
+   */
+  private String parseHdfsClasspaths(String rawHdfsClasspaths) throws IOException {
+    if (rawHdfsClasspaths == null) {
+      return null;
+    }
+    // rawHdfsClasspaths may contain multiple classpaths that are comma separated. We need to prepend
+    // hdfs:// to all paths if missing.
+    String[] allHdfsClasspaths = rawHdfsClasspaths.split(",");
+    for (int i = 0; i < allHdfsClasspaths.length; i++) {
+      String validPath = allHdfsClasspaths[i];
+      if (validPath != null && !validPath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
+        validPath = FileSystem.getDefaultUri(hdfsConf) + validPath;
+      }
+      Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), validPath, tonyConf);
+      allHdfsClasspaths[i] = validPath;
+    }
+    return String.join(",", allHdfsClasspaths);
   }
 
   /**
