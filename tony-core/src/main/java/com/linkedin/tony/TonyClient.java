@@ -596,9 +596,11 @@ public class TonyClient implements AutoCloseable {
       }
       // Filter out original local file locations
       resources = tonyConf.getStrings(resourceKey);
+      LOG.info("A: " + Arrays.toString(resources));
       resources = Stream.of(resources).filter((filePath) ->
               new Path(filePath).toUri().getScheme() != null
       ).toArray(String[]::new);
+      LOG.info("B: " + Arrays.toString(resources));
       tonyConf.setStrings(resourceKey, resources);
     }
 
