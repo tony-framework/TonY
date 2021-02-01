@@ -38,6 +38,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.assertFalse;
 
 
 /**
@@ -479,6 +480,37 @@ public class TestTonyE2E  {
     // command line arguments should not override tony conf file for values that could have multiple values.
     assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("test.zip"));
     assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("common.zip"));
+  }
+
+  /**
+   * Adding a full e2e TestTonyE2E is heavy, this function serves as a simplified lightweight
+   * place to make sure TonyConfFinal is set correctly and does not throw a FileNotFoundException when there are
+   * non existent HDFS class paths.
+   */
+  @Test
+  public void testTonyFinalConfWithNonExistentHDFSClasspath() throws IOException, YarnException, ParseException,
+                                         InterruptedException, URISyntaxException {
+    TonyClient client = spy(this.client);
+    String missingClasspath = cluster.getHdfsConf().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY) + "/random/path";
+    client.init(new String[]{
+        "--executes", "ls",
+        "--hdfs_classpath", missingClasspath + "," + libPath,
+        "--shell_env", "TEST1=test",
+        "--container_env", "TEST2=test",
+        "--conf", "tony.worker.command=cat",
+        "--conf", "tony.containers.resources=tony-core/src/test/resources/test.zip"
+    });
+    // Stub actual app submission logic
+    doReturn(true).when(client).monitorApplication();
+    doNothing().when(client).submitApplication(any());
+    client.start();
+    String path = client.processFinalTonyConf();
+    Configuration finalConf = new Configuration();
+    finalConf.addResource(new Path(path));
+    // Conf should contain the path that exists
+    assertTrue(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("yarn/lib"));
+    // Conf should not contain the path that does not exist
+    assertFalse(finalConf.get(TonyConfigurationKeys.getContainerResourcesKey()).contains("random/path"));
   }
 
 }

@@ -19,6 +19,7 @@ import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -393,11 +394,8 @@ public class TonyClient implements AutoCloseable {
 
     // Set hdfsClassPath for all workers
     // Prepend hdfs:// if missing
-    hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
-    if (hdfsClasspath != null && !hdfsClasspath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
-      hdfsClasspath = FileSystem.getDefaultUri(hdfsConf) + hdfsClasspath;
-    }
-    Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), hdfsClasspath, tonyConf);
+    String allHdfsClasspathsString = cliParser.getOptionValue("hdfs_classpath");
+    hdfsClasspath = parseHdfsClasspaths(allHdfsClasspathsString);
 
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -531,8 +529,24 @@ public class TonyClient implements AutoCloseable {
       if (resources == null) {
         continue;
       }
+      Set<String> resourcesToBeRemoved = new HashSet<>();
       for (String resource: resources) {
-        LocalizableResource lr = new LocalizableResource(resource, fs);
+        // If a hdfs classpath does not exist, we skip it rather than failing the job.
+        // This is because there are some cases where while constructing a ML flow, we have a hdfs classpath that might
+        // or might not exist depending on run time behavior. So we specify both paths in that case and disregard the
+        // non-existent once
+        LocalizableResource lr;
+        try {
+          lr = new LocalizableResource(resource, fs);
+        } catch (FileNotFoundException ex) {
+          if (hdfsClasspath.contains(resource)) {
+            LOG.warn("HDFS classpath does not exist for: " + resource);
+            resourcesToBeRemoved.add(resource);
+            continue;
+          } else {
+            throw ex;
+          }
+        }
         // If it is local file, we upload to remote fs first
         if (lr.isLocalFile()) {
           Path localFilePath = lr.getSourceFilePath();
@@ -582,7 +596,7 @@ public class TonyClient implements AutoCloseable {
       // Filter out original local file locations
       resources = tonyConf.getStrings(resourceKey);
       resources = Stream.of(resources).filter((filePath) ->
-              new Path(filePath).toUri().getScheme() != null
+              new Path(filePath).toUri().getScheme() != null && !resourcesToBeRemoved.contains(filePath)
       ).toArray(String[]::new);
       tonyConf.setStrings(resourceKey, resources);
     }
@@ -949,6 +963,29 @@ public class TonyClient implements AutoCloseable {
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken, serviceAddr);
       UserGroupInformation.getCurrentUser().addToken(token);
     }
+  }
+
+  /**
+   * Parse HDFS class paths by prepending hdfs:// if missing and adding to conf resources.
+   * @param rawHdfsClasspaths Comma separated hdfs class paths.
+   * @return Comma separated hdfs classpaths that have been parsed and prepended with hdfs://.
+   */
+  private String parseHdfsClasspaths(String rawHdfsClasspaths) throws IOException {
+    if (rawHdfsClasspaths == null) {
+      return null;
+    }
+    // rawHdfsClasspaths may contain multiple classpaths that are comma separated. We need to prepend
+    // hdfs:// to all paths if missing.
+    String[] allHdfsClasspaths = rawHdfsClasspaths.split(",");
+    for (int i = 0; i < allHdfsClasspaths.length; i++) {
+      String validPath = allHdfsClasspaths[i];
+      if (validPath != null && !validPath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
+        validPath = FileSystem.getDefaultUri(hdfsConf) + validPath;
+      }
+      Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), validPath, tonyConf);
+      allHdfsClasspaths[i] = validPath;
+    }
+    return String.join(",", allHdfsClasspaths);
   }
 
   /**
