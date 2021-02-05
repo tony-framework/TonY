@@ -410,7 +410,9 @@ public class Utils {
   public static AMRMClient.ContainerRequest setupContainerRequestForRM(JobContainerRequest request) {
     Priority priority = Priority.newInstance(request.getPriority());
     Resource capability = Resource.newInstance((int) request.getMemory(), request.getVCores());
-    Utils.setCapabilityGPU(capability, request.getGPU());
+    if (request.getGPU() > 0) {
+      Utils.setCapabilityGPU(capability, request.getGPU());
+    }
     AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
