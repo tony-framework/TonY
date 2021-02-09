@@ -864,9 +864,9 @@ public class ApplicationMaster {
       // 2. when in cluster mode, it will start until all tasks have registered.
       switch (distributedMode) {
         case GANG:
-          int totalTasks = session.getTotalTasks();
-          if (registeredTasks.size() == totalTasks) {
-            LOG.info("All " + totalTasks + " tasks registered.");
+          int numExpectedTasks = session.getNumExpectedTasks();
+          if (registeredTasks.size() == numExpectedTasks) {
+            LOG.info("All " + numExpectedTasks + " tasks registered.");
             return getClusterSpec();
           } else {
             printTasksPeriodically();
@@ -886,7 +886,7 @@ public class ApplicationMaster {
       if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
         Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
         LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
-                registeredTasks.size(), session.getTotalTasks() - registeredTasks.size()));
+                registeredTasks.size(), session.getNumExpectedTasks() - registeredTasks.size()));
         unregisteredTasks.forEach(t -> {
           // Stop application when timeout
           if (System.currentTimeMillis() - t.getStartTime() > registrationTimeoutMs) {
