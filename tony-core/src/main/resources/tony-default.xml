@@ -70,6 +70,12 @@
     <value>3</value>
   </property>
 
+  <property>
+    <description>The application distributed mode that will be used for this job - GANG or FCFS</description>
+    <name>tony.application.distributed-mode</name>
+    <value>GANG</value>
+  </property>
+
   <!-- Task configurations -->
   <property>
     <name>tony.task.max-total-instances</name>
