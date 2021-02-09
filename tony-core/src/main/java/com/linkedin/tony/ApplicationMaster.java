@@ -863,7 +863,7 @@ public class ApplicationMaster {
       // 1. when in independent-task mode, task will be allowed to run when AM accept worker registered spec,
       // 2. when in cluster mode, it will start until all tasks have registered.
       switch (distributedMode) {
-        case CLUSTER:
+        case GANG:
           int totalTasks = session.getTotalTasks();
           if (registeredTasks.size() == totalTasks) {
             LOG.info("All " + totalTasks + " tasks registered.");
@@ -873,7 +873,7 @@ public class ApplicationMaster {
             return null;
           }
           // return the current task spec directly.
-        case INDEPENDENT_TASK:
+        case FCFS:
           return spec;
         default:
           throw new IOException("Errors on registering to TonY AM, because of unknown distributed mode: "

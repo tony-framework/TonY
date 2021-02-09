@@ -89,7 +89,7 @@ public class TaskExecutor {
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
-    if (isChief && isClusterMode()) {
+    if (isChief && isGangMode()) {
       this.tbPort = requireNonNull(EphemeralPort.create());
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort.getPort()));
@@ -183,7 +183,7 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
         executor.shellEnv.put(Constants.TASK_NUM, String.valueOf(executor.numTasks));
         executor.shellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.distributedMode.name());
-        if (executor.isClusterMode()) {
+        if (executor.isGangMode()) {
           executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
           executor.shellEnv.put(
                   Constants.TF_CONFIG,
@@ -426,10 +426,7 @@ public class TaskExecutor {
     }
   }
 
-  private boolean isClusterMode() {
-    if (distributedMode == TonyConfigurationKeys.DistributedMode.CLUSTER) {
-      return true;
-    }
-    return false;
+  private boolean isGangMode() {
+    return distributedMode == TonyConfigurationKeys.DistributedMode.GANG;
   }
 }
