@@ -16,6 +16,11 @@ public class TonyConfigurationKeys {
     MXNET
   }
 
+  public enum DistributedMode {
+    GANG,
+    FCFS
+  }
+
   private TonyConfigurationKeys() {
 
   }
@@ -125,6 +130,9 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_PREPARE_STAGE = TONY_APPLICATION_PREFIX + "prepare-stage";
   public static final String APPLICATION_TRAINING_STAGE = TONY_APPLICATION_PREFIX + "training-stage";
+
+  public static final String APPLICATION_DISTRIBUTED_MODE = TONY_APPLICATION_PREFIX + "distributed-mode";
+  public static final String DEFAULT_APPLICATION_DISTRIBUTED_MODE = DistributedMode.GANG.name();
 
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";

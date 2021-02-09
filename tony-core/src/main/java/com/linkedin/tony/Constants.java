@@ -168,6 +168,9 @@ public class Constants {
 
   public static final int MAX_REPEATED_GPU_ERROR_ALLOWED = 10;
 
+  // Distributed mode environment variable set by AM to task executor
+  public static final String DISTRUBUTED_MODE_NAME = "DISTRIBUTED_MODE";
+
   // Default value of container log link, will be used for TASK_FINISHED, APPLICATION_FINISHED
   public static final String DEFAULT_VALUE_OF_CONTAINER_LOG_LINK = "NA";
   private Constants() { }
