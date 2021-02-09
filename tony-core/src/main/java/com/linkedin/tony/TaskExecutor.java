@@ -4,10 +4,6 @@
  */
 package com.linkedin.tony;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.rpc.MetricsRpc;
-import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
-import com.linkedin.tony.util.Utils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -15,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -22,6 +19,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.linkedin.tony.rpc.MetricsRpc;
+import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.util.Utils;
 
 import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
 import static java.util.Objects.requireNonNull;
@@ -56,6 +58,7 @@ public class TaskExecutor {
   private String taskId;
   private int numTasks;
   private boolean isChief;
+  private TonyConfigurationKeys.DistributedMode distributedMode;
   private Configuration yarnConf = new Configuration(false);
   private Configuration hdfsConf = new Configuration(false);
   private ApplicationRpcClient proxy;
@@ -68,13 +71,13 @@ public class TaskExecutor {
 
   protected TaskExecutor() { }
 
-  private ServerPort allocatePort() throws IOException {
+  private ServerPort allocatePort(boolean isReusingPort) throws IOException {
     // To prevent other process grabbing the reserved port between releasing the
     // port{@link #releasePorts()} and task command process {@link #taskCommand} starts, task
     // executor reserves the port with port reuse enabled on user's request. When port reuse
     // is enabled, other process can grab the same port only when port reuse is turned on when
     // creating the port.
-    return this.isReusingPort() ? ReusablePort.create() : EphemeralPort.create();
+    return isReusingPort ? ReusablePort.create() : EphemeralPort.create();
   }
 
   /**
@@ -82,18 +85,17 @@ public class TaskExecutor {
    */
   private void setupPorts() throws IOException {
     // Reserve a rpcPort.
-    this.rpcPort = requireNonNull(allocatePort());
+    this.rpcPort = requireNonNull(allocatePort(this.isTFGrpcReusingPort()));
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
-    if (isChief) {
+    if (isChief && isGangMode()) {
       this.tbPort = requireNonNull(EphemeralPort.create());
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort.getPort()));
       LOG.info("Reserved tbPort: " + this.tbPort.getPort());
     }
   }
-
 
   private void releasePort(ServerPort port) throws Exception {
     if (port != null) {
@@ -115,7 +117,7 @@ public class TaskExecutor {
   /**
    * @return true if reusing port is enabled by user, false otherwise.
    */
-  private boolean isReusingPort() {
+  private boolean isTFGrpcReusingPort() {
     // TF_GRPC_REUSE_PORT corresponds to the environment variable defined in tensorflow, check
     // https://github.com/tensorflow/tensorflow/pull/38705 for more details.
 
@@ -130,6 +132,21 @@ public class TaskExecutor {
     //   this option would require more change from users than otherwise, which is more risky
     //   and thus less preferable.
     return this.shellEnv.getOrDefault("TF_GRPC_REUSE_PORT", "false").equalsIgnoreCase("true");
+  }
+
+  /**
+   * @return true if reusing port is enabled by user, false otherwise.
+   */
+  private boolean isTBServerReusingPort() {
+    // TensorBoard support reuse_port option in TB 2.5.0+. User jobs might run with older TB versions
+    // with no port reuse feature.
+    // check https://github.com/tensorflow/tensorboard/pull/4616 for more details.
+
+    // How to use it in user code?
+    // - Check the TB version >= 2.5.0.
+    // - Acoording to the TB_SERVER_REUSE_PORT environment variable, when it is true, user can use the
+    //   reuse_port option.
+    return this.shellEnv.getOrDefault("TB_SERVER_REUSE_PORT", "false").equalsIgnoreCase("true");
   }
 
   private static TaskExecutor createExecutor() throws Exception {
@@ -156,6 +173,7 @@ public class TaskExecutor {
       LOG.error("Failed to register worker with AM.");
       throw new Exception("Failed to register worker with AM.");
     }
+    LOG.debug("Task is on distributed mode: " + executor.distributedMode);
     LOG.info("Successfully registered and got cluster spec: " + executor.clusterSpec);
 
     switch (executor.framework) {
@@ -163,8 +181,15 @@ public class TaskExecutor {
         LOG.info("Setting up TensorFlow job...");
         executor.shellEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
         executor.shellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
-        executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
-        executor.shellEnv.put(Constants.TF_CONFIG, Utils.constructTFConfig(executor.clusterSpec, executor.jobName, executor.taskIndex));
+        executor.shellEnv.put(Constants.TASK_NUM, String.valueOf(executor.numTasks));
+        executor.shellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.distributedMode.name());
+        if (executor.isGangMode()) {
+          executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
+          executor.shellEnv.put(
+                  Constants.TF_CONFIG,
+                  Utils.constructTFConfig(executor.clusterSpec, executor.jobName, executor.taskIndex)
+          );
+        }
         break;
       case PYTORCH:
         LOG.info("Setting up PyTorch job...");
@@ -225,12 +250,14 @@ public class TaskExecutor {
     // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
     // details.
     if (executor != null) {
-      if (executor.isReusingPort()) {
-        LOG.info("Releasing reserved TB port before launching TensorFlow process.");
+      if (!executor.isTFGrpcReusingPort()) {
+        LOG.info("Releasing reserved RPC port before launching tensorflow process.");
+        executor.releasePort(executor.rpcPort);
+      }
+
+      if (!executor.isTBServerReusingPort()) {
+        LOG.info("Releasing reserved TB port before launching tensorflow process.");
         executor.releasePort(executor.tbPort);
-      } else {
-        LOG.info("Releasing reserved port(s) before launching TensorFlow process.");
-        executor.releasePorts();
       }
     }
 
@@ -242,9 +269,14 @@ public class TaskExecutor {
       // END - worker skew testing:
       executor.registerExecutionResult(exitCode, executor.jobName, String.valueOf(executor.taskIndex));
     } finally {
-      if (executor.isReusingPort()) {
+      if (executor.isTFGrpcReusingPort()) {
         LOG.info("TensorFlow process exited, releasing reserved RPC port.");
         executor.releasePort(executor.rpcPort);
+      }
+
+      if (executor.isTBServerReusingPort()) {
+        LOG.info("Tensorflow process exited, releasing reserved TB port.");
+        executor.releasePort(executor.tbPort);
       }
     }
 
@@ -262,6 +294,9 @@ public class TaskExecutor {
 
     String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
     isChief = Boolean.parseBoolean(isChiefEnvValue);
+
+    String distributedModeEnvValue = System.getenv(Constants.DISTRUBUTED_MODE_NAME);
+    distributedMode = TonyConfigurationKeys.DistributedMode.valueOf(distributedModeEnvValue.toUpperCase());
 
     amHost = System.getenv(Constants.AM_HOST);
     amPort = Integer.parseInt(System.getenv(Constants.AM_PORT));
@@ -389,5 +424,9 @@ public class TaskExecutor {
         LOG.error("Got Exception while parsing skew instruction", e);
       }
     }
+  }
+
+  private boolean isGangMode() {
+    return distributedMode == TonyConfigurationKeys.DistributedMode.GANG;
   }
 }
