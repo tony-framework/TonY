@@ -173,7 +173,7 @@ public class TaskExecutor {
       LOG.error("Failed to register worker with AM.");
       throw new Exception("Failed to register worker with AM.");
     }
-    LOG.info("Task is on distributed mode: " + executor.distributedMode);
+    LOG.debug("Task is on distributed mode: " + executor.distributedMode);
     LOG.info("Successfully registered and got cluster spec: " + executor.clusterSpec);
 
     switch (executor.framework) {
