@@ -25,6 +25,12 @@ import org.apache.log4j.Logger;
  * env and jvm properties.
  */
 public class TonyJob extends HadoopJavaJob {
+  public static final String AZKABAN_INPUT_DATASET_JOB_PROP = "azkaban.input.dataset";
+  public static final String AZKABAN_INPUT_DATASET_ENV_VAR_KEY = "AZKABAN_INPUT_DATASET";
+  public static final String AZKABAN_OUTPUT_DATASET_JOB_PROP = "azkaban.output.dataset";
+  public static final String AZKABAN_OUTPUT_DATASET_ENV_VAR_KEY = "AZKABAN_OUTPUT_DATASET";
+  public static final String AZKABAN_ORIG_DELIMITER = ",";
+  public static final String AZKABAN_NEW_DELIMITER = ";";
   public static final String AZKABAN_WEB_HOST = "azkaban.webserverhost";
   public static final String HADOOP_OPTS = ENV_PREFIX + "HADOOP_OPTS";
   public static final String HADOOP_GLOBAL_OPTS = "hadoop.global.opts";
@@ -163,6 +169,22 @@ public class TonyJob extends HadoopJavaJob {
     String executes = getJobProps().getString(TonyJobArg.EXECUTES.azPropName, null);
     if (executes != null) {
       args.append(" " + TonyJobArg.EXECUTES.tonyParamName + " " + executes);
+    }
+
+    String azkabanInputDataset = getJobProps().getString(AZKABAN_INPUT_DATASET_JOB_PROP, null);
+    if (azkabanInputDataset != null) {
+      String inputWithNewDelimiter = azkabanInputDataset.replace(AZKABAN_ORIG_DELIMITER,
+          AZKABAN_NEW_DELIMITER);
+      args.append(" " + TonyJobArg.SHELL_ENV.tonyParamName + " " + AZKABAN_INPUT_DATASET_ENV_VAR_KEY
+          + "='" + inputWithNewDelimiter + "'");
+    }
+
+    String azkabanOutputDataset = getJobProps().getString(AZKABAN_OUTPUT_DATASET_JOB_PROP, null);
+    if (azkabanOutputDataset != null) {
+      String outputWithNewDelimiter = azkabanOutputDataset.replace(AZKABAN_ORIG_DELIMITER,
+          AZKABAN_NEW_DELIMITER);
+      args.append(" " + TonyJobArg.SHELL_ENV.tonyParamName + " " + AZKABAN_OUTPUT_DATASET_ENV_VAR_KEY
+          + "='" + outputWithNewDelimiter + "'");
     }
 
     info("Complete main arguments: " + args);
