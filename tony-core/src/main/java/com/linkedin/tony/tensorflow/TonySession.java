@@ -6,6 +6,7 @@ package com.linkedin.tony.tensorflow;
 
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.TonyClient;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
@@ -30,7 +31,6 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static com.linkedin.tony.Constants.CHIEF_JOB_NAME;
@@ -127,12 +127,17 @@ public class TonySession {
 
     StringBuilder classPathEnv = new StringBuilder(ApplicationConstants.Environment.CLASSPATH.$$())
         .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
-    for (String c : yarnConf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
-      classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-      classPathEnv.append(c.trim());
+
+    String mapReduceFrameworkClasspath = tonyConf.get(
+        TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH, "");
+    classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+    if (mapReduceFrameworkClasspath.isEmpty()) {
+      // Use standard Hadoop class path when TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH is not defined.
+      classPathEnv.append(TonyClient.getDefaultMapReduceFrameworkClasspath(yarnConf));
+    } else {
+      classPathEnv.append(mapReduceFrameworkClasspath);
     }
+
     shellEnv.put("CLASSPATH", classPathEnv.toString());
   }
 

@@ -247,6 +247,13 @@
     <name>tony.application.yarn-conf-path</name>
   </property>
 
+  <property>
+    <description>
+      Path to MapReduce configuration, to be passed as an environment variable to the python training scripts.
+    </description>
+    <name>tony.application.mapred-conf-path</name>
+  </property>
+
   <!--History Server configurations-->
   <!--All the configurations below should be set in $TONY_CONF_DIR/tony-site.xml-->
   <property>
