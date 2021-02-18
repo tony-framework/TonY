@@ -92,6 +92,7 @@ public class Constants {
   public static final String HDFS_DEFAULT_CONF = "hdfs-default.xml";
   public static final String YARN_SITE_CONF = YarnConfiguration.YARN_SITE_CONFIGURATION_FILE;
   public static final String YARN_DEFAULT_CONF = "yarn-default.xml";
+  public static final String MAPRED_SITE_CONF = "mapred-site.xml";
   public static final String CORE_SITE_CONF = YarnConfiguration.CORE_SITE_CONFIGURATION_FILE;
   public static final String CORE_DEFAULT_CONF = "core-default.xml";
   public static final String HADOOP_CONF_DIR = ApplicationConstants.Environment.HADOOP_CONF_DIR.key();
@@ -173,5 +174,10 @@ public class Constants {
 
   // Default value of container log link, will be used for TASK_FINISHED, APPLICATION_FINISHED
   public static final String DEFAULT_VALUE_OF_CONTAINER_LOG_LINK = "NA";
+
+  // MapReduce framework configurations used in mapred-site.xml
+  public static final String MAPREDUCE_APPLICATION_FRAMEWORK_PATH = "mapreduce.application.framework.path";
+  public static final String MAPREDUCE_APPLICATION_CLASSPATH = "mapreduce.application.classpath";
+
   private Constants() { }
 }

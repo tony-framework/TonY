@@ -134,6 +134,10 @@ public class TonyConfigurationKeys {
   public static final String APPLICATION_DISTRIBUTED_MODE = TONY_APPLICATION_PREFIX + "distributed-mode";
   public static final String DEFAULT_APPLICATION_DISTRIBUTED_MODE = DistributedMode.GANG.name();
 
+  public static final String TONY_APPLICATION_MAPREDUCE_PREFIX = TONY_APPLICATION_PREFIX + "mapreduce.";
+  public static final String APPLICATION_MAPREDUCE_FRAMEWORK_PATH = TONY_APPLICATION_MAPREDUCE_PREFIX + "framework.path";
+  public static final String APPLICATION_MAPREDUCE_CLASSPATH = TONY_APPLICATION_MAPREDUCE_PREFIX + "classpath";
+
   // Task configurations
   public static final String TONY_TASK_PREFIX = TONY_PREFIX + "task.";
 
@@ -288,6 +292,8 @@ public class TonyConfigurationKeys {
   public static final String HDFS_CONF_LOCATION = TONY_APPLICATION_PREFIX + "hdfs-conf-path";
 
   public static final String YARN_CONF_LOCATION = TONY_APPLICATION_PREFIX + "yarn-conf-path";
+
+  public static final String MAPRED_CONF_LOCATION = TONY_APPLICATION_PREFIX + "mapred-conf-path";
 
   // Configurations that can take multiple values.
   public static final List<String> MULTI_VALUE_CONF = Collections.unmodifiableList(
