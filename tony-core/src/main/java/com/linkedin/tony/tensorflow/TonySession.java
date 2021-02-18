@@ -132,8 +132,9 @@ public class TonySession {
         TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH, "");
     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
     if (mapReduceFrameworkClasspath.isEmpty()) {
-      // Use standard Hadoop class path when TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH is not defined.
-      classPathEnv.append(TonyClient.getDefaultMapReduceFrameworkClasspath(yarnConf));
+      // Use standard Hadoop classpath defined in Yarn application classpath when
+      // TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH is not defined.
+      classPathEnv.append(TonyClient.getYarnApplicationClasspath(yarnConf));
     } else {
       classPathEnv.append(mapReduceFrameworkClasspath);
     }

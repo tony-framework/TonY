@@ -143,9 +143,9 @@ public class TonyClient implements AutoCloseable {
   private Set<TaskInfo> taskInfos = new HashSet<>();
 
   /**
-   * Gets default MapReduce Framework classpath derived from yarnConf.
+   * Gets Yarn application classpath from yarnConf.
    */
-  public static String getDefaultMapReduceFrameworkClasspath(Configuration yarnConf) {
+  public static String getYarnApplicationClasspath(Configuration yarnConf) {
     StringBuilder classPathBuilder = new StringBuilder();
     for (String c : yarnConf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
@@ -420,7 +420,7 @@ public class TonyClient implements AutoCloseable {
     initMapRedConf();
 
     mapReduceFrameworkPath = tonyConf.get(
-        TonyConfigurationKeys.APPLICATION_MAPREDUCE_FRAMEWORK_PATH,
+        TonyConfigurationKeys.APPLICATION_MAPREDUCE_PATH,
         mapredConf.get(Constants.MAPREDUCE_APPLICATION_FRAMEWORK_PATH, ""));
     mapReduceFrameworkClasspath = tonyConf.get(
         TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH,
@@ -832,7 +832,8 @@ public class TonyClient implements AutoCloseable {
 
     String mapReduceClasspath = mapReduceFrameworkClasspath;
     if (mapReduceClasspath.isEmpty()) {
-      mapReduceClasspath = getDefaultMapReduceFrameworkClasspath(yarnConf);
+      // Yarn application classpath contains standard MapReduce classpath.
+      mapReduceClasspath = getYarnApplicationClasspath(yarnConf);
     }
     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
     classPathEnv.append(mapReduceClasspath);
