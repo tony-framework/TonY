@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -238,12 +239,39 @@ public class TonyClient implements AutoCloseable {
     processTonyConfResources(tonyConf, fs);
 
     // Update map reduce framework configuration so that the AM won't need to resolve it again.
-    tonyConf.set(TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH, mapReduceFrameworkClasspath);
+    if (!mapReduceFrameworkClasspath.isEmpty()) {
+      tonyConf.set(TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH, mapReduceFrameworkClasspath);
+    }
     if (!mapReduceFrameworkPath.isEmpty()) {
-      Utils.appendConfResources(
-          TonyConfigurationKeys.getContainerResourcesKey(),
-          mapReduceFrameworkPath + Constants.ARCHIVE_SUFFIX, // MapReduce framework path contains an archive.
-          tonyConf);
+      try {
+        // mapReduceFrameworkPath format: [scheme]://[host][path]#[fragment].
+        // For example, hdfs://ltx1-1234/mapred/framework/hadoop-mapreduce-3.1.2.tar#mrframework
+        URI mapReduceFrameworkURI = new URI(mapReduceFrameworkPath);
+
+        // If fragment was defined in the URI, it is used as the alias of the localized file. For example,
+        // hdfs://ltx1-1234/mapred/framework/hadoop-mapreduce-3.1.2.tar#mrframework will be localized as
+        // mrframework rather than hadoop-mapreduce-3.1.2.tar in the container.
+        if (mapReduceFrameworkURI.getFragment() != null) {
+          String localizedFileName = mapReduceFrameworkURI.getFragment();
+          // Remove fragment in the mapReduceFrameworkURI so that it can be located on file system.
+          URI uriWithoutFragment = new URI(
+              mapReduceFrameworkURI.getScheme(),
+              mapReduceFrameworkURI.getSchemeSpecificPart(),
+              null);
+          Utils.appendConfResources(
+              TonyConfigurationKeys.getContainerResourcesKey(),
+              // MapReduce framework path contains an archive. Rename archive name to localizedFileName.
+              uriWithoutFragment + Constants.RESOURCE_DIVIDER + localizedFileName + Constants.ARCHIVE_SUFFIX,
+              tonyConf);
+        } else {
+          Utils.appendConfResources(
+              TonyConfigurationKeys.getContainerResourcesKey(),
+              mapReduceFrameworkURI + Constants.ARCHIVE_SUFFIX,
+              tonyConf);
+        }
+      } catch (URISyntaxException e) {
+        throw new RuntimeException("Failed to parse MapReduce framework URI " + mapReduceFrameworkPath, e);
+      }
     }
 
     String tonyFinalConf = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
@@ -425,6 +453,12 @@ public class TonyClient implements AutoCloseable {
     mapReduceFrameworkClasspath = tonyConf.get(
         TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH,
         mapredConf.get(Constants.MAPREDUCE_APPLICATION_CLASSPATH, ""));
+    // Classpath in mapReduceFrameworkClasspath was separated by comma.
+    // Replace it with ApplicationConstants.CLASS_PATH_SEPARATOR.
+    if (!mapReduceFrameworkClasspath.isEmpty()) {
+      mapReduceFrameworkClasspath = mapReduceFrameworkClasspath.replace(
+          ",", ApplicationConstants.CLASS_PATH_SEPARATOR);
+    }
 
     taskParams = cliParser.getOptionValue("task_params");
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
