@@ -52,8 +52,17 @@ public class TestTonyJob {
 
   @Test
   public void testMainArguments() {
+    final String azkabanInputDatasetJobProp = "azkaban.input.dataset";
+    final String azkabanOutputDatasetJobProp = "azkaban.output.dataset";
+    final String azkabanInputDatasetEnvVarKey = "AZKABAN_INPUT_DATASET";
+    final String azkabanOutputDatasetEnvVarKey = "AZKABAN_OUTPUT_DATASET";
+
     final Props jobProps = new Props();
     jobProps.put(TonyJobArg.HDFS_CLASSPATH.azPropName, "hdfs://nn:8020");
+    jobProps.put(azkabanInputDatasetJobProp,
+        "HDFS_DYNAMIC_PATH:input_ds:/jobs/azktest/gsalia_tony/192/input_ds_job1");
+    jobProps.put(azkabanOutputDatasetJobProp,
+        "HDFS_DYNAMIC_PATH:output_ds:/jobs/azktest/gsalia_tony/192/output_ds_job1");
     jobProps.put(TonyJob.WORKER_ENV_PREFIX + "E1", "e1");
     jobProps.put(TonyJob.WORKER_ENV_PREFIX + "E2", "e2");
 
@@ -65,6 +74,12 @@ public class TestTonyJob {
     };
     String args = tonyJob.getMainArguments();
     Assert.assertTrue(args.contains(TonyJobArg.HDFS_CLASSPATH.tonyParamName + " hdfs://nn:8020"));
+    Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName
+        + " " + azkabanInputDatasetEnvVarKey
+        + "='HDFS_DYNAMIC_PATH:input_ds:/jobs/azktest/gsalia_tony/192/input_ds_job1'"));
+    Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName
+        + " " + azkabanOutputDatasetEnvVarKey
+        + "='HDFS_DYNAMIC_PATH:output_ds:/jobs/azktest/gsalia_tony/192/output_ds_job1'"));
     Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E2=e2"));
     Assert.assertTrue(args.contains(TonyJobArg.SHELL_ENV.tonyParamName + " E1=e1"));
   }
