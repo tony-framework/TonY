@@ -888,8 +888,8 @@ public class ApplicationMaster {
         LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
                 registeredTasks.size(), session.getNumExpectedTasks() - registeredTasks.size()));
         unregisteredTasks.forEach(t -> {
-          // Stop application when timeout
-          if (System.currentTimeMillis() - t.getStartTime() > registrationTimeoutMs) {
+          // Stop application when timeout. The default timeout defined in tony-default.xml is -1 i.e. no timeout.
+          if (registrationTimeoutMs > 0 && System.currentTimeMillis() - t.getStartTime() > registrationTimeoutMs) {
             String errorMsg = String.format("Stopping AM for task [%s:%s] registration timeout: "
                             + "allocated container is %s on host %s",
                     t.getJobName(), t.getTaskIndex(),
