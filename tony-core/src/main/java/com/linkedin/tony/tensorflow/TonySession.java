@@ -128,15 +128,15 @@ public class TonySession {
     StringBuilder classPathEnv = new StringBuilder(ApplicationConstants.Environment.CLASSPATH.$$())
         .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
 
-    String mapReduceFrameworkClasspath = tonyConf.get(
-        TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH, "");
+    String hadoopFrameworkClasspath = tonyConf.get(
+        TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH, "");
     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-    if (mapReduceFrameworkClasspath.isEmpty()) {
+    if (hadoopFrameworkClasspath.isEmpty()) {
       // Use standard Hadoop classpath defined in Yarn application classpath when
       // TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH is not defined.
-      classPathEnv.append(TonyClient.getYarnApplicationClasspath(yarnConf));
+      classPathEnv.append(TonyClient.getDefaultHadoopClasspath(yarnConf));
     } else {
-      classPathEnv.append(mapReduceFrameworkClasspath);
+      classPathEnv.append(hadoopFrameworkClasspath);
     }
 
     shellEnv.put("CLASSPATH", classPathEnv.toString());

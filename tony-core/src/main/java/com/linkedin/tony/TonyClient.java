@@ -125,8 +125,8 @@ public class TonyClient implements AutoCloseable {
   private long appTimeout;
   private boolean secureMode;
   private Map<String, String> containerEnv = new HashMap<>();
-  private String mapReduceFrameworkPath = null;
-  private String mapReduceFrameworkClasspath = null;
+  private String hadoopFrameworkLocation = null;
+  private String hadoopFrameworkClasspath = null;
 
   private String tonyFinalConfPath;
   private Configuration tonyConf;
@@ -144,9 +144,9 @@ public class TonyClient implements AutoCloseable {
   private Set<TaskInfo> taskInfos = new HashSet<>();
 
   /**
-   * Gets Yarn application classpath from yarnConf.
+   * Gets default hadoop application classpath from yarnConf.
    */
-  public static String getYarnApplicationClasspath(Configuration yarnConf) {
+  public static String getDefaultHadoopClasspath(Configuration yarnConf) {
     StringBuilder classPathBuilder = new StringBuilder();
     for (String c : yarnConf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
@@ -239,38 +239,39 @@ public class TonyClient implements AutoCloseable {
     processTonyConfResources(tonyConf, fs);
 
     // Update map reduce framework configuration so that the AM won't need to resolve it again.
-    if (!mapReduceFrameworkClasspath.isEmpty()) {
-      tonyConf.set(TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH, mapReduceFrameworkClasspath);
+    if (!hadoopFrameworkClasspath.isEmpty()) {
+      tonyConf.set(TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH, hadoopFrameworkClasspath);
     }
-    if (!mapReduceFrameworkPath.isEmpty()) {
+    if (!hadoopFrameworkLocation.isEmpty()) {
       try {
-        // mapReduceFrameworkPath format: [scheme]://[host][path]#[fragment].
+        // hadoopFrameworkLocation format: [scheme]://[host][path]#[fragment].
         // For example, hdfs://ltx1-1234/mapred/framework/hadoop-mapreduce-3.1.2.tar#mrframework
-        URI mapReduceFrameworkURI = new URI(mapReduceFrameworkPath);
+        URI hadoopFrameworkURI = new URI(hadoopFrameworkLocation);
 
         // If fragment was defined in the URI, it is used as the alias of the localized file. For example,
         // hdfs://ltx1-1234/mapred/framework/hadoop-mapreduce-3.1.2.tar#mrframework will be localized as
         // mrframework rather than hadoop-mapreduce-3.1.2.tar in the container.
-        if (mapReduceFrameworkURI.getFragment() != null) {
-          String localizedFileName = mapReduceFrameworkURI.getFragment();
+        if (hadoopFrameworkURI.getFragment() != null) {
+          String localizedFileName = hadoopFrameworkURI.getFragment();
           // Remove fragment in the mapReduceFrameworkURI so that it can be located on file system.
           URI uriWithoutFragment = new URI(
-              mapReduceFrameworkURI.getScheme(),
-              mapReduceFrameworkURI.getSchemeSpecificPart(),
+              hadoopFrameworkURI.getScheme(),
+              hadoopFrameworkURI.getSchemeSpecificPart(),
               null);
           Utils.appendConfResources(
               TonyConfigurationKeys.getContainerResourcesKey(),
-              // MapReduce framework path contains an archive. Rename archive name to localizedFileName.
+              // hadoop framework location contains an archive. Rename archive name to localizedFileName.
               uriWithoutFragment + Constants.RESOURCE_DIVIDER + localizedFileName + Constants.ARCHIVE_SUFFIX,
               tonyConf);
         } else {
           Utils.appendConfResources(
               TonyConfigurationKeys.getContainerResourcesKey(),
-              mapReduceFrameworkURI + Constants.ARCHIVE_SUFFIX,
+              hadoopFrameworkURI + Constants.ARCHIVE_SUFFIX,
               tonyConf);
         }
       } catch (URISyntaxException e) {
-        throw new RuntimeException("Failed to parse MapReduce framework URI " + mapReduceFrameworkPath, e);
+        throw new RuntimeException(
+            "Failed to parse Hadoop framework Location " + hadoopFrameworkLocation + " to URI.", e);
       }
     }
 
@@ -447,16 +448,16 @@ public class TonyClient implements AutoCloseable {
     createYarnClient();
     initMapRedConf();
 
-    mapReduceFrameworkPath = tonyConf.get(
-        TonyConfigurationKeys.APPLICATION_MAPREDUCE_PATH,
+    hadoopFrameworkLocation = tonyConf.get(
+        TonyConfigurationKeys.APPLICATION_HADOOP_LOCATION,
         mapredConf.get(Constants.MAPREDUCE_APPLICATION_FRAMEWORK_PATH, ""));
-    mapReduceFrameworkClasspath = tonyConf.get(
-        TonyConfigurationKeys.APPLICATION_MAPREDUCE_CLASSPATH,
+    hadoopFrameworkClasspath = tonyConf.get(
+        TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH,
         mapredConf.get(Constants.MAPREDUCE_APPLICATION_CLASSPATH, ""));
-    // Classpath in mapReduceFrameworkClasspath was separated by comma.
+    // Classpath in hadoopFrameworkClasspath was separated by comma.
     // Replace it with ApplicationConstants.CLASS_PATH_SEPARATOR.
-    if (!mapReduceFrameworkClasspath.isEmpty()) {
-      mapReduceFrameworkClasspath = mapReduceFrameworkClasspath.replace(
+    if (!hadoopFrameworkClasspath.isEmpty()) {
+      hadoopFrameworkClasspath = hadoopFrameworkClasspath.replace(
           ",", ApplicationConstants.CLASS_PATH_SEPARATOR);
     }
 
@@ -864,10 +865,10 @@ public class TonyClient implements AutoCloseable {
     StringBuilder classPathEnv = new StringBuilder(ApplicationConstants.Environment.CLASSPATH.$$())
         .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
 
-    String mapReduceClasspath = mapReduceFrameworkClasspath;
+    String mapReduceClasspath = hadoopFrameworkClasspath;
     if (mapReduceClasspath.isEmpty()) {
-      // Yarn application classpath contains standard MapReduce classpath.
-      mapReduceClasspath = getYarnApplicationClasspath(yarnConf);
+      // Get standard hadoop classpath from Yarn configuration.
+      mapReduceClasspath = getDefaultHadoopClasspath(yarnConf);
     }
     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
     classPathEnv.append(mapReduceClasspath);
