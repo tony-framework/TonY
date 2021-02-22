@@ -47,7 +47,11 @@ public class TokenCache {
       fsSet.add(path.getFileSystem(conf));
     }
     for (FileSystem fs : fsSet) {
-      obtainTokensForNamenodesInternal(fs, credentials, renewer);
+      try {
+        obtainTokensForNamenodesInternal(fs, credentials, renewer);
+      } catch (Exception e) {
+        LOG.error("Errors on getting delegation token for " + fs.getUri(), e);
+      }
     }
   }
 
