@@ -84,12 +84,13 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.ResourceNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.UTCClock;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
+
 
 public class ApplicationMaster {
   private static final Log LOG = LogFactory.getLog(ApplicationMaster.class);
@@ -1076,11 +1077,10 @@ public class ApplicationMaster {
         // Need to explicitly remove container requests from remoteRequestsTable in AMRMClient, otherwise
         // resources get double-requested (YARN-1902)
         int numGPU = 0;
-        try {
+        if (ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
           numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
-        } catch (ResourceNotFoundException e) {
-          LOG.debug("No GPU resource configured for the cluster. ", e);
         }
+
         amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
             "", 1, container.getResource().getMemorySize(),
             container.getResource().getVirtualCores(),
