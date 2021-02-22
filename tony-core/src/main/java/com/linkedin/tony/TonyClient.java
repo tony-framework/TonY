@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -98,6 +99,7 @@ public class TonyClient implements AutoCloseable {
   private YarnClient yarnClient;
   private HdfsConfiguration hdfsConf = new HdfsConfiguration();
   private YarnConfiguration yarnConf = new YarnConfiguration();
+  private Configuration mapredConf = new Configuration();
   private Options opts;
 
   // RPC
@@ -109,6 +111,7 @@ public class TonyClient implements AutoCloseable {
   // Containers set up.
   private String hdfsConfAddress = null;
   private String yarnConfAddress = null;
+  private String mapredConfAddress = null;
   private long amMemory;
   private int amVCores;
   private int amGpus;
@@ -122,6 +125,8 @@ public class TonyClient implements AutoCloseable {
   private long appTimeout;
   private boolean secureMode;
   private Map<String, String> containerEnv = new HashMap<>();
+  private String hadoopFrameworkLocation = null;
+  private String hadoopFrameworkClasspath = null;
 
   private String tonyFinalConfPath;
   private Configuration tonyConf;
@@ -137,6 +142,21 @@ public class TonyClient implements AutoCloseable {
 
   // For access from CLI.
   private Set<TaskInfo> taskInfos = new HashSet<>();
+
+  /**
+   * Gets default hadoop application classpath from yarnConf.
+   */
+  public static String getDefaultHadoopClasspath(Configuration yarnConf) {
+    StringBuilder classPathBuilder = new StringBuilder();
+    for (String c : yarnConf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+        YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
+      if (classPathBuilder.length() > 0) {
+        classPathBuilder.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+      }
+      classPathBuilder.append(c.trim());
+    }
+    return classPathBuilder.toString();
+  }
 
   public TonyClient() {
     this(new Configuration(false));
@@ -217,6 +237,43 @@ public class TonyClient implements AutoCloseable {
     addConfToResources(yarnConf, yarnConfAddress, Constants.YARN_SITE_CONF);
     addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
     processTonyConfResources(tonyConf, fs);
+
+    // Update map reduce framework configuration so that the AM won't need to resolve it again.
+    if (!hadoopFrameworkClasspath.isEmpty()) {
+      tonyConf.set(TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH, hadoopFrameworkClasspath);
+    }
+    if (!hadoopFrameworkLocation.isEmpty()) {
+      try {
+        // hadoopFrameworkLocation format: [scheme]://[host][path]#[fragment].
+        // For example, hdfs://ltx1-1234/mapred/framework/hadoop-mapreduce-3.1.2.tar#mrframework
+        URI hadoopFrameworkURI = new URI(hadoopFrameworkLocation);
+
+        // If fragment was defined in the URI, it is used as the alias of the localized file. For example,
+        // hdfs://ltx1-1234/mapred/framework/hadoop-mapreduce-3.1.2.tar#mrframework will be localized as
+        // mrframework rather than hadoop-mapreduce-3.1.2.tar in the container.
+        if (hadoopFrameworkURI.getFragment() != null) {
+          String localizedFileName = hadoopFrameworkURI.getFragment();
+          // Remove fragment in the mapReduceFrameworkURI so that it can be located on file system.
+          URI uriWithoutFragment = new URI(
+              hadoopFrameworkURI.getScheme(),
+              hadoopFrameworkURI.getSchemeSpecificPart(),
+              null);
+          Utils.appendConfResources(
+              TonyConfigurationKeys.getContainerResourcesKey(),
+              // hadoop framework location contains an archive. Rename archive name to localizedFileName.
+              uriWithoutFragment + Constants.RESOURCE_DIVIDER + localizedFileName + Constants.ARCHIVE_SUFFIX,
+              tonyConf);
+        } else {
+          Utils.appendConfResources(
+              TonyConfigurationKeys.getContainerResourcesKey(),
+              hadoopFrameworkURI + Constants.ARCHIVE_SUFFIX,
+              tonyConf);
+        }
+      } catch (URISyntaxException e) {
+        throw new RuntimeException(
+            "Failed to parse Hadoop framework Location " + hadoopFrameworkLocation + " to URI.", e);
+      }
+    }
 
     String tonyFinalConf = Utils.getClientResourcesPath(appId.toString(), Constants.TONY_FINAL_XML);
     // Write user's overridden conf to an xml to be localized.
@@ -328,6 +385,18 @@ public class TonyClient implements AutoCloseable {
     yarnClient.init(yarnConf);
   }
 
+  private void initMapRedConf() {
+    String hadoopConfDir = System.getenv(Constants.HADOOP_CONF_DIR);
+    if (hadoopConfDir != null) {
+      mapredConf.addResource(new Path(hadoopConfDir + File.separatorChar + Constants.CORE_SITE_CONF));
+      mapredConf.addResource(new Path(hadoopConfDir + File.separatorChar + Constants.MAPRED_SITE_CONF));
+    }
+
+    if (mapredConfAddress != null) {
+      mapredConf.addResource(new Path(mapredConfAddress));
+    }
+  }
+
   private void initOptions() {
     opts = Utils.getCommonOptions();
     opts.addOption("executes", true, "The file to execute on workers.");
@@ -374,8 +443,23 @@ public class TonyClient implements AutoCloseable {
 
     hdfsConfAddress = tonyConf.get(TonyConfigurationKeys.HDFS_CONF_LOCATION);
     yarnConfAddress = tonyConf.get(TonyConfigurationKeys.YARN_CONF_LOCATION);
+    mapredConfAddress = tonyConf.get(TonyConfigurationKeys.MAPRED_CONF_LOCATION);
     initHdfsConf();
     createYarnClient();
+    initMapRedConf();
+
+    hadoopFrameworkLocation = tonyConf.get(
+        TonyConfigurationKeys.APPLICATION_HADOOP_LOCATION,
+        mapredConf.get(Constants.MAPREDUCE_APPLICATION_FRAMEWORK_PATH, ""));
+    hadoopFrameworkClasspath = tonyConf.get(
+        TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH,
+        mapredConf.get(Constants.MAPREDUCE_APPLICATION_CLASSPATH, ""));
+    // Classpath in hadoopFrameworkClasspath was separated by comma.
+    // Replace it with ApplicationConstants.CLASS_PATH_SEPARATOR.
+    if (!hadoopFrameworkClasspath.isEmpty()) {
+      hadoopFrameworkClasspath = hadoopFrameworkClasspath.replace(
+          ",", ApplicationConstants.CLASS_PATH_SEPARATOR);
+    }
 
     taskParams = cliParser.getOptionValue("task_params");
     pythonBinaryPath = cliParser.getOptionValue("python_binary_path");
@@ -767,7 +851,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   private void setAMEnvironment(Map<String, LocalResource> localResources,
-                                               FileSystem fs) throws IOException {
+                                FileSystem fs) throws IOException {
 
     LocalResource tonyConfResource = localResources.get(Constants.TONY_FINAL_XML);
     Utils.addEnvironmentForResource(tonyConfResource, fs, Constants.TONY_CONF_PREFIX, containerEnv);
@@ -780,12 +864,15 @@ public class TonyClient implements AutoCloseable {
     // the classpath to "." for the application jar
     StringBuilder classPathEnv = new StringBuilder(ApplicationConstants.Environment.CLASSPATH.$$())
         .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
-    for (String c : yarnConf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
-        YarnConfiguration.DEFAULT_YARN_CROSS_PLATFORM_APPLICATION_CLASSPATH)) {
-      classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-      classPathEnv.append(c.trim());
+
+    String hadoopFrameworkClasspath = this.hadoopFrameworkClasspath;
+    if (hadoopFrameworkClasspath.isEmpty()) {
+      // Get standard hadoop classpath from Yarn configuration.
+      hadoopFrameworkClasspath = getDefaultHadoopClasspath(yarnConf);
     }
+    classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
+    classPathEnv.append(hadoopFrameworkClasspath);
+
     containerEnv.put("CLASSPATH", classPathEnv.toString());
   }
 
