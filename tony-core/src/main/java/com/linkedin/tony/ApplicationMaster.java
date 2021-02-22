@@ -84,7 +84,6 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.ResourceNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
@@ -1081,7 +1080,7 @@ public class ApplicationMaster {
         if (ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
           numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
         }
-        
+
         amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
             "", 1, container.getResource().getMemorySize(),
             container.getResource().getVirtualCores(),
