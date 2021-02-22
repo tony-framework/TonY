@@ -28,6 +28,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from distutils.version import LooseVersion
+
 from tensorflow.examples.tutorials.mnist import input_data
 
 import json
@@ -35,11 +37,14 @@ import logging
 import os
 import sys
 
+import tensorboard
 import tensorboard.program as tb_program
 import tensorflow as tf
 
 # Environment variable containing port to launch TensorBoard on, set by TonY.
 TB_PORT_ENV_VAR = 'TB_PORT'
+
+TB_SERVER_REUSE_PORT_VAR = 'TB_SERVER_REUSE_PORT'
 
 # Input/output directories
 tf.flags.DEFINE_string('data_dir', '/tmp/tensorflow/mnist/input_data',
@@ -179,7 +184,12 @@ def create_model():
 def start_tensorboard(logdir):
     tb = tb_program.TensorBoard()
     port = int(os.getenv(TB_PORT_ENV_VAR, 6006))
-    tb.configure(logdir=logdir, port=port)
+    
+    if LooseVersion(tensorboard.__version__) >= LooseVersion("2.5.0") and os.getenv(TB_SERVER_REUSE_PORT_VAR) == "true":
+        tb.configure(logdir=logdir, port=port, reuse_port=True)
+    else:
+        tb.configure(logdir=logdir, port=port)
+
     tb.launch()
     logging.info("Starting TensorBoard with --logdir=%s" % logdir)
 

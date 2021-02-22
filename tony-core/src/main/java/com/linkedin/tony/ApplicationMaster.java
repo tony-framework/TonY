@@ -860,9 +860,9 @@ public class ApplicationMaster {
         killChiefWorkerIfTesting(taskId);
       }
 
-      // two distributed mode(default is cluster) cases:
-      // 1. when in independent-task mode, task will be allowed to run when AM accept worker registered spec,
-      // 2. when in cluster mode, it will start until all tasks have registered.
+      // two distributed mode (default is GANG) cases:
+      // 1. In FCFS mode, task will be allowed to run when AM accept worker registered spec,
+      // 2. In GANG mode, it will start until all tasks have registered.
       switch (distributedMode) {
         case GANG:
           int numExpectedTasks = session.getNumExpectedTasks();
