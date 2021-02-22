@@ -865,13 +865,13 @@ public class TonyClient implements AutoCloseable {
     StringBuilder classPathEnv = new StringBuilder(ApplicationConstants.Environment.CLASSPATH.$$())
         .append(ApplicationConstants.CLASS_PATH_SEPARATOR).append("./*");
 
-    String mapReduceClasspath = hadoopFrameworkClasspath;
-    if (mapReduceClasspath.isEmpty()) {
+    String hadoopFrameworkClasspath = this.hadoopFrameworkClasspath;
+    if (hadoopFrameworkClasspath.isEmpty()) {
       // Get standard hadoop classpath from Yarn configuration.
-      mapReduceClasspath = getDefaultHadoopClasspath(yarnConf);
+      hadoopFrameworkClasspath = getDefaultHadoopClasspath(yarnConf);
     }
     classPathEnv.append(ApplicationConstants.CLASS_PATH_SEPARATOR);
-    classPathEnv.append(mapReduceClasspath);
+    classPathEnv.append(hadoopFrameworkClasspath);
 
     containerEnv.put("CLASSPATH", classPathEnv.toString());
   }
