@@ -516,14 +516,23 @@ public class Utils {
     try {
       Map<String, List<String>> spec =
               mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
-      if (EVALUATOR_JOB_NAME.equals(jobName.toLowerCase())) {
-        spec.keySet().removeIf(k -> !k.equals(EVALUATOR_JOB_NAME));
+
+      boolean isEvalRole = isTFEvaluator(jobName);
+      if (isEvalRole) {
+        spec.keySet().removeIf(k -> !isTFEvaluator(k));
+      } else {
+        spec.keySet().removeIf(Utils::isTFEvaluator);
       }
+
       TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
       return mapper.writeValueAsString(tfConfig);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
+  }
+
+  private static boolean isTFEvaluator(String jobName) {
+    return EVALUATOR_JOB_NAME.equals(jobName.toLowerCase());
   }
 
   public static String getClientResourcesPath(String appId, String fileName) {
