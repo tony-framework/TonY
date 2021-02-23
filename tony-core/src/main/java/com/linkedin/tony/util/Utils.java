@@ -518,9 +518,7 @@ public class Utils {
               mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
 
       boolean isEvalRole = isTFEvaluator(jobName);
-      if (isEvalRole) {
-        spec.keySet().removeIf(k -> !isTFEvaluator(k));
-      } else {
+      if (!isEvalRole) {
         spec.keySet().removeIf(Utils::isTFEvaluator);
       }
 
