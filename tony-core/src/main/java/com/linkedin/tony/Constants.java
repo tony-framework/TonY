@@ -107,6 +107,7 @@ public class Constants {
   public static final String SERVER_JOB_NAME = "server";
   public static final String PS_JOB_NAME = "ps";
   public static final String WORKER_JOB_NAME = "worker";
+  public static final String EVALUATOR_JOB_NAME = "evaluator";
   public static final String NOTEBOOK_JOB_NAME = "notebook";
   public static final String DRIVER_JOB_NAME = "driver";
   public static final String APPID = "appid";

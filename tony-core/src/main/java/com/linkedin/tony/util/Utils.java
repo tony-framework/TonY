@@ -4,19 +4,36 @@
  */
 package com.linkedin.tony.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
-import com.linkedin.tony.Constants;
-import com.linkedin.tony.LocalizableResource;
-import com.linkedin.tony.TFConfig;
-import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.tensorflow.JobContainerRequest;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
-import net.lingala.zip4j.core.ZipFile;
-import net.lingala.zip4j.exception.ZipException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.collections.CollectionUtils;
@@ -45,36 +62,22 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.net.URL;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
+import com.linkedin.tony.Constants;
+import com.linkedin.tony.LocalizableResource;
+import com.linkedin.tony.TFConfig;
+import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.rpc.TaskInfo;
+import com.linkedin.tony.tensorflow.JobContainerRequest;
 
-import static com.linkedin.tony.Constants.LOGS_SUFFIX;
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
+
+import static com.linkedin.tony.Constants.EVALUATOR_JOB_NAME;
 import static com.linkedin.tony.Constants.JOBS_SUFFIX;
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
 
 public class Utils {
   private static final Log LOG = LogFactory.getLog(Utils.class);
@@ -513,6 +516,9 @@ public class Utils {
     try {
       Map<String, List<String>> spec =
               mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+      if (EVALUATOR_JOB_NAME.equals(jobName.toLowerCase())) {
+        spec.keySet().removeIf(k -> !k.equals(EVALUATOR_JOB_NAME));
+      }
       TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
       return mapper.writeValueAsString(tfConfig);
     } catch (IOException ioe) {

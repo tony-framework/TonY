@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableMap;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.JobContainerRequest;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.SocketException;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -32,8 +34,8 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.testng.annotations.Test;
 
-import static com.linkedin.tony.Constants.LOGS_SUFFIX;
 import static com.linkedin.tony.Constants.JOBS_SUFFIX;
+import static com.linkedin.tony.Constants.LOGS_SUFFIX;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
@@ -161,6 +163,16 @@ public class TestUtils {
     assertEquals(config.getCluster().get("worker").get(0), "host0:1234");
     assertEquals(config.getCluster().get("worker").get(1), "host1:1234");
     assertEquals(config.getCluster().get("ps").get(0), "host2:1234");
+
+    String evaluatorSpec =
+            "{\"worker\":[\"host0:1234\", \"host1:1234\"], \"ps\":[\"host2:1234\"], " +
+                    "\"evaluator\":[\"host3:1234\"]}";
+    tfConfig = Utils.constructTFConfig(evaluatorSpec, "evaluator", 0);
+    config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
+    assertEquals(config.getTask().getType(), "evaluator");
+    assertEquals(config.getTask().getIndex(), 0);
+    assertEquals(config.getCluster().size(), 1);
+    assertEquals(config.getCluster().get("evaluator").get(0), "host3:1234");
   }
 
   @Test
