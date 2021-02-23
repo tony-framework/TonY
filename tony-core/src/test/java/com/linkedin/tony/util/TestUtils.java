@@ -172,6 +172,20 @@ public class TestUtils {
     assertEquals(config.getTask().getIndex(), 0);
     assertEquals(config.getCluster().size(), 1);
     assertEquals(config.getCluster().get("evaluator").get(0), "host3:1234");
+
+    evaluatorSpec = "{\"worker\":[\"host0:1234\", \"host1:1234\"], "
+            + "\"ps\":[\"host2:1234\"],\"evaluator\":[\"host3:1234\"]}";
+    tfConfig = Utils.constructTFConfig(evaluatorSpec, "worker", 0);
+    config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
+    assertEquals(config.getTask().getType(), "worker");
+    assertEquals(config.getTask().getIndex(), 0);
+    assertEquals(config.getCluster().size(), 2);
+    assertNotNull(config.getCluster().get("ps"));
+    assertNotNull(config.getCluster().get("worker"));
+    assertNull(config.getCluster().get("evaluator"));
+    assertEquals(config.getCluster().get("worker").get(0), "host0:1234");
+    assertEquals(config.getCluster().get("worker").get(1), "host1:1234");
+    assertEquals(config.getCluster().get("ps").get(0), "host2:1234");
   }
 
   @Test
