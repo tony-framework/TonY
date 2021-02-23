@@ -271,9 +271,6 @@ public class TonyConfigurationKeys {
   public static final String FAIL_ON_WORKER_FAILURE_ENABLED = TONY_APPLICATION_PREFIX + "fail-on-worker-failure-enabled";
   public static final boolean DEFAULT_FAIL_ON_WORKER_FAILURE_ENABLED = false;
 
-  // Training chief configuration
-  public static final String CHIEF_PREFIX = TONY_PREFIX + "chief.";
-
   // Tony with docker configuration
   public static final String DOCKER_PREFIX = TONY_PREFIX + "docker.";
   public static final String DOCKER_ENABLED = DOCKER_PREFIX + "enabled";
