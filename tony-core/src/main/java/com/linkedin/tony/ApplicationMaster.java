@@ -90,6 +90,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.UTCClock;
 
+
 public class ApplicationMaster {
   private static final Log LOG = LogFactory.getLog(ApplicationMaster.class);
 
@@ -1077,7 +1078,7 @@ public class ApplicationMaster {
         amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
             "", 1, container.getResource().getMemorySize(),
             container.getResource().getVirtualCores(),
-            (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue(),
+            Utils.getNumOfRequestedGPU(container),
             container.getPriority().getPriority(),
             getNodeLabelsExpression(container.getPriority().getPriority()),
             new ArrayList<>())));

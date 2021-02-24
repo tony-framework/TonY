@@ -28,6 +28,8 @@ dependency-reduced-pom.xml
 log/
 out/
 target
+tony-core/bin
+tony-cli/bin
 tony-portal/conf/*.jks
 tony-portal/conf/application.conf
 tony-portal/conf/prod.conf
