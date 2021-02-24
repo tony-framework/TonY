@@ -43,6 +43,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -383,6 +384,11 @@ public class Utils {
               TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
+      if (gpus > 0 && !ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
+        LOG.warn(String.format("User requested %d GPUs for job '%s' but GPU is not available on the cluster. ",
+            gpus, jobName));
+      }
+
       String nodeLabel = conf.get(TonyConfigurationKeys.getNodeLabelKey(jobName));
 
       // Any task that belong to the training stage depend on prepare stage
@@ -416,6 +422,18 @@ public class Utils {
     AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
+  }
+
+  /**
+   * Gets the number of requested GPU in a Container. If GPU is not available on the cluster,
+   * the function will return zero.
+   */
+  public static int getNumOfRequestedGPU(Container container) {
+    int numGPU = 0;
+    if (ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
+      numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
+    }
+    return numGPU;
   }
 
   private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,

@@ -89,7 +89,6 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.UTCClock;
-import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
 
 public class ApplicationMaster {
@@ -1076,15 +1075,10 @@ public class ApplicationMaster {
       for (Container container : containers) {
         // Need to explicitly remove container requests from remoteRequestsTable in AMRMClient, otherwise
         // resources get double-requested (YARN-1902)
-        int numGPU = 0;
-        if (ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
-          numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
-        }
-
         amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
             "", 1, container.getResource().getMemorySize(),
             container.getResource().getVirtualCores(),
-            numGPU,
+            Utils.getNumOfRequestedGPU(container),
             container.getPriority().getPriority(),
             getNodeLabelsExpression(container.getPriority().getPriority()),
             new ArrayList<>())));
