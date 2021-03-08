@@ -517,7 +517,9 @@ public class Utils {
       Map<String, List<String>> spec =
               mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
 
-      spec.keySet().removeIf(Utils::isTFEvaluator);
+      if (!isTFEvaluator(jobName)) {
+          spec.keySet().removeIf(Utils::isTFEvaluator);
+      }
 
       TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
       return mapper.writeValueAsString(tfConfig);
