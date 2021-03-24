@@ -179,6 +179,9 @@ public class TonyConfigurationKeys {
   public static final String AM_GPUS = AM_PREFIX + "gpus";
   public static final int DEFAULT_AM_GPUS = 0;
 
+  public static final String AM_WAIT_CLIENT_STOP_TIMEOUT = AM_PREFIX + "wait-client-signal-stop-timeout-sec";
+  public static final int DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT = 15;
+
   // Keys/default values for configurable TensorFlow job names
   public static final String INSTANCES_REGEX = "tony\\.([a-z]+)\\.instances";
   public static final String MAX_TOTAL_RESOURCES_REGEX = TONY_TASK_PREFIX + "max-total-([a-z]+)";
