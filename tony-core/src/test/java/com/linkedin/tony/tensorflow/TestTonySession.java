@@ -26,8 +26,8 @@ public class TestTonySession {
     // Need to call twice because there are 2 workers.
     session.getAndInitMatchingTaskByPriority(workerPriority).setTaskInfo(new ContainerPBImpl());
     session.getAndInitMatchingTaskByPriority(workerPriority).setTaskInfo(new ContainerPBImpl());
-    session.onTaskCompleted(Constants.PS_JOB_NAME, "0", 0);
-    session.onTaskCompleted(Constants.WORKER_JOB_NAME, "1", 0);
+    session.onTaskCompleted(Constants.PS_JOB_NAME, "0", 0, null);
+    session.onTaskCompleted(Constants.WORKER_JOB_NAME, "1", 0, null);
 
     Assert.assertEquals(session.getTotalTasks(), 3);
     Assert.assertEquals(session.getTotalTrackedTasks(), 2);
