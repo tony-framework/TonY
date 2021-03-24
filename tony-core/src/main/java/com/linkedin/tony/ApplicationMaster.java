@@ -1216,7 +1216,7 @@ public class ApplicationMaster {
       }
 
       LOG.info("Container " + containerId + " for task " + task + " finished with exitStatus " + exitStatus + ".");
-      session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus);
+      session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus, diagnosticMessage);
       scheduler.registerDependencyCompleted(task.getJobName());
       if (ContainerExitStatus.SUCCESS != exitStatus) {
         eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
