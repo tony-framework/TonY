@@ -992,31 +992,35 @@ public class TonyClient implements AutoCloseable {
     return result;
   }
 
-  private void updateTaskInfos() throws IOException, YarnException {
-    if (amRpcClient != null) {
-      Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
-      Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
-          .filter(taskInfo -> !taskInfos.contains(taskInfo))
-          .collect(Collectors.toSet());
-      // If task status is changed, invoke callback for all listeners.
-      if (!taskInfoDiff.isEmpty()) {
-        for (TaskInfo taskInfo : taskInfoDiff) {
-          LOG.info("Task status updated: " + taskInfo);
+  private void updateTaskInfos() {
+    try {
+      if (amRpcClient != null) {
+        Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
+        Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
+                .filter(taskInfo -> !taskInfos.contains(taskInfo))
+                .collect(Collectors.toSet());
+        // If task status is changed, invoke callback for all listeners.
+        if (!taskInfoDiff.isEmpty()) {
+          for (TaskInfo taskInfo : taskInfoDiff) {
+            LOG.info("Task status updated: " + taskInfo);
+          }
+          for (TaskUpdateListener listener : listeners) {
+            listener.onTaskInfosUpdated(receivedInfos);
+          }
+          taskInfos = receivedInfos;
         }
-        for (TaskUpdateListener listener : listeners) {
-          listener.onTaskInfosUpdated(receivedInfos);
-        }
-        taskInfos = receivedInfos;
-      }
 
-      // Query AM for taskInfos if taskInfos is empty.
-      if (amRpcServerInitialized && !isTaskUrlsPrinted) {
-        if (!taskInfos.isEmpty()) {
-          // Print TaskUrls
-          new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
-          isTaskUrlsPrinted = true;
+        // Query AM for taskInfos if taskInfos is empty.
+        if (amRpcServerInitialized && !isTaskUrlsPrinted) {
+          if (!taskInfos.isEmpty()) {
+            // Print TaskUrls
+            new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
+            isTaskUrlsPrinted = true;
+          }
         }
       }
+    } catch (IOException | YarnException e) {
+      LOG.error("Errors on calling AM to update task infos.");
     }
   }
 
