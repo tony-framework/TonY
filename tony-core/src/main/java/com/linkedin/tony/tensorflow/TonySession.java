@@ -258,7 +258,7 @@ public class TonySession {
   /**
    * Refresh task status when a TaskExecutor registers its exit code with AM.
    */
-  public void onTaskCompleted(String jobName, String jobIndex, int exitCode) {
+  public void onTaskCompleted(String jobName, String jobIndex, int exitCode, String taskDiagnosticMsg) {
     LOG.info(String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode));
     TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
@@ -275,7 +275,11 @@ public class TonySession {
     if (exitCode != ContainerExitStatus.SUCCESS && exitCode != ContainerExitStatus.KILLED_BY_APPMASTER) {
       if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName) || isFailOnWorkerFailure()) {
         trainingFinished = true;
-        setFinalStatus(FinalApplicationStatus.FAILED, "Exit status: " + exitCode);
+        String diagnostic = "Exit status: " + exitCode;
+        if (taskDiagnosticMsg != null) {
+          diagnostic += ". Error msg: " + taskDiagnosticMsg;
+        }
+        setFinalStatus(FinalApplicationStatus.FAILED, diagnostic);
       }
     }
   }
