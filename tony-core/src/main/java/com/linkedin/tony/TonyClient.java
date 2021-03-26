@@ -13,6 +13,7 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
+import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.security.TokenCache;
 import com.linkedin.tony.tensorflow.JobContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
@@ -31,13 +32,14 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,6 +52,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -135,7 +138,6 @@ public class TonyClient implements AutoCloseable {
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
-  private boolean isTaskUrlsPrinted = false;
 
   private CallbackHandler callbackHandler;
   private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
@@ -950,7 +952,22 @@ public class TonyClient implements AutoCloseable {
       FinalApplicationStatus finalApplicationStatus = report.getFinalApplicationStatus();
       initRpcClientAndLogAMUrl(report);
 
-      updateTaskInfos();
+      boolean isFirstTimePrint = taskInfos.isEmpty();
+      boolean isTaskUpdated = updateTaskInfoAndReturn();
+      if (isTaskUpdated) {
+        if (isFirstTimePrint) {
+          // if it's first time printing tasks, log detailed info of the tasks, including
+          // name, index, status, and URL.
+          LOG.info("------  Application (re)starts, status of ALL tasks ------");
+          logTaskInfo(taskInfos);
+        } else {
+          // if tasks are already logged before, then only print task name, index, and status. NOT
+          // print URL which could overwhelm the log. Users can always find the URL of corresponding
+          // task they are interested from previously printed logs.
+          LOG.info("------ Task Status Updated ------");
+          logSimplifiedTaskInfo(taskInfos);
+        }
+      }
 
       if (YarnApplicationState.KILLED == appState) {
         LOG.warn("Application " + appId.getId() + " was killed. YarnState: " + appState + ". "
@@ -962,7 +979,11 @@ public class TonyClient implements AutoCloseable {
       }
 
       if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
-        updateTaskInfos();
+        updateTaskInfoAndReturn();
+        LOG.info("-----  Application finished, status of ALL tasks -----");
+        // log detailed task info including URL so that users can check the URL of failed worker
+        // quickly without the need to scroll up to the top to find out the URL.
+        logTaskInfo(taskInfos);
         LOG.info("Application " + appId.getId() + " finished with YarnState=" + appState
             + ", DSFinalStatus=" + finalApplicationStatus + ", breaking monitoring loop.");
         String tonyPortalUrl =
@@ -992,36 +1013,100 @@ public class TonyClient implements AutoCloseable {
     return result;
   }
 
-  private void updateTaskInfos() {
-    try {
-      if (amRpcClient != null) {
+
+  /**
+   * Logs task info. Task info will be sorted by status, then name, then index in the log.
+   * Task order follows {@link TaskStatus#STATUS_SORTED_BY_ATTENTION}. For tasks of same status,
+   * sorts them based on name, then index.
+   * An example of output:
+   *   FAILED, chief, 0, some url
+   *   FAILED, ps, 0, some url
+   *   FINISHED, worker, 0, some url
+   *   FINISHED, worker, 1, some url
+   */
+  private static void logTaskInfo(Collection<TaskInfo> tasks) {
+    List<TaskInfo> sortedTasks = new ArrayList<>();
+    sortedTasks.addAll(tasks);
+    Collections.sort(sortedTasks);
+    String log = "%s, %s, %s, %s";
+    for (TaskInfo taskInfo : sortedTasks) {
+      LOG.info(String.format(log, taskInfo.getStatus(), taskInfo.getName(),
+          taskInfo.getIndex(), taskInfo.getUrl()));
+    }
+  }
+
+  /**
+   * Merge tasks by task names.
+   * E.g:
+   * input is a list of TaskInfo:
+   *     TaskInfo("ps", "0", "url")
+   *     TaskInfo("ps", "1", "url")
+   *     TaskInfo("worker", "0", "url")
+   *     TaskInfo("worker", "1", "url")
+   * returns:
+   *     [TaskInfo] name: ps {0, 1}, worker {0, 1}
+   *
+   * @param tasks
+   */
+  @VisibleForTesting
+  static String mergeTasks(List<TaskInfo> tasks) {
+    StringBuffer toBePrinted = new StringBuffer();
+    List<String> taskGroup = new ArrayList<>();
+    for (int i = 0; i < tasks.size(); i++) {
+      taskGroup.add(tasks.get(i).getIndex());
+      if (i == tasks.size() - 1 || !tasks.get(i).getName().equals(tasks.get(i + 1).getName())) {
+        toBePrinted.append(tasks.get(i).getName() + " [" + StringUtils.join(taskGroup,
+            ", ") + "]" + " ");
+        taskGroup.clear();
+      }
+    }
+    return toBePrinted.toString();
+  }
+
+  /**
+   * Logs task name, index and status. Intentionally skip logging task URL to avoid info
+   * overwhelming.
+   * Log looks like following (group by status, and then sorted the tasks by task name then index):
+   * Status FAILED: ps {0, 1, 2} worker {1}
+   * Status RUNNING: ps {3} worker {0}
+   * @param tasks
+   */
+  private static void logSimplifiedTaskInfo(Collection<TaskInfo> tasks) {
+    List<TaskInfo> sortedTasks = new ArrayList<>();
+    sortedTasks.addAll(tasks);
+    Collections.sort(sortedTasks);
+
+    for (TaskStatus status : TaskStatus.STATUS_SORTED_BY_ATTENTION) {
+      // Get the tasks with the status
+      List<TaskInfo> taskInfoPerStatus =
+          sortedTasks.stream().filter(c -> c.getStatus().equals(status)).collect(Collectors.toList());
+      if (!taskInfoPerStatus.isEmpty()) {
+        LOG.info(status + ": " + mergeTasks(taskInfoPerStatus));
+      }
+    }
+  }
+
+  /**
+   * Updates task info and returns whether any task is updated.
+   */
+  private boolean updateTaskInfoAndReturn() {
+    boolean taskUpdated = false;
+    if (amRpcClient != null) {
+      try {
         Set<TaskInfo> receivedInfos = amRpcClient.getTaskInfos();
-        Set<TaskInfo> taskInfoDiff = receivedInfos.stream()
-                .filter(taskInfo -> !taskInfos.contains(taskInfo))
-                .collect(Collectors.toSet());
+        taskUpdated = !taskInfos.equals(receivedInfos);
         // If task status is changed, invoke callback for all listeners.
-        if (!taskInfoDiff.isEmpty()) {
-          for (TaskInfo taskInfo : taskInfoDiff) {
-            LOG.info("Task status updated: " + taskInfo);
-          }
+        if (taskUpdated) {
           for (TaskUpdateListener listener : listeners) {
             listener.onTaskInfosUpdated(receivedInfos);
           }
           taskInfos = receivedInfos;
         }
-
-        // Query AM for taskInfos if taskInfos is empty.
-        if (amRpcServerInitialized && !isTaskUrlsPrinted) {
-          if (!taskInfos.isEmpty()) {
-            // Print TaskUrls
-            new TreeSet<>(taskInfos).forEach(task -> Utils.printTaskUrl(task, LOG));
-            isTaskUrlsPrinted = true;
-          }
-        }
+      } catch (IOException | YarnException e) {
+        LOG.error("Errors on calling AM to update task infos.");
       }
-    } catch (IOException | YarnException e) {
-      LOG.error("Errors on calling AM to update task infos.");
     }
+    return taskUpdated;
   }
 
   private void initRpcClientAndLogAMUrl(ApplicationReport report) throws IOException {

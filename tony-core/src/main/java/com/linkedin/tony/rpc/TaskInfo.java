@@ -46,10 +46,15 @@ public class TaskInfo implements Comparable<TaskInfo> {
 
   @Override
   public int compareTo(TaskInfo other) {
-    if (!this.name.equals(other.name)) {
-      return this.name.compareTo(other.name);
+    if (this.getStatus().equals(other.getStatus())) {
+      if (!this.name.equals(other.name)) {
+        return this.name.compareTo(other.name);
+      }
+
+      return Integer.valueOf(this.index).compareTo(Integer.valueOf(other.index));
+    } else {
+      return TaskStatus.STATUS_SORTED_BY_ATTENTION.indexOf(this.getStatus()) - TaskStatus.STATUS_SORTED_BY_ATTENTION.indexOf(other.getStatus());
     }
-    return Integer.valueOf(this.index).compareTo(Integer.valueOf(other.index));
   }
 
   @Override
