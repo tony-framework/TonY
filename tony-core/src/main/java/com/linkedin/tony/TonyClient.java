@@ -962,9 +962,8 @@ public class TonyClient implements AutoCloseable {
           logTaskInfo(taskInfos);
         } else {
           // if tasks are already logged before, then only print task name, index, and status. NOT
-          // print URL which is too long to be user-friendly in the driver log. Users can
-          // always find the URL of corresponding task they are interested from previously
-          // printed logs.
+          // print URL which could overwhelm the log. Users can always find the URL of corresponding
+          // task they are interested from previously printed logs.
           LOG.info("------ Task Status Updated ------");
           logSimplifiedTaskInfo(taskInfos);
         }
@@ -982,7 +981,9 @@ public class TonyClient implements AutoCloseable {
       if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
         updateTaskInfoAndReturn();
         LOG.info("-----  Application finished, status of ALL tasks -----");
-        logSimplifiedTaskInfo(taskInfos);
+        // log detailed task info including URL so that users can check the URL of failed worker
+        // quickly without the need to scroll up to the top to find out the URL.
+        logTaskInfo(taskInfos);
         LOG.info("Application " + appId.getId() + " finished with YarnState=" + appState
             + ", DSFinalStatus=" + finalApplicationStatus + ", breaking monitoring loop.");
         String tonyPortalUrl =
@@ -1014,77 +1015,47 @@ public class TonyClient implements AutoCloseable {
 
 
   /**
-   * Sorts tasks based on status, name and index.
-   * Task order follows {@link TaskStatus#STATUS_SORTED_BY_ATTENTION}. For tasks of same status,
-   * sorts them based on name, then index.
-   * An example of output:
-   * [TaskInfo] name: ps, index: 1, url: url status: FAILED
-   * [TaskInfo] name: worker, index: 3, url: url status: FAILED
-   * [TaskInfo] name: worker, index: 1, url: url status: SUCCEEDED
-   * [TaskInfo] name: worker, index: 5, url: url status: FINISHED
-   * [TaskInfo] name: ps, index: 0, url: url status: RUNNING
-   * [TaskInfo] name: worker, index: 0, url: url status: RUNNING
-   * [TaskInfo] name: worker, index: 2, url: url status: RUNNING
-   * [TaskInfo] name: worker, index: 4, url: url status: RUNNING
-   */
-  @VisibleForTesting
-  static List<TaskInfo> sortTaskInfo(Collection<TaskInfo> tasks) {
-    List<TaskInfo> sortedAllTaskInfo = new ArrayList<>(tasks);
-    Collections.sort(sortedAllTaskInfo, (o1, o2) -> {
-      if (o1.getStatus().equals(o2.getStatus())) {
-        return o1.compareTo(o2);
-      } else {
-        return TaskStatus.STATUS_SORTED_BY_ATTENTION.indexOf(o1.getStatus()) - TaskStatus.STATUS_SORTED_BY_ATTENTION.indexOf(o2.getStatus());
-      }
-    });
-
-    return sortedAllTaskInfo;
-  }
-
-  /**
    * Logs task info. Task info will be sorted by status, then name, then index in the log.
    * Task order follows {@link TaskStatus#STATUS_SORTED_BY_ATTENTION}. For tasks of same status,
    * sorts them based on name, then index.
    * An example of output:
-   * [TaskInfo] name: ps, index: 1, url: url status: FAILED
-   * [TaskInfo] name: worker, index: 3, url: url status: FAILED
-   * [TaskInfo] name: worker, index: 1, url: url status: SUCCEEDED
-   * [TaskInfo] name: worker, index: 5, url: url status: FINISHED
-   * [TaskInfo] name: ps, index: 0, url: url status: RUNNING
-   * [TaskInfo] name: worker, index: 0, url: url status: RUNNING
-   * [TaskInfo] name: worker, index: 2, url: url status: RUNNING
-   * [TaskInfo] name: worker, index: 4, url: url status: RUNNING
+   *   FAILED, chief, 0, some url
+   *   FAILED, ps, 0, some url
+   *   FINISHED, worker, 0, some url
+   *   FINISHED, worker, 1, some url
    */
   private static void logTaskInfo(Collection<TaskInfo> tasks) {
-    List<TaskInfo> sortedTasks = sortTaskInfo(tasks);
+    List<TaskInfo> sortedTasks = new ArrayList<>();
+    sortedTasks.addAll(tasks);
+    Collections.sort(sortedTasks);
     String log = "%s, %s, %s, %s";
     for (TaskInfo taskInfo : sortedTasks) {
-      LOG.info(String.format(log, taskInfo.getName(), taskInfo.getIndex(), taskInfo.getStatus(),
-          taskInfo.getUrl()));
+      LOG.info(String.format(log, taskInfo.getStatus(), taskInfo.getName(),
+          taskInfo.getIndex(), taskInfo.getUrl()));
     }
   }
 
   /**
    * Merge tasks by task names.
    * E.g:
-   * input:
+   * input is a list of TaskInfo:
    *     TaskInfo("ps", "0", "url")
    *     TaskInfo("ps", "1", "url")
    *     TaskInfo("worker", "0", "url")
    *     TaskInfo("worker", "1", "url")
    * returns:
-   *     [TaskInfo] name: ps {1, 2}, worker {0, 1}
+   *     [TaskInfo] name: ps {0, 1}, worker {0, 1}
    *
-   * @param taskInfoByStatus
+   * @param tasks
    */
   @VisibleForTesting
-  static String mergeTasks(List<TaskInfo> taskInfoByStatus) {
+  static String mergeTasks(List<TaskInfo> tasks) {
     StringBuffer toBePrinted = new StringBuffer();
     List<String> taskGroup = new ArrayList<>();
-    for (int i = 0; i < taskInfoByStatus.size(); i++) {
-      taskGroup.add(taskInfoByStatus.get(i).getIndex());
-      if (i == taskInfoByStatus.size() - 1 || !taskInfoByStatus.get(i).getName().equals(taskInfoByStatus.get(i + 1).getName())) {
-        toBePrinted.append(taskInfoByStatus.get(i).getName() + " [" + StringUtils.join(taskGroup,
+    for (int i = 0; i < tasks.size(); i++) {
+      taskGroup.add(tasks.get(i).getIndex());
+      if (i == tasks.size() - 1 || !tasks.get(i).getName().equals(tasks.get(i + 1).getName())) {
+        toBePrinted.append(tasks.get(i).getName() + " [" + StringUtils.join(taskGroup,
             ", ") + "]" + " ");
         taskGroup.clear();
       }
@@ -1101,11 +1072,14 @@ public class TonyClient implements AutoCloseable {
    * @param tasks
    */
   private static void logSimplifiedTaskInfo(Collection<TaskInfo> tasks) {
-    List<TaskInfo> sortedTaskInfo = sortTaskInfo(tasks);
+    List<TaskInfo> sortedTasks = new ArrayList<>();
+    sortedTasks.addAll(tasks);
+    Collections.sort(sortedTasks);
 
     for (TaskStatus status : TaskStatus.STATUS_SORTED_BY_ATTENTION) {
+      // Get the tasks with the status
       List<TaskInfo> taskInfoPerStatus =
-          sortedTaskInfo.stream().filter(c -> c.getStatus().equals(status)).collect(Collectors.toList());
+          sortedTasks.stream().filter(c -> c.getStatus().equals(status)).collect(Collectors.toList());
       if (!taskInfoPerStatus.isEmpty()) {
         LOG.info(status + ": " + mergeTasks(taskInfoPerStatus));
       }

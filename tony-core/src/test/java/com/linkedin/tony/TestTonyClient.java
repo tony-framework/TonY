@@ -156,8 +156,9 @@ public class TestTonyClient {
     List<TaskInfo> expected = new ArrayList<>(Arrays.asList(task8, task4, task2, task6, task7,
         task1, task3, task5));
 
+    Collections.sort(tasks);
     int i = 0;
-    for (TaskInfo task : TonyClient.sortTaskInfo(tasks)) {
+    for (TaskInfo task : tasks) {
       assertEquals(task, expected.get(i++));
     }
   }
@@ -171,16 +172,16 @@ public class TestTonyClient {
     tasks.add(new TaskInfo("worker", "4", "url"));
     tasks.add(new TaskInfo("worker", "5", "url"));
     tasks.add(new TaskInfo("worker", "6", "url"));
-    assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps {1, 2, 3} worker {4, 5, 6}");
+    assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps [1, 2, 3] worker [4, 5, 6]");
   }
 
   @Test
   public void testMergeTasksSingleElement() {
     List<TaskInfo> tasks = new ArrayList<>();
     tasks.add(new TaskInfo("ps", "1", "url"));
-    assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps {1}");
+    assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps [1]");
 
     tasks.add(new TaskInfo("worker", "1", "url"));
-    assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps {1} worker {1}");
+    assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps [1] worker [1]");
   }
 }
