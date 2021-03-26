@@ -150,6 +150,12 @@
     <value>0</value>
   </property>
 
+  <property>
+    <description>Timeout, in seconds for AM waiting client stop signal before AM finish.</description>
+    <name>tony.am.wait-client-signal-stop-timeout-sec</name>
+    <value>15</value>
+  </property>
+
   <!-- PS configurations -->
   <property>
     <description>Parameter server memory size, requested as a string (e.g. '2g' or '2048m').</description>

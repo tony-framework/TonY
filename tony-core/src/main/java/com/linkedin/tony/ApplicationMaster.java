@@ -187,6 +187,9 @@ public class ApplicationMaster {
   /** Container registration timeout time **/
   private long registrationTimeoutMs;
 
+  /** AM waiting timeout of client signal stop **/
+  private int waitingClientSignalStopTimeout;
+
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
@@ -272,6 +275,9 @@ public class ApplicationMaster {
     distributedMode = TonyConfigurationKeys.DistributedMode.valueOf(distributedModeVal.toUpperCase());
     registrationTimeoutMs = tonyConf.getInt(TonyConfigurationKeys.CONTAINER_ALLOCATION_TIMEOUT,
             TonyConfigurationKeys.DEFAULT_CONTAINER_ALLOCATION_TIMEOUT);
+
+    waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
+                                                  TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
 
     // Set an environment variable to pass the appid
     containerEnv.put(Constants.APPID, appIdString);
@@ -705,7 +711,7 @@ public class ApplicationMaster {
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
-    boolean result = Utils.poll(() -> clientSignalToStop, 1, 15);
+    boolean result = Utils.poll(() -> clientSignalToStop, 1, waitingClientSignalStopTimeout);
     if (!result) {
       LOG.warn("TonyClient didn't signal Tony AM to stop.");
     }
