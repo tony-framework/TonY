@@ -1004,15 +1004,21 @@ public class TonyClient implements AutoCloseable {
       }
     }
 
-    if (amRpcClient != null) {
-      amRpcClient.finishApplication();
-      LOG.info("Sent message to AM to stop.");
-      amRpcClient = null;
-    }
-
+    signalAMToFinish();
     return result;
   }
 
+  private void signalAMToFinish() {
+    if (amRpcClient != null) {
+      LOG.info("Sending message to AM to stop.");
+      try {
+        amRpcClient.finishApplication();
+      } catch (Exception e) {
+        LOG.error("Errors on calling AM to finish application. Maybe AM has finished.", e);
+      }
+      amRpcClient = null;
+    }
+  }
 
   /**
    * Logs task info. Task info will be sorted by status, then name, then index in the log.
@@ -1103,7 +1109,7 @@ public class TonyClient implements AutoCloseable {
           taskInfos = receivedInfos;
         }
       } catch (IOException | YarnException e) {
-        LOG.error("Errors on calling AM to update task infos.");
+        LOG.error("Errors on calling AM to update task infos.", e);
       }
     }
     return taskUpdated;
