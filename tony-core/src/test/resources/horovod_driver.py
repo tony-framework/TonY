@@ -26,32 +26,22 @@ PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____"
 
 FAKE_PORT_IN_TEST_MODE = 9999
 
-def _elastic_driver_fn():
-    global_rendezv = RendezvousServer(verbose=1)
-    discover_hosts = discovery.HostDiscoveryScript("/Users/zuston/iqiyiDev/horovod-opal/dis.sh", 3)
-    driver = ElasticDriver(global_rendezv, discover_hosts, min_np=2, max_np=4)
-    handler = create_rendezvous_handler(driver)
-    global_rendezv_port = global_rendezv.start(handler)
-    print('port: ' + str(global_rendezv_port))
-    print('wait for available slots: {}'.format(2))
-    current_hosts = driver.wait_for_available_slots(2)
-    print("current hosts:" + str(current_hosts))
-    pending_slots = driver._update_host_assignments(current_hosts)
-    print("pending hosts:" + str(pending_slots))
-    driver._worker_registry.reset(driver.world_size())
+def elastic_driver_fn():
+    pass
 
-def _static_driver_fn():
+
+def static_driver_fn():
     global_rendezv = RendezvousServer(verbose=1)
     global_rendezv_port = global_rendezv.start()
-    print("rendezvous server started. port: " + str(global_rendezv_port))
+    print("Rendezvous server started, port: " + str(global_rendezv_port))
 
     # worker_list = "localhost:1"
     hosts = parse_hosts(worker_list)
     host_alloc_plan = get_host_assignments(hosts, 1)
-    print(host_alloc_plan)
 
     global_rendezv.init(host_alloc_plan)
     return (global_rendezv_port, host_alloc_plan)
+
 
 def _get_host_plan_json(host_alloc_plan):
     hosts = []
@@ -65,10 +55,11 @@ def _get_host_plan_json(host_alloc_plan):
             "local_size": plan.local_size,
             "cross_size": plan.cross_size
             })
-    print(json.dumps(hosts))
+    print("Host alloc plan: \n" + json.dumps(hosts))
     return json.dumps(hosts)
 
-def _setOption():
+
+def set_option():
     parser = OptionParser()
     parser.add_option(
         "-a", "--num_proc", dest="num_process", type="str", help="number process of training", default="1")
@@ -87,9 +78,10 @@ def _setOption():
     worker_list = options.worker_list
     global enable_elastic
     enable_elastic = options.enable_elastic
-    print("enable elastic:" + str(enable_elastic))
+    print("Enable elastic: " + str(enable_elastic))
     global is_in_test_mode
     is_in_test_mode = options.is_in_test_mode
+
 
 def __port_file_path(port):
     path_dir = os.path.dirname(os.path.abspath(__file__))
@@ -131,19 +123,19 @@ def handle_exit(*args):
 
 if __name__ == '__main__':
     try:
-        _setOption()
+        set_option()
         global port
         if enable_elastic:
-            _elastic_driver_fn()
+            elastic_driver_fn()
         else:
-            (port, host_alloc_plan) = _static_driver_fn()
+            (port, host_alloc_plan) = static_driver_fn()
             create_port_file(port, host_alloc_plan)
-            signal.signal(signal.SIGTERM, handle_exit)
-            signal.signal(signal.SIGINT, handle_exit)
-            signal.signal(signal.SIGILL, handle_exit)
     except:
-        logging.exception("errors on staring horovod rendezvous server")
+        logging.exception("Errors on starting horovod rendezvous server.")
         handle_exit()
 
-    time.sleep(2000)
-    handle_exit()
+    signal.signal(signal.SIGTERM, handle_exit)
+    signal.signal(signal.SIGINT, handle_exit)
+    signal.signal(signal.SIGILL, handle_exit)
+    while True:
+        time.sleep(10)
