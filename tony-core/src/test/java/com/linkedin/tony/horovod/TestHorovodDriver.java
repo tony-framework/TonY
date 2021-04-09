@@ -8,23 +8,32 @@ import java.io.IOException;
 import java.util.List;
 
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
-/**
- * @author zhangjunfan
- * @date 4/5/21
- */
 public class TestHorovodDriver {
 
+    @BeforeClass
+    public void beforeTest() {
+        HorovodDriver.setInTest();
+    }
+
+    @Test
     public void testHorovodDriver() throws IOException {
         String fakeWorkerList = "localhost:2";
 
-        HorovodDriver.setInTest();
         HorovodDriver driver = HorovodDriver.create(fakeWorkerList);
-        Assert.assertNotEquals(-1, driver.getPort());
+        Assert.assertNotEquals(HorovodDriver.getFakeServerPort(), driver.getPort());
 
         List<SlotInfo> slotInfoList = driver.getSlotInfoList();
         Assert.assertNotNull(slotInfoList);
         Assert.assertEquals(2, slotInfoList.size());
+        Assert.assertEquals(0, slotInfoList.get(0).getCrossRank());
+        Assert.assertEquals(1, slotInfoList.get(0).getCrossSize());
+        Assert.assertEquals(0, slotInfoList.get(0).getLocalRank());
+        Assert.assertEquals(2, slotInfoList.get(0).getLocalSize());
+        Assert.assertEquals(0, slotInfoList.get(0).getRank());
+        Assert.assertEquals(2, slotInfoList.get(0).getSize());
 
         driver.close();
     }

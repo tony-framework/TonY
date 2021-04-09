@@ -24,13 +24,15 @@ except (ModuleNotFoundError, ImportError) as e:
 
 PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____"
 
-FAKE_PORT_IN_TEST_MODE = 9999
-
 def elastic_driver_fn():
     pass
 
 
 def static_driver_fn():
+    if is_in_test_mode:
+        print("In unit test mode. fake port: " + fake_server_port)
+        return (fake_server_port, get_host_assignments(parse_hosts(worker_list), 1))
+
     global_rendezv = RendezvousServer(verbose=1)
     global_rendezv_port = global_rendezv.start()
     print("Rendezvous server started, port: " + str(global_rendezv_port))
@@ -70,17 +72,25 @@ def set_option():
         "-e", action="store_true", help="enable elastic training.", dest="enable_elastic", default=False
     )
     parser.add_option(
-        "-t", action="store_false", help="is in test mode", dest="is_in_test_mode", default=False
+        "-t", action="store_true", help="is in test mode", dest="is_in_test_mode", default=False
+    )
+    parser.add_option(
+        "-p", "--fake_port", dest="fake_port", type="str", help="fake server port for TonY unit test"
     )
     (options, args) = parser.parse_args(sys.argv)
 
     global worker_list
     worker_list = options.worker_list
+
     global enable_elastic
     enable_elastic = options.enable_elastic
     print("Enable elastic: " + str(enable_elastic))
+
     global is_in_test_mode
     is_in_test_mode = options.is_in_test_mode
+    global fake_server_port
+    if is_in_test_mode:
+        fake_server_port = options.fake_port
 
 
 def __port_file_path(port):

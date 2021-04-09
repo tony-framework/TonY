@@ -30,6 +30,7 @@ public class HorovodDriver {
     private static final Path DRIVER_SCRIPT_PATH = requireNonNull(createDriverScripPath());
     private static final String PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____";
     private static boolean isUT = false;
+    private static final String FAKE_SERVER_PORT = "9999";
 
     private final Process taskProcess;
     private final int port;
@@ -146,7 +147,7 @@ public class HorovodDriver {
     private static HorovodDriver startRendezvousServer(String workerlist) throws IOException {
         String driverProcess = String.format("python3 %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
         if (isUT) {
-            driverProcess += " -t";
+            driverProcess += " -t " + " -p " + FAKE_SERVER_PORT;
         }
 
         ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", driverProcess);
@@ -193,5 +194,9 @@ public class HorovodDriver {
 
     public static void setInTest() {
         HorovodDriver.isUT = true;
+    }
+
+    public static String getFakeServerPort() {
+        return FAKE_SERVER_PORT;
     }
 }
