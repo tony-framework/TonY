@@ -190,6 +190,10 @@ public class ApplicationMaster {
   /** AM waiting timeout of client signal stop **/
   private int waitingClientSignalStopTimeout;
 
+  /** ML framework, like tensorflow/pytorch/horovod **/
+  private TonyConfigurationKeys.MLFramework mlFramework;
+  private MLFrameworkRuntime mlFrameworkRuntime;
+
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
@@ -278,6 +282,11 @@ public class ApplicationMaster {
 
     waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
                                                   TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
+
+    mlFramework = TonyConfigurationKeys.MLFramework.valueOf(
+            tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+                    TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    mlFrameworkRuntime = MLFrameworkRuntime.get(mlFramework);
 
     // Set an environment variable to pass the appid
     containerEnv.put(Constants.APPID, appIdString);
@@ -708,6 +717,7 @@ public class ApplicationMaster {
       LOG.error("Failed to unregister application", e);
     }
 
+    mlFrameworkRuntime.destory();
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
@@ -887,7 +897,7 @@ public class ApplicationMaster {
           int numExpectedTasks = session.getNumExpectedTasks();
           if (session.getNumRegisteredTasks() == numExpectedTasks) {
             LOG.info("All " + numExpectedTasks + " tasks registered.");
-            return getClusterSpec();
+            return mlFrameworkRuntime.getClusterSpec(session, taskId);
           } else {
             printTasksPeriodically();
             return null;

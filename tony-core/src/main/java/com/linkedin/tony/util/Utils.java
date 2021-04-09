@@ -69,6 +69,7 @@ import com.linkedin.tony.Constants;
 import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.horovod.HorovodClusterSpec;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.tensorflow.JobContainerRequest;
 
@@ -820,6 +821,13 @@ public class Utils {
       titleAndLinks.put("Events", "/" + JOBS_SUFFIX + "/" + jobId);
     }
     return titleAndLinks;
+  }
+
+  public static HorovodClusterSpec parseClusterSpecForHorovod(String clusterSpec) throws IOException {
+    ObjectMapper objectMapper = new ObjectMapper();
+    HorovodClusterSpec spec =
+            objectMapper.readValue(clusterSpec, new TypeReference<HorovodClusterSpec>() { });
+    return spec;
   }
 
   private Utils() { }
