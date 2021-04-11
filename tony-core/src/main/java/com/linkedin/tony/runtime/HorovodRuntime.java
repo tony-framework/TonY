@@ -97,6 +97,7 @@ public class HorovodRuntime implements MLFrameworkRuntime {
     public void destory() {
         if (horovodDriver != null) {
             horovodDriver.close();
+            horovodDriver = null;
         }
     }
 
