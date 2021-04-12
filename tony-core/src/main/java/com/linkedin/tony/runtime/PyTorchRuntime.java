@@ -31,7 +31,7 @@ public class PyTorchRuntime implements MLFrameworkRuntime {
     private static final Log LOG = LogFactory.getLog(PyTorchRuntime.class);
 
     @Override
-    public String getClusterSpec(TonySession session, String taskId) throws IOException {
+    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(session.getClusterSpec());
     }
@@ -42,7 +42,7 @@ public class PyTorchRuntime implements MLFrameworkRuntime {
     }
 
     @Override
-    public void setEnv(TaskExecutor executor) throws Exception {
+    public void buildTaskEnv(TaskExecutor executor) throws Exception {
         LOG.info("Setting up PyTorch job...");
         String initMethod = Utils.parseClusterSpecForPytorch(executor.getClusterSpec());
         if (initMethod == null) {

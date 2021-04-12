@@ -28,8 +28,10 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.MLFrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.horovod.HorovodClusterSpec;
@@ -38,20 +40,69 @@ import com.linkedin.tony.horovod.SlotInfo;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TEST_HOROVOD_FAIL;
+import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_KEY;
+
 public class HorovodRuntime implements MLFrameworkRuntime {
     private static final Log LOG = LogFactory.getLog(HorovodRuntime.class);
 
     private HorovodDriver horovodDriver;
 
     @Override
-    public String getClusterSpec(TonySession session, String taskId) throws IOException {
+    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
         LOG.info("Starting Horovod Driver on AM...");
 
         TonySession.TonyTask tonyTask = session.getTask(taskId);
         String taskHost = tonyTask.getHost();
 
-        Map<String, Integer> hostNumProcMap = new HashMap<>();
         List<Integer> sameHostIndexCollection = new ArrayList<>();
+        String workerList = buildWorkerList(session, taskHost, sameHostIndexCollection);
+
+        LOG.info("Horovod Worker host list: " + workerList);
+
+        if (horovodDriver == null) {
+            setInTestMode(session);
+            HorovodDriver driver = null;
+            try {
+                driver = HorovodDriver.create(workerList);
+                horovodDriver = driver;
+                LOG.info("Horovod rendezvous server started, port: " + horovodDriver.getPort());
+            } catch (Exception e) {
+                LOG.error("Errors on starting horovod driver when all workers are ready.", e);
+                session.setFinalStatus(FinalApplicationStatus.FAILED, "Failed to starting horovod driver.");
+                session.setTrainingFinished();
+                return null;
+            } finally {
+                if (driver != null) {
+                    driver.close();
+                }
+            }
+        }
+
+        Collections.sort(sameHostIndexCollection);
+        LOG.info("Same host name task index collection: " + sameHostIndexCollection);
+
+        HorovodClusterSpec spec = new HorovodClusterSpec(
+                horovodDriver.getSlotInfoList(),
+                horovodDriver.getPort(),
+                Utils.getCurrentHostName(),
+                sameHostIndexCollection
+        );
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.writeValueAsString(spec);
+    }
+
+    private void setInTestMode(TonySession session) {
+        boolean enableFail = session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
+        if (enableFail) {
+            HorovodDriver.setInTest();
+            HorovodDriver.setTaskFailInTestMode();
+        }
+    }
+
+    @VisibleForTesting
+    public String buildWorkerList(TonySession session, String taskHost, List<Integer> sameHostIndexCollection) {
+        Map<String, Integer> hostNumProcMap = new HashMap<>();
         session.getTonyTasks().values().stream()
                 .flatMap(tasks -> Arrays.stream(tasks))
                 .filter(task -> task != null)
@@ -71,26 +122,7 @@ public class HorovodRuntime implements MLFrameworkRuntime {
                         .collect(Collectors.toList()),
                 ","
         );
-        LOG.info("Horovod Worker host list: " + workerList);
-
-        if (horovodDriver == null) {
-            HorovodDriver driver = HorovodDriver.create(workerList);
-            horovodDriver = driver;
-
-            LOG.info("Horovod rendezvous server port: " + horovodDriver.getPort());
-        }
-
-        Collections.sort(sameHostIndexCollection);
-        LOG.info("Same host name task index collection: " + sameHostIndexCollection);
-
-        HorovodClusterSpec spec = new HorovodClusterSpec(
-                horovodDriver.getSlotInfoList(),
-                horovodDriver.getPort(),
-                Utils.getCurrentHostName(),
-                sameHostIndexCollection
-        );
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(spec);
+        return workerList;
     }
 
     @Override
@@ -102,7 +134,7 @@ public class HorovodRuntime implements MLFrameworkRuntime {
     }
 
     @Override
-    public void setEnv(TaskExecutor executor) throws Exception {
+    public void buildTaskEnv(TaskExecutor executor) throws Exception {
         LOG.info("Setting up Horovod job...");
         // cluster spec like: h1:1,h2:2,h3:1
         HorovodClusterSpec horovodClusterSpec =

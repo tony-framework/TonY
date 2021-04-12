@@ -19,8 +19,9 @@ try:
     from horovod.runner.elastic import discovery
     from horovod.runner.elastic.rendezvous import create_rendezvous_handler
     from horovod.runner.elastic.driver import ElasticDriver
-except (ModuleNotFoundError, ImportError) as e:
-    logging.warn("Horovod is not installed. See README for instructions to install it")
+except Exception as e:
+    logging.error("Horovod is not installed. See README for instructions to install it")
+    pass
 
 PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____"
 
@@ -29,10 +30,6 @@ def elastic_driver_fn():
 
 
 def static_driver_fn():
-    if is_in_test_mode:
-        print("In unit test mode. fake port: " + fake_server_port)
-        return (fake_server_port, get_host_assignments(parse_hosts(worker_list), 1))
-
     global_rendezv = RendezvousServer(verbose=1)
     global_rendezv_port = global_rendezv.start()
     print("Rendezvous server started, port: " + str(global_rendezv_port))
@@ -44,18 +41,42 @@ def static_driver_fn():
     global_rendezv.init(host_alloc_plan)
     return (global_rendezv_port, host_alloc_plan)
 
+def _build_fake_host_plan():
+    return [
+        {
+            "hostname": "localhost",
+            "rank": "0",
+            "localRank": "0",
+            "crossRank": "0",
+            "size": "2",
+            "localSize": "2",
+            "crossSize": "1"
+        },
+        {
+            "hostname": "localhost",
+            "rank": "1",
+            "localRank": "1",
+            "crossRank": "1",
+            "size": "2",
+            "localSize": "2",
+            "crossSize": "1"
+        }
+    ]
 
 def _get_host_plan_json(host_alloc_plan):
+    if host_alloc_plan == None:
+        return json.dumps(_build_fake_host_plan())
+
     hosts = []
     for plan in host_alloc_plan:
         hosts.append({
             "hostname": plan.hostname,
             "rank": plan.rank,
-            "local_rank": plan.local_rank,
-            "cross_rank": plan.cross_rank,
+            "localRank": plan.local_rank,
+            "crossRank": plan.cross_rank,
             "size": plan.size,
-            "local_size": plan.local_size,
-            "cross_size": plan.cross_size
+            "localSize": plan.local_size,
+            "crossSize": plan.cross_size
             })
     print("Host alloc plan: \n" + json.dumps(hosts))
     return json.dumps(hosts)
@@ -77,6 +98,9 @@ def set_option():
     parser.add_option(
         "-p", "--fake_port", dest="fake_port", type="str", help="fake server port for TonY unit test"
     )
+    parser.add_option(
+        "-f", action="store_true", help="fast fail in test mode for TonY unit test", dest="is_fast_fail", default=False
+    )
     (options, args) = parser.parse_args(sys.argv)
 
     global worker_list
@@ -89,8 +113,11 @@ def set_option():
     global is_in_test_mode
     is_in_test_mode = options.is_in_test_mode
     global fake_server_port
+    global is_fast_fail
+    is_fast_fail = False
     if is_in_test_mode:
         fake_server_port = options.fake_port
+        is_fast_fail = options.is_fast_fail
 
 
 def __port_file_path(port):
@@ -132,13 +159,22 @@ def handle_exit(*args):
 
 
 if __name__ == '__main__':
+    set_option()
+
+    # Just for Unit Test
+    if is_fast_fail:
+        sys.exit(1)
+    
     try:
-        set_option()
         global port
         if enable_elastic:
             elastic_driver_fn()
         else:
-            (port, host_alloc_plan) = static_driver_fn()
+            if is_in_test_mode:
+                print("In unit test mode. fake port: " + fake_server_port)
+                (port, host_alloc_plan) = (fake_server_port, None)
+            else: 
+                (port, host_alloc_plan) = static_driver_fn()
             create_port_file(port, host_alloc_plan)
     except:
         logging.exception("Errors on starting horovod rendezvous server.")

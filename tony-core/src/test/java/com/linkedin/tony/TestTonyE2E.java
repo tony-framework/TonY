@@ -447,6 +447,25 @@ public class TestTonyE2E  {
     Assert.assertNotNull(handler.getAppId());
   }
 
+  @Test
+  public void testTonyHorovodDriverCrashShouldFailAndStopAM() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.worker.command=python sleep_30.py",
+            "--conf", "tony.application.test.horovod-driver-fail-enable=true",
+            "--conf", "tony.application.framework=horovod"
+    });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+    client.removeListener(handler);
+  }
+
   /**
    * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
    * to passing tony configuration file. It is critical to make sure all fields in

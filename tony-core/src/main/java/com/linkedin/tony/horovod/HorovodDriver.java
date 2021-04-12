@@ -28,11 +28,12 @@ import static java.util.Objects.requireNonNull;
 public class HorovodDriver {
     private static final Log LOG = LogFactory.getLog(HorovodDriver.class);
     private static final Path DRIVER_SCRIPT_PATH = requireNonNull(createDriverScripPath());
-    private static final String PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____";
-    private static boolean isUT = false;
     private static final String FAKE_SERVER_PORT = "9999";
     private static final String DRIVER_PYTHON_SCRIPT_NAME = "horovod_driver.py";
     private static final String DRIVER_TMP_FOLDER_NAME = "horovod_driver";
+    public static final String PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____";
+    private static boolean inTestMode = false;
+    private static boolean failInTestMode = false;
 
     // TODO: 4/10/21 Monitor task process exit. Once exit, it should throw exception.
     private final Process taskProcess;
@@ -53,7 +54,8 @@ public class HorovodDriver {
         return port;
     }
 
-    private static Path createDriverScripPath() {
+    @VisibleForTesting
+    protected static Path createDriverScripPath() {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         final String driverScript = DRIVER_PYTHON_SCRIPT_NAME;
         try {
@@ -69,7 +71,7 @@ public class HorovodDriver {
         }
     }
 
-    public synchronized static HorovodDriver create(String workerList) throws IOException {
+    public synchronized static HorovodDriver create(String workerList) throws Exception {
         reset();
         return startRendezvousServer(workerList);
     }
@@ -99,7 +101,7 @@ public class HorovodDriver {
      * @throws IOException
      * @param taskProcess
      */
-    private static Pair<Integer, List<SlotInfo>> waitTillServerStarted(final Process taskProcess) throws IOException {
+    private static Pair<Integer, List<SlotInfo>> waitTillServerStarted(final Process taskProcess) throws Exception {
         assert DRIVER_SCRIPT_PATH != null;
         Path parentPath = DRIVER_SCRIPT_PATH.getParent();
         assert parentPath != null;
@@ -109,7 +111,10 @@ public class HorovodDriver {
         Duration checkInterval = Duration.ofSeconds(2);
 
         while (!existPortFile(parentPath) && (checkCount++) < maxCheckCount) {
-            // TODO: 4/10/21 fast faill when task process exit.
+            if (taskProcess != null && !taskProcess.isAlive()) {
+                throw new Exception("Horovod Driver python process has finished, exit code: " + taskProcess.exitValue());
+            }
+
             try {
                 LOG.info("Rendezvous server don't start, sleep for " + checkInterval.getSeconds() + " secs");
                 Thread.sleep(checkInterval.toMillis());
@@ -117,10 +122,22 @@ public class HorovodDriver {
                 LOG.warn(e);
             }
         }
+
+        if (checkCount > maxCheckCount) {
+            LOG.error("Timeout of starting horovod driver.");
+            throw new Exception("Errors on starting horovod driver within the fixed time.");
+        }
+
+        if (taskProcess != null && !taskProcess.isAlive()) {
+            String msg = "Driver python process has ended abnormally, exit code: " + taskProcess.exitValue();
+            LOG.error(msg);
+            throw new Exception(msg);
+        }
         return getServerInfo(parentPath);
     }
 
-    private static Pair<Integer, List<SlotInfo>> getServerInfo(Path parentPath) throws IOException {
+    @VisibleForTesting
+    protected static Pair<Integer, List<SlotInfo>> getServerInfo(Path parentPath) throws IOException {
         int port = -1;
         File parentFile = parentPath.toFile();
         requireNonNull(parentFile);
@@ -150,11 +167,15 @@ public class HorovodDriver {
         return getServerInfo(parentPath).getLeft() != -1 ? true : false;
     }
 
-    private static HorovodDriver startRendezvousServer(String workerlist) throws IOException {
+    private static HorovodDriver startRendezvousServer(String workerlist) throws Exception {
         // todo: Precheck python version >= 3.6 (required by Horovod)
         String driverProcess = String.format("python %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
-        if (isUT) {
+        if (inTestMode) {
             driverProcess += " -t " + " -p " + FAKE_SERVER_PORT;
+
+            if (failInTestMode) {
+                driverProcess += " -f";
+            }
         }
 
         ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", driverProcess);
@@ -170,6 +191,12 @@ public class HorovodDriver {
     public void close() {
         if (taskProcess != null) {
             killProcess(taskProcess);
+        }
+
+        try {
+            reset();
+        } catch (IOException e) {
+            LOG.error("Errors on cleaning up driver tmp files.", e);
         }
     }
 
@@ -200,10 +227,18 @@ public class HorovodDriver {
     }
 
     public static void setInTest() {
-        HorovodDriver.isUT = true;
+        HorovodDriver.inTestMode = true;
     }
 
     public static String getFakeServerPort() {
         return FAKE_SERVER_PORT;
+    }
+
+    public static void setTaskFailInTestMode() {
+        HorovodDriver.failInTestMode = true;
+    }
+
+    public static void removeTaskFailInTestMode() {
+        HorovodDriver.failInTestMode = false;
     }
 }

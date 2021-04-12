@@ -4,22 +4,26 @@
  */
 package com.linkedin.tony.horovod;
 
-import com.google.gson.annotations.SerializedName;
-
 public class SlotInfo {
     private String hostname;
     private int rank;
-    @SerializedName("local_rank")
     private int localRank;
-    @SerializedName("cross_rank")
     private int crossRank;
     private int size;
-    @SerializedName("local_size")
     private int localSize;
-    @SerializedName("cross_size")
     private int crossSize;
 
     public SlotInfo() {
+    }
+
+    public SlotInfo(String hostname, int rank, int localRank, int crossRank, int size, int localSize, int crossSize) {
+        this.hostname = hostname;
+        this.rank = rank;
+        this.localRank = localRank;
+        this.crossRank = crossRank;
+        this.size = size;
+        this.localSize = localSize;
+        this.crossSize = crossSize;
     }
 
     public String getHostname() {

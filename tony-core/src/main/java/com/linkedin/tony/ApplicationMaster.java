@@ -897,7 +897,7 @@ public class ApplicationMaster {
           int numExpectedTasks = session.getNumExpectedTasks();
           if (session.getNumRegisteredTasks() == numExpectedTasks) {
             LOG.info("All " + numExpectedTasks + " tasks registered.");
-            return mlFrameworkRuntime.getClusterSpec(session, taskId);
+            return mlFrameworkRuntime.constructClusterSpec(session, taskId);
           } else {
             printTasksPeriodically();
             return null;

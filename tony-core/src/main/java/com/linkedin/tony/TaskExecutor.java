@@ -177,7 +177,7 @@ public class TaskExecutor {
     LOG.info("Successfully registered and got cluster spec: " + executor.clusterSpec);
 
     MLFrameworkRuntime mlRuntime = MLFrameworkRuntime.get(executor.framework);
-    mlRuntime.setEnv(executor);
+    mlRuntime.buildTaskEnv(executor);
 
     return executor;
   }

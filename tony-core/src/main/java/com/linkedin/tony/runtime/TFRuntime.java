@@ -31,7 +31,7 @@ public class TFRuntime implements MLFrameworkRuntime {
     private static final Log LOG = LogFactory.getLog(TFRuntime.class);
 
     @Override
-    public String getClusterSpec(TonySession session, String taskId) throws IOException {
+    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(session.getClusterSpec());
     }
@@ -42,7 +42,7 @@ public class TFRuntime implements MLFrameworkRuntime {
     }
 
     @Override
-    public void setEnv(TaskExecutor executor) throws Exception {
+    public void buildTaskEnv(TaskExecutor executor) throws Exception {
         LOG.info("Setting up TensorFlow job...");
         executor.getShellEnv().put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
         executor.getShellEnv().put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));

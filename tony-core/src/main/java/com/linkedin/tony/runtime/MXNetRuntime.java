@@ -33,18 +33,18 @@ public class MXNetRuntime implements MLFrameworkRuntime {
     private static final Log LOG = LogFactory.getLog(MXNetRuntime.class);
 
     @Override
-    public String getClusterSpec(TonySession session, String taskId) throws IOException {
+    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(session.getClusterSpec());
     }
 
     @Override
     public void destory() {
-
+        // ignore
     }
 
     @Override
-    public void setEnv(TaskExecutor executor) throws Exception {
+    public void buildTaskEnv(TaskExecutor executor) throws Exception {
         LOG.info("Setting up MXNet job...");
         String[] dmlcServer = Utils.parseClusterSpecForMXNet(executor.getClusterSpec());
         if (dmlcServer == null) {

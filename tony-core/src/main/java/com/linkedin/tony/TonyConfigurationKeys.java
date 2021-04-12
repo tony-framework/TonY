@@ -298,4 +298,8 @@ public class TonyConfigurationKeys {
   // Configurations that can take multiple values.
   public static final List<String> MULTI_VALUE_CONF = Collections.unmodifiableList(
       Arrays.asList(CONTAINER_LAUNCH_ENV, EXECUTION_ENV, getContainerResourcesKey()));
+
+  // Local testing horovod driver
+  public static final String TEST_HOROVOD_FAIL_ENABLE_KEY = TONY_APPLICATION_PREFIX + "test.horovod-driver-fail-enable";
+  public static final boolean DEFAULT_TEST_HOROVOD_FAIL = false;
 }

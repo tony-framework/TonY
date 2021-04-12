@@ -48,6 +48,10 @@ If your Hadoop cluster is not running with security enabled (e.g.: for local tes
     <name>tony.docker.containers.image</name>
     <value>docker.io/bigdata/horovod-test-1:v1</value>
   </property>
+  <property>
+    <name>tony.application.framework</name>
+    <value>horovod</value>
+  </property>
 </configuration>
 ```
 

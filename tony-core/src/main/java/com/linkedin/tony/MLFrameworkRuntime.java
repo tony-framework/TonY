@@ -40,11 +40,11 @@ public interface MLFrameworkRuntime {
     }
 
     /** For AM, getting cluster spec and return to task exectuor **/
-    String getClusterSpec(final TonySession session, String taskId) throws IOException;
+    String constructClusterSpec(final TonySession session, String taskId) throws IOException;
 
     /** For AM, when app finished, it need to call it to release resource **/
     void destory();
 
     /** For TaskExecutor, set the runtime environment before exec python process **/
-    void setEnv(final TaskExecutor executor) throws Exception;
+    void buildTaskEnv(final TaskExecutor executor) throws Exception;
 }
