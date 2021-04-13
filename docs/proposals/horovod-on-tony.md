@@ -79,7 +79,7 @@ HOROVOD_LOCAL_RANK=0
 HOROVOD_LOCAL_SIZE=1
 HOROVOD_SIZE=1
 HOROVOD_RANK=0
-HOROVOD_HOSTNAME=192.168.0.1
+HOROVOD_HOSTNAME=0.0.0.0
 ```
 __How to get these horovod params?__    
 Acutally, these params are from  **host_alloc_plan**(mentioned in previous python code). The python script should output these params and AM will get them and assign to task executor.

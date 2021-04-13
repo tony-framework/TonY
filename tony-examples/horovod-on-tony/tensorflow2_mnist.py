@@ -99,3 +99,4 @@ for batch, (images, labels) in enumerate(dataset.take(10000 // hvd.size())):
 # corrupting it.
 if hvd.rank() == 0:
     checkpoint.save(checkpoint_dir)
+
