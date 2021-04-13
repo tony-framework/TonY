@@ -13,15 +13,18 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.linkedin.tony.util.Utils;
 
 import static java.util.Objects.requireNonNull;
 
@@ -200,6 +203,20 @@ public class HorovodDriver {
         }
     }
 
+    public int waitFor(long timeout) throws InterruptedException {
+        if (timeout <= 0) {
+            this.taskProcess.waitFor();
+        } else {
+            this.taskProcess.waitFor(timeout, TimeUnit.MICROSECONDS);
+        }
+
+        return this.taskProcess.exitValue();
+    }
+
+    public int waitFor() throws InterruptedException {
+        return waitFor(-1);
+    }
+
     private static void killProcess(Process taskProcess) {
         if (!taskProcess.isAlive()) {
             return;
@@ -240,5 +257,20 @@ public class HorovodDriver {
 
     public static void removeTaskFailInTestMode() {
         HorovodDriver.failInTestMode = false;
+    }
+
+    public String getCallbackInfo() throws IOException {
+        DriverCallbackInfo callbackInfo = new DriverCallbackInfo(String.valueOf(port),
+                Utils.getCurrentHostName(), slotInfoList);
+        return new ObjectMapper().writeValueAsString(callbackInfo);
+    }
+
+    public int getExitCode() {
+        if (!taskProcess.isAlive()) {
+            return taskProcess.exitValue();
+        }
+
+        LOG.error("Task process is still alive.");
+        return -1;
     }
 }

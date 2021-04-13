@@ -8,7 +8,7 @@ import java.util.List;
 
 public class HorovodClusterSpec {
     private List<SlotInfo> slotInfos;
-    private int port;
+    private String port;
     private String amHost;
     private List<Integer> sameHostTaskIndexList;
 
@@ -16,7 +16,7 @@ public class HorovodClusterSpec {
         // ignore
     }
 
-    public HorovodClusterSpec(List<SlotInfo> slotInfos, int port, String amHost, List<Integer> sameHostTaskIndexList) {
+    public HorovodClusterSpec(List<SlotInfo> slotInfos, String port, String amHost, List<Integer> sameHostTaskIndexList) {
         this.slotInfos = slotInfos;
         this.port = port;
         this.amHost = amHost;
@@ -31,11 +31,11 @@ public class HorovodClusterSpec {
         this.slotInfos = slotInfos;
     }
 
-    public int getPort() {
+    public String getPort() {
         return port;
     }
 
-    public void setPort(int port) {
+    public void setPort(String port) {
         this.port = port;
     }
 

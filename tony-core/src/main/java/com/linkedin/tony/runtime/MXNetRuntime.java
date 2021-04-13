@@ -15,47 +15,28 @@
  */
 package com.linkedin.tony.runtime;
 
-import java.io.IOException;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.Constants;
-import com.linkedin.tony.MLFrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
-public class MXNetRuntime implements MLFrameworkRuntime {
-    private static final Log LOG = LogFactory.getLog(MXNetRuntime.class);
-
-    @Override
-    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(session.getClusterSpec());
-    }
-
-    @Override
-    public void destory() {
-        // ignore
-    }
+public class MXNetRuntime extends BaseRuntime {
 
     @Override
     public void buildTaskEnv(TaskExecutor executor) throws Exception {
-        LOG.info("Setting up MXNet job...");
+        log.info("Setting up MXNet job...");
         String[] dmlcServer = Utils.parseClusterSpecForMXNet(executor.getClusterSpec());
         if (dmlcServer == null) {
             throw new RuntimeException("Errors on getting dmlc server.");
         }
         int numServer = executor.getTonyConf().getInt(TonyConfigurationKeys.getInstancesKey(Constants.SERVER_JOB_NAME), 0);
         int numWorker = executor.getTonyConf().getInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 0);
-        LOG.info("init DMLC is: " + dmlcServer[0] + " port: " + dmlcServer[1]);
-        LOG.info("init DMLC ROLE: " + executor.getJobName());
-        LOG.info("init DMLC NUM_PS: " + numServer);
-        LOG.info("init DMLC NUM_WORKER: " + numWorker);
+        log.info("init DMLC is: " + dmlcServer[0] + " port: " + dmlcServer[1]);
+        log.info("init DMLC ROLE: " + executor.getJobName());
+        log.info("init DMLC NUM_PS: " + numServer);
+        log.info("init DMLC NUM_WORKER: " + numWorker);
 
         Map<String, String> shellEnv = executor.getShellEnv();
         shellEnv.put(Constants.DMLC_ROLE, executor.getJobName());

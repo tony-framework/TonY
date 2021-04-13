@@ -17,11 +17,14 @@ package com.linkedin.tony;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
+
 import com.linkedin.tony.runtime.HorovodRuntime;
 import com.linkedin.tony.runtime.MXNetRuntime;
 import com.linkedin.tony.runtime.PyTorchRuntime;
 import com.linkedin.tony.runtime.TFRuntime;
 import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.util.Utils;
 
 public interface MLFrameworkRuntime {
     static MLFrameworkRuntime get(TonyConfigurationKeys.MLFramework mlFramework) {
@@ -40,11 +43,27 @@ public interface MLFrameworkRuntime {
     }
 
     /** For AM, getting cluster spec and return to task exectuor **/
-    String constructClusterSpec(final TonySession session, String taskId) throws IOException;
+    String constructClusterSpec(String taskId) throws IOException;
 
     /** For AM, when app finished, it need to call it to release resource **/
-    void destory();
+    void destroy();
+
+    /** For AM, init the tony session **/
+    void setTonySession(final TonySession session);
+
+    boolean registerCallbackInfo(String taskId, String callbackInfo);
+
+    boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
+
+    boolean preCheck(Configuration tonyConf);
 
     /** For TaskExecutor, set the runtime environment before exec python process **/
     void buildTaskEnv(final TaskExecutor executor) throws Exception;
+
+    /** For TaskExecutor, execute task process **/
+    int executeTaskCommand(TaskExecutor executor) throws Exception;
+
+    default int executorPythonShell(TaskExecutor executor) throws IOException, InterruptedException {
+        return Utils.executeShell(executor.getTaskCommand(), executor.getTimeOut(), executor.getShellEnv());
+    }
 }

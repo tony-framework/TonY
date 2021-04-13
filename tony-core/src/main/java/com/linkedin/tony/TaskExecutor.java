@@ -167,6 +167,11 @@ public class TaskExecutor {
         TimeUnit.MILLISECONDS);
 
     executor.setupPorts();
+
+    // register to AM
+    // check start
+    // get cluster spec
+
     executor.clusterSpec = executor.registerAndGetClusterSpec();
 
     if (executor.clusterSpec == null) {
@@ -175,9 +180,6 @@ public class TaskExecutor {
     }
     LOG.debug("Task is on distributed mode: " + executor.distributedMode);
     LOG.info("Successfully registered and got cluster spec: " + executor.clusterSpec);
-
-    MLFrameworkRuntime mlRuntime = MLFrameworkRuntime.get(executor.framework);
-    mlRuntime.buildTaskEnv(executor);
 
     return executor;
   }
@@ -212,7 +214,9 @@ public class TaskExecutor {
 
     int exitCode;
     try {
-      exitCode = Utils.executeShell(executor.taskCommand, executor.timeOut, executor.shellEnv);
+      MLFrameworkRuntime mlRuntime = MLFrameworkRuntime.get(executor.framework);
+      mlRuntime.buildTaskEnv(executor);
+      exitCode = mlRuntime.executeTaskCommand(executor);
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:

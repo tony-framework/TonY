@@ -25,15 +25,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.MLFrameworkRuntime;
+import com.google.gson.Gson;
 import com.linkedin.tony.TaskExecutor;
+import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.horovod.DriverCallbackInfo;
 import com.linkedin.tony.horovod.HorovodClusterSpec;
 import com.linkedin.tony.horovod.HorovodDriver;
 import com.linkedin.tony.horovod.SlotInfo;
@@ -41,58 +43,60 @@ import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TEST_HOROVOD_FAIL;
+import static com.linkedin.tony.TonyConfigurationKeys.DistributedMode.GANG;
 import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_KEY;
 
-public class HorovodRuntime implements MLFrameworkRuntime {
-    private static final Log LOG = LogFactory.getLog(HorovodRuntime.class);
+public class HorovodRuntime extends BaseRuntime {
+    private static final String DRIVER = "driver";
+    private static final String WORKER = "worker";
 
-    private HorovodDriver horovodDriver;
+    private volatile boolean isDriverReady = false;
+
+    private List<SlotInfo> workerSlotMetaInfo;
+    private String rendezvServerPort;
+    private String rendezvServerHost;
 
     @Override
-    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
-        LOG.info("Starting Horovod Driver on AM...");
-
+    public String constructClusterSpec(String taskId) throws IOException {
+        assert session != null;
         TonySession.TonyTask tonyTask = session.getTask(taskId);
         String taskHost = tonyTask.getHost();
 
         List<Integer> sameHostIndexCollection = new ArrayList<>();
         String workerList = buildWorkerList(session, taskHost, sameHostIndexCollection);
 
-        LOG.info("Horovod Worker host list: " + workerList);
+        log.info("Horovod Worker host list: " + workerList);
+        Collections.sort(sameHostIndexCollection);
+        log.info("Same host name task index collection: " + sameHostIndexCollection);
 
-        if (horovodDriver == null) {
-            setInTestMode(session);
-            HorovodDriver driver = null;
-            try {
-                driver = HorovodDriver.create(workerList);
-                horovodDriver = driver;
-                LOG.info("Horovod rendezvous server started, port: " + horovodDriver.getPort());
-            } catch (Exception e) {
-                LOG.error("Errors on starting horovod driver when all workers are ready.", e);
-                session.setFinalStatus(FinalApplicationStatus.FAILED, "Failed to starting horovod driver.");
-                session.setTrainingFinished();
-                return null;
-            } finally {
-                if (driver != null) {
-                    driver.close();
-                }
-            }
+        if (isDriverRole(taskId)) {
+            return workerList;
         }
 
-        Collections.sort(sameHostIndexCollection);
-        LOG.info("Same host name task index collection: " + sameHostIndexCollection);
-
+        // when task role is worker, it will return horovod cluster spec.
         HorovodClusterSpec spec = new HorovodClusterSpec(
-                horovodDriver.getSlotInfoList(),
-                horovodDriver.getPort(),
-                Utils.getCurrentHostName(),
+                workerSlotMetaInfo,
+                rendezvServerPort,
+                rendezvServerHost,
                 sameHostIndexCollection
         );
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(spec);
     }
 
-    private void setInTestMode(TonySession session) {
+    private boolean isDriverRole(String taskId) {
+        assert session != null;
+
+        if (DRIVER.equals(session.getTask(taskId).getJobName())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private void setInTestMode() {
+        assert session != null;
+
         boolean enableFail = session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
         if (enableFail) {
             HorovodDriver.setInTest();
@@ -102,10 +106,12 @@ public class HorovodRuntime implements MLFrameworkRuntime {
 
     @VisibleForTesting
     public String buildWorkerList(TonySession session, String taskHost, List<Integer> sameHostIndexCollection) {
+        assert session != null;
+
         Map<String, Integer> hostNumProcMap = new HashMap<>();
         session.getTonyTasks().values().stream()
                 .flatMap(tasks -> Arrays.stream(tasks))
-                .filter(task -> task != null)
+                .filter(task -> task != null && DRIVER.equals(task.getJobName()))
                 .forEach(task -> {
                     int numProc = hostNumProcMap.getOrDefault(task.getHost(), 0);
                     hostNumProcMap.put(task.getHost(), ++numProc);
@@ -125,29 +131,56 @@ public class HorovodRuntime implements MLFrameworkRuntime {
         return workerList;
     }
 
+
     @Override
-    public void destory() {
-        if (horovodDriver != null) {
-            horovodDriver.close();
-            horovodDriver = null;
+    public boolean registerCallbackInfo(String taskId, String callbackInfo) {
+        // TODO: 2021/4/13 when task is driver, it should ignore it.
+        DriverCallbackInfo driverCallbackInfo = new Gson().fromJson(callbackInfo, DriverCallbackInfo.class);
+        this.workerSlotMetaInfo = driverCallbackInfo.getSlotInfos();
+        this.rendezvServerPort = driverCallbackInfo.getPort();
+        this.rendezvServerHost = driverCallbackInfo.getHost();
+
+        synchronized (this) {
+            this.isDriverReady = true;
         }
+        return true;
     }
 
     @Override
-    public void buildTaskEnv(TaskExecutor executor) throws Exception {
-        LOG.info("Setting up Horovod job...");
-        // cluster spec like: h1:1,h2:2,h3:1
-        HorovodClusterSpec horovodClusterSpec =
-                Utils.parseClusterSpecForHorovod(executor.getClusterSpec());
-        setHorovodRunEnv(executor, horovodClusterSpec, executor.getTaskIndex(),
-                Utils.getCurrentHostName());
+    public boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+        assert session != null;
+
+        if (GANG != distributedMode) {
+            setAppFailed("Horovod don't support " + distributedMode + " distributed mode.");
+            return false;
+        }
+
+        int numExpectedTasks = session.getNumExpectedTasks();
+        if (session.getNumRegisteredTasks() != numExpectedTasks) {
+            printTasksPeriodically();
+            return false;
+        }
+
+        // check driver is ready?
+        if (!isDriverReady) {
+            log.info("Horovod driver is not ready.");
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean preCheck(Configuration tonyConf) {
+        // TODO: 2021/4/13 inject driver conf to it. if setting other roles. it will return false.
+        return true;
     }
 
     private void setHorovodRunEnv(TaskExecutor executor, HorovodClusterSpec horovodClusterSpec,
             int taskIndex, String currentHostName) {
-        int rendezvPort = horovodClusterSpec.getPort();
+        String rendezvPort = horovodClusterSpec.getPort();
         String rendezvHost = horovodClusterSpec.getAmHost();
-        LOG.info("Horovod rendezvous server host: " + rendezvHost + ", port: " + rendezvPort);
+        log.info("Horovod rendezvous server host: " + rendezvHost + ", port: " + rendezvPort);
 
         executor.getShellEnv().put("HOROVOD_CONTROLLER", "gloo");
         executor.getShellEnv().put("HOROVOD_CPU_OPERATIONS", "gloo");
@@ -169,10 +202,10 @@ public class HorovodRuntime implements MLFrameworkRuntime {
         int seqIndex = horovodClusterSpec.getSameHostTaskIndexList().indexOf(taskIndex);
         SlotInfo assignSlotInfo = localRankSortList.get(seqIndex);
 
-        LOG.info("TaskIndex: " + taskIndex + ", host: " + currentHostName + ", horovod local rank: "
+        log.info("TaskIndex: " + taskIndex + ", host: " + currentHostName + ", horovod local rank: "
                 + assignSlotInfo.getLocalRank());
 
-        LOG.info("Setting Horovod runtime env...");
+        log.info("Setting Horovod runtime env...");
         executor.getShellEnv().put("HOROVOD_CROSS_RANK", String.valueOf(assignSlotInfo.getCrossRank()));
         executor.getShellEnv().put("HOROVOD_CROSS_SIZE", String.valueOf(assignSlotInfo.getCrossSize()));
         executor.getShellEnv().put("HOROVOD_LOCAL_RANK", String.valueOf(assignSlotInfo.getLocalRank()));
@@ -181,5 +214,41 @@ public class HorovodRuntime implements MLFrameworkRuntime {
         executor.getShellEnv().put("HOROVOD_RANK", String.valueOf(assignSlotInfo.getRank()));
 
         executor.getShellEnv().put("HOROVOD_HOSTNAME", assignSlotInfo.getHostname());
+    }
+
+    private void setAppFailed(String errorMsg) {
+        session.setFinalStatus(FinalApplicationStatus.FAILED, errorMsg);
+        session.setTrainingFinished();
+    }
+
+    // ===================For task executor=======================
+
+    @Override
+    public void buildTaskEnv(TaskExecutor executor) throws Exception {
+        log.info("Setting up Horovod job...");
+        if (DRIVER.equals(executor.getJobName())) {
+            log.info("Task is Horovod driver, no need to set extra env.");
+            return;
+        }
+
+        // cluster spec like: h1:1,h2:2,h3:1
+        HorovodClusterSpec horovodClusterSpec =
+                Utils.parseClusterSpecForHorovod(executor.getClusterSpec());
+        setHorovodRunEnv(executor, horovodClusterSpec, executor.getTaskIndex(),
+                Utils.getCurrentHostName());
+    }
+
+    @Override
+    public int executeTaskCommand(TaskExecutor executor) throws Exception {
+        if (DRIVER.equals(executor.getJobName())) {
+            // TODO: 2021/4/13  if driver failed, it should fast fail. AM should fail. Unit test should cover this.
+            HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
+            // TODO: 2021/4/13 call back to AM
+//            String callBackInfo = driver.getCallbackInfo();
+            int exitCode = driver.waitFor();
+            return exitCode;
+        }
+
+        return this.executorPythonShell(executor);
     }
 }

@@ -15,35 +15,15 @@
  */
 package com.linkedin.tony.runtime;
 
-import java.io.IOException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.Constants;
-import com.linkedin.tony.MLFrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
-import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
-public class TFRuntime implements MLFrameworkRuntime {
-    private static final Log LOG = LogFactory.getLog(TFRuntime.class);
-
-    @Override
-    public String constructClusterSpec(TonySession session, String taskId) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(session.getClusterSpec());
-    }
-
-    @Override
-    public void destory() {
-        // ignore
-    }
+public class TFRuntime extends BaseRuntime {
 
     @Override
     public void buildTaskEnv(TaskExecutor executor) throws Exception {
-        LOG.info("Setting up TensorFlow job...");
+        log.info("Setting up TensorFlow job...");
         executor.getShellEnv().put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
         executor.getShellEnv().put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
         executor.getShellEnv().put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));

@@ -27,7 +27,8 @@ public class TestHorovodRuntime {
                 session.buildTonyTask("worker", "0", "localhost1"),
                 session.buildTonyTask("worker", "1", "localhost1"),
                 session.buildTonyTask("worker", "2", "localhost2"),
-                session.buildTonyTask("worker", "3", "localhost3")
+                session.buildTonyTask("worker", "3", "localhost3"),
+                session.buildTonyTask("driver", "0", "localhost4")
                 );
 
         taskMaps.put("worker", taskList.toArray(new TonySession.TonyTask[0]));

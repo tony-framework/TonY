@@ -287,6 +287,10 @@ public class ApplicationMaster {
             tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                     TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
     mlFrameworkRuntime = MLFrameworkRuntime.get(mlFramework);
+    if (mlFrameworkRuntime.preCheck(tonyConf)) {
+      LOG.error("Precheck the tony conf failed.");
+      return false;
+    }
 
     // Set an environment variable to pass the appid
     containerEnv.put(Constants.APPID, appIdString);
@@ -580,6 +584,8 @@ public class ApplicationMaster {
     session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
     scheduler = new TaskScheduler(session, amRMClient, localResources, resourceFs, tonyConf, jobTypeToContainerResources);
     scheduler.scheduleTasks();
+
+    mlFrameworkRuntime.setTonySession(session);
   }
 
   // Reset state to prepare for retryCount.
@@ -717,7 +723,7 @@ public class ApplicationMaster {
       LOG.error("Failed to unregister application", e);
     }
 
-    mlFrameworkRuntime.destory();
+    mlFrameworkRuntime.destroy();
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
@@ -857,12 +863,6 @@ public class ApplicationMaster {
     }
 
     @Override
-    public String getClusterSpec() throws IOException {
-      ObjectMapper objectMapper = new ObjectMapper();
-      return objectMapper.writeValueAsString(session.getClusterSpec());
-    }
-
-    @Override
     public void taskExecutorHeartbeat(String taskId) {
       TonyTask task = session.getTask(taskId);
       if (task != null) {
@@ -871,6 +871,42 @@ public class ApplicationMaster {
       } else {
         LOG.warn("[" + taskId + "] Not registered for heartbeat monitoring !!");
       }
+    }
+
+    @Override
+    public String getClusterSpec() throws IOException {
+      ObjectMapper objectMapper = new ObjectMapper();
+      return objectMapper.writeValueAsString(session.getClusterSpec());
+    }
+
+    public String getClusterSpecV2(String taskId) throws IOException {
+      return mlFrameworkRuntime.constructClusterSpec(taskId);
+    }
+
+    public Boolean getCallbackTaskResult(String taskId, String callbackInfo) throws IOException {
+      return mlFrameworkRuntime.registerCallbackInfo(taskId, callbackInfo);
+    }
+
+    // return its own spec. task executor will call this once.
+    public String registerWorkerSpecV2(String taskId, String spec) throws IOException {
+      TonyTask task = session.getTask(taskId);
+      if (task.getHost() == null) {
+        LOG.info("Received cluster spec registration request from task " + taskId + " with spec: " + spec);
+        task.setHostPort(spec);
+        session.addRegisteredTask(taskId);
+
+        // HB Registration should happen only after worker registration..
+        // The Task registration timeout will take care of rescheduling the task
+        // on another node..
+        LOG.info("[" + taskId + "] Received Registration for HB !!");
+        hbMonitor.register(task);
+        killChiefWorkerIfTesting(taskId);
+      }
+      return spec;
+    }
+
+    public Boolean canStart(String taskId) throws IOException {
+      return mlFrameworkRuntime.canStart(distributedMode, taskId);
     }
 
     @Override
@@ -897,7 +933,7 @@ public class ApplicationMaster {
           int numExpectedTasks = session.getNumExpectedTasks();
           if (session.getNumRegisteredTasks() == numExpectedTasks) {
             LOG.info("All " + numExpectedTasks + " tasks registered.");
-            return mlFrameworkRuntime.constructClusterSpec(session, taskId);
+            return mlFrameworkRuntime.constructClusterSpec(taskId);
           } else {
             printTasksPeriodically();
             return null;
