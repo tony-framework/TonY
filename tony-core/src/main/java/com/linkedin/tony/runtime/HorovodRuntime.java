@@ -111,7 +111,7 @@ public class HorovodRuntime extends BaseRuntime {
         Map<String, Integer> hostNumProcMap = new HashMap<>();
         session.getTonyTasks().values().stream()
                 .flatMap(tasks -> Arrays.stream(tasks))
-                .filter(task -> task != null && DRIVER.equals(task.getJobName()))
+                .filter(task -> task != null && !DRIVER.equals(task.getJobName()))
                 .forEach(task -> {
                     int numProc = hostNumProcMap.getOrDefault(task.getHost(), 0);
                     hostNumProcMap.put(task.getHost(), ++numProc);
