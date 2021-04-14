@@ -53,10 +53,130 @@ Two options
 1. On TonY application master.  
 This will save resources(no extra resources to start driver), and the amount of code changes will be small. But by injecting relevant Horovod's driver code into AM, it is not elegant.
 2. On TonY task executor.  
-Additional customization of the driver configuration is required and allow different task executors to specify different resources(because driver needn't gpu). And it is necessary to coordinate the startup sequence between the driver and other workers, because driver should start before worker. But 
-we should make some changes to prevent starting in each task executor at the same time.  
+Additional customization of the driver configuration is required and the startup of driver will be covered on TonY automatically. And it is necessary to coordinate the startup sequence between the driver and other workers, because driver should start before worker. 
 
-First option will be adopted. The second one remains to be supported in the future.
+Second option will be adopted in this PR.  
+In order to unify different machine framework startup, we supposed to create `MLFrameworkRuntime` interface, it will expose methods as follows
+```java
+    /** For AM, getting cluster spec and return to task exectuor **/
+    String constructClusterSpec(String taskId) throws IOException;
+
+    /** For AM, when app finished, it need to call it to release resource **/
+    void destroy();
+
+    /** For AM, init the tony session **/
+    void setTonySession(final TonySession session);
+
+    /** For AM, it ensures that each task executor start sequence. like Horovod driver should start before workers **/
+    boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
+
+    /** For AM, it will pre-check tony conf and inject some params. like horovod runtime will inject driver config into it. **/
+    boolean preCheck(Configuration tonyConf);
+
+    /** For TaskExecutor, set the runtime environment before exec python process **/
+    void buildTaskEnv(final TaskExecutor executor) throws Exception;
+
+    /** For TaskExecutor, execute task process **/
+    int executeTaskCommand(TaskExecutor executor) throws Exception;
+
+    /** For TaskExecutor, it will register some info to AM after starting python process, like horovod driver**/
+    boolean registerCallbackInfo(String taskId, String callbackInfo);
+```
+
+So, we need to create `HorovodRuntime` to support it. Besides, TF/PyTorch/MXNet will also be supported in independent runtime, like `TFRuntime`.
+
+As stated in the design above, Horovod driver should be started on one task executor and before other workers. So in `HorovodRuntime`, we can use `canStart` method to coordinate task executor startup sequence.
+
+Besides, how to start Horovod driver? I think we can create `HorovodDriver` class to do it. Its methods as follows. 
+```java
+public class HorovodDriver {
+    public final Process taskProcess;
+    public final int port;
+    public final List<SlotInfo> slotInfoList;
+
+    // For TaskExecutor to start horovod driver, it will start rendezvous server
+    public synchronized static HorovodDriver create(String workerList) throws Exception {
+        return startRendezvousServer(workerList);
+    }
+
+    private static HorovodDriver startRendezvousServer(String workerlist) throws Exception {
+        return HorovodDriver().
+    }
+
+    public void close() {
+        if (taskProcess != null) {
+            killProcess(taskProcess);
+        }
+    }
+
+    // For TaskExecutor to wait process finish, it will hang until python Process exit.
+    public int waitFor(long timeout) throws InterruptedException {
+        this.taskProcess.waitFor(timeout, TimeUnit.MICROSECONDS);
+        return this.taskProcess.exitValue();
+    }
+}
+```
+
+How to extend `HorovodRuntime`. pseudo code as follows
+```java
+public class HorovodRuntime implements MLFrameworkRuntime {
+    private volatile boolean isDriverReady = false;
+
+    private List<SlotInfo> workerSlotMetaInfo;
+    private String rendezvServerPort;
+    private String rendezvServerHost;
+
+    @Override
+    public String constructClusterSpec(String taskId) throws IOException {
+        // when task is Driver, it will return worker list to driver, and make it start rendezvous server
+
+        // when task is worker, it will return rendezouvs server's slot info to worker
+    }
+
+    @Override
+    public boolean registerCallbackInfo(String taskId, String callbackInfo) {
+        // when role is driver, AM will accept driver's callback info, which is slot info including horovod 
+        // host plan. It will be recorded in runtime and give to workers.
+    }
+
+    @Override
+    public boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+        // coordinate startup sequence
+    }
+
+    @Override
+    public boolean preCheck(Configuration tonyConf) {
+        // inject driver conf and make it untracked.
+        tonyConf.set("tony.driver.instances", "1");
+        tonyConf.set("tony.driver.vcores", "1");
+        tonyConf.set("tony.application.untracked.jobtypes", "driver");
+        return true;
+    }
+
+    // ===================For task executor=======================
+
+    @Override
+    public void buildTaskEnv(TaskExecutor executor) throws Exception {
+        // set env for worker, like HOROVOD_CONTROLLER, HOST
+    }
+
+    @Override
+    public int executeTaskCommand(TaskExecutor executor) throws Exception {
+        // if it is driver, it will launcher horovod driver and register info to AM
+        if (DRIVER.equals(executor.getJobName())) {
+            HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
+            String callBackInfo = driver.getCallbackInfo();
+            log.info("Horovod driver call back to AM: \n" + callBackInfo);
+            executor.registerCallbackInfo(callBackInfo);
+            int exitCode = driver.waitFor();
+            return exitCode;
+        }
+        
+        // if it is worker, it will execute training script directly.
+        return this.executorPythonShell(executor);
+    }
+}
+```
 
 ### Horovod Worker
 __where to start worker__  

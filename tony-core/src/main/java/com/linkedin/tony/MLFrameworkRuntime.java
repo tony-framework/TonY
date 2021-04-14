@@ -51,10 +51,10 @@ public interface MLFrameworkRuntime {
     /** For AM, init the tony session **/
     void setTonySession(final TonySession session);
 
-    boolean registerCallbackInfo(String taskId, String callbackInfo);
-
+    /** For AM, it ensures that each task executor start sequence. like Horovod driver should start before workers **/
     boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
 
+    /** For AM, it will pre-check tony conf and inject some params. like horovod runtime will inject driver config into it. **/
     boolean preCheck(Configuration tonyConf);
 
     /** For TaskExecutor, set the runtime environment before exec python process **/
@@ -62,6 +62,9 @@ public interface MLFrameworkRuntime {
 
     /** For TaskExecutor, execute task process **/
     int executeTaskCommand(TaskExecutor executor) throws Exception;
+
+    /** For TaskExecutor, it will register some info to AM after starting python process, like horovod driver**/
+    boolean registerCallbackInfo(String taskId, String callbackInfo);
 
     default int executorPythonShell(TaskExecutor executor) throws IOException, InterruptedException {
         return Utils.executeShell(executor.getTaskCommand(), executor.getTimeOut(), executor.getShellEnv());

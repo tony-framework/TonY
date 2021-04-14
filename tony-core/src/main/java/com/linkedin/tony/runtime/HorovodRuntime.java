@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -249,6 +248,12 @@ public class HorovodRuntime extends BaseRuntime {
     public int executeTaskCommand(TaskExecutor executor) throws Exception {
         if (DRIVER.equals(executor.getJobName())) {
             // TODO: 2021/4/13  if driver failed, it should fast fail. AM should fail. Unit test should cover this.
+
+            if (session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, false)) {
+                HorovodDriver.setInTest();
+                HorovodDriver.setTaskFailInTestMode();
+            }
+
             HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
             String callBackInfo = driver.getCallbackInfo();
             log.info("Horovod driver call back to AM: \n" + callBackInfo);
