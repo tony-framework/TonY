@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
@@ -168,10 +169,6 @@ public class TaskExecutor {
 
     executor.setupPorts();
 
-    // register to AM
-    // check start
-    // get cluster spec
-
     executor.clusterSpec = executor.registerAndGetClusterSpec();
 
     if (executor.clusterSpec == null) {
@@ -294,6 +291,10 @@ public class TaskExecutor {
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
             hostName + ":" + this.rpcPort.getPort()), 3, 0);
+  }
+
+  public void registerCallbackInfo(String callbackInfo) throws IOException, YarnException {
+    proxy.registerCallbackInfo(this.taskId, callbackInfo);
   }
 
   private void registerTensorBoardUrl() {

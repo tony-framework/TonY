@@ -7,7 +7,7 @@ package com.linkedin.tony.rpc.impl.pb;
 import com.linkedin.tony.rpc.RegisterCallbackInfoRequest;
 import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
 
-public class RegisterCallbackInfoRequestImpl implements RegisterCallbackInfoRequest {
+public class RegisterCallbackInfoRequestPBImpl implements RegisterCallbackInfoRequest {
     YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto = YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.getDefaultInstance();
     YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.Builder builder = null;
     private boolean viaProto = false;
@@ -15,11 +15,11 @@ public class RegisterCallbackInfoRequestImpl implements RegisterCallbackInfoRequ
     private String taskId = null;
     private String callbackInfo = null;
 
-    public RegisterCallbackInfoRequestImpl() {
+    public RegisterCallbackInfoRequestPBImpl() {
         builder = YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.newBuilder();
     }
 
-    public RegisterCallbackInfoRequestImpl(YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto) {
+    public RegisterCallbackInfoRequestPBImpl(YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto) {
         this.proto = proto;
         viaProto = true;
     }

@@ -33,4 +33,5 @@ public interface TensorFlowCluster extends VersionedProtocol {
 
   HeartbeatResponse taskExecutorHeartbeat(HeartbeatRequest request) throws YarnException, IOException;
 
+  Empty registerCallbackInfo(RegisterCallbackInfoRequest request) throws YarnException, IOException;
 }

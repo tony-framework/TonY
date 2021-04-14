@@ -879,16 +879,13 @@ public class ApplicationMaster {
       return objectMapper.writeValueAsString(session.getClusterSpec());
     }
 
-    public String getClusterSpecV2(String taskId) throws IOException {
-      return mlFrameworkRuntime.constructClusterSpec(taskId);
+    @Override
+    public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
+      mlFrameworkRuntime.registerCallbackInfo(taskId, callbackInfo);
     }
 
-    public Boolean getCallbackTaskResult(String taskId, String callbackInfo) throws IOException {
-      return mlFrameworkRuntime.registerCallbackInfo(taskId, callbackInfo);
-    }
-
-    // return its own spec. task executor will call this once.
-    public String registerWorkerSpecV2(String taskId, String spec) throws IOException {
+    @Override
+    public String registerWorkerSpec(String taskId, String spec) throws IOException {
       TonyTask task = session.getTask(taskId);
       if (task.getHost() == null) {
         LOG.info("Received cluster spec registration request from task " + taskId + " with spec: " + spec);
@@ -902,15 +899,14 @@ public class ApplicationMaster {
         hbMonitor.register(task);
         killChiefWorkerIfTesting(taskId);
       }
-      return spec;
+
+      if (mlFrameworkRuntime.canStart(distributedMode, taskId)) {
+        return mlFrameworkRuntime.constructClusterSpec(taskId);
+      }
+      return null;
     }
 
-    public Boolean canStart(String taskId) throws IOException {
-      return mlFrameworkRuntime.canStart(distributedMode, taskId);
-    }
-
-    @Override
-    public String registerWorkerSpec(String taskId, String spec) throws IOException {
+    public String registerWorkerSpecV1(String taskId, String spec) throws IOException {
       TonyTask task = session.getTask(taskId);
       if (task.getHost() == null) {
         LOG.info("Received cluster spec registration request from task " + taskId + " with spec: " + spec);

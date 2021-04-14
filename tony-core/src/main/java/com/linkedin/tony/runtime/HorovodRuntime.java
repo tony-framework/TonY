@@ -134,15 +134,19 @@ public class HorovodRuntime extends BaseRuntime {
 
     @Override
     public boolean registerCallbackInfo(String taskId, String callbackInfo) {
-        // TODO: 2021/4/13 when task is driver, it should ignore it.
+        assert session != null;
+        if (!isDriverRole(taskId)) {
+            log.error("Accept call back info from not driver task executor.");
+            return false;
+        }
+
         DriverCallbackInfo driverCallbackInfo = new Gson().fromJson(callbackInfo, DriverCallbackInfo.class);
         this.workerSlotMetaInfo = driverCallbackInfo.getSlotInfos();
         this.rendezvServerPort = driverCallbackInfo.getPort();
         this.rendezvServerHost = driverCallbackInfo.getHost();
 
-        synchronized (this) {
-            this.isDriverReady = true;
-        }
+        this.isDriverReady = true;
+
         return true;
     }
 
@@ -172,7 +176,10 @@ public class HorovodRuntime extends BaseRuntime {
 
     @Override
     public boolean preCheck(Configuration tonyConf) {
-        // TODO: 2021/4/13 inject driver conf to it. if setting other roles. it will return false.
+        // inject driver conf and make it untracked.
+        tonyConf.set("tony.driver.instances", "1");
+        tonyConf.set("tony.driver.vcores", "1");
+        tonyConf.set("tony.application.untracked.jobtypes", "driver");
         return true;
     }
 
@@ -243,8 +250,9 @@ public class HorovodRuntime extends BaseRuntime {
         if (DRIVER.equals(executor.getJobName())) {
             // TODO: 2021/4/13  if driver failed, it should fast fail. AM should fail. Unit test should cover this.
             HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
-            // TODO: 2021/4/13 call back to AM
-//            String callBackInfo = driver.getCallbackInfo();
+            String callBackInfo = driver.getCallbackInfo();
+            log.info("Horovod driver call back to AM: \n" + callBackInfo);
+            executor.registerCallbackInfo(callBackInfo);
             int exitCode = driver.waitFor();
             return exitCode;
         }

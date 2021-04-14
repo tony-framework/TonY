@@ -11,6 +11,7 @@ import com.linkedin.tony.rpc.GetClusterSpecResponse;
 import com.linkedin.tony.rpc.GetTaskInfosRequest;
 import com.linkedin.tony.rpc.GetTaskInfosResponse;
 import com.linkedin.tony.rpc.HeartbeatRequest;
+import com.linkedin.tony.rpc.RegisterCallbackInfoRequest;
 import com.linkedin.tony.rpc.RegisterExecutionResultRequest;
 import com.linkedin.tony.rpc.RegisterExecutionResultResponse;
 import com.linkedin.tony.rpc.RegisterTensorBoardUrlRequest;
@@ -128,6 +129,14 @@ public class ApplicationRpcClient implements ApplicationRpc {
     HeartbeatRequest request = recordFactory.newRecordInstance(HeartbeatRequest.class);
     request.setTaskId(taskId);
     tensorflow.taskExecutorHeartbeat(request);
+  }
+
+  @Override
+  public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
+    RegisterCallbackInfoRequest request = recordFactory.newRecordInstance(RegisterCallbackInfoRequest.class);
+    request.setTaskId(taskId);
+    request.setCallbackInfo(callbackInfo);
+    tensorflow.registerCallbackInfo(request);
   }
 
   public void reset() { }

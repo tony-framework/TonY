@@ -72,3 +72,8 @@ message HeartbeatRequestProto {
 message HeartbeatResponseProto {
     // nothing for the time-being, but we can include commands later
 }
+
+message RegisterCallbackInfoRequestProto {
+    required string taskId = 1;
+    required string callbackInfo = 2;
+}

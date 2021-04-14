@@ -99,6 +99,13 @@ public class ApplicationRpcServer extends Thread implements TensorFlowCluster {
     return response;
   }
 
+  @Override
+  public Empty registerCallbackInfo(RegisterCallbackInfoRequest request) throws YarnException, IOException {
+    Empty response = RECORD_FACTORY.newRecordInstance(Empty.class);
+    this.appRpc.registerCallbackInfo(request.getTaskId(), request.getCallbackInfo());
+    return response;
+  }
+
   // Reset the Application RPC's state
   public void reset() {
     this.appRpc.reset();
