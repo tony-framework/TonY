@@ -85,6 +85,7 @@ import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
@@ -981,13 +982,21 @@ public class ApplicationMaster {
 
   // Set up credentials for the containers.
   private void setupContainerCredentials() throws IOException {
-    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+    Credentials amCred = UserGroupInformation.getCurrentUser().getCredentials();
+
+    Credentials containersCred = new Credentials();
+    for (Token<? extends TokenIdentifier> token : amCred.getAllTokens()) {
+      if (!token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+        containersCred.addToken(token.getService(), token);
+      }
+    }
+
     DataOutputBuffer dob = new DataOutputBuffer();
-    credentials.writeTokenStorageToStream(dob);
+    containersCred.writeTokenStorageToStream(dob);
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
     String submitterUserName = System.getenv(ApplicationConstants.Environment.USER.name());
     UserGroupInformation submitterUgi = UserGroupInformation.createRemoteUser(submitterUserName);
-    submitterUgi.addCredentials(credentials);
+    submitterUgi.addCredentials(containersCred);
   }
 
   private NMCallbackHandler createNMCallbackHandler() {
