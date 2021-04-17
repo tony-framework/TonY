@@ -191,6 +191,10 @@ public class ApplicationMaster {
   /** AM waiting timeout of client signal stop **/
   private int waitingClientSignalStopTimeout;
 
+  /** ML framework, like tensorflow/pytorch/horovod **/
+  private TonyConfigurationKeys.MLFramework mlFramework;
+  private FrameworkRuntime frameworkRuntime;
+
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
@@ -279,6 +283,15 @@ public class ApplicationMaster {
 
     waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
                                                   TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
+
+    mlFramework = TonyConfigurationKeys.MLFramework.valueOf(
+            tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+                    TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    frameworkRuntime = FrameworkRuntime.get(mlFramework);
+    if (!frameworkRuntime.validateAndUpdateConfig(tonyConf)) {
+      LOG.error("Validate the TonY conf failed.");
+      return false;
+    }
 
     // Set an environment variable to pass the appid
     containerEnv.put(Constants.APPID, appIdString);
@@ -572,6 +585,8 @@ public class ApplicationMaster {
     session.setResources(yarnConf, hdfsConf, localResources, containerEnv, hdfsClasspath);
     scheduler = new TaskScheduler(session, amRMClient, localResources, resourceFs, tonyConf, jobTypeToContainerResources);
     scheduler.scheduleTasks();
+
+    frameworkRuntime.setTonySession(session);
   }
 
   // Reset state to prepare for retryCount.
@@ -709,6 +724,8 @@ public class ApplicationMaster {
       LOG.error("Failed to unregister application", e);
     }
 
+    frameworkRuntime.destroy();
+
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
@@ -817,10 +834,6 @@ public class ApplicationMaster {
   }
 
   private final class RpcForClient implements ApplicationRpc {
-    private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
-
-    private long lastRegisterWorkerTime = System.currentTimeMillis();
-
     @Override
     public void reset() {
       session.resetRegisteredTasks();
@@ -883,39 +896,11 @@ public class ApplicationMaster {
       // two distributed mode (default is GANG) cases:
       // 1. In FCFS mode, task will be allowed to run when AM accept worker registered spec,
       // 2. In GANG mode, it will start until all tasks have registered.
-      switch (distributedMode) {
-        case GANG:
-          int numExpectedTasks = session.getNumExpectedTasks();
-          if (session.getNumRegisteredTasks() == numExpectedTasks) {
-            LOG.info("All " + numExpectedTasks + " tasks registered.");
-            return getClusterSpec();
-          } else {
-            printTasksPeriodically();
-            return null;
-          }
-          // return the current task spec directly.
-        case FCFS:
-          return spec;
-        default:
-          throw new IOException("Errors on registering to TonY AM, because of unknown distributed mode: "
-                  + distributedMode);
+      if (frameworkRuntime.canStartTask(distributedMode, taskId)) {
+        return frameworkRuntime.constructClusterSpec(taskId);
       }
-    }
 
-    private void printTasksPeriodically() {
-      // Periodically print a list of all tasks we are still awaiting registration from.
-      if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
-        Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
-        LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
-                session.getNumRegisteredTasks(), session.getNumExpectedTasks() - session.getNumRegisteredTasks()));
-        unregisteredTasks.forEach(t -> {
-          LOG.info(String.format("Awaiting registration from task %s %s in %s on host %s",
-                  t.getJobName(), t.getTaskIndex(),
-                  (t.getContainer() != null ? t.getContainer().getId().toString() : "none"),
-                  (t.getContainer() != null ? t.getContainer().getNodeId().getHost() : "none")));
-        });
-        lastRegisterWorkerTime = System.currentTimeMillis();
-      }
+      return null;
     }
 
     /**
