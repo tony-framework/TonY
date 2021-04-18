@@ -26,8 +26,8 @@ import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
 public interface FrameworkRuntime {
-    static FrameworkRuntime get(TonyConfigurationKeys.MLFramework mlFramework) {
-        switch (mlFramework) {
+    static FrameworkRuntime get(TonyConfigurationKeys.FrameworkType frameworkType) {
+        switch (frameworkType) {
             case TENSORFLOW:
                 return new TFRuntime();
             case PYTORCH:
@@ -35,7 +35,7 @@ public interface FrameworkRuntime {
             case MXNET:
                 return new MXNetRuntime();
             default:
-                throw new RuntimeException("Unsupported executor framework: " + mlFramework);
+                throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
     }
 
@@ -54,14 +54,8 @@ public interface FrameworkRuntime {
     /** For AM, it will pre-check tony conf and inject some params. like horovod runtime will inject driver config into it. **/
     boolean validateAndUpdateConfig(Configuration tonyConf);
 
-    /* For AM, it will receive some callback info frome task executor. */
-    boolean receiveTaskCallbackInfo(String taskId, String callbackInfo);
-
-    /** For TaskExecutor, set the runtime environment before exec python process **/
-    void buildTaskEnv(final TaskExecutor executor) throws Exception;
-
-    /** For TaskExecutor, execute task process **/
-    int executeTaskCommand(TaskExecutor executor) throws Exception;
+    /** For Task Executor, execute task process **/
+    int run(TaskExecutor executor) throws Exception;
 
     default int executorPythonShell(TaskExecutor executor) throws IOException, InterruptedException {
         return Utils.executeShell(executor.getTaskCommand(), executor.getTimeOut(), executor.getShellEnv());

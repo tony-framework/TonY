@@ -58,11 +58,6 @@ public class MLGenericRuntime implements FrameworkRuntime {
     }
 
     @Override
-    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
-        return true;
-    }
-
-    @Override
     public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
         assert session != null;
         switch (distributedMode) {
@@ -111,15 +106,15 @@ public class MLGenericRuntime implements FrameworkRuntime {
                 .collect(Collectors.toSet());
     }
 
-    // ===================For task executor=======================
+    // ===================For Task Executor=======================
 
     @Override
-    public int executeTaskCommand(TaskExecutor executor) throws Exception {
+    public int run(TaskExecutor executor) throws Exception {
+        buildTaskEnv(executor);
         return executorPythonShell(executor);
     }
 
-    @Override
-    public void buildTaskEnv(TaskExecutor executor) throws Exception {
+    protected void buildTaskEnv(TaskExecutor executor) throws Exception {
         return;
     }
 }

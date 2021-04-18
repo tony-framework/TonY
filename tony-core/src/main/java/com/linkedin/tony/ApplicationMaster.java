@@ -191,8 +191,8 @@ public class ApplicationMaster {
   /** AM waiting timeout of client signal stop **/
   private int waitingClientSignalStopTimeout;
 
-  /** ML framework, like tensorflow/pytorch/horovod **/
-  private TonyConfigurationKeys.MLFramework mlFramework;
+  /** Framework type, like tensorflow/pytorch/horovod **/
+  private TonyConfigurationKeys.FrameworkType frameworkType;
   private FrameworkRuntime frameworkRuntime;
 
   private ApplicationMaster() {
@@ -284,12 +284,12 @@ public class ApplicationMaster {
     waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
                                                   TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
 
-    mlFramework = TonyConfigurationKeys.MLFramework.valueOf(
+    frameworkType = TonyConfigurationKeys.FrameworkType.valueOf(
             tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                     TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
-    frameworkRuntime = FrameworkRuntime.get(mlFramework);
+    frameworkRuntime = FrameworkRuntime.get(frameworkType);
     if (!frameworkRuntime.validateAndUpdateConfig(tonyConf)) {
-      LOG.error("Validate the TonY conf failed.");
+      LOG.error("Invalid TonY conf.");
       return false;
     }
 
