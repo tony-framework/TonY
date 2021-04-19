@@ -22,6 +22,7 @@ import com.linkedin.tony.rpc.impl.pb.GetTaskInfosRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetTaskInfosResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatResponsePBImpl;
+import com.linkedin.tony.rpc.impl.pb.RegisterCallbackInfoRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterExecutionResultRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterExecutionResultResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterTensorBoardUrlRequestPBImpl;
@@ -131,6 +132,18 @@ public class TensorFlowClusterPBServiceImpl implements TensorFlowClusterPB {
     try {
       HeartbeatResponse response = real.taskExecutorHeartbeat(request);
       return ((HeartbeatResponsePBImpl) response).getProto();
+    } catch (Exception e) {
+      throw new ServiceException(e);
+    }
+  }
+
+  @Override
+  public EmptyProto registerCallbackInfo(RpcController controller,
+          YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto) throws ServiceException {
+    RegisterCallbackInfoRequestPBImpl request = new RegisterCallbackInfoRequestPBImpl(proto);
+    try {
+      Empty response = real.registerCallbackInfo(request);
+      return ((EmptyPBImpl) response).getProto();
     } catch (Exception e) {
       throw new ServiceException(e);
     }

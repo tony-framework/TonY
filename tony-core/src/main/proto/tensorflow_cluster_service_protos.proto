@@ -16,4 +16,5 @@ service TensorFlowClusterService {
     rpc registerExecutionResult(RegisterExecutionResultRequestProto) returns (RegisterExecutionResultResponseProto);
     rpc finishApplication (EmptyProto) returns (EmptyProto); // Signals a AM that it can exit now.
     rpc taskExecutorHeartbeat (HeartbeatRequestProto) returns (HeartbeatResponseProto); // To be used only by the Task Executor
+    rpc registerCallbackInfo (RegisterCallbackInfoRequestProto) returns (EmptyProto);
 }

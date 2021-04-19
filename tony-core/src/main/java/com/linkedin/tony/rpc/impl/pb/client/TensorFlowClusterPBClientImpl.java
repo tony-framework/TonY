@@ -13,6 +13,7 @@ import com.linkedin.tony.rpc.GetTaskInfosRequest;
 import com.linkedin.tony.rpc.GetTaskInfosResponse;
 import com.linkedin.tony.rpc.HeartbeatRequest;
 import com.linkedin.tony.rpc.HeartbeatResponse;
+import com.linkedin.tony.rpc.RegisterCallbackInfoRequest;
 import com.linkedin.tony.rpc.RegisterExecutionResultRequest;
 import com.linkedin.tony.rpc.RegisterExecutionResultResponse;
 import com.linkedin.tony.rpc.RegisterTensorBoardUrlRequest;
@@ -28,6 +29,7 @@ import com.linkedin.tony.rpc.impl.pb.GetTaskInfosRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetTaskInfosResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.HeartbeatResponsePBImpl;
+import com.linkedin.tony.rpc.impl.pb.RegisterCallbackInfoRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterExecutionResultRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterExecutionResultResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterTensorBoardUrlRequestPBImpl;
@@ -139,6 +141,17 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
     HeartbeatRequestProto requestProto = ((HeartbeatRequestPBImpl) request).getProto();
     try {
       return new HeartbeatResponsePBImpl(proxy.taskExecutorHeartbeat(null, requestProto));
+    } catch (ServiceException e) {
+      RPCUtil.unwrapAndThrowException(e);
+      return null;
+    }
+  }
+
+  @Override
+  public Empty registerCallbackInfo(RegisterCallbackInfoRequest request) throws YarnException, IOException {
+    YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto requestProto = ((RegisterCallbackInfoRequestPBImpl) request).getProto();
+    try {
+      return new EmptyPBImpl(proxy.registerCallbackInfo(null, requestProto));
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       return null;
