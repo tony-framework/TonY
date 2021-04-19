@@ -58,6 +58,11 @@ public class MLGenericRuntime implements FrameworkRuntime {
     }
 
     @Override
+    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
+        return true;
+    }
+
+    @Override
     public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
         assert session != null;
         switch (distributedMode) {

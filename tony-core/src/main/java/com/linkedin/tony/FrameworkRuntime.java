@@ -54,6 +54,14 @@ public interface FrameworkRuntime {
     /** For AM, it will pre-check tony conf and inject some params. like horovod runtime will inject driver config into it. **/
     boolean validateAndUpdateConfig(Configuration tonyConf);
 
+    /**
+     * For AM, it will receive some callback info from task executor.
+     * This method will be called when Application Master accepting task executors' callback info.
+     * This method is suitable for the task executors that have a dependency of startup sequence,
+     * and the start of downstream tasks needs to rely on the info after the start of the upstream task.
+     */
+    boolean receiveTaskCallbackInfo(String taskId, String callbackInfo);
+
     /** For Task Executor, execute task process **/
     int run(TaskExecutor executor) throws Exception;
 

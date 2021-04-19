@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
@@ -288,6 +289,10 @@ public class TaskExecutor {
     return Utils.pollTillNonNull(() ->
         proxy.registerWorkerSpec(jobName + ":" + taskIndex,
             hostName + ":" + this.rpcPort.getPort()), 3, 0);
+  }
+
+  public void callbackInfoToAM(String taskId, String callbackInfo) throws IOException, YarnException {
+    proxy.registerCallbackInfo(taskId, callbackInfo);
   }
 
   private void registerTensorBoardUrl() {

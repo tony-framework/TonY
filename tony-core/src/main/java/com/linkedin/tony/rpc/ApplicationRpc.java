@@ -23,4 +23,5 @@ public interface ApplicationRpc {
   void finishApplication() throws YarnException, IOException;
   void taskExecutorHeartbeat(String taskId) throws YarnException, IOException;
   void reset();
+  void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException;
 }

@@ -840,6 +840,11 @@ public class ApplicationMaster {
     }
 
     @Override
+    public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
+      frameworkRuntime.receiveTaskCallbackInfo(taskId, callbackInfo);
+    }
+
+    @Override
     public Set<TaskInfo> getTaskInfos() {
       // Special handling for NotebookSubmitter.
       if (singleNode && proxyUrl != null) {
