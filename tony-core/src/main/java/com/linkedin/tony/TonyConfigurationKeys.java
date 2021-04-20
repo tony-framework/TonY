@@ -302,4 +302,6 @@ public class TonyConfigurationKeys {
   // Local testing horovod driver
   public static final String TEST_HOROVOD_FAIL_ENABLE_KEY = TONY_APPLICATION_PREFIX + "test.horovod-driver-fail-enable";
   public static final boolean DEFAULT_TEST_HOROVOD_FAIL = false;
+  public static final String IN_TEST_HOROVOD_MODE = TONY_APPLICATION_PREFIX + "test.horovod-test-mode-enable";
+  public static final boolean DEFAULT_IN_TEST_HOROVOD_MODE = false;
 }

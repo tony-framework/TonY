@@ -32,6 +32,7 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
+import com.linkedin.tony.Constants;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.horovod.DriverCallbackInfo;
@@ -41,8 +42,10 @@ import com.linkedin.tony.horovod.SlotInfo;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_IN_TEST_HOROVOD_MODE;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TEST_HOROVOD_FAIL;
 import static com.linkedin.tony.TonyConfigurationKeys.DistributedMode.GANG;
+import static com.linkedin.tony.TonyConfigurationKeys.IN_TEST_HOROVOD_MODE;
 import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_KEY;
 
 public class HorovodRuntime extends MLGenericRuntime {
@@ -96,8 +99,13 @@ public class HorovodRuntime extends MLGenericRuntime {
     private void setInTestMode() {
         assert session != null;
 
-        boolean enableFail = session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
-        if (enableFail) {
+        boolean isInTestMode = session.getTonyConf().getBoolean(IN_TEST_HOROVOD_MODE, DEFAULT_IN_TEST_HOROVOD_MODE);
+        if (isInTestMode) {
+            HorovodDriver.setInTest();
+        }
+
+        boolean setFailedInTest = session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
+        if (setFailedInTest) {
             HorovodDriver.setInTest();
             HorovodDriver.setTaskFailInTestMode();
         }
@@ -242,10 +250,18 @@ public class HorovodRuntime extends MLGenericRuntime {
                 Utils.parseClusterSpecForHorovod(executor.getClusterSpec());
         setHorovodRunEnv(executor, horovodClusterSpec, executor.getTaskIndex(),
                 Utils.getCurrentHostName());
+
+        Map<String, String> executorShellEnv = executor.getShellEnv();
+        executorShellEnv.put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
+        executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
+        executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
+        executorShellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.getDistributedMode().name());
     }
 
     @Override
     public int run(TaskExecutor executor) throws Exception {
+        setInTestMode();
+
         buildTaskEnv(executor);
         if (DRIVER.equals(executor.getJobName())) {
             // TODO: 2021/4/13  if driver failed, it should fast fail. AM should fail. Unit test should cover this.
