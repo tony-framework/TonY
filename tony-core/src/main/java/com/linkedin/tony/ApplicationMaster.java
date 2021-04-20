@@ -85,6 +85,7 @@ import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
@@ -190,9 +191,9 @@ public class ApplicationMaster {
   /** AM waiting timeout of client signal stop **/
   private int waitingClientSignalStopTimeout;
 
-  /** ML framework, like tensorflow/pytorch/horovod **/
-  private TonyConfigurationKeys.MLFramework mlFramework;
-  private MLFrameworkRuntime mlFrameworkRuntime;
+  /** Framework type, like tensorflow/pytorch/horovod **/
+  private TonyConfigurationKeys.FrameworkType frameworkType;
+  private FrameworkRuntime frameworkRuntime;
 
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
@@ -283,12 +284,12 @@ public class ApplicationMaster {
     waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
                                                   TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
 
-    mlFramework = TonyConfigurationKeys.MLFramework.valueOf(
+    frameworkType = TonyConfigurationKeys.FrameworkType.valueOf(
             tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                     TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
-    mlFrameworkRuntime = MLFrameworkRuntime.get(mlFramework);
-    if (mlFrameworkRuntime.preCheck(tonyConf)) {
-      LOG.error("Precheck the tony conf failed.");
+    frameworkRuntime = FrameworkRuntime.get(frameworkType);
+    if (!frameworkRuntime.validateAndUpdateConfig(tonyConf)) {
+      LOG.error("Invalid TonY conf.");
       return false;
     }
 
@@ -585,7 +586,7 @@ public class ApplicationMaster {
     scheduler = new TaskScheduler(session, amRMClient, localResources, resourceFs, tonyConf, jobTypeToContainerResources);
     scheduler.scheduleTasks();
 
-    mlFrameworkRuntime.setTonySession(session);
+    frameworkRuntime.setTonySession(session);
   }
 
   // Reset state to prepare for retryCount.
@@ -723,7 +724,7 @@ public class ApplicationMaster {
       LOG.error("Failed to unregister application", e);
     }
 
-    mlFrameworkRuntime.destroy();
+    frameworkRuntime.destroy();
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
@@ -832,13 +833,14 @@ public class ApplicationMaster {
   }
 
   private final class RpcForClient implements ApplicationRpc {
-    private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
-
-    private long lastRegisterWorkerTime = System.currentTimeMillis();
-
     @Override
     public void reset() {
       session.resetRegisteredTasks();
+    }
+
+    @Override
+    public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
+      frameworkRuntime.receiveTaskCallbackInfo(taskId, callbackInfo);
     }
 
     @Override
@@ -880,11 +882,6 @@ public class ApplicationMaster {
     }
 
     @Override
-    public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
-      mlFrameworkRuntime.registerCallbackInfo(taskId, callbackInfo);
-    }
-
-    @Override
     public String registerWorkerSpec(String taskId, String spec) throws IOException {
       TonyTask task = session.getTask(taskId);
       if (task.getHost() == null) {
@@ -900,63 +897,10 @@ public class ApplicationMaster {
         killChiefWorkerIfTesting(taskId);
       }
 
-      if (mlFrameworkRuntime.canStart(distributedMode, taskId)) {
-        return mlFrameworkRuntime.constructClusterSpec(taskId);
+      if (frameworkRuntime.canStartTask(distributedMode, taskId)) {
+        return frameworkRuntime.constructClusterSpec(taskId);
       }
       return null;
-    }
-
-    public String registerWorkerSpecV1(String taskId, String spec) throws IOException {
-      TonyTask task = session.getTask(taskId);
-      if (task.getHost() == null) {
-        LOG.info("Received cluster spec registration request from task " + taskId + " with spec: " + spec);
-        task.setHostPort(spec);
-        session.addRegisteredTask(taskId);
-
-        // HB Registration should happen only after worker registration..
-        // The Task registration timeout will take care of rescheduling the task
-        // on another node..
-        LOG.info("[" + taskId + "] Received Registration for HB !!");
-        hbMonitor.register(task);
-        killChiefWorkerIfTesting(taskId);
-      }
-
-      // two distributed mode (default is GANG) cases:
-      // 1. In FCFS mode, task will be allowed to run when AM accept worker registered spec,
-      // 2. In GANG mode, it will start until all tasks have registered.
-      switch (distributedMode) {
-        case GANG:
-          int numExpectedTasks = session.getNumExpectedTasks();
-          if (session.getNumRegisteredTasks() == numExpectedTasks) {
-            LOG.info("All " + numExpectedTasks + " tasks registered.");
-            return mlFrameworkRuntime.constructClusterSpec(taskId);
-          } else {
-            printTasksPeriodically();
-            return null;
-          }
-          // return the current task spec directly.
-        case FCFS:
-          return spec;
-        default:
-          throw new IOException("Errors on registering to TonY AM, because of unknown distributed mode: "
-                  + distributedMode);
-      }
-    }
-
-    private void printTasksPeriodically() {
-      // Periodically print a list of all tasks we are still awaiting registration from.
-      if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
-        Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
-        LOG.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
-                session.getNumRegisteredTasks(), session.getNumExpectedTasks() - session.getNumRegisteredTasks()));
-        unregisteredTasks.forEach(t -> {
-          LOG.info(String.format("Awaiting registration from task %s %s in %s on host %s",
-                  t.getJobName(), t.getTaskIndex(),
-                  (t.getContainer() != null ? t.getContainer().getId().toString() : "none"),
-                  (t.getContainer() != null ? t.getContainer().getNodeId().getHost() : "none")));
-        });
-        lastRegisterWorkerTime = System.currentTimeMillis();
-      }
     }
 
     /**
@@ -1023,13 +967,21 @@ public class ApplicationMaster {
 
   // Set up credentials for the containers.
   private void setupContainerCredentials() throws IOException {
-    Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+    Credentials amCred = UserGroupInformation.getCurrentUser().getCredentials();
+
+    Credentials containersCred = new Credentials();
+    for (Token<? extends TokenIdentifier> token : amCred.getAllTokens()) {
+      if (!token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+        containersCred.addToken(token.getService(), token);
+      }
+    }
+
     DataOutputBuffer dob = new DataOutputBuffer();
-    credentials.writeTokenStorageToStream(dob);
+    containersCred.writeTokenStorageToStream(dob);
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
     String submitterUserName = System.getenv(ApplicationConstants.Environment.USER.name());
     UserGroupInformation submitterUgi = UserGroupInformation.createRemoteUser(submitterUserName);
-    submitterUgi.addCredentials(credentials);
+    submitterUgi.addCredentials(containersCred);
   }
 
   private NMCallbackHandler createNMCallbackHandler() {

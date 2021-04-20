@@ -56,7 +56,7 @@ This will save resources(no extra resources to start driver), and the amount of 
 Additional customization of the driver configuration is required and the startup of driver will be covered on TonY automatically. And it is necessary to coordinate the startup sequence between the driver and other workers, because driver should start before worker. 
 
 Second option will be adopted in this PR.  
-In order to unify different machine framework startup, we supposed to create `MLFrameworkRuntime` interface, it will expose methods as follows
+In order to unify different machine framework startup, we supposed to create `FrameworkRuntime` interface, it will expose methods as follows
 ```java
     /** For AM, getting cluster spec and return to task exectuor **/
     String constructClusterSpec(String taskId) throws IOException;
@@ -68,24 +68,26 @@ In order to unify different machine framework startup, we supposed to create `ML
     void setTonySession(final TonySession session);
 
     /** For AM, it ensures that each task executor start sequence. like Horovod driver should start before workers **/
-    boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
+    boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
 
     /** For AM, it will pre-check tony conf and inject some params. like horovod runtime will inject driver config into it. **/
-    boolean preCheck(Configuration tonyConf);
-
-    /** For TaskExecutor, set the runtime environment before exec python process **/
-    void buildTaskEnv(final TaskExecutor executor) throws Exception;
+    boolean validateAndUpdateConfig(Configuration tonyConf);
+    
+    /**
+     * For AM, it will receive some callback info from task executor.
+     * This method will be called when Application Master accepting task executors' callback info.
+     * This method is suitable for the task executors that have a dependency of startup sequence,
+     * and the start of downstream tasks needs to rely on the info after the start of the upstream task.
+     */
+     boolean receiveTaskCallbackInfo(String taskId, String callbackInfo);    
 
     /** For TaskExecutor, execute task process **/
-    int executeTaskCommand(TaskExecutor executor) throws Exception;
-
-    /** For TaskExecutor, it will register some info to AM after starting python process, like horovod driver**/
-    boolean registerCallbackInfo(String taskId, String callbackInfo);
+    int run(TaskExecutor executor) throws Exception;
 ```
 
 So, we need to create `HorovodRuntime` to support it. Besides, TF/PyTorch/MXNet will also be supported in independent runtime, like `TFRuntime`.
 
-As stated in the design above, Horovod driver should be started on one task executor and before other workers. So in `HorovodRuntime`, we can use `canStart` method to coordinate task executor startup sequence.
+As stated in the design above, Horovod driver should be started on one task executor and before other workers. So in `HorovodRuntime`, we can use `canStartTask` method to coordinate task executor startup sequence.
 
 Besides, how to start Horovod driver? I think we can create `HorovodDriver` class to do it. Its methods as follows. 
 ```java
@@ -100,7 +102,7 @@ public class HorovodDriver {
     }
 
     private static HorovodDriver startRendezvousServer(String workerlist) throws Exception {
-        return HorovodDriver().
+        ...
     }
 
     public void close() {
@@ -134,13 +136,13 @@ public class HorovodRuntime implements MLFrameworkRuntime {
     }
 
     @Override
-    public boolean registerCallbackInfo(String taskId, String callbackInfo) {
+    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
         // when role is driver, AM will accept driver's callback info, which is slot info including horovod 
         // host plan. It will be recorded in runtime and give to workers.
     }
 
     @Override
-    public boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+    public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
         // coordinate startup sequence
     }
 
@@ -155,13 +157,13 @@ public class HorovodRuntime implements MLFrameworkRuntime {
 
     // ===================For task executor=======================
 
-    @Override
     public void buildTaskEnv(TaskExecutor executor) throws Exception {
         // set env for worker, like HOROVOD_CONTROLLER, HOST
     }
 
     @Override
-    public int executeTaskCommand(TaskExecutor executor) throws Exception {
+    public int run(TaskExecutor executor) throws Exception {
+        buildTaskEnv(executor);
         // if it is driver, it will launcher horovod driver and register info to AM
         if (DRIVER.equals(executor.getJobName())) {
             HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());

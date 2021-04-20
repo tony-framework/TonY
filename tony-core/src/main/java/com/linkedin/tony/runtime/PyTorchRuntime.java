@@ -15,11 +15,13 @@
  */
 package com.linkedin.tony.runtime;
 
+import java.util.Map;
+
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.util.Utils;
 
-public class PyTorchRuntime extends BaseRuntime {
+public class PyTorchRuntime extends MLGenericRuntime {
 
     @Override
     public void buildTaskEnv(TaskExecutor executor) throws Exception {
@@ -29,8 +31,9 @@ public class PyTorchRuntime extends BaseRuntime {
             throw new RuntimeException("Errors on getting init method.");
         }
         log.info("Init method is: " + initMethod);
-        executor.getShellEnv().put(Constants.INIT_METHOD, initMethod);
-        executor.getShellEnv().put(Constants.RANK, String.valueOf(executor.getTaskIndex()));
-        executor.getShellEnv().put(Constants.WORLD, String.valueOf(executor.getNumTasks()));
+        Map<String, String> executorShellEnv = executor.getShellEnv();
+        executorShellEnv.put(Constants.INIT_METHOD, initMethod);
+        executorShellEnv.put(Constants.RANK, String.valueOf(executor.getTaskIndex()));
+        executorShellEnv.put(Constants.WORLD, String.valueOf(executor.getNumTasks()));
     }
 }

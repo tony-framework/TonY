@@ -45,7 +45,7 @@ import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TEST_HOROVOD_FAIL;
 import static com.linkedin.tony.TonyConfigurationKeys.DistributedMode.GANG;
 import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_KEY;
 
-public class HorovodRuntime extends BaseRuntime {
+public class HorovodRuntime extends MLGenericRuntime {
     private static final String DRIVER = "driver";
     private static final String WORKER = "worker";
 
@@ -132,7 +132,7 @@ public class HorovodRuntime extends BaseRuntime {
 
 
     @Override
-    public boolean registerCallbackInfo(String taskId, String callbackInfo) {
+    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
         assert session != null;
         if (!isDriverRole(taskId)) {
             log.error("Accept call back info from not driver task executor.");
@@ -150,7 +150,7 @@ public class HorovodRuntime extends BaseRuntime {
     }
 
     @Override
-    public boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+    public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
         assert session != null;
 
         if (GANG != distributedMode) {
@@ -174,7 +174,7 @@ public class HorovodRuntime extends BaseRuntime {
     }
 
     @Override
-    public boolean preCheck(Configuration tonyConf) {
+    public boolean validateAndUpdateConfig(Configuration tonyConf) {
         // inject driver conf and make it untracked.
         tonyConf.set("tony.driver.instances", "1");
         tonyConf.set("tony.driver.vcores", "1");
@@ -245,7 +245,8 @@ public class HorovodRuntime extends BaseRuntime {
     }
 
     @Override
-    public int executeTaskCommand(TaskExecutor executor) throws Exception {
+    public int run(TaskExecutor executor) throws Exception {
+        buildTaskEnv(executor);
         if (DRIVER.equals(executor.getJobName())) {
             // TODO: 2021/4/13  if driver failed, it should fast fail. AM should fail. Unit test should cover this.
 
@@ -257,7 +258,8 @@ public class HorovodRuntime extends BaseRuntime {
             HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
             String callBackInfo = driver.getCallbackInfo();
             log.info("Horovod driver call back to AM: \n" + callBackInfo);
-            executor.registerCallbackInfo(callBackInfo);
+            String taskId = executor.getJobName() + ":" + executor.getTaskIndex();
+            executor.callbackInfoToAM(taskId, callBackInfo);
             int exitCode = driver.waitFor();
             return exitCode;
         }

@@ -25,25 +25,20 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.linkedin.tony.MLFrameworkRuntime;
+import com.linkedin.tony.FrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TonySession;
 
-public class BaseRuntime implements MLFrameworkRuntime {
-    protected Log log = LogFactory.getLog(this.getClass());
+public class MLGenericRuntime implements FrameworkRuntime {
     private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
 
     // when in AM, session should be set. In task executor, session will be null.
     protected TonySession session;
+    protected Log log = LogFactory.getLog(this.getClass());
     private long lastRegisterWorkerTime = System.currentTimeMillis();
 
     // ===================For AM =======================
-
-    @Override
-    public boolean preCheck(Configuration tonyConf) {
-        return true;
-    }
 
     @Override
     public String constructClusterSpec(String taskId) throws IOException {
@@ -63,12 +58,12 @@ public class BaseRuntime implements MLFrameworkRuntime {
     }
 
     @Override
-    public boolean registerCallbackInfo(String taskId, String callbackInfo) {
+    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
         return true;
     }
 
     @Override
-    public boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+    public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
         assert session != null;
         switch (distributedMode) {
             case GANG:
@@ -86,6 +81,11 @@ public class BaseRuntime implements MLFrameworkRuntime {
                         + distributedMode);
                 return false;
         }
+    }
+
+    @Override
+    public boolean validateAndUpdateConfig(Configuration tonyConf) {
+        return true;
     }
 
     protected void printTasksPeriodically() {
@@ -111,15 +111,15 @@ public class BaseRuntime implements MLFrameworkRuntime {
                 .collect(Collectors.toSet());
     }
 
-    // ===================For task executor=======================
+    // ===================For Task Executor=======================
 
     @Override
-    public int executeTaskCommand(TaskExecutor executor) throws Exception {
+    public int run(TaskExecutor executor) throws Exception {
+        buildTaskEnv(executor);
         return executorPythonShell(executor);
     }
 
-    @Override
-    public void buildTaskEnv(TaskExecutor executor) throws Exception {
+    protected void buildTaskEnv(TaskExecutor executor) throws Exception {
         return;
     }
 }

@@ -26,7 +26,7 @@ import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
 
-import static com.linkedin.tony.TonyConfigurationKeys.MLFramework;
+import static com.linkedin.tony.TonyConfigurationKeys.FrameworkType;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -67,7 +67,7 @@ public class TaskExecutor {
   private int hbInterval;
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
-  private MLFramework framework;
+  private FrameworkType framework;
   private String appIdString;
 
   protected TaskExecutor() { }
@@ -211,9 +211,8 @@ public class TaskExecutor {
 
     int exitCode;
     try {
-      MLFrameworkRuntime mlRuntime = MLFrameworkRuntime.get(executor.framework);
-      mlRuntime.buildTaskEnv(executor);
-      exitCode = mlRuntime.executeTaskCommand(executor);
+      FrameworkRuntime frameworkRuntime = FrameworkRuntime.get(executor.framework);
+      exitCode = frameworkRuntime.run(executor);
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:
@@ -266,7 +265,7 @@ public class TaskExecutor {
       throw new IllegalArgumentException("Task command is empty.");
     }
     LOG.info("Task command: " + taskCommand);
-    framework = MLFramework.valueOf(
+    framework = FrameworkType.valueOf(
         tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
 
     metricsRPCPort = Integer.parseInt(System.getenv(Constants.METRICS_RPC_PORT));
@@ -293,8 +292,8 @@ public class TaskExecutor {
             hostName + ":" + this.rpcPort.getPort()), 3, 0);
   }
 
-  public void registerCallbackInfo(String callbackInfo) throws IOException, YarnException {
-    proxy.registerCallbackInfo(this.taskId, callbackInfo);
+  public void callbackInfoToAM(String taskId, String callbackInfo) throws IOException, YarnException {
+    proxy.registerCallbackInfo(taskId, callbackInfo);
   }
 
   private void registerTensorBoardUrl() {
@@ -392,6 +391,10 @@ public class TaskExecutor {
     return tbPort;
   }
 
+  public Map<String, String> getShellEnv() {
+    return shellEnv;
+  }
+
   public int getTimeOut() {
     return timeOut;
   }
@@ -409,7 +412,18 @@ public class TaskExecutor {
   }
 
   public int getMetricsIntervalMs() {
-    return metricsIntervalMs;
+      return metricsIntervalMs;
+    }
+  public String getJobName() {
+    return jobName;
+  }
+
+  public int getTaskIndex() {
+    return taskIndex;
+  }
+
+  public TonyConfigurationKeys.DistributedMode getDistributedMode() {
+    return distributedMode;
   }
 
   public String getTaskCommand() {
@@ -420,28 +434,12 @@ public class TaskExecutor {
     return clusterSpec;
   }
 
-  public String getJobName() {
-    return jobName;
-  }
-
-  public int getTaskIndex() {
-    return taskIndex;
-  }
-
-  public String getTaskId() {
-    return taskId;
-  }
-
   public int getNumTasks() {
     return numTasks;
   }
 
   public boolean isChief() {
     return isChief;
-  }
-
-  public Map<String, String> getShellEnv() {
-    return shellEnv;
   }
 
   public int getHbInterval() {
@@ -452,7 +450,7 @@ public class TaskExecutor {
     return numFailedHBAttempts;
   }
 
-  public MLFramework getFramework() {
+  public FrameworkType getFramework() {
     return framework;
   }
 
@@ -462,9 +460,5 @@ public class TaskExecutor {
 
   public Configuration getTonyConf() {
     return tonyConf;
-  }
-
-  public TonyConfigurationKeys.DistributedMode getDistributedMode() {
-    return distributedMode;
   }
 }

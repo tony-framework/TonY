@@ -22,7 +22,7 @@ import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 
-public class MXNetRuntime extends BaseRuntime {
+public class MXNetRuntime extends MLGenericRuntime {
 
     @Override
     public void buildTaskEnv(TaskExecutor executor) throws Exception {

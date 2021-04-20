@@ -26,19 +26,19 @@ import com.linkedin.tony.runtime.TFRuntime;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
-public interface MLFrameworkRuntime {
-    static MLFrameworkRuntime get(TonyConfigurationKeys.MLFramework mlFramework) {
-        switch (mlFramework) {
+public interface FrameworkRuntime {
+    static FrameworkRuntime get(TonyConfigurationKeys.FrameworkType frameworkType) {
+        switch (frameworkType) {
             case TENSORFLOW:
                 return new TFRuntime();
             case PYTORCH:
                 return new PyTorchRuntime();
-            case HOROVOD:
-                return new HorovodRuntime();
             case MXNET:
                 return new MXNetRuntime();
+            case HOROVOD:
+                return new HorovodRuntime();
             default:
-                throw new RuntimeException("Unsupported executor framework: " + mlFramework);
+                throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
     }
 
@@ -52,19 +52,21 @@ public interface MLFrameworkRuntime {
     void setTonySession(final TonySession session);
 
     /** For AM, it ensures that each task executor start sequence. like Horovod driver should start before workers **/
-    boolean canStart(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
+    boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId);
 
     /** For AM, it will pre-check tony conf and inject some params. like horovod runtime will inject driver config into it. **/
-    boolean preCheck(Configuration tonyConf);
+    boolean validateAndUpdateConfig(Configuration tonyConf);
 
-    /** For TaskExecutor, set the runtime environment before exec python process **/
-    void buildTaskEnv(final TaskExecutor executor) throws Exception;
+    /**
+     * For AM, it will receive some callback info from task executor.
+     * This method will be called when Application Master accepting task executors' callback info.
+     * This method is suitable for the task executors that have a dependency of startup sequence,
+     * and the start of downstream tasks needs to rely on the info after the start of the upstream task.
+     */
+    boolean receiveTaskCallbackInfo(String taskId, String callbackInfo);
 
-    /** For TaskExecutor, execute task process **/
-    int executeTaskCommand(TaskExecutor executor) throws Exception;
-
-    /** For TaskExecutor, it will register some info to AM after starting python process, like horovod driver**/
-    boolean registerCallbackInfo(String taskId, String callbackInfo);
+    /** For Task Executor, execute task process **/
+    int run(TaskExecutor executor) throws Exception;
 
     default int executorPythonShell(TaskExecutor executor) throws IOException, InterruptedException {
         return Utils.executeShell(executor.getTaskCommand(), executor.getTimeOut(), executor.getShellEnv());

@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TonyConfigurationKeys {
-  public enum MLFramework {
+  public enum FrameworkType {
     TENSORFLOW,
     PYTORCH,
     HOROVOD,
