@@ -13,7 +13,8 @@ public class TonyConfigurationKeys {
     TENSORFLOW,
     PYTORCH,
     HOROVOD,
-    MXNET
+    MXNET,
+    STANDALONE
   }
 
   public enum DistributedMode {
