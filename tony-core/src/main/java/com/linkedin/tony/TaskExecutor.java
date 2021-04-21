@@ -383,14 +383,6 @@ public class TaskExecutor {
     return distributedMode == TonyConfigurationKeys.DistributedMode.GANG;
   }
 
-  public ServerPort getRpcPort() {
-    return rpcPort;
-  }
-
-  public ServerPort getTbPort() {
-    return tbPort;
-  }
-
   public Map<String, String> getShellEnv() {
     return shellEnv;
   }
@@ -399,21 +391,6 @@ public class TaskExecutor {
     return timeOut;
   }
 
-  public String getAmHost() {
-    return amHost;
-  }
-
-  public int getAmPort() {
-    return amPort;
-  }
-
-  public int getMetricsRPCPort() {
-    return metricsRPCPort;
-  }
-
-  public int getMetricsIntervalMs() {
-      return metricsIntervalMs;
-    }
   public String getJobName() {
     return jobName;
   }
@@ -436,26 +413,6 @@ public class TaskExecutor {
 
   public int getNumTasks() {
     return numTasks;
-  }
-
-  public boolean isChief() {
-    return isChief;
-  }
-
-  public int getHbInterval() {
-    return hbInterval;
-  }
-
-  public int getNumFailedHBAttempts() {
-    return numFailedHBAttempts;
-  }
-
-  public FrameworkType getFramework() {
-    return framework;
-  }
-
-  public String getAppIdString() {
-    return appIdString;
   }
 
   public Configuration getTonyConf() {

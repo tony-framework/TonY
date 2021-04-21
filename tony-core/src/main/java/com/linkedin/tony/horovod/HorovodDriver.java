@@ -172,20 +172,20 @@ public class HorovodDriver {
 
     private static HorovodDriver startRendezvousServer(String workerlist) throws Exception {
         // todo: Precheck python version >= 3.6 (required by Horovod)
-        String driverProcess = String.format("python %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
+        String driverProcessCommand = String.format("python %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
         if (inTestMode) {
-            driverProcess += " -t " + " -p " + FAKE_SERVER_PORT;
+            driverProcessCommand += " -t " + " -p " + FAKE_SERVER_PORT;
 
             if (failInTestMode) {
-                driverProcess += " -f";
+                driverProcessCommand += " -f";
             }
         }
 
-        ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", driverProcess);
+        ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", driverProcessCommand);
         taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
         taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
-        LOG.info("Starting python's Horovod driver cmd: " + driverProcess);
+        LOG.info("Starting python's Horovod driver cmd: " + driverProcessCommand);
         Process taskProcess = taskProcessBuilder.start();
         Pair<Integer, List<SlotInfo>> serverInfo = waitTillServerStarted(taskProcess);
         return new HorovodDriver(taskProcess, serverInfo.getLeft(), serverInfo.getRight());

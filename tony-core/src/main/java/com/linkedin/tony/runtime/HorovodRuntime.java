@@ -61,6 +61,7 @@ public class HorovodRuntime extends MLGenericRuntime {
     @Override
     public String constructClusterSpec(String taskId) throws IOException {
         assert session != null;
+
         TonySession.TonyTask tonyTask = session.getTask(taskId);
         String taskHost = tonyTask.getHost();
 
@@ -72,9 +73,16 @@ public class HorovodRuntime extends MLGenericRuntime {
         log.info("Same host name task index collection: " + sameHostIndexCollection);
 
         if (isDriverRole(taskId)) {
+            log.info("starting Horovod Driver, worker list: " + workerList);
             return workerList;
         }
 
+        if (!isDriverReady) {
+            log.error("Horovod driver is not ready, it shouldn't return cluster spec to worker.");
+            return null;
+        }
+
+        log.info("Starting Horovod worker, task id: " + taskId);
         // when task role is worker, it will return horovod cluster spec.
         HorovodClusterSpec spec = new HorovodClusterSpec(
                 workerSlotMetaInfo,
@@ -94,21 +102,6 @@ public class HorovodRuntime extends MLGenericRuntime {
         }
 
         return false;
-    }
-
-    private void setInTestMode() {
-        assert session != null;
-
-        boolean isInTestMode = session.getTonyConf().getBoolean(IN_TEST_HOROVOD_MODE, DEFAULT_IN_TEST_HOROVOD_MODE);
-        if (isInTestMode) {
-            HorovodDriver.setInTest();
-        }
-
-        boolean setFailedInTest = session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
-        if (setFailedInTest) {
-            HorovodDriver.setInTest();
-            HorovodDriver.setTaskFailInTestMode();
-        }
     }
 
     @VisibleForTesting
@@ -167,9 +160,14 @@ public class HorovodRuntime extends MLGenericRuntime {
         }
 
         int numExpectedTasks = session.getNumExpectedTasks();
+
         if (session.getNumRegisteredTasks() != numExpectedTasks) {
             printTasksPeriodically();
             return false;
+        }
+
+        if (isDriverRole(taskId)) {
+            return true;
         }
 
         // check driver is ready?
@@ -237,49 +235,63 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     // ===================For task executor=======================
 
-    @Override
-    public void buildTaskEnv(TaskExecutor executor) throws Exception {
-        log.info("Setting up Horovod job...");
+    protected void buildTaskEnv(TaskExecutor executor) throws Exception {
+        assert session == null;
+
+        log.info("Setting TonY task executor basic env...");
+        Map<String, String> executorShellEnv = executor.getShellEnv();
+        executorShellEnv.put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
+        executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
+        executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
+        executorShellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.getDistributedMode().name());
+
         if (DRIVER.equals(executor.getJobName())) {
             log.info("Task is Horovod driver, no need to set extra env.");
             return;
         }
+        log.info("Setting up Horovod worker...");
 
         // cluster spec like: h1:1,h2:2,h3:1
         HorovodClusterSpec horovodClusterSpec =
                 Utils.parseClusterSpecForHorovod(executor.getClusterSpec());
         setHorovodRunEnv(executor, horovodClusterSpec, executor.getTaskIndex(),
                 Utils.getCurrentHostName());
-
-        Map<String, String> executorShellEnv = executor.getShellEnv();
-        executorShellEnv.put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
-        executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
-        executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
-        executorShellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.getDistributedMode().name());
     }
 
     @Override
     public int run(TaskExecutor executor) throws Exception {
-        setInTestMode();
+        assert session == null;
 
+        setInTestMode(executor);
         buildTaskEnv(executor);
         if (DRIVER.equals(executor.getJobName())) {
-            // TODO: 2021/4/13  if driver failed, it should fast fail. AM should fail. Unit test should cover this.
-
-            if (session.getTonyConf().getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, false)) {
-                HorovodDriver.setInTest();
-                HorovodDriver.setTaskFailInTestMode();
-            }
-
             HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
             String callBackInfo = driver.getCallbackInfo();
             log.info("Horovod driver call back to AM: \n" + callBackInfo);
             String taskId = executor.getJobName() + ":" + executor.getTaskIndex();
             executor.callbackInfoToAM(taskId, callBackInfo);
+
+            log.info("Horovod driver has started. It will end when all workers finished.");
             int exitCode = driver.waitFor();
             return exitCode;
         }
 
         return this.executorPythonShell(executor);
+    }
+
+    private void setInTestMode(TaskExecutor executor) {
+        assert session == null;
+
+        Configuration tonyConf = executor.getTonyConf();
+        boolean isInTestMode = tonyConf.getBoolean(IN_TEST_HOROVOD_MODE, DEFAULT_IN_TEST_HOROVOD_MODE);
+        if (isInTestMode) {
+            HorovodDriver.setInTest();
+        }
+
+        boolean setFailedInTest = tonyConf.getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
+        if (setFailedInTest) {
+            HorovodDriver.setInTest();
+            HorovodDriver.setTaskFailInTestMode();
+        }
     }
 }
