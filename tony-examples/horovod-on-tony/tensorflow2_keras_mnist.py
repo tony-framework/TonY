@@ -90,3 +90,4 @@ verbose = 1 if hvd.rank() == 0 else 0
 # Train the model.
 # Horovod: adjust number of steps based on number of GPUs.
 mnist_model.fit(dataset, steps_per_epoch=500 // hvd.size(), callbacks=callbacks, epochs=24, verbose=verbose)
+
