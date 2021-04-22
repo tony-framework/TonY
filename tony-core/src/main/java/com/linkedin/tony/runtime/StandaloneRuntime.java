@@ -17,14 +17,19 @@ package com.linkedin.tony.runtime;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 import com.linkedin.tony.FrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.util.Utils;
 
 public class StandaloneRuntime implements FrameworkRuntime {
+    protected Log log = LogFactory.getLog(this.getClass());
+
     @Override
     public String constructClusterSpec(String taskId) throws IOException {
         return taskId;
@@ -47,6 +52,10 @@ public class StandaloneRuntime implements FrameworkRuntime {
 
     @Override
     public boolean validateAndUpdateConfig(Configuration tonyConf) {
+        if (Utils.getNumTotalTasks(tonyConf) != 1) {
+            log.error("In standalone runtime mode, it must only have one instance.");
+            return false;
+        }
         return true;
     }
 

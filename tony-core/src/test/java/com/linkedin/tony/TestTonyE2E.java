@@ -356,6 +356,39 @@ public class TestTonyE2E  {
     Assert.assertEquals(exitCode, 0);
   }
 
+  @Test
+  public void testStandaloneRuntimeModeShouldPass() throws ParseException, IOException {
+    client = new TonyClient(conf);
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--executes", "exit_0.py",
+            "--hdfs_classpath", libPath,
+            "--python_binary_path", "python",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--conf", "tony.application.framework=standalone",
+            "--conf", "tony.worker.instances=1"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+  @Test
+  public void testStandaloneRuntimeWithMultiInstancesShouldFail() throws ParseException, IOException {
+    client = new TonyClient(conf);
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--executes", "exit_0.py",
+            "--hdfs_classpath", libPath,
+            "--python_binary_path", "python",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--conf", "tony.application.framework=standalone",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.slave.instances=1"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+  }
+
   /**
    * Tests that when the task completion notification is delayed (RMCallbackHandler.onContainersCompleted),
    * the task has already been unregistered from the heartbeat monitor and thus the job should still succeed.
