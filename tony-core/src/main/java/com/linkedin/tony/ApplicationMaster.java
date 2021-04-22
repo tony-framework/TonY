@@ -840,7 +840,10 @@ public class ApplicationMaster {
 
     @Override
     public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
-      frameworkRuntime.receiveTaskCallbackInfo(taskId, callbackInfo);
+      if (!frameworkRuntime.receiveTaskCallbackInfo(taskId, callbackInfo)) {
+        LOG.error("Errors on receiving task executors' callbaclk info. task id: "
+                + taskId + ", callback info: " + callbackInfo);
+      }
     }
 
     @Override
