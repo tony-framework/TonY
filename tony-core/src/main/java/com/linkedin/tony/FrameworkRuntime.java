@@ -21,6 +21,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import com.linkedin.tony.runtime.MXNetRuntime;
 import com.linkedin.tony.runtime.PyTorchRuntime;
+import com.linkedin.tony.runtime.StandaloneRuntime;
 import com.linkedin.tony.runtime.TFRuntime;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
@@ -34,6 +35,8 @@ public interface FrameworkRuntime {
                 return new PyTorchRuntime();
             case MXNET:
                 return new MXNetRuntime();
+            case STANDALONE:
+                return new StandaloneRuntime();
             default:
                 throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
