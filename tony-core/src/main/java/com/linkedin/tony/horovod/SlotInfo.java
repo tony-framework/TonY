@@ -4,6 +4,20 @@
  */
 package com.linkedin.tony.horovod;
 
+/**
+ * Introduce SlotInfo class to wrap consensus info, which is needed by Horovod workers.
+ * SlotInfo is provided by Horovod Driver, which collect built-in python script process's output.
+ * SlotInfo including info is like as follows, more details can be found on horovod-on-tony proposal
+ *
+ * hostname     localhost:98
+ * rank         0
+ * localRank    0
+ * crossRank    0
+ * size         4
+ * localSize    2
+ * crossSize    2
+ *
+ */
 public class SlotInfo {
     private String hostname;
     private int rank;

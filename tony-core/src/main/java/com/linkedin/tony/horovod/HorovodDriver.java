@@ -28,6 +28,13 @@ import com.linkedin.tony.util.Utils;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Introduce HorovodDriver class to be a Horovod driver, which is similar to the role of Horovod launcher(gloo_run).
+ * The responsibilities of the HorovodDriver are as follows
+ * 1. Start the rendezvous server by using the built-in python script (horovod_driver.py in resource folder).
+ * 2. Get the python script's process output and parse it, and pass it to Horovod runtime
+ * 3. Monitor rendezvous server's python process
+ */
 public class HorovodDriver {
     private static final Log LOG = LogFactory.getLog(HorovodDriver.class);
     private static final Path DRIVER_SCRIPT_PATH = requireNonNull(createDriverScripPath());

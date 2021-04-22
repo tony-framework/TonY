@@ -85,10 +85,10 @@ public class HorovodRuntime extends MLGenericRuntime {
         log.info("Starting Horovod worker, task id: " + taskId);
         // when task role is worker, it will return horovod cluster spec.
         HorovodClusterSpec spec = new HorovodClusterSpec(
-                workerSlotMetaInfo,
-                rendezvServerPort,
-                rendezvServerHost,
-                sameHostIndexCollection
+            workerSlotMetaInfo,
+            rendezvServerPort,
+            rendezvServerHost,
+            sameHostIndexCollection
         );
         ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(spec);
