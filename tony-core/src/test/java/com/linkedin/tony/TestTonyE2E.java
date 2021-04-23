@@ -485,7 +485,6 @@ public class TestTonyE2E  {
     client.init(new String[]{
             "--src_dir", "tony-core/src/test/resources/scripts",
             "--hdfs_classpath", libPath,
-            "--shell_env", "ENV_CHECK=ENV_CHECK",
             "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
             "--python_venv", "tony-core/src/test/resources/test.zip",
             "--conf", "tony.worker.instances=1",
@@ -504,11 +503,10 @@ public class TestTonyE2E  {
     client.init(new String[]{
             "--src_dir", "tony-core/src/test/resources/scripts",
             "--hdfs_classpath", libPath,
-            "--shell_env", "ENV_CHECK=ENV_CHECK",
             "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
             "--python_venv", "tony-core/src/test/resources/test.zip",
-            "--conf", "tony.worker.instances=1",
-            "--conf", "tony.worker.command=python check_horovod_env.py",
+            "--executes", "python check_horovod_env.py",
+            "--conf", "tony.worker.instances=2",
             "--conf", "tony.application.test.horovod-test-mode-enable=true",
             "--conf", "tony.application.framework=horovod"
     });

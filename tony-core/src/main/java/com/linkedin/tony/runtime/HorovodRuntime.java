@@ -58,6 +58,8 @@ public class HorovodRuntime extends MLGenericRuntime {
     private String rendezvServerPort;
     private String rendezvServerHost;
 
+    private boolean isTestMode = false;
+
     @Override
     public String constructClusterSpec(String taskId) throws IOException {
         assert session != null;
@@ -135,6 +137,8 @@ public class HorovodRuntime extends MLGenericRuntime {
     @Override
     public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
         assert session != null;
+        log.info("Receiving horovod driver call back info...");
+
         if (!isDriverRole(taskId)) {
             log.error("Accept call back info from not driver task executor.");
             return false;
@@ -190,6 +194,9 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     private void setHorovodRunEnv(TaskExecutor executor, HorovodClusterSpec horovodClusterSpec,
             int taskIndex, String currentHostName) {
+        if (isTestMode) {
+            currentHostName = "localhost";
+        }
         String rendezvPort = horovodClusterSpec.getPort();
         String rendezvHost = horovodClusterSpec.getAmHost();
         log.info("Horovod rendezvous server host: " + rendezvHost + ", port: " + rendezvPort);
@@ -286,12 +293,14 @@ public class HorovodRuntime extends MLGenericRuntime {
         boolean isInTestMode = tonyConf.getBoolean(IN_TEST_HOROVOD_MODE, DEFAULT_IN_TEST_HOROVOD_MODE);
         if (isInTestMode) {
             HorovodDriver.setInTest();
+            isTestMode = true;
         }
 
         boolean setFailedInTest = tonyConf.getBoolean(TEST_HOROVOD_FAIL_ENABLE_KEY, DEFAULT_TEST_HOROVOD_FAIL);
         if (setFailedInTest) {
             HorovodDriver.setInTest();
             HorovodDriver.setTaskFailInTestMode();
+            isTestMode = true;
         }
     }
 }

@@ -36,5 +36,5 @@ print('rank: ' + rank)
 print('hostname: ' + hostname)
 
 
-if controller and job_name and operators and timeout and rendez_addr and rendez_port and cross_rank and cross_size and local_rank and local_size and size and rank:
+if not (controller and job_name and operators and timeout and rendez_addr and rendez_port and cross_rank and cross_size and local_rank and local_size and size and rank):
     raise ValueError
