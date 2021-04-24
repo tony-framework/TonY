@@ -4,6 +4,7 @@
  */
 package com.linkedin.tony.tensorflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyClient;
@@ -284,6 +285,10 @@ public class TonySession {
     }
   }
 
+  public void setTrainingFinished() {
+    this.trainingFinished = true;
+  }
+
   /**
    * Update the status of a session and set exit code if a session is completed.
    */
@@ -416,6 +421,13 @@ public class TonySession {
       this.tonyConf = tonyConf;
       return this;
     }
+  }
+
+  @VisibleForTesting
+  public TonyTask buildTonyTask(String jobName, String taskIndex, String host) {
+    TonyTask task = new TonyTask(jobName, taskIndex, -1, -1);
+    task.setHostPort(host + ":9999");
+    return task;
   }
 
   /**
@@ -571,6 +583,10 @@ public class TonySession {
     } catch (Exception e) {
       return null;
     }
+  }
+
+  public Configuration getTonyConf() {
+    return tonyConf;
   }
 
   public void addRegisteredTask(String taskId) {

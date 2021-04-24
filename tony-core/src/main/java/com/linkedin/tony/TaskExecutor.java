@@ -168,6 +168,7 @@ public class TaskExecutor {
         TimeUnit.MILLISECONDS);
 
     executor.setupPorts();
+
     executor.clusterSpec = executor.registerAndGetClusterSpec();
 
     if (executor.clusterSpec == null) {

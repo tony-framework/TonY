@@ -392,4 +392,14 @@
     <name>tony.secret.key</name>
     <value>changeme</value>
   </property>
+
+  <property>
+    <name>tony.application.test.horovod-driver-fail-enable</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>tony.application.test.horovod-test-mode-enable</name>
+    <value>false</value>
+  </property>
 </configuration>

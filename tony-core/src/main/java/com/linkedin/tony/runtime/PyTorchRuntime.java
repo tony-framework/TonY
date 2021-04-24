@@ -31,7 +31,6 @@ public class PyTorchRuntime extends MLGenericRuntime {
             throw new RuntimeException("Errors on getting init method.");
         }
         log.info("Init method is: " + initMethod);
-
         Map<String, String> executorShellEnv = executor.getShellEnv();
         executorShellEnv.put(Constants.INIT_METHOD, initMethod);
         executorShellEnv.put(Constants.RANK, String.valueOf(executor.getTaskIndex()));

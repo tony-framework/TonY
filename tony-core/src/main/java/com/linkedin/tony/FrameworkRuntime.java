@@ -19,6 +19,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 
+import com.linkedin.tony.runtime.HorovodRuntime;
 import com.linkedin.tony.runtime.MXNetRuntime;
 import com.linkedin.tony.runtime.PyTorchRuntime;
 import com.linkedin.tony.runtime.StandaloneRuntime;
@@ -35,6 +36,8 @@ public interface FrameworkRuntime {
                 return new PyTorchRuntime();
             case MXNET:
                 return new MXNetRuntime();
+            case HOROVOD:
+                return new HorovodRuntime();
             case STANDALONE:
                 return new StandaloneRuntime();
             default:

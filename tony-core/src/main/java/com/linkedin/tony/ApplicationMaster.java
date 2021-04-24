@@ -725,7 +725,6 @@ public class ApplicationMaster {
     }
 
     frameworkRuntime.destroy();
-
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
@@ -869,12 +868,6 @@ public class ApplicationMaster {
     }
 
     @Override
-    public String getClusterSpec() throws IOException {
-      ObjectMapper objectMapper = new ObjectMapper();
-      return objectMapper.writeValueAsString(session.getClusterSpec());
-    }
-
-    @Override
     public void taskExecutorHeartbeat(String taskId) {
       TonyTask task = session.getTask(taskId);
       if (task != null) {
@@ -883,6 +876,12 @@ public class ApplicationMaster {
       } else {
         LOG.warn("[" + taskId + "] Not registered for heartbeat monitoring !!");
       }
+    }
+
+    @Override
+    public String getClusterSpec() throws IOException {
+      ObjectMapper objectMapper = new ObjectMapper();
+      return objectMapper.writeValueAsString(session.getClusterSpec());
     }
 
     @Override
@@ -901,13 +900,9 @@ public class ApplicationMaster {
         killChiefWorkerIfTesting(taskId);
       }
 
-      // two distributed mode (default is GANG) cases:
-      // 1. In FCFS mode, task will be allowed to run when AM accept worker registered spec,
-      // 2. In GANG mode, it will start until all tasks have registered.
       if (frameworkRuntime.canStartTask(distributedMode, taskId)) {
         return frameworkRuntime.constructClusterSpec(taskId);
       }
-
       return null;
     }
 
