@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -51,5 +52,16 @@ public class TestHorovodRuntime {
         Assert.assertEquals("localhost3:1,localhost2:1,localhost1:2", workerList);
         Assert.assertEquals(1, sameHostIndexCollection.size());
         Assert.assertEquals("[2]", sameHostIndexCollection.toString());
+    }
+
+    @Test
+    public void testValidate() {
+        Configuration tonyConf = new Configuration();
+        tonyConf.set("tony.application.untracked.jobtypes", "worker");
+        tonyConf.set("tony.driver.instances", "2");
+        Assert.assertFalse(runtime.validate(tonyConf));
+
+        tonyConf = new Configuration();
+        Assert.assertTrue(runtime.validate(tonyConf));
     }
 }

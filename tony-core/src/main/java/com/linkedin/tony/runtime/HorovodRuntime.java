@@ -51,6 +51,9 @@ import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_K
 public class HorovodRuntime extends MLGenericRuntime {
     private static final String DRIVER = "driver";
     private static final String WORKER = "worker";
+    private static final List<String> ILLEGAL_CONFIG_KEYS = Arrays.asList(
+            "tony.driver.instances"
+    );
 
     private volatile boolean isDriverReady = false;
 
@@ -185,11 +188,27 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     @Override
     public boolean validateAndUpdateConfig(Configuration tonyConf) {
+        if (!validate(tonyConf)) {
+            return false;
+        }
+
         // inject driver conf and make it untracked.
         tonyConf.set("tony.driver.instances", "1");
         tonyConf.set("tony.driver.vcores", "1");
         tonyConf.set("tony.application.untracked.jobtypes", "driver");
         return true;
+    }
+
+    @VisibleForTesting
+    protected boolean validate(Configuration tonyConf) {
+        boolean isLegal = true;
+        for (String illegalKey : ILLEGAL_CONFIG_KEYS) {
+            if (tonyConf.get(illegalKey) != null) {
+                log.error("Not allowed to configure [" + illegalKey + "] in Horovod Runtime ");
+                isLegal = false;
+            }
+        }
+        return isLegal;
     }
 
     private void setHorovodRunEnv(TaskExecutor executor, HorovodClusterSpec horovodClusterSpec,
