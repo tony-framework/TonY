@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -51,8 +52,8 @@ import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_K
 public class HorovodRuntime extends MLGenericRuntime {
     private static final String DRIVER = "driver";
     private static final String WORKER = "worker";
-    private static final List<String> ILLEGAL_CONFIG_KEYS = Arrays.asList(
-            "tony.driver.instances"
+    private static final List<String> ILLEGAL_CONFIG_REGEXS = Arrays.asList(
+            "tony.driver\\.([a-z]+)"
     );
 
     private volatile boolean isDriverReady = false;
@@ -201,14 +202,16 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     @VisibleForTesting
     protected boolean validate(Configuration tonyConf) {
-        boolean isLegal = true;
-        for (String illegalKey : ILLEGAL_CONFIG_KEYS) {
-            if (tonyConf.get(illegalKey) != null) {
-                log.error("Not allowed to configure [" + illegalKey + "] in Horovod Runtime ");
-                isLegal = false;
-            }
+        List<String> illegalKeys = ILLEGAL_CONFIG_REGEXS.stream()
+                .map(regex -> tonyConf.getValByRegex(regex).keySet())
+                .flatMap(x -> x.stream()).collect(Collectors.toList());
+
+        if (CollectionUtils.isNotEmpty(illegalKeys)) {
+            log.error("Not allowed to configure illegal conf in Horovod Runtime. "
+                    + "Illegal keys: " + illegalKeys);
+            return false;
         }
-        return isLegal;
+        return true;
     }
 
     private void setHorovodRunEnv(TaskExecutor executor, HorovodClusterSpec horovodClusterSpec,

@@ -59,6 +59,7 @@ public class TestHorovodRuntime {
         Configuration tonyConf = new Configuration();
         tonyConf.set("tony.application.untracked.jobtypes", "worker");
         tonyConf.set("tony.driver.instances", "2");
+        tonyConf.set("tony.driver.vcores", "2");
         Assert.assertFalse(runtime.validate(tonyConf));
 
         tonyConf = new Configuration();
