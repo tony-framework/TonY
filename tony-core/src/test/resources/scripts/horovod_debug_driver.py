@@ -25,6 +25,14 @@ except Exception as e:
 
 PORT_FILE_NAME_SUFFIX = "____HOROVOD_RENDEZVOUS_SERVER____"
 
+default_worker_list = os.getenv("CLUSTER_WORKER_LIST")
+print("Print worker_list:")
+print(default_worker_list)
+
+default_output_path = os.getenv("DRIVER_OUTPUT_PATH")
+print("Print output path:")
+print(default_worker_list)
+
 def elastic_driver_fn():
     pass
 
@@ -88,7 +96,7 @@ def set_option():
     parser.add_option(
         "-a", "--num_proc", dest="num_process", type="str", help="number process of training", default="1")
     parser.add_option(
-        "-w", "--worker_list", dest="worker_list", type="str", help="worker list"
+        "-w", "--worker_list", dest="worker_list", type="str", help="worker list", default=default_worker_list
     )
     parser.add_option(
         "-e", action="store_true", help="enable elastic training.", dest="enable_elastic", default=False
@@ -122,7 +130,7 @@ def set_option():
 
 
 def __port_file_path(port):
-    path_dir = os.path.dirname(os.path.abspath(__file__))
+    path_dir = default_output_path
     port_file_path = os.path.join(path_dir, str(port) + PORT_FILE_NAME_SUFFIX)
     return port_file_path
 

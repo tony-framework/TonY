@@ -36,20 +36,25 @@ public class TestHorovodDriver {
         // python code will return the "localhost:2" host plan
         String fakeWorkerList = "localhost:2";
 
-        HorovodDriver driver = HorovodDriver.create(fakeWorkerList);
-        Assert.assertNotEquals(HorovodDriver.getFakeServerPort(), driver.getPort());
+        HorovodDriver driver = null;
+        try {
+            driver = HorovodDriver.create(fakeWorkerList, null, null);
+            Assert.assertNotEquals(HorovodDriver.getFakeServerPort(), driver.getPort());
 
-        List<SlotInfo> slotInfoList = driver.getSlotInfoList();
-        Assert.assertNotNull(slotInfoList);
-        Assert.assertEquals(2, slotInfoList.size());
-        Assert.assertEquals(0, slotInfoList.get(0).getCrossRank());
-        Assert.assertEquals(1, slotInfoList.get(0).getCrossSize());
-        Assert.assertEquals(0, slotInfoList.get(0).getLocalRank());
-        Assert.assertEquals(2, slotInfoList.get(0).getLocalSize());
-        Assert.assertEquals(0, slotInfoList.get(0).getRank());
-        Assert.assertEquals(2, slotInfoList.get(0).getSize());
-
-        driver.close();
+            List<SlotInfo> slotInfoList = driver.getSlotInfoList();
+            Assert.assertNotNull(slotInfoList);
+            Assert.assertEquals(2, slotInfoList.size());
+            Assert.assertEquals(0, slotInfoList.get(0).getCrossRank());
+            Assert.assertEquals(1, slotInfoList.get(0).getCrossSize());
+            Assert.assertEquals(0, slotInfoList.get(0).getLocalRank());
+            Assert.assertEquals(2, slotInfoList.get(0).getLocalSize());
+            Assert.assertEquals(0, slotInfoList.get(0).getRank());
+            Assert.assertEquals(2, slotInfoList.get(0).getSize());
+        } finally {
+            if (driver != null) {
+                driver.close();
+            }
+        }
     }
 
     /**
@@ -57,14 +62,18 @@ public class TestHorovodDriver {
      */
     @Test
     public void testHorovodDriverWhenFailed() {
+        HorovodDriver driver = null;
         try {
             HorovodDriver.setTaskFailInTestMode();
             String fakeWorkerList = "localhost:2";
-            HorovodDriver.create(fakeWorkerList);
+            driver = HorovodDriver.create(fakeWorkerList, null, null);
             Assert.fail("Should throw exception on starting driver.");
         } catch (Exception e) {
             // ignore.
         } finally {
+            if (driver != null) {
+                driver.close();
+            }
             HorovodDriver.removeTaskFailInTestMode();
         }
     }
@@ -84,13 +93,12 @@ public class TestHorovodDriver {
      */
     @Test
     public void testGetServerInfo() throws IOException {
-        Path driverPath = HorovodDriver.createDriverScripPath();
-        Path parentPath = driverPath.getParent();
-
-        Pair<Integer, List<SlotInfo>> infoPair = HorovodDriver.getServerInfo(parentPath);
+        Pair<Integer, List<SlotInfo>> infoPair = HorovodDriver.getServerInfo();
         Assert.assertNotNull(infoPair);
         Assert.assertEquals(-1, infoPair.getLeft().intValue());
         Assert.assertNull(infoPair.getRight());
+
+        Path parentPath = HorovodDriver.getDriverOutputDir().toPath();
 
         // inject server info into files.
         int port = 10000;
@@ -100,7 +108,7 @@ public class TestHorovodDriver {
         // create tmp port file.
         createPortTmpFile(parentPath, port, slotJson);
 
-        infoPair = HorovodDriver.getServerInfo(parentPath);
+        infoPair = HorovodDriver.getServerInfo();
         Assert.assertNotNull(infoPair);
         Assert.assertEquals(port, infoPair.getLeft().intValue());
         List<SlotInfo> metaSlotInfos = infoPair.getRight();
@@ -134,7 +142,7 @@ public class TestHorovodDriver {
     private void cleanupTmpFile(File file) {
         if (file.isDirectory()) {
             File[] childfiles = file.listFiles();
-            Arrays.stream(childfiles).forEach(this::cleanupTmpFile);
+            Arrays.stream(childfiles).filter(x -> !x.getName().endsWith(".py")).forEach(this::cleanupTmpFile);
         }
         boolean ok = file.delete();
         System.out.println(ok);
