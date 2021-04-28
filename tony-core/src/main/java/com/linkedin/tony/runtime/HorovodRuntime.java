@@ -51,6 +51,9 @@ import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_K
 public class HorovodRuntime extends MLGenericRuntime {
     private static final String DRIVER = "driver";
     private static final String WORKER = "worker";
+    private static final List<String> ILLEGAL_CONFIG_REGEXS = Arrays.asList(
+            "tony.driver\\.([a-z]+)"
+    );
 
     private volatile boolean isDriverReady = false;
 
@@ -185,6 +188,11 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     @Override
     public boolean validateAndUpdateConfig(Configuration tonyConf) {
+        super.setIllegalConfKeyRegexs(ILLEGAL_CONFIG_REGEXS);
+        if (!super.validateAndUpdateConfig(tonyConf)) {
+            return false;
+        }
+
         // inject driver conf and make it untracked.
         tonyConf.set("tony.driver.instances", "1");
         tonyConf.set("tony.driver.vcores", "1");
