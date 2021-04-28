@@ -36,7 +36,7 @@ public class TestHorovodDriver {
         // python code will return the "localhost:2" host plan
         String fakeWorkerList = "localhost:2";
 
-        HorovodDriver driver = HorovodDriver.create(fakeWorkerList);
+        HorovodDriver driver = HorovodDriver.create(fakeWorkerList, null);
         Assert.assertNotEquals(HorovodDriver.getFakeServerPort(), driver.getPort());
 
         List<SlotInfo> slotInfoList = driver.getSlotInfoList();
@@ -60,7 +60,7 @@ public class TestHorovodDriver {
         try {
             HorovodDriver.setTaskFailInTestMode();
             String fakeWorkerList = "localhost:2";
-            HorovodDriver.create(fakeWorkerList);
+            HorovodDriver.create(fakeWorkerList, null);
             Assert.fail("Should throw exception on starting driver.");
         } catch (Exception e) {
             // ignore.

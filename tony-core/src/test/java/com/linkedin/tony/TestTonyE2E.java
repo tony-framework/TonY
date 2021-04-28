@@ -516,6 +516,26 @@ public class TestTonyE2E  {
     client.removeListener(handler);
   }
 
+  @Test
+  public void testTonyHorovodWithDebugModeShouldPass() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python check_horovod_env.py",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.application.test.horovod-test-mode-enable=true",
+            "--conf", "tony.application.framework=horovod",
+            "--conf", "tony.application.horovod.driver-debug-mode-enable=true",
+            "--conf", "tony.driver.command='python horovod_debug_driver.py -t -p 9999'"
+    });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+    client.removeListener(handler);
+  }
+
   /**
    * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
    * to passing tony configuration file. It is critical to make sure all fields in

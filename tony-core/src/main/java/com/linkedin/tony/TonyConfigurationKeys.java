@@ -305,4 +305,8 @@ public class TonyConfigurationKeys {
   public static final boolean DEFAULT_TEST_HOROVOD_FAIL = false;
   public static final String IN_TEST_HOROVOD_MODE = TONY_APPLICATION_PREFIX + "test.horovod-test-mode-enable";
   public static final boolean DEFAULT_IN_TEST_HOROVOD_MODE = false;
+
+  // For Horovod
+  public static final String HOROVOD_DRIVER_DEBUG_MODE_ENABLE = TONY_APPLICATION_PREFIX + "horovod.driver-debug-mode-enable";
+  public static final boolean DEFAULT_HOROVOD_DEBUG_MODE_ENABLE = false;
 }

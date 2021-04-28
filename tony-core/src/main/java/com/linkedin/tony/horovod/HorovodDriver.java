@@ -81,9 +81,9 @@ public class HorovodDriver {
         }
     }
 
-    public synchronized static HorovodDriver create(String workerList) throws Exception {
+    public synchronized static HorovodDriver create(String workerList, String driverDebugCmd) throws Exception {
         reset();
-        return startRendezvousServer(workerList);
+        return startRendezvousServer(workerList, driverDebugCmd);
     }
 
     @VisibleForTesting
@@ -177,16 +177,15 @@ public class HorovodDriver {
         return getServerInfo(parentPath).getLeft() != -1 ? true : false;
     }
 
-    private static HorovodDriver startRendezvousServer(String workerlist) throws Exception {
-        // todo: Precheck python version >= 3.6 (required by Horovod)
-        String driverProcessCommand = String.format("python %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
-        if (inTestMode) {
-            driverProcessCommand += " -t " + " -p " + FAKE_SERVER_PORT;
-
-            if (failInTestMode) {
-                driverProcessCommand += " -f";
-            }
-        }
+    private static HorovodDriver startRendezvousServer(String workerlist, String driverDebugProcessCmd) throws Exception {
+        /**
+         * When enable driver debug mode, the Horovod driver can start by using user's custom python script.
+         * User can get worker list from env 'CLUSTER_SPEC' in python script.
+         * And the script must touch a file after starting rendezvous server.
+         * This file must be '{PORT}_____HOROVOD_RENDEZVOUS_SERVER____' as name and Horovod's slot info as content.
+         */
+        String driverProcessCommand =
+                driverDebugProcessCmd != null ? driverDebugProcessCmd : getBuildInDriverCMD(workerlist);
 
         ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", driverProcessCommand);
         taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -196,6 +195,18 @@ public class HorovodDriver {
         Process taskProcess = taskProcessBuilder.start();
         Pair<Integer, List<SlotInfo>> serverInfo = waitTillServerStarted(taskProcess);
         return new HorovodDriver(taskProcess, serverInfo.getLeft(), serverInfo.getRight());
+    }
+
+    private static String getBuildInDriverCMD(String workerlist) {
+        String driverProcessCommand = String.format("python %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
+        if (inTestMode) {
+            driverProcessCommand += " -t " + " -p " + FAKE_SERVER_PORT;
+
+            if (failInTestMode) {
+                driverProcessCommand += " -f";
+            }
+        }
+        return driverProcessCommand;
     }
 
     public void close() {

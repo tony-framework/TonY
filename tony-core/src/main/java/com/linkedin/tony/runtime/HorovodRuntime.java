@@ -42,9 +42,11 @@ import com.linkedin.tony.horovod.SlotInfo;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_HOROVOD_DEBUG_MODE_ENABLE;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_IN_TEST_HOROVOD_MODE;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TEST_HOROVOD_FAIL;
 import static com.linkedin.tony.TonyConfigurationKeys.DistributedMode.GANG;
+import static com.linkedin.tony.TonyConfigurationKeys.HOROVOD_DRIVER_DEBUG_MODE_ENABLE;
 import static com.linkedin.tony.TonyConfigurationKeys.IN_TEST_HOROVOD_MODE;
 import static com.linkedin.tony.TonyConfigurationKeys.TEST_HOROVOD_FAIL_ENABLE_KEY;
 
@@ -54,6 +56,7 @@ public class HorovodRuntime extends MLGenericRuntime {
     private static final List<String> ILLEGAL_CONFIG_REGEXS = Arrays.asList(
             "tony.driver\\.([a-z]+)"
     );
+    private static final String DEBUG_DRIVER_CONF_KEY = "tony.driver.command";
 
     private volatile boolean isDriverReady = false;
 
@@ -61,6 +64,7 @@ public class HorovodRuntime extends MLGenericRuntime {
     private String rendezvServerPort;
     private String rendezvServerHost;
 
+    private boolean isDriverDebugMode = false;
     private boolean isTestMode = false;
 
     @Override
@@ -188,6 +192,15 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     @Override
     public boolean validateAndUpdateConfig(Configuration tonyConf) {
+        if (checkInDebugMode(tonyConf)) {
+            this.isDriverDebugMode = true;
+        }
+
+        if (this.isDriverDebugMode && StringUtils.isEmpty(tonyConf.get(DEBUG_DRIVER_CONF_KEY))) {
+            log.error("Should set tony.driver.command conf when in horovod driver debug mode.");
+            return false;
+        }
+
         super.setIllegalConfKeyRegexs(ILLEGAL_CONFIG_REGEXS);
         if (!super.validateAndUpdateConfig(tonyConf)) {
             return false;
@@ -198,6 +211,10 @@ public class HorovodRuntime extends MLGenericRuntime {
         tonyConf.set("tony.driver.vcores", "1");
         tonyConf.set("tony.application.untracked.jobtypes", "driver");
         return true;
+    }
+
+    private boolean checkInDebugMode(Configuration tonyConf) {
+        return tonyConf.getBoolean(HOROVOD_DRIVER_DEBUG_MODE_ENABLE, DEFAULT_HOROVOD_DEBUG_MODE_ENABLE);
     }
 
     private void setHorovodRunEnv(TaskExecutor executor, HorovodClusterSpec horovodClusterSpec,
@@ -259,6 +276,7 @@ public class HorovodRuntime extends MLGenericRuntime {
         executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
         executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
         executorShellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.getDistributedMode().name());
+        executorShellEnv.put(Constants.CLUSTER_SPEC, executor.getClusterSpec());
 
         if (DRIVER.equals(executor.getJobName())) {
             log.info("Task is Horovod driver, no need to set extra env.");
@@ -280,7 +298,12 @@ public class HorovodRuntime extends MLGenericRuntime {
         setInTestMode(executor);
         buildTaskEnv(executor);
         if (DRIVER.equals(executor.getJobName())) {
-            HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec());
+            String driverCommand = null;
+            if (isDriverDebugMode) {
+                driverCommand = executor.getTonyConf().get(DEBUG_DRIVER_CONF_KEY);
+            }
+
+            HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec(), driverCommand);
             String callBackInfo = driver.getCallbackInfo();
             log.info("Horovod driver call back to AM: \n" + callBackInfo);
             String taskId = executor.getJobName() + ":" + executor.getTaskIndex();
