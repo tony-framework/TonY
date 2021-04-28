@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -189,7 +188,8 @@ public class HorovodRuntime extends MLGenericRuntime {
 
     @Override
     public boolean validateAndUpdateConfig(Configuration tonyConf) {
-        if (!validate(tonyConf)) {
+        super.setIllegalConfKeyRegexs(ILLEGAL_CONFIG_REGEXS);
+        if (!super.validateAndUpdateConfig(tonyConf)) {
             return false;
         }
 
@@ -197,20 +197,6 @@ public class HorovodRuntime extends MLGenericRuntime {
         tonyConf.set("tony.driver.instances", "1");
         tonyConf.set("tony.driver.vcores", "1");
         tonyConf.set("tony.application.untracked.jobtypes", "driver");
-        return true;
-    }
-
-    @VisibleForTesting
-    protected boolean validate(Configuration tonyConf) {
-        List<String> illegalKeys = ILLEGAL_CONFIG_REGEXS.stream()
-                .map(regex -> tonyConf.getValByRegex(regex).keySet())
-                .flatMap(x -> x.stream()).collect(Collectors.toList());
-
-        if (CollectionUtils.isNotEmpty(illegalKeys)) {
-            log.error("Not allowed to configure illegal conf in Horovod Runtime. "
-                    + "Illegal keys: " + illegalKeys);
-            return false;
-        }
         return true;
     }
 

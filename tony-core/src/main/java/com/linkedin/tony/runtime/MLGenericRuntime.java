@@ -17,14 +17,17 @@ package com.linkedin.tony.runtime;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.FrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
@@ -36,6 +39,7 @@ public class MLGenericRuntime implements FrameworkRuntime {
     // when in AM, session should be set. In task executor, session will be null.
     protected TonySession session;
     protected Log log = LogFactory.getLog(this.getClass());
+    private List<String> illegalConfKeyRegexs;
     private long lastRegisterWorkerTime = System.currentTimeMillis();
 
     // ===================For AM =======================
@@ -85,7 +89,31 @@ public class MLGenericRuntime implements FrameworkRuntime {
 
     @Override
     public boolean validateAndUpdateConfig(Configuration tonyConf) {
+        if (!validate(tonyConf)) {
+            return false;
+        }
         return true;
+    }
+
+    @VisibleForTesting
+    private boolean validate(Configuration tonyConf) {
+        if (illegalConfKeyRegexs == null) {
+            return true;
+        }
+        List<String> illegalKeys = illegalConfKeyRegexs.stream()
+                .map(regex -> tonyConf.getValByRegex(regex).keySet())
+                .flatMap(x -> x.stream()).collect(Collectors.toList());
+
+        if (CollectionUtils.isNotEmpty(illegalKeys)) {
+            log.error("Not allowed to configure illegal conf in Runtime. "
+                    + "Illegal keys: " + illegalKeys);
+            return false;
+        }
+        return true;
+    }
+
+    public void setIllegalConfKeyRegexs(List<String> illegalConfKeyRegexs) {
+        this.illegalConfKeyRegexs = illegalConfKeyRegexs;
     }
 
     protected void printTasksPeriodically() {
