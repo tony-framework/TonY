@@ -394,17 +394,17 @@
   </property>
 
   <property>
-    <name>tony.application.test.horovod-driver-fail-enable</name>
+    <name>tony.horovod.mode.test.fast.fail</name>
     <value>false</value>
   </property>
 
   <property>
-    <name>tony.application.test.horovod-test-mode-enable</name>
+    <name>tony.horovod.mode.test</name>
     <value>false</value>
   </property>
 
   <property>
-    <name>tony.application.horovod.driver-debug-mode-enable</name>
+    <name>tony.horovod.driver.mode.debug</name>
     <value>false</value>
   </property>
 </configuration>

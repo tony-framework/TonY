@@ -301,12 +301,12 @@ public class TonyConfigurationKeys {
       Arrays.asList(CONTAINER_LAUNCH_ENV, EXECUTION_ENV, getContainerResourcesKey()));
 
   // Local testing horovod driver
-  public static final String TEST_HOROVOD_FAIL_ENABLE_KEY = TONY_APPLICATION_PREFIX + "test.horovod-driver-fail-enable";
+  public static final String TEST_HOROVOD_FAIL_ENABLE_KEY = TONY_PREFIX + "horovod.mode.test.fast.fail";
   public static final boolean DEFAULT_TEST_HOROVOD_FAIL = false;
-  public static final String IN_TEST_HOROVOD_MODE = TONY_APPLICATION_PREFIX + "test.horovod-test-mode-enable";
+  public static final String IN_TEST_HOROVOD_MODE = TONY_PREFIX + "horovod.mode.test";
   public static final boolean DEFAULT_IN_TEST_HOROVOD_MODE = false;
 
   // For Horovod
-  public static final String HOROVOD_DRIVER_DEBUG_MODE_ENABLE = TONY_APPLICATION_PREFIX + "horovod.driver-debug-mode-enable";
+  public static final String HOROVOD_DRIVER_DEBUG_MODE_ENABLE = TONY_PREFIX + "horovod.driver.mode.debug";
   public static final boolean DEFAULT_HOROVOD_DEBUG_MODE_ENABLE = false;
 }
