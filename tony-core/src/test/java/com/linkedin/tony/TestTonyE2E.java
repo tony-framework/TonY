@@ -489,7 +489,7 @@ public class TestTonyE2E  {
             "--python_venv", "tony-core/src/test/resources/test.zip",
             "--conf", "tony.worker.instances=1",
             "--conf", "tony.worker.command=python sleep_30.py",
-            "--conf", "tony.application.test.horovod-driver-fail-enable=true",
+            "--conf", "tony.horovod.mode.test.fast.fail=true",
             "--conf", "tony.application.framework=horovod"
     });
     client.addListener(handler);
@@ -507,8 +507,31 @@ public class TestTonyE2E  {
             "--python_venv", "tony-core/src/test/resources/test.zip",
             "--executes", "python check_horovod_env.py",
             "--conf", "tony.worker.instances=2",
-            "--conf", "tony.application.test.horovod-test-mode-enable=true",
+            "--conf", "tony.horovod.mode.test=true",
             "--conf", "tony.application.framework=horovod"
+    });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+    client.removeListener(handler);
+  }
+
+  @Test
+  public void testTonyHorovodWithDebugModeShouldPass() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python check_horovod_env.py",
+            "--conf", "tony.application.framework=horovod",
+            "--conf", "tony.horovod.mode.test=true",
+            "--conf", "tony.horovod.driver.mode.debug=true",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.driver.instances=1",
+            "--conf", "tony.driver.vcores=1",
+            "--conf", "tony.application.untracked.jobtypes=driver",
+            "--conf", "tony.driver.command=python horovod_debug_driver.py -t -p 9999"
     });
     client.addListener(handler);
     int exitCode = client.start();
