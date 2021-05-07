@@ -90,8 +90,8 @@ public class TaskExecutor {
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
-    if (isChief && isGangMode()) {
-      this.tbPort = requireNonNull(EphemeralPort.create());
+    if (isChief) {
+      this.tbPort = requireNonNull(allocatePort(this.isTBServerReusingPort()));
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort.getPort()));
       LOG.info("Reserved tbPort: " + this.tbPort.getPort());
