@@ -30,6 +30,9 @@ import com.linkedin.tony.util.Utils;
 public class StandaloneRuntime implements FrameworkRuntime {
     protected Log log = LogFactory.getLog(this.getClass());
 
+    // For task executor
+    private TaskExecutor executor;
+
     @Override
     public String constructClusterSpec(String taskId) throws IOException {
         return taskId;
@@ -64,8 +67,20 @@ public class StandaloneRuntime implements FrameworkRuntime {
         return true;
     }
 
+    // ============For task executor============
     @Override
-    public int run(TaskExecutor executor) throws Exception {
+    public void initTaskExecutorResource(TaskExecutor executor) {
+        this.executor = executor;
+    }
+
+    @Override
+    public int run() throws Exception {
+        assert executor != null;
         return executorPythonShell(executor);
+    }
+
+    @Override
+    public boolean needReserveTBPort() {
+        return false;
     }
 }

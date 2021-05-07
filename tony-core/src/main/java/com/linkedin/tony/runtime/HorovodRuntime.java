@@ -291,30 +291,31 @@ public class HorovodRuntime extends MLGenericRuntime {
     }
 
     @Override
-    public int run(TaskExecutor executor) throws Exception {
+    public int run() throws Exception {
+        assert taskExecutor != null;
         assert session == null;
 
-        setInTestMode(executor);
-        buildTaskEnv(executor);
-        if (DRIVER.equals(executor.getJobName())) {
+        setInTestMode(taskExecutor);
+        buildTaskEnv(taskExecutor);
+        if (DRIVER.equals(taskExecutor.getJobName())) {
             String driverDebugCommand = null;
-            if (checkInDebugMode(executor.getTonyConf())) {
-                driverDebugCommand = executor.getTonyConf().get(DEBUG_DRIVER_CONF_KEY);
+            if (checkInDebugMode(taskExecutor.getTonyConf())) {
+                driverDebugCommand = taskExecutor.getTonyConf().get(DEBUG_DRIVER_CONF_KEY);
             }
 
-            HorovodDriver driver = HorovodDriver.create(executor.getClusterSpec(), executor.getShellEnv(),
+            HorovodDriver driver = HorovodDriver.create(taskExecutor.getClusterSpec(), taskExecutor.getShellEnv(),
                     driverDebugCommand);
             String callBackInfo = driver.getCallbackInfo();
             log.info("Horovod driver call back to AM: \n" + callBackInfo);
-            String taskId = executor.getJobName() + ":" + executor.getTaskIndex();
-            executor.callbackInfoToAM(taskId, callBackInfo);
+            String taskId = taskExecutor.getJobName() + ":" + taskExecutor.getTaskIndex();
+            taskExecutor.callbackInfoToAM(taskId, callBackInfo);
 
             log.info("Horovod driver has started. It will end when all workers finished.");
             int exitCode = driver.waitFor();
             return exitCode;
         }
 
-        return this.executorPythonShell(executor);
+        return this.executorPythonShell(taskExecutor);
     }
 
     private void setInTestMode(TaskExecutor executor) {

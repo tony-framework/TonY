@@ -470,6 +470,10 @@ public class TonyClient implements AutoCloseable {
     executes = TonyClient.buildTaskCommand(pythonVenv, pythonBinaryPath, executes, taskParams);
     if (executes != null) {
       tonyConf.set(TonyConfigurationKeys.getContainerExecuteCommandKey(), executes);
+      String pythonExecPath = getPythonInterpreter(pythonVenv, pythonBinaryPath);
+      if (null != pythonExecPath) {
+        tonyConf.set(TonyConfigurationKeys.PYTHON_EXEC_PATH, pythonExecPath);
+      }
     }
 
     // src_dir & hdfs_classpath flags are for compatibility.
@@ -541,13 +545,9 @@ public class TonyClient implements AutoCloseable {
       return null;
     }
     String baseTaskCommand = execute;
-    String pythonInterpreter;
+
     if (pythonBinaryPath != null) {
-      if (pythonBinaryPath.startsWith("/") || pythonVenv == null) {
-        pythonInterpreter = pythonBinaryPath;
-      } else {
-        pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
-      }
+      String pythonInterpreter = getPythonInterpreter(pythonVenv, pythonBinaryPath);
       baseTaskCommand = pythonInterpreter + " " + execute;
     }
 
@@ -558,6 +558,20 @@ public class TonyClient implements AutoCloseable {
     return baseTaskCommand;
   }
 
+  private static String getPythonInterpreter(String pythonVenv, String pythonBinaryPath) {
+    if (pythonBinaryPath == null) {
+      return null;
+    }
+
+    String pythonInterpreter;
+    if (pythonBinaryPath.startsWith("/") || pythonVenv == null) {
+      pythonInterpreter = pythonBinaryPath;
+    } else {
+      pythonInterpreter = Constants.PYTHON_VENV_DIR + File.separatorChar  + pythonBinaryPath;
+    }
+
+    return pythonInterpreter;
+  }
 
   /**
    * Add resource if exist to {@code tonyConf}

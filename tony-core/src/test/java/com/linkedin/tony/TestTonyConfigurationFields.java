@@ -49,6 +49,12 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_TRAINING_STAGE);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_HADOOP_LOCATION);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TENSORBOARD_LOG_DIR);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.PYTHON_EXEC_PATH);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_VCORE);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_MEMORY);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_INSTANCES);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_GPUS);
   }
 
   @BeforeTest

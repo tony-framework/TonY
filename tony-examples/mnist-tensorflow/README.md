@@ -93,3 +93,18 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 ```
 
 We have tested this example with 3 Workers (4GB RAM + 1 vCPU) using MultiWorkerMirror strategy
+
+### Tensorboard Usage
+TonY supports two modes(custom and sidecar) to start tensorboard.
+1. [Custom] Allow users to start tensorboard in code, more details can be found in mnist_distributed.py example.
+2. [Sidecar] Using the built-in tensorboard, it will start extra executor to running tensorboard by TonY. Only one thing to do is specify the log dir in tony xml, like as follows
+
+```
+<configuration>
+  ....
+  <property>
+    <name>tony.application.tensorboard-log-dir</name>
+    <value>/tmp/xxxxxxx</value>
+  </property>
+</configuration>
+```

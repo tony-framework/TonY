@@ -555,6 +555,30 @@ public class TestTonyE2E  {
   }
 
   /**
+   * When enable the sidecar tensorboard, it will start the untracked executor(tensorboard role).
+   */
+  @Test
+  public void testAttachedTensorboardShouldPass() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python check_tb_port_no_set_in_chief.py",
+            "--conf", "tony.chief.instances=1",
+            "--conf", "tony.ps.instances=1",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.application.tensorboard-log-dir=/tmp",
+            "--conf", "tony.application.framework=tensorflow",
+            "--container_env", Constants.SIDECAR_TB_TEST_KEY + "=true"
+    });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+    client.removeListener(handler);
+  }
+
+  /**
    * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
    * to passing tony configuration file. It is critical to make sure all fields in
    * TonyConfFinal.xml is properly set up.
