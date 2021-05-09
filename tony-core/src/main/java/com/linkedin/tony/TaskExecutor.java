@@ -244,7 +244,7 @@ public class TaskExecutor {
     String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
     isChief = Boolean.parseBoolean(isChiefEnvValue);
 
-    String distributedModeEnvValue = System.getenv(Constants.DISTRUBUTED_MODE_NAME);
+    String distributedModeEnvValue = System.getenv(Constants.DISTRIBUTED_MODE_NAME);
     distributedMode = TonyConfigurationKeys.DistributedMode.valueOf(distributedModeEnvValue.toUpperCase());
 
     amHost = System.getenv(Constants.AM_HOST);
