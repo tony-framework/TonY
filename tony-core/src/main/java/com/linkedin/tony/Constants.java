@@ -11,7 +11,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 
 public class Constants {
-  // For capatibility with older Hadoop versions
+  // For compatibility with older Hadoop versions
   public static final String GPU_URI = "yarn.io/gpu";
   public static final String SET_RESOURCE_VALUE_METHOD = "setResourceValue";
   public static final String CONTAINER_RUNTIME_CONSTANTS_CLASS =
