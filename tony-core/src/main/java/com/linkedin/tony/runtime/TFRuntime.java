@@ -30,7 +30,7 @@ public class TFRuntime extends MLGenericRuntime {
         executorShellEnv.put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
         executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
         executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
-        executorShellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.getDistributedMode().name());
+        executorShellEnv.put(Constants.DISTRIBUTED_MODE_NAME, executor.getDistributedMode().name());
         if (executor.isGangMode()) {
             executor.getShellEnv().put(Constants.CLUSTER_SPEC, String.valueOf(executor.getClusterSpec()));
             executor.getShellEnv().put(
