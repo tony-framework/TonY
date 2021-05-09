@@ -182,7 +182,7 @@ public class TaskExecutor {
         executor.shellEnv.put(Constants.JOB_NAME, String.valueOf(executor.jobName));
         executor.shellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.taskIndex));
         executor.shellEnv.put(Constants.TASK_NUM, String.valueOf(executor.numTasks));
-        executor.shellEnv.put(Constants.DISTRUBUTED_MODE_NAME, executor.distributedMode.name());
+        executor.shellEnv.put(Constants.DISTRIBUTED_MODE_NAME, executor.distributedMode.name());
         if (executor.isGangMode()) {
           executor.shellEnv.put(Constants.CLUSTER_SPEC, String.valueOf(executor.clusterSpec));
           executor.shellEnv.put(
@@ -295,7 +295,7 @@ public class TaskExecutor {
     String isChiefEnvValue = System.getenv(Constants.IS_CHIEF);
     isChief = Boolean.parseBoolean(isChiefEnvValue);
 
-    String distributedModeEnvValue = System.getenv(Constants.DISTRUBUTED_MODE_NAME);
+    String distributedModeEnvValue = System.getenv(Constants.DISTRIBUTED_MODE_NAME);
     distributedMode = TonyConfigurationKeys.DistributedMode.valueOf(distributedModeEnvValue.toUpperCase());
 
     amHost = System.getenv(Constants.AM_HOST);

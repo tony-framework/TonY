@@ -1155,7 +1155,7 @@ public class ApplicationMaster {
       containerLaunchEnv.put(Constants.JOB_ID, appIdString);
       containerLaunchEnv.put(Constants.TASK_INDEX, taskIndex);
       containerLaunchEnv.put(Constants.TASK_NUM, String.valueOf(session.getTotalTrackedTasks()));
-      containerLaunchEnv.put(Constants.DISTRUBUTED_MODE_NAME, distributedMode.name());
+      containerLaunchEnv.put(Constants.DISTRIBUTED_MODE_NAME, distributedMode.name());
       if (session.isChief(jobName, taskIndex)) {
         containerLaunchEnv.put(Constants.IS_CHIEF, Boolean.TRUE.toString());
       }
