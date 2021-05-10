@@ -1272,7 +1272,7 @@ public class ApplicationMaster {
 
   private Set<TonyTask> getCompletedFailedTasks() {
     return session.getTonyTasks().values().stream().flatMap(Arrays::stream)
-            .filter(task -> task != null && task.isFailed())
+            .filter(task -> task != null && task.getTaskInfo() != null && task.isFailed())
             .collect(Collectors.toSet());
   }
 
