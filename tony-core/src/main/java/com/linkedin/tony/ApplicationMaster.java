@@ -387,6 +387,12 @@ public class ApplicationMaster {
         return false;
       }
 
+      // AM throw exception during AM crash tests.
+      String throwExceptionCrash = System.getenv(Constants.TEST_AM_THROW_EXCEPTION_CRASH);
+      if (throwExceptionCrash != null && throwExceptionCrash.equals("true")) {
+        throw new IOException("AM crashed.");
+      }
+
       try {
         eventHandler.emitEvent(new Event(EventType.APPLICATION_INITED,
             new ApplicationInited(appIdString, Utils.getNumTotalTasks(tonyConf), Utils.getCurrentHostName(), this.containerId.toString()),

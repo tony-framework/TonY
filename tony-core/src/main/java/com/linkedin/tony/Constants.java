@@ -116,6 +116,7 @@ public class Constants {
   public static final String NUM_AM_RETRIES = "NUM_AM_RETRIES";
 
   public static final String TEST_AM_CRASH = "TEST_AM_CRASH";
+  public static final String TEST_AM_THROW_EXCEPTION_CRASH = "TEST_AM_THROW_EXCEPTION_CRASH";
   public static final String TEST_WORKER_TERMINATED = "TEST_WORKER_TERMINATION";
   public static final String TEST_TASK_COMPLETION_NOTIFICATION_DELAYED = "TEST_TASK_COMPLETION_NOTIFICATION_DELAYED";
   public static final String TEST_TASK_EXECUTOR_NUM_HB_MISS = "TEST_TASK_EXECUTOR_NUM_HB_MISS";
