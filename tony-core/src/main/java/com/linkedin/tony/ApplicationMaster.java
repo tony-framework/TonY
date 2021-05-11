@@ -329,16 +329,29 @@ public class ApplicationMaster {
    *                  -> succeeded -> stop -> job succeeded
    * @param args the args from user inputs
    */
-  public static void main(String[] args) throws IOException {
-    ApplicationMaster am = new ApplicationMaster();
-    boolean succeeded = am.run(args);
-    if (succeeded) {
-      LOG.info("Application Master completed successfully. Exiting");
-      System.exit(0);
-    } else {
-      LOG.info("Application Master failed. Exiting");
-      System.exit(-1);
+  public static void main(String[] args) {
+    int exitCode = -1;
+    ApplicationMaster am = null;
+    try {
+      am = new ApplicationMaster();
+      boolean succeeded = am.run(args);
+      if (succeeded) {
+        LOG.info("Application Master completed successfully. Exiting");
+        exitCode = 0;
+      } else {
+        LOG.info("Application Master failed. Exiting");
+      }
+    } catch (Exception e) {
+      LOG.error("AM crashed.", e);
+      if (am != null) {
+        try {
+          am.stop();
+        } catch (Exception exception) {
+          LOG.error("Errors on clearing up running containers.", exception);
+        }
+      }
     }
+    System.exit(exitCode);
   }
 
   private boolean run(String[] args) throws IOException {
@@ -372,6 +385,12 @@ public class ApplicationMaster {
       if (shouldCrash != null && shouldCrash.equals("true")) {
         LOG.fatal("Error running ApplicationMaster !!");
         return false;
+      }
+
+      // AM throw exception during AM crash tests.
+      String throwExceptionCrash = System.getenv(Constants.TEST_AM_THROW_EXCEPTION_CRASH);
+      if (throwExceptionCrash != null && throwExceptionCrash.equals("true")) {
+        throw new IOException("AM crashed.");
       }
 
       try {

@@ -253,6 +253,21 @@ public class TestTonyE2E  {
   }
 
   @Test
+  public void testAMThrowExceptionCrashTonYShouldFail() throws ParseException, IOException {
+    client = new TonyClient(conf);
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--executes", "exit_0.py",
+            "--hdfs_classpath", libPath,
+            "--python_binary_path", "python",
+            "--container_env", Constants.TEST_AM_THROW_EXCEPTION_CRASH + "=true",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+  }
+
+  @Test
   public void testTonyAMSchedulerShouldPass() throws ParseException, IOException {
     client = new TonyClient(conf);
     client.init(new String[] {
