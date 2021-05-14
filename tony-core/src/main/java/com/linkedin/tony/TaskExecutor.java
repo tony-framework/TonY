@@ -70,7 +70,10 @@ public class TaskExecutor {
   private FrameworkType framework;
   private String appIdString;
 
-  protected TaskExecutor() { }
+  private static FrameworkRuntime frameworkRuntime;
+
+  @VisibleForTesting
+  public TaskExecutor() { }
 
   private ServerPort allocatePort(boolean isReusingPort) throws IOException {
     // To prevent other process grabbing the reserved port between releasing the
@@ -90,7 +93,7 @@ public class TaskExecutor {
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
-    if (isChief) {
+    if (frameworkRuntime.needReserveTBPort()) {
       this.tbPort = requireNonNull(allocatePort(this.isTBServerReusingPort()));
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort.getPort()));
@@ -167,6 +170,10 @@ public class TaskExecutor {
         executor.metricsIntervalMs,
         TimeUnit.MILLISECONDS);
 
+    assert frameworkRuntime == null;
+    frameworkRuntime = FrameworkRuntime.get(executor.framework);
+    frameworkRuntime.initTaskExecutorResource(executor);
+
     executor.setupPorts();
 
     executor.clusterSpec = executor.registerAndGetClusterSpec();
@@ -211,8 +218,7 @@ public class TaskExecutor {
 
     int exitCode;
     try {
-      FrameworkRuntime frameworkRuntime = FrameworkRuntime.get(executor.framework);
-      exitCode = frameworkRuntime.run(executor);
+      exitCode = frameworkRuntime.run();
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:
@@ -417,5 +423,32 @@ public class TaskExecutor {
 
   public Configuration getTonyConf() {
     return tonyConf;
+  }
+
+  public int getTbPort() {
+    return tbPort.getPort();
+  }
+
+  public boolean isChief() {
+    return isChief;
+  }
+
+  @VisibleForTesting
+  public void setTonyConf(Configuration tonyConf) {
+    this.tonyConf = tonyConf;
+  }
+
+  @VisibleForTesting
+  public void setChief(boolean chief) {
+    isChief = chief;
+  }
+
+  @VisibleForTesting
+  public void setJobName(String jobName) {
+    this.jobName = jobName;
+  }
+
+  public void setTaskCommand(String taskCommand) {
+    this.taskCommand = taskCommand;
   }
 }

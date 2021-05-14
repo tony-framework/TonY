@@ -76,6 +76,7 @@ import com.linkedin.tony.tensorflow.JobContainerRequest;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 
+import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
 import static com.linkedin.tony.Constants.EVALUATOR_JOB_NAME;
 import static com.linkedin.tony.Constants.JOBS_SUFFIX;
 import static com.linkedin.tony.Constants.LOGS_SUFFIX;
@@ -517,6 +518,8 @@ public class Utils {
     try {
       Map<String, List<String>> spec =
               mapper.readValue(clusterSpec, new TypeReference<Map<String, List<String>>>() { });
+
+      spec.remove(SIDECAR_TENSORBOARD_ROLE_NAME);
 
       if (!isTFEvaluator(jobName)) {
           spec.keySet().removeIf(Utils::isTFEvaluator);

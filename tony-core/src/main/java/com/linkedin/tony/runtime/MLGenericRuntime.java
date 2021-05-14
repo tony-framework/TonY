@@ -16,12 +16,18 @@
 package com.linkedin.tony.runtime;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -32,15 +38,33 @@ import com.linkedin.tony.FrameworkRuntime;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.util.Utils;
 
-public class MLGenericRuntime implements FrameworkRuntime {
+import static com.linkedin.tony.Constants.SIDECAR_TB_TEST_KEY;
+import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_GPUS;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_INSTANCES;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_MEMORY;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_VCORE;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_GPUS;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_INSTANCES;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_MEMORY;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_VCORE;
+import static com.linkedin.tony.TonyConfigurationKeys.UNTRACKED_JOBTYPES;
+
+public abstract class MLGenericRuntime implements FrameworkRuntime {
     private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
+
+    private static final String SIDECAR_TENSORBOARD_DIR_NAME = "sidecar_tensorboard";
+    private static final String SIDECAR_TENSORBORD_SCRIPT = "sidecar_tensorboard.py";
 
     // when in AM, session should be set. In task executor, session will be null.
     protected TonySession session;
     protected Log log = LogFactory.getLog(this.getClass());
     private List<String> illegalConfKeyRegexs;
     private long lastRegisterWorkerTime = System.currentTimeMillis();
+
+    protected TaskExecutor taskExecutor;
 
     // ===================For AM =======================
 
@@ -92,7 +116,29 @@ public class MLGenericRuntime implements FrameworkRuntime {
         if (!validate(tonyConf)) {
             return false;
         }
+
+        checkAndPrepareTBResource(tonyConf);
         return true;
+    }
+
+    /**
+     * Set the required resources when enable auto-starting tensorboard.
+     */
+    private void checkAndPrepareTBResource(Configuration tonyConf) {
+        if (!enableSidecarTB(tonyConf)) {
+            return;
+        }
+
+        // TODO: 2021/5/8 check illegal keys. [tensorboard] role is illegal
+
+        tonyConf.set(TB_INSTANCES, String.valueOf(DEFAULT_TB_INSTANCES));
+        tonyConf.set(TB_VCORE, tonyConf.get(TB_VCORE, String.valueOf(DEFAULT_TB_VCORE)));
+        tonyConf.set(TB_MEMORY, tonyConf.get(TB_MEMORY, DEFAULT_TB_MEMORY));
+        tonyConf.get(TB_GPUS, tonyConf.get(TB_GPUS, String.valueOf(DEFAULT_TB_GPUS)));
+
+        List<String> untrackedTypes = new ArrayList<>(Arrays.asList(Utils.getUntrackedJobTypes(tonyConf)));
+        untrackedTypes.add(SIDECAR_TENSORBOARD_ROLE_NAME);
+        tonyConf.set(UNTRACKED_JOBTYPES, StringUtils.join(untrackedTypes, ","));
     }
 
     @VisibleForTesting
@@ -142,12 +188,85 @@ public class MLGenericRuntime implements FrameworkRuntime {
     // ===================For Task Executor=======================
 
     @Override
-    public int run(TaskExecutor executor) throws Exception {
-        buildTaskEnv(executor);
-        return executorPythonShell(executor);
+    public void initTaskExecutorResource(TaskExecutor executor) {
+        this.taskExecutor = executor;
     }
 
-    protected void buildTaskEnv(TaskExecutor executor) throws Exception {
-        return;
+    /**
+     * The tensorboard port will only be reserved on chief or sidecar tensorboard executor.
+     * Other executors will not reserve it.
+     * However, the above reserved port action will not be at the same time.
+     * If enable side-car tensorboard, port will only be reserved on it, otherwise will only be on chief executor.
+     */
+    @Override
+    public boolean needReserveTBPort() {
+        assert taskExecutor != null;
+
+        boolean enableSidecarTB = enableSidecarTB(taskExecutor.getTonyConf());
+
+        // When disable sidecar tensorboard, it will only be reserved on chief task executor.
+        if (!enableSidecarTB && taskExecutor.isChief()) {
+            return true;
+        }
+
+        // When enable sidecar tensorboard, it will only be reserved on sidecar executor.
+        if (enableSidecarTB && isSidecarTBExecutor(taskExecutor)) {
+            return true;
+        }
+
+        return false;
     }
+
+    @Override
+    public int run() throws Exception {
+        assert taskExecutor != null;
+
+        if (isSidecarTBExecutor(taskExecutor)) {
+            // inject starting tensorboard command
+            setStartupTBResource();
+        }
+
+        buildTaskEnv(taskExecutor);
+        return executorPythonShell(taskExecutor);
+    }
+
+    private void setStartupTBResource() {
+        String tbLogDir = taskExecutor.getTonyConf().get(TonyConfigurationKeys.TENSORBOARD_LOG_DIR);
+        Path tbScriptPath = createSidecarTBScript();
+        String pythonExecPath = taskExecutor.getTonyConf().get(TonyConfigurationKeys.PYTHON_EXEC_PATH, "python");
+        String startTBCommand = String.format("%s %s --logdir %s --port %s",
+                pythonExecPath, tbScriptPath, tbLogDir, taskExecutor.getTbPort());
+        log.info("Sidecar tensorboard startup command: " + startTBCommand);
+        taskExecutor.setTaskCommand(startTBCommand);
+
+        if (System.getenv(SIDECAR_TB_TEST_KEY) != null) {
+            taskExecutor.getShellEnv().put(SIDECAR_TB_TEST_KEY, "true");
+        }
+    }
+
+    private boolean isSidecarTBExecutor(TaskExecutor taskExecutor) {
+        return SIDECAR_TENSORBOARD_ROLE_NAME.equals(taskExecutor.getJobName()) ? true : false;
+    }
+
+    private boolean enableSidecarTB(Configuration tonyConf) {
+        return StringUtils.isNotEmpty(tonyConf.get(TonyConfigurationKeys.TENSORBOARD_LOG_DIR));
+    }
+
+    private Path createSidecarTBScript() {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        final String sidecarTBScript = SIDECAR_TENSORBORD_SCRIPT;
+        try {
+            Path tempDir = Files.createTempDirectory(SIDECAR_TENSORBOARD_DIR_NAME);
+            tempDir.toFile().deleteOnExit();
+            try (InputStream stream = loader.getResourceAsStream(sidecarTBScript)) {
+                Files.copy(stream, Paths.get(tempDir.toAbsolutePath().toString(), sidecarTBScript));
+            }
+            return Paths.get(tempDir.toAbsolutePath().toString(), sidecarTBScript);
+        } catch (Exception e) {
+            log.info(e);
+            return null;
+        }
+    }
+
+    protected abstract void buildTaskEnv(TaskExecutor executor) throws Exception;
 }

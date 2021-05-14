@@ -181,5 +181,8 @@ public class Constants {
   public static final String MAPREDUCE_APPLICATION_FRAMEWORK_PATH = "mapreduce.application.framework.path";
   public static final String MAPREDUCE_APPLICATION_CLASSPATH = "mapreduce.application.classpath";
 
+  public static final String SIDECAR_TENSORBOARD_ROLE_NAME = "tensorboard";
+  public static final String SIDECAR_TB_TEST_KEY = "SIDECAR_TB_TEST";
+
   private Constants() { }
 }

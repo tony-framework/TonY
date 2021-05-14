@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
+
 public class TonyConfigurationKeys {
   public enum FrameworkType {
     TENSORFLOW,
@@ -285,6 +287,7 @@ public class TonyConfigurationKeys {
   public static final String EXECUTION_ENV = TONY_PREFIX + "execution.envs";
   public static final String GPU_PATH_TO_EXEC = TONY_PREFIX + "gpu-exec-path";
   public static final String DEFAULT_GPU_PATH_TO_EXEC = "nvidia-smi";
+  public static final String PYTHON_EXEC_PATH = TONY_PREFIX + "python-exec-path";
 
   // Local testing configurations
   public static final String SECURITY_ENABLED = TONY_APPLICATION_PREFIX + "security.enabled";
@@ -310,4 +313,21 @@ public class TonyConfigurationKeys {
 
   public static final String HOROVOD_DRIVER_DEBUG_MODE_ENABLE = TONY_HOROVOD_PREFIX + "driver.mode.debug";
   public static final boolean DEFAULT_HOROVOD_DEBUG_MODE_ENABLE = false;
+
+  // Set Tensorboard log dir to start it
+  public static final String TENSORBOARD_LOG_DIR = TONY_APPLICATION_PREFIX + "tensorboard-log-dir";
+
+  public static final String TB_JOB_PREFIX = TONY_PREFIX + SIDECAR_TENSORBOARD_ROLE_NAME + ".";
+
+  public static final String TB_VCORE = TB_JOB_PREFIX + "vcores";
+  public static final int DEFAULT_TB_VCORE = 2;
+
+  public static final String TB_INSTANCES = TB_JOB_PREFIX + "instances";
+  public static final int DEFAULT_TB_INSTANCES = 1;
+
+  public static final String TB_MEMORY = TB_JOB_PREFIX + "memory";
+  public static final String DEFAULT_TB_MEMORY = "2g";
+
+  public static final String TB_GPUS = TB_JOB_PREFIX + "gpus";
+  public static final int DEFAULT_TB_GPUS = 0;
 }

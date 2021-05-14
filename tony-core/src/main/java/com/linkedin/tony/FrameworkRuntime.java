@@ -69,9 +69,13 @@ public interface FrameworkRuntime {
     boolean receiveTaskCallbackInfo(String taskId, String callbackInfo);
 
     /** For Task Executor, execute task process **/
-    int run(TaskExecutor executor) throws Exception;
+    void initTaskExecutorResource(TaskExecutor executor);
+
+    int run() throws Exception;
 
     default int executorPythonShell(TaskExecutor executor) throws IOException, InterruptedException {
         return Utils.executeShell(executor.getTaskCommand(), executor.getTimeOut(), executor.getShellEnv());
     }
+
+    boolean needReserveTBPort();
 }
