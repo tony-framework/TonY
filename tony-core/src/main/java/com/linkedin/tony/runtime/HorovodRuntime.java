@@ -303,8 +303,12 @@ public class HorovodRuntime extends MLGenericRuntime {
                 driverDebugCommand = taskExecutor.getTonyConf().get(DEBUG_DRIVER_CONF_KEY);
             }
 
-            HorovodDriver driver = HorovodDriver.create(taskExecutor.getClusterSpec(), taskExecutor.getShellEnv(),
-                    driverDebugCommand);
+            HorovodDriver driver = HorovodDriver.create(
+                    taskExecutor.getClusterSpec(),
+                    taskExecutor.getShellEnv(),
+                    taskExecutor.getTonyConf(),
+                    driverDebugCommand
+            );
             String callBackInfo = driver.getCallbackInfo();
             log.info("Horovod driver call back to AM: \n" + callBackInfo);
             String taskId = taskExecutor.getJobName() + ":" + taskExecutor.getTaskIndex();

@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.hadoop.conf.Configuration;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -38,7 +39,7 @@ public class TestHorovodDriver {
 
         HorovodDriver driver = null;
         try {
-            driver = HorovodDriver.create(fakeWorkerList, null, null);
+            driver = HorovodDriver.create(fakeWorkerList, null, new Configuration(false), null);
             Assert.assertNotEquals(HorovodDriver.getFakeServerPort(), driver.getPort());
 
             List<SlotInfo> slotInfoList = driver.getSlotInfoList();
@@ -66,7 +67,7 @@ public class TestHorovodDriver {
         try {
             HorovodDriver.setTaskFailInTestMode();
             String fakeWorkerList = "localhost:2";
-            driver = HorovodDriver.create(fakeWorkerList, null, null);
+            driver = HorovodDriver.create(fakeWorkerList, null, new Configuration(false), null);
             Assert.fail("Should throw exception on starting driver.");
         } catch (Exception e) {
             // ignore.
@@ -80,7 +81,7 @@ public class TestHorovodDriver {
 
     @Test
     public void testCreateDriverScripPath() {
-        Path driverPath = HorovodDriver.createDriverScripPath();
+        Path driverPath = HorovodDriver.createDriverScriptPath();
         File driverFile = driverPath.toFile();
         Assert.assertNotNull(driverFile);
         Assert.assertTrue(driverFile.isFile());
