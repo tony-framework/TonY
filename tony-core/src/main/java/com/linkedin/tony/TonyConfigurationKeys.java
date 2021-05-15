@@ -270,6 +270,10 @@ public class TonyConfigurationKeys {
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
   public static final String UNTRACKED_JOBTYPES_DEFAULT = "ps";
 
+  // Job types that we don't wait to finish and ignore its failure.
+  public static final String SIDECAR_JOBTYPES = TONY_APPLICATION_PREFIX + "sidecar.jobtypes";
+  public static final String DEFAULT_SIDECAR_JOBTYPES = SIDECAR_TENSORBOARD_ROLE_NAME;
+
   // Job types that we will short circuit when it failed
   public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop-on-failure-jobtypes";
 

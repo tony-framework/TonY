@@ -182,7 +182,7 @@ public class TonySession {
   }
 
   public int getTotalTrackedTasks() {
-    return jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeTracked(entry.getKey(), tonyConf))
+    return jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeMonitored(entry.getKey(), tonyConf))
         .mapToInt(entry -> entry.getValue().length).sum();
   }
 
@@ -192,7 +192,7 @@ public class TonySession {
   }
 
   public int getNumCompletedTrackedTasks() {
-    return (int) jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeTracked(entry.getKey(), tonyConf))
+    return (int) jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeMonitored(entry.getKey(), tonyConf))
         .flatMap(entry -> Arrays.stream(entry.getValue())).filter(task -> task != null && task.isCompleted()).count();
   }
 
@@ -302,7 +302,7 @@ public class TonySession {
       TonyTask[] tasks = entry.getValue();
 
       // If the job type is not tracked, continue.
-      if (!Utils.isJobTypeTracked(jobName, tonyConf)) {
+      if (!Utils.isJobTypeMonitored(jobName, tonyConf)) {
         continue;
       }
 
