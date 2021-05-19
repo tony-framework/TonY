@@ -20,11 +20,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 
 import static java.util.Objects.requireNonNull;
@@ -45,7 +47,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class HorovodDriver {
     private static final Log LOG = LogFactory.getLog(HorovodDriver.class);
-    private static final Path DRIVER_SCRIPT_PATH = requireNonNull(createDriverScripPath());
+    private static final Path DRIVER_SCRIPT_PATH = requireNonNull(createDriverScriptPath());
     private static final String FAKE_SERVER_PORT = "9999";
     private static final String DRIVER_PYTHON_SCRIPT_NAME = "horovod_driver.py";
     private static final String DRIVER_TMP_FOLDER_NAME = "horovod_driver";
@@ -76,7 +78,7 @@ public class HorovodDriver {
     }
 
     @VisibleForTesting
-    protected static Path createDriverScripPath() {
+    protected static Path createDriverScriptPath() {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         final String driverScript = DRIVER_PYTHON_SCRIPT_NAME;
         try {
@@ -92,10 +94,13 @@ public class HorovodDriver {
         }
     }
 
-    public synchronized static HorovodDriver create(String workerList, Map<String, String> shellEnv,
+    public synchronized static HorovodDriver create(
+            String workerList,
+            Map<String, String> shellEnv,
+            Configuration tonyConf,
             String driverDebugCmd) throws Exception {
         reset();
-        return startRendezvousServer(workerList, shellEnv, driverDebugCmd);
+        return startRendezvousServer(workerList, shellEnv, tonyConf, driverDebugCmd);
     }
 
     @VisibleForTesting
@@ -181,12 +186,17 @@ public class HorovodDriver {
         return getServerInfo().getLeft() != -1 ? true : false;
     }
 
-    private static HorovodDriver startRendezvousServer(String workerlist, Map<String, String> shellEnv,
+    private static HorovodDriver startRendezvousServer(
+            String workerlist,
+            Map<String, String> shellEnv,
+            Configuration tonyConf,
             String driverDebugProcessCmd) throws Exception {
         assert DRIVER_SCRIPT_PATH != null;
 
+        String pythonExecPath = tonyConf.get(TonyConfigurationKeys.PYTHON_EXEC_PATH, "python");
         String driverProcessCommand =
-                driverDebugProcessCmd != null ? driverDebugProcessCmd : getBuildInDriverCMD(workerlist);
+                driverDebugProcessCmd != null
+                        ? driverDebugProcessCmd : getBuiltInDriverStartupCMD(pythonExecPath, workerlist);
 
         ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", driverProcessCommand);
         taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -218,8 +228,11 @@ public class HorovodDriver {
         return parentFile;
     }
 
-    private static String getBuildInDriverCMD(String workerlist) {
-        String driverProcessCommand = String.format("python %s -w %s", DRIVER_SCRIPT_PATH, workerlist);
+    private static String getBuiltInDriverStartupCMD(String pythonExecPath, String workerlist) {
+        String driverProcessCommand = String.format("%s %s -w %s",
+                pythonExecPath,
+                DRIVER_SCRIPT_PATH,
+                workerlist);
         if (inTestMode) {
             driverProcessCommand += " -t " + " -p " + FAKE_SERVER_PORT;
 
