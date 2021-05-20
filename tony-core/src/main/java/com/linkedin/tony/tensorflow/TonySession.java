@@ -433,7 +433,7 @@ public class TonySession {
   /**
    * A TonyTask represents a task job executed in the workers.
    */
-  public class TonyTask {
+  public class TonyTask implements Comparable<TonyTask> {
     private final String jobName;
     private final String taskIndex;
     private final int sessionId;
@@ -573,6 +573,32 @@ public class TonySession {
     @Override
     public String toString() {
       return getId();
+    }
+
+    @Override
+    public int compareTo(TonyTask that) {
+      if (this.getJobName() == null && that.getJobName() == null) {
+        // pass
+      } else if (this.getJobName() == null) {
+        return -1;
+      } else if (that.getJobName() == null) {
+        return 1;
+      } else {
+        int jobNameComparison = this.getJobName().compareTo(that.getJobName());
+        if (jobNameComparison != 0) {
+          return jobNameComparison < 0 ? -1 : 1;
+        }
+      }
+
+      if (this.getTaskIndex() == null && that.getTaskIndex() == null) {
+        return 0;
+      } else if (this.getTaskIndex() == null) {
+        return -1;
+      } else if (that.getTaskIndex() == null) {
+        return 1;
+      } else {
+        return this.getTaskIndex().compareTo(that.getTaskIndex());
+      }
     }
   }
 
