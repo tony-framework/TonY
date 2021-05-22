@@ -1274,7 +1274,7 @@ public class ApplicationMaster {
     return completedFailedTasks.stream().anyMatch(t -> {
       String taskId = t.getTaskInfo().getName() + ":" + t.getTaskInfo().getIndex();
       LOG.debug("Failed task ID: " + taskId);
-      boolean existFailed = !session.getRegisteredTasks().contains(t);
+      boolean existFailed = !session.getRegisteredTasks().contains(taskId);
       if (existFailed) {
         String errorMsg = String.format("Stopping AM for task [%s:%s] starting failed, "
                         + "allocated container is %s on host %s",
