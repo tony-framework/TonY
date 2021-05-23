@@ -60,7 +60,7 @@ does NOT have security enabled (e.g.: for local testing), so we disable TonY's s
 For the instructions below, we assume this file is named `tony-test.xml`.
 
 
-### Running MNIST Tensorflow example:
+### Running MNIST TensorFlow Basic example:
 
 Once you've installed Hadoop and built your Python virtual environment zip, you can run an example as follows:
 
@@ -76,9 +76,25 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 --python_binary_path=venv/bin/python # relative path inside venv.zip
 ```
 
-### Running MNIST Keras example:
+### Running MNIST TensorFlow Estimator example:
 
-You could also alternative try this MNIST Keras example:
+Once you've installed Hadoop and built your Python virtual environment zip, you can run an example as follows:
+
+```
+gradlew :tony-cli:build
+
+java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all.jar com.linkedin.tony.cli.ClusterSubmitter \
+--python_venv=/path/to/venv.zip \
+--src_dir=/path/to/TonY/tony-examples/mnist-tensorflow \
+--executes=mnist_estimator_distributed.py \ # relative path inside src/
+--task_params="--learning_rate 0.001 --model_dir /tmp/model --dropout 0.5" \ # You can use your HDFS path here.
+--conf_file=/path/to/tony-test.xml \
+--python_binary_path=venv/bin/python # relative path inside venv.zip
+```
+
+### Running MNIST TensorFlow Keras example:
+
+You could be also alternative try this MNIST Keras example:
 
 ```
 gradlew :tony-cli:build
@@ -92,7 +108,7 @@ java -cp `hadoop classpath`:/path/to/TonY/tony-cli/build/libs/tony-cli-x.x.x-all
 --python_binary_path=venv/bin/python # relative path inside venv.zip
 ```
 
-We have tested this example with 3 Workers (4GB RAM + 1 vCPU) using MultiWorkerMirror strategy
+We have tested this example with 3 Workers (4 GB RAM + 1 vCPU) using MultiWorkerMirror strategy
 
 ### Tensorboard Usage
 TonY supports two modes(custom and sidecar) to start tensorboard.
