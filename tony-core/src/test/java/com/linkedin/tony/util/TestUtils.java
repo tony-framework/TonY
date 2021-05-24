@@ -314,7 +314,7 @@ public class TestUtils {
     conf.setInt("tony.evaluator.vcores", 2);
     conf.setInt("tony.chief.gpus", 1);
 
-    assertTrue(Utils.isJobTypeTracked("tony.worker.gpus", conf));
+    assertTrue(Utils.isJobTypeMonitored("tony.worker.gpus", conf));
   }
 
   @Test
