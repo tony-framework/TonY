@@ -208,6 +208,13 @@
     <value>ps</value>
   </property>
 
+  <!-- Sidecar job type configurations -->
+  <property>
+    <description>Job types that we don't track to finish and ignore its failure</description>
+    <name>tony.application.sidecar.jobtypes</name>
+    <value>tensorboard</value>
+  </property>
+
   <!-- Stop on failure job type configurations -->
   <property>
     <description>Job types that we will short circuit when it failed</description>

@@ -669,8 +669,25 @@ public class Utils {
     return conf.getStrings(TonyConfigurationKeys.UNTRACKED_JOBTYPES, TonyConfigurationKeys.UNTRACKED_JOBTYPES_DEFAULT);
   }
 
-  public static boolean isJobTypeTracked(String taskName, Configuration tonyConf) {
-    return !Arrays.asList(getUntrackedJobTypes(tonyConf)).contains(taskName);
+  public static String[] getSidecarJobTypes(Configuration conf) {
+    return conf.getStrings(TonyConfigurationKeys.SIDECAR_JOBTYPES, TonyConfigurationKeys.SIDECAR_JOBTYPES);
+  }
+
+  public static boolean isSidecarJobType(String taskName, Configuration tonyConf) {
+    return Arrays.asList(getSidecarJobTypes(tonyConf)).contains(taskName);
+  }
+
+  // If task is not tracked and side-car, it will be monitored.
+  public static boolean isJobTypeMonitored(String taskName, Configuration tonyConf) {
+    List<String> untrackedJobTypes = new ArrayList<>();
+    untrackedJobTypes.addAll(Arrays.asList(getUntrackedJobTypes(tonyConf)));
+    untrackedJobTypes.addAll(Arrays.asList(getSidecarJobTypes(tonyConf)));
+    return !untrackedJobTypes.contains(taskName);
+  }
+
+  public static boolean isUntrackedJobType(String taskName, Configuration tonyConf) {
+    List<String> untrackedJobTypes = new ArrayList<>(Arrays.asList(getUntrackedJobTypes(tonyConf)));
+    return untrackedJobTypes.contains(taskName);
   }
 
   public static String[] getStopOnFailureJobTypes(Configuration conf) {

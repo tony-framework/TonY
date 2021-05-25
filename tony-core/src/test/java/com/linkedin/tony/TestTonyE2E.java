@@ -496,6 +496,38 @@ public class TestTonyE2E  {
   }
 
   @Test
+  public void testTonySidecarExecutorCrashShouldPass() throws IOException, ParseException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.sidecarexecutor.instances=1",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.sidecarexecutor.command=python exit_1.py",
+            "--conf", "tony.worker.command=python sleep_30.py",
+            "--conf", "tony.application.sidecar.jobtypes=sidecarexecutor"
+    });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+    client.removeListener(handler);
+    Assert.assertEquals(handler.getTaskInfoSet().size(), 2);
+    for (TaskInfo taskInfo : handler.getTaskInfoSet()) {
+      String name = taskInfo.getName();
+      // Workers should be killed by the AM, so they should end up in FINISHED state.
+      if (name.equals(Constants.WORKER_JOB_NAME)) {
+        Assert.assertEquals(taskInfo.getStatus(), TaskStatus.SUCCEEDED);
+      }
+      if (name.equals("sidecarexecutor")) {
+        Assert.assertEquals(taskInfo.getStatus(), TaskStatus.FAILED);
+      }
+    }
+    Assert.assertNotNull(handler.getAppId());
+  }
+
+  @Test
   public void testTonyHorovodDriverCrashShouldFailAndStopAM() throws ParseException, IOException {
     client.init(new String[]{
             "--src_dir", "tony-core/src/test/resources/scripts",
