@@ -587,7 +587,7 @@ public class TestTonyE2E  {
   }
 
   /**
-   * When enable the sidecar tensorboard, it will start the untracked executor(tensorboard role).
+   * When enable the sidecar tensorboard, it will start the sidecar executor(tensorboard role).
    */
   @Test
   public void testAttachedTensorboardShouldPass() throws ParseException, IOException {

@@ -46,11 +46,11 @@ import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_GPUS;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_INSTANCES;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_MEMORY;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_VCORE;
+import static com.linkedin.tony.TonyConfigurationKeys.SIDECAR_JOBTYPES;
 import static com.linkedin.tony.TonyConfigurationKeys.TB_GPUS;
 import static com.linkedin.tony.TonyConfigurationKeys.TB_INSTANCES;
 import static com.linkedin.tony.TonyConfigurationKeys.TB_MEMORY;
 import static com.linkedin.tony.TonyConfigurationKeys.TB_VCORE;
-import static com.linkedin.tony.TonyConfigurationKeys.UNTRACKED_JOBTYPES;
 
 public abstract class MLGenericRuntime implements FrameworkRuntime {
     private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
@@ -117,28 +117,33 @@ public abstract class MLGenericRuntime implements FrameworkRuntime {
             return false;
         }
 
-        checkAndPrepareTBResource(tonyConf);
-        return true;
+        return checkAndPrepareTBResource(tonyConf);
     }
 
     /**
      * Set the required resources when enable auto-starting tensorboard.
      */
-    private void checkAndPrepareTBResource(Configuration tonyConf) {
+    @VisibleForTesting
+    protected boolean checkAndPrepareTBResource(Configuration tonyConf) {
         if (!enableSidecarTB(tonyConf)) {
-            return;
+            return true;
         }
 
-        // TODO: 2021/5/8 check illegal keys. [tensorboard] role is illegal
+        if (StringUtils.isNotEmpty(tonyConf.get(TB_INSTANCES))) {
+            log.error("When enable side-car tensorboard, specifying the conf of " + TB_INSTANCES + " is not allowed.");
+            return false;
+        }
 
         tonyConf.set(TB_INSTANCES, String.valueOf(DEFAULT_TB_INSTANCES));
         tonyConf.set(TB_VCORE, tonyConf.get(TB_VCORE, String.valueOf(DEFAULT_TB_VCORE)));
         tonyConf.set(TB_MEMORY, tonyConf.get(TB_MEMORY, DEFAULT_TB_MEMORY));
-        tonyConf.get(TB_GPUS, tonyConf.get(TB_GPUS, String.valueOf(DEFAULT_TB_GPUS)));
+        tonyConf.set(TB_GPUS, tonyConf.get(TB_GPUS, String.valueOf(DEFAULT_TB_GPUS)));
 
-        List<String> untrackedTypes = new ArrayList<>(Arrays.asList(Utils.getUntrackedJobTypes(tonyConf)));
-        untrackedTypes.add(SIDECAR_TENSORBOARD_ROLE_NAME);
-        tonyConf.set(UNTRACKED_JOBTYPES, StringUtils.join(untrackedTypes, ","));
+        List<String> sidecarTypes = new ArrayList<>(Arrays.asList(Utils.getSidecarJobTypes(tonyConf)));
+        sidecarTypes.add(SIDECAR_TENSORBOARD_ROLE_NAME);
+        tonyConf.set(SIDECAR_JOBTYPES, StringUtils.join(sidecarTypes, ","));
+
+        return true;
     }
 
     @VisibleForTesting
