@@ -17,70 +17,80 @@ package com.linkedin.tony.runtime;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
-import com.linkedin.tony.FrameworkRuntime;
+import com.linkedin.tony.AbstractFrameworkRuntime;
+import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
-public class StandaloneRuntime implements FrameworkRuntime {
-    protected Log log = LogFactory.getLog(this.getClass());
-
-    // For task executor
-    private TaskExecutor executor;
+public class StandaloneRuntime extends AbstractFrameworkRuntime {
 
     @Override
-    public String constructClusterSpec(String taskId) throws IOException {
-        return taskId;
+    public Framework.ApplicationMasterAdapter getAMAdapter() {
+        return new AM();
     }
 
     @Override
-    public void destroy() {
-        return;
+    public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
+        return new Task(taskExecutor);
     }
 
-    @Override
-    public void setTonySession(TonySession session) {
-        return;
+    class AM implements Framework.ApplicationMasterAdapter {
+
+        @Override
+        public String constructClusterSpec(String taskId) throws IOException {
+            return taskId;
+        }
+
+        @Override
+        public void destroy() {
+            return;
+        }
+
+        @Override
+        public void setTonySession(TonySession session) {
+            return;
+        }
+
+        @Override
+        public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+            return true;
+        }
+
+        @Override
+        public boolean validateAndUpdateConfig(Configuration tonyConf) {
+            if (Utils.getNumTotalTasks(tonyConf) != 1) {
+                log.error("In standalone runtime mode, it must only have one instance.");
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
+            return true;
+        }
     }
 
-    @Override
-    public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
-        return true;
-    }
+    static class Task implements Framework.TaskExecutorAdapter {
+        private TaskExecutor executor;
 
-    @Override
-    public boolean validateAndUpdateConfig(Configuration tonyConf) {
-        if (Utils.getNumTotalTasks(tonyConf) != 1) {
-            log.error("In standalone runtime mode, it must only have one instance.");
+        public Task(TaskExecutor taskExecutor) {
+            this.executor = taskExecutor;
+        }
+
+        @Override
+        public int run() throws Exception {
+            assert executor != null;
+            return executorPythonShell(executor);
+        }
+
+        @Override
+        public boolean needReserveTBPort() {
             return false;
         }
-        return true;
-    }
-
-    @Override
-    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
-        return true;
-    }
-
-    // ============For task executor============
-    @Override
-    public void initTaskExecutorResource(TaskExecutor executor) {
-        this.executor = executor;
-    }
-
-    @Override
-    public int run() throws Exception {
-        assert executor != null;
-        return executorPythonShell(executor);
-    }
-
-    @Override
-    public boolean needReserveTBPort() {
-        return false;
     }
 }

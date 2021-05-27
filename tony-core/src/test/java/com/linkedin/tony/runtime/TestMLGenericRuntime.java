@@ -20,17 +20,30 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 
 import static com.linkedin.tony.TonyConfigurationKeys.TENSORBOARD_LOG_DIR;
 
 public class TestMLGenericRuntime {
-    private MLGenericRuntime runtime;
+    private TestRuntime runtime;
 
     static class TestRuntime extends MLGenericRuntime {
         @Override
-        protected void buildTaskEnv(TaskExecutor executor) throws Exception {
-            return;
+        public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
+            return new TestTaskExecutorAdapter(taskExecutor);
+        }
+
+        class TestTaskExecutorAdapter extends Task {
+
+            public TestTaskExecutorAdapter(TaskExecutor executor) {
+                super(executor);
+            }
+
+            @Override
+            protected void buildTaskEnv(TaskExecutor executor) throws Exception {
+                // ignore
+            }
         }
     }
 
@@ -46,21 +59,20 @@ public class TestMLGenericRuntime {
     public void testNeedReserveTBPort() {
         TaskExecutor taskExecutor = new TaskExecutor();
         taskExecutor.setJobName("chief");
-
-        runtime.initTaskExecutorResource(taskExecutor);
+        Framework.TaskExecutorAdapter taskExecutorAdapter = runtime.getTaskAdapter(taskExecutor);
 
         taskExecutor.setChief(true);
-        Assert.assertTrue(runtime.needReserveTBPort());
+        Assert.assertTrue(taskExecutorAdapter.needReserveTBPort());
 
         Configuration conf1 = new Configuration();
         conf1.set(TENSORBOARD_LOG_DIR, "/tmp");
         taskExecutor.setTonyConf(conf1);
-        Assert.assertFalse(runtime.needReserveTBPort());
+        Assert.assertFalse(taskExecutorAdapter.needReserveTBPort());
 
         taskExecutor.setChief(false);
-        Assert.assertFalse(runtime.needReserveTBPort());
+        Assert.assertFalse(taskExecutorAdapter.needReserveTBPort());
 
         taskExecutor.setJobName("tensorboard");
-        Assert.assertTrue(runtime.needReserveTBPort());
+        Assert.assertTrue(taskExecutorAdapter.needReserveTBPort());
     }
 }

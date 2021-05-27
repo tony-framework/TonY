@@ -18,7 +18,7 @@ import com.linkedin.tony.tensorflow.TonySession;
 
 public class TestHorovodRuntime {
     private TonySession session = new TonySession();
-    private HorovodRuntime runtime;
+    private HorovodRuntime.HorovodAMAdapter amAdapter;
 
     @BeforeTest
     public void before() {
@@ -34,21 +34,21 @@ public class TestHorovodRuntime {
 
         taskMaps.put("worker", taskList.toArray(new TonySession.TonyTask[0]));
 
-        runtime = new HorovodRuntime();
+        amAdapter = (HorovodRuntime.HorovodAMAdapter) new HorovodRuntime().getAMAdapter();
     }
 
     @Test
     public void testBuildWorkerList() {
         List<Integer> sameHostIndexCollection = new ArrayList<>();
         String currenthost = "localhost1";
-        String workerList = runtime.buildWorkerList(session, currenthost, sameHostIndexCollection);
+        String workerList = amAdapter.buildWorkerList(session, currenthost, sameHostIndexCollection);
         Assert.assertEquals("localhost3:1,localhost2:1,localhost1:2", workerList);
         Assert.assertEquals(2, sameHostIndexCollection.size());
         Assert.assertEquals("[0, 1]", sameHostIndexCollection.toString());
 
         sameHostIndexCollection = new ArrayList<>();
         currenthost = "localhost2";
-        workerList = runtime.buildWorkerList(session, currenthost, sameHostIndexCollection);
+        workerList = amAdapter.buildWorkerList(session, currenthost, sameHostIndexCollection);
         Assert.assertEquals("localhost3:1,localhost2:1,localhost1:2", workerList);
         Assert.assertEquals(1, sameHostIndexCollection.size());
         Assert.assertEquals("[2]", sameHostIndexCollection.toString());
@@ -60,9 +60,9 @@ public class TestHorovodRuntime {
         tonyConf.set("tony.application.untracked.jobtypes", "worker");
         tonyConf.set("tony.driver.instances", "2");
         tonyConf.set("tony.driver.vcores", "2");
-        Assert.assertFalse(runtime.validateAndUpdateConfig(tonyConf));
+        Assert.assertFalse(amAdapter.validateAndUpdateConfig(tonyConf));
 
         tonyConf = new Configuration();
-        Assert.assertTrue(runtime.validateAndUpdateConfig(tonyConf));
+        Assert.assertTrue(amAdapter.validateAndUpdateConfig(tonyConf));
     }
 }
