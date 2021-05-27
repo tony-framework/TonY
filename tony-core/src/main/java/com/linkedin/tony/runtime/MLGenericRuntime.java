@@ -239,8 +239,10 @@ public abstract class MLGenericRuntime implements FrameworkRuntime {
         String tbLogDir = taskExecutor.getTonyConf().get(TonyConfigurationKeys.TENSORBOARD_LOG_DIR);
         Path tbScriptPath = createSidecarTBScript();
         String pythonExecPath = taskExecutor.getTonyConf().get(TonyConfigurationKeys.PYTHON_EXEC_PATH, "python");
-        String startTBCommand = String.format("%s %s --logdir %s --port %s",
-                pythonExecPath, tbScriptPath, tbLogDir, taskExecutor.getTbPort());
+        String startupExtraOpts = taskExecutor.getTonyConf().get(TonyConfigurationKeys.TB_EXTRA_STARTUP_OPTIONS, "");
+
+        String startTBCommand = String.format("%s %s --logdir %s --port %s %s",
+                pythonExecPath, tbScriptPath, tbLogDir, taskExecutor.getTbPort(), startupExtraOpts);
         log.info("Sidecar tensorboard startup command: " + startTBCommand);
         taskExecutor.setTaskCommand(startTBCommand);
 

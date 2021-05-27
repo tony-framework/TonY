@@ -334,4 +334,6 @@ public class TonyConfigurationKeys {
 
   public static final String TB_GPUS = TB_JOB_PREFIX + "gpus";
   public static final int DEFAULT_TB_GPUS = 0;
+
+  public static final String TB_EXTRA_STARTUP_OPTIONS = TB_JOB_PREFIX + "startup-opts";
 }
