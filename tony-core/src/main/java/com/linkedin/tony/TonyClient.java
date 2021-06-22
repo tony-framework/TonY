@@ -208,13 +208,11 @@ public class TonyClient implements AutoCloseable {
       amVCores = maxVCores;
     }
 
-    FileSystem fs = FileSystem.get(hdfsConf);
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     appId = appContext.getApplicationId();
     if (callbackHandler != null) {
       callbackHandler.onApplicationIdReceived(appId);
     }
-    appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
 
     this.tonyFinalConfPath = processFinalTonyConf();
     submitApplication(appContext);
@@ -567,12 +565,17 @@ public class TonyClient implements AutoCloseable {
       String scriptName = "sidecar_tensorboard.py";
       String scriptPath = getFilePathFromResource(scriptName);
       FileSystem fs = FileSystem.get(hdfsConf);
+      appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
+
       Utils.uploadFileAndSetConfResources(appResourcesPath,
               new Path(scriptPath), scriptName, tonyConf, fs, LocalResourceType.FILE,
               TonyConfigurationKeys.getContainerResourcesKey());
 
-      String startupTBCommand = String.format("%s ../%s", pythonInterpreter, scriptName);
-      tonyConf.set("tony." + SIDECAR_TENSORBOARD_ROLE_NAME + ".command", startupTBCommand);
+      String tbCommandKey = "tony." + SIDECAR_TENSORBOARD_ROLE_NAME + ".command";
+      if (tonyConf.get(tbCommandKey) == null) {
+        String startupTBCommand = String.format("%s ../%s", pythonInterpreter, scriptName);
+        tonyConf.set(tbCommandKey, startupTBCommand);
+      }
     }
 
     return true;
