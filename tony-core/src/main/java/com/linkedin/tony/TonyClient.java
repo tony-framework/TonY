@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -90,6 +91,18 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+
+import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_GPUS;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_INSTANCES;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_MEMORY;
+import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_VCORE;
+import static com.linkedin.tony.TonyConfigurationKeys.SIDECAR_JOBTYPES;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_GPUS;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_INSTANCES;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_MEMORY;
+import static com.linkedin.tony.TonyConfigurationKeys.TB_VCORE;
+import static com.linkedin.tony.TonyConfigurationKeys.TENSORBOARD_LOG_DIR;
 
 
 /**
@@ -408,6 +421,7 @@ public class TonyClient implements AutoCloseable {
     opts.addOption("conf", true, "User specified configuration, as key=val pairs");
     opts.addOption("conf_file", true, "Name of user specified conf file, on the classpath");
     opts.addOption("src_dir", true, "Name of directory of source files.");
+    opts.addOption("sidecar_tensorboard_log_dir", true, "Enable sidecar tensorboard");
     opts.addOption("help", false, "Print usage");
   }
 
@@ -535,7 +549,48 @@ public class TonyClient implements AutoCloseable {
       tonyConf.setStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV, containerEnvPair.toArray(new String[0]));
     }
 
+    if (cliParser.hasOption("sidecar_tensorboard_log_dir")) {
+      String tbLogDir = cliParser.getOptionValue("sidecar_tensorboard_log_dir");
+      tonyConf.set(TENSORBOARD_LOG_DIR, tbLogDir);
+
+      tonyConf.set(TB_INSTANCES, String.valueOf(DEFAULT_TB_INSTANCES));
+      tonyConf.set(TB_VCORE, tonyConf.get(TB_VCORE, String.valueOf(DEFAULT_TB_VCORE)));
+      tonyConf.set(TB_MEMORY, tonyConf.get(TB_MEMORY, DEFAULT_TB_MEMORY));
+      tonyConf.set(TB_GPUS, tonyConf.get(TB_GPUS, String.valueOf(DEFAULT_TB_GPUS)));
+
+      List<String> sidecarTypes = new ArrayList<>(Arrays.asList(Utils.getSidecarJobTypes(tonyConf)));
+      sidecarTypes.add(SIDECAR_TENSORBOARD_ROLE_NAME);
+      tonyConf.set(SIDECAR_JOBTYPES, StringUtils.join(sidecarTypes, ","));
+
+      String pythonInterpreter = getPythonInterpreter(pythonVenv, pythonBinaryPath);
+
+      String scriptName = "sidecar_tensorboard.py";
+      String scriptPath = getFilePathFromResource(scriptName);
+      FileSystem fs = FileSystem.get(hdfsConf);
+      Utils.uploadFileAndSetConfResources(appResourcesPath,
+              new Path(scriptPath), scriptName, tonyConf, fs, LocalResourceType.FILE,
+              TonyConfigurationKeys.getContainerResourcesKey());
+
+      String startupTBCommand = String.format("%s ../%s", pythonInterpreter, scriptName);
+      tonyConf.set("tony." + SIDECAR_TENSORBOARD_ROLE_NAME + ".command", startupTBCommand);
+    }
+
     return true;
+  }
+
+  static String getFilePathFromResource(String fileName) {
+    ClassLoader loader = Thread.currentThread().getContextClassLoader();
+    try {
+      java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory(fileName);
+      tempDir.toFile().deleteOnExit();
+      try (InputStream stream = loader.getResourceAsStream(fileName)) {
+        java.nio.file.Files.copy(stream, Paths.get(tempDir.toAbsolutePath().toString(), fileName));
+      }
+      return Paths.get(tempDir.toAbsolutePath().toString(), fileName).toFile().getAbsolutePath();
+    } catch (Exception e) {
+      LOG.info(e);
+      return null;
+    }
   }
 
   @VisibleForTesting

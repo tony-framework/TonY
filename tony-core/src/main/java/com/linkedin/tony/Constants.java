@@ -183,6 +183,7 @@ public class Constants {
 
   public static final String SIDECAR_TENSORBOARD_ROLE_NAME = "tensorboard";
   public static final String SIDECAR_TB_TEST_KEY = "SIDECAR_TB_TEST";
+  public static final String SIDECAR_TENSORBOARD_LOG_DIR = "TB_LOG_DIR";
 
   private Constants() { }
 }

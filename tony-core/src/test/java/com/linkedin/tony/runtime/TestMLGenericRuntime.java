@@ -71,22 +71,4 @@ public class TestMLGenericRuntime {
         taskExecutor.setJobName("tensorboard");
         Assert.assertTrue(runtime.needReserveTBPort());
     }
-
-    @Test
-    public void testCheckAndPrepareTBResource() {
-        Configuration conf = new Configuration(false);
-        Assert.assertTrue(runtime.checkAndPrepareTBResource(conf));
-
-        conf.set(TonyConfigurationKeys.TENSORBOARD_LOG_DIR, "hdfs://tmp");
-        Assert.assertTrue(runtime.checkAndPrepareTBResource(conf));
-        Assert.assertEquals(conf.get(TB_INSTANCES), "1");
-        Assert.assertEquals(conf.get(TB_VCORE), String.valueOf(DEFAULT_TB_VCORE));
-        Assert.assertEquals(conf.get(TB_MEMORY), DEFAULT_TB_MEMORY);
-        Assert.assertEquals(conf.get(TB_GPUS), String.valueOf(DEFAULT_TB_GPUS));
-
-        conf = new Configuration(false);
-        conf.set(TENSORBOARD_LOG_DIR, "hdfs://tmp");
-        conf.set(TB_INSTANCES, String.valueOf(2));
-        Assert.assertFalse(runtime.checkAndPrepareTBResource(conf));
-    }
 }
