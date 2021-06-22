@@ -4,8 +4,10 @@
  */
 package com.linkedin.tony;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -157,6 +159,11 @@ public class TaskExecutor {
     TaskExecutor executor = new TaskExecutor();
     executor.initConfigs();
     Utils.extractResources(executor.appIdString);
+
+    File file = new File(".");
+    Arrays.stream(file.listFiles()).forEach(x -> {
+      LOG.info("File: " + x.getName());
+    });
 
     LOG.info("Setting up application RPC client, connecting to: " + executor.amHost + ":" + executor.amPort);
     executor.proxy = ApplicationRpcClient.getInstance(executor.amHost, executor.amPort, executor.yarnConf);

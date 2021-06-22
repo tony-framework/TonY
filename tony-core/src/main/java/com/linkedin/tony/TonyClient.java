@@ -589,7 +589,7 @@ public class TonyClient implements AutoCloseable {
     sidecarTBScriptPath = getFilePathFromResource(scriptName);
     String tbCommandKey = "tony." + SIDECAR_TB_ROLE_NAME + ".command";
     if (tonyConf.get(tbCommandKey) == null) {
-      String startupTBCommand = String.format("%s ../%s", pythonInterpreter, scriptName);
+      String startupTBCommand = String.format("%s %s", pythonInterpreter, scriptName);
       tonyConf.set(tbCommandKey, startupTBCommand);
     }
 
