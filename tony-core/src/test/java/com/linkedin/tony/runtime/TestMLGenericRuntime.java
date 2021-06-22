@@ -21,15 +21,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.tony.TaskExecutor;
-import com.linkedin.tony.TonyConfigurationKeys;
 
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_GPUS;
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_MEMORY;
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_VCORE;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_GPUS;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_INSTANCES;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_MEMORY;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_VCORE;
 import static com.linkedin.tony.TonyConfigurationKeys.TENSORBOARD_LOG_DIR;
 
 public class TestMLGenericRuntime {

@@ -556,7 +556,7 @@ public class TonyClient implements AutoCloseable {
       tonyConf.setStrings(TonyConfigurationKeys.CONTAINER_LAUNCH_ENV, containerEnvPair.toArray(new String[0]));
     }
 
-    if (cliParser.hasOption("sidecar_tensorboard_log_dir")) {
+    if (cliParser.hasOption("sidecar_tensorboard_log_dir") || tonyConf.get(TENSORBOARD_LOG_DIR) != null) {
       String tbLogDir = cliParser.getOptionValue("sidecar_tensorboard_log_dir");
       setSidecarTBResources(tbLogDir, executionEnvPair);
     }
