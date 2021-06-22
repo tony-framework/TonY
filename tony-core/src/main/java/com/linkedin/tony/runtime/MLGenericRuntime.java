@@ -34,10 +34,7 @@ import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TonySession;
 
-import static com.linkedin.tony.Constants.SIDECAR_TB_TEST_KEY;
-import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_LOG_DIR;
-import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
-import static com.linkedin.tony.Constants.TB_PORT;
+import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
 
 public abstract class MLGenericRuntime implements FrameworkRuntime {
     private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
@@ -183,28 +180,12 @@ public abstract class MLGenericRuntime implements FrameworkRuntime {
     @Override
     public int run() throws Exception {
         assert taskExecutor != null;
-
-        if (isSidecarTBExecutor(taskExecutor)) {
-            // inject starting tensorboard command
-            setStartupTBResource();
-        }
-
         buildTaskEnv(taskExecutor);
         return executorPythonShell(taskExecutor);
     }
 
-    private void setStartupTBResource() {
-        String tbLogDir = taskExecutor.getTonyConf().get(TonyConfigurationKeys.TENSORBOARD_LOG_DIR);
-        String tbPort = String.valueOf(taskExecutor.getTbPort());
-        taskExecutor.getShellEnv().put(SIDECAR_TENSORBOARD_LOG_DIR, tbLogDir);
-        taskExecutor.getShellEnv().put(TB_PORT, tbPort);
-        if (System.getenv(SIDECAR_TB_TEST_KEY) != null) {
-            taskExecutor.getShellEnv().put(SIDECAR_TB_TEST_KEY, "true");
-        }
-    }
-
     private boolean isSidecarTBExecutor(TaskExecutor taskExecutor) {
-        return SIDECAR_TENSORBOARD_ROLE_NAME.equals(taskExecutor.getJobName()) ? true : false;
+        return SIDECAR_TB_ROLE_NAME.equals(taskExecutor.getJobName()) ? true : false;
     }
 
     private boolean enableSidecarTB(Configuration tonyConf) {

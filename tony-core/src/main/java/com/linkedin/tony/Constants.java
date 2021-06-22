@@ -181,9 +181,10 @@ public class Constants {
   public static final String MAPREDUCE_APPLICATION_FRAMEWORK_PATH = "mapreduce.application.framework.path";
   public static final String MAPREDUCE_APPLICATION_CLASSPATH = "mapreduce.application.classpath";
 
-  public static final String SIDECAR_TENSORBOARD_ROLE_NAME = "tensorboard";
+  public static final String SIDECAR_TB_ROLE_NAME = "tensorboard";
+  public static final String SIDECAR_TB_SCIRPT_FILE_NAME = "sidecar_tensorboard.py";
   public static final String SIDECAR_TB_TEST_KEY = "SIDECAR_TB_TEST";
-  public static final String SIDECAR_TENSORBOARD_LOG_DIR = "TB_LOG_DIR";
+  public static final String SIDECAR_TB_LOG_DIR = "TB_LOG_DIR";
 
   private Constants() { }
 }

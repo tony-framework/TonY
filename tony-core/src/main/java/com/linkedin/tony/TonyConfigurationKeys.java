@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
+import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
 
 public class TonyConfigurationKeys {
   public enum FrameworkType {
@@ -272,7 +272,7 @@ public class TonyConfigurationKeys {
 
   // Job types that we don't wait to finish and ignore its failure.
   public static final String SIDECAR_JOBTYPES = TONY_APPLICATION_PREFIX + "sidecar.jobtypes";
-  public static final String DEFAULT_SIDECAR_JOBTYPES = SIDECAR_TENSORBOARD_ROLE_NAME;
+  public static final String DEFAULT_SIDECAR_JOBTYPES = SIDECAR_TB_ROLE_NAME;
 
   // Job types that we will short circuit when it failed
   public static final String STOP_ON_FAILURE_JOBTYPES = TONY_APPLICATION_PREFIX + "stop-on-failure-jobtypes";
@@ -321,7 +321,7 @@ public class TonyConfigurationKeys {
   // Set Tensorboard log dir to start it
   public static final String TENSORBOARD_LOG_DIR = TONY_APPLICATION_PREFIX + "tensorboard-log-dir";
 
-  public static final String TB_JOB_PREFIX = TONY_PREFIX + SIDECAR_TENSORBOARD_ROLE_NAME + ".";
+  public static final String TB_JOB_PREFIX = TONY_PREFIX + SIDECAR_TB_ROLE_NAME + ".";
 
   public static final String TB_VCORE = TB_JOB_PREFIX + "vcores";
   public static final int DEFAULT_TB_VCORE = 2;

@@ -92,7 +92,10 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenIdentifier;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
-import static com.linkedin.tony.Constants.SIDECAR_TENSORBOARD_ROLE_NAME;
+import static com.linkedin.tony.Constants.SIDECAR_TB_LOG_DIR;
+import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
+import static com.linkedin.tony.Constants.SIDECAR_TB_SCIRPT_FILE_NAME;
+import static com.linkedin.tony.Constants.SIDECAR_TB_TEST_KEY;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_GPUS;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_INSTANCES;
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_MEMORY;
@@ -143,6 +146,7 @@ public class TonyClient implements AutoCloseable {
   private Map<String, String> containerEnv = new HashMap<>();
   private String hadoopFrameworkLocation = null;
   private String hadoopFrameworkClasspath = null;
+  private String sidecarTBScriptPath = null;
 
   private String tonyFinalConfPath;
   private Configuration tonyConf;
@@ -208,11 +212,13 @@ public class TonyClient implements AutoCloseable {
       amVCores = maxVCores;
     }
 
+    FileSystem fs = FileSystem.get(hdfsConf);
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
     appId = appContext.getApplicationId();
     if (callbackHandler != null) {
       callbackHandler.onApplicationIdReceived(appId);
     }
+    appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
 
     this.tonyFinalConfPath = processFinalTonyConf();
     submitApplication(appContext);
@@ -237,6 +243,12 @@ public class TonyClient implements AutoCloseable {
     if (pythonVenv != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath,
           new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+    }
+
+    if (sidecarTBScriptPath != null) {
+      Utils.uploadFileAndSetConfResources(appResourcesPath,
+              new Path(sidecarTBScriptPath), SIDECAR_TB_SCIRPT_FILE_NAME, tonyConf, fs, LocalResourceType.FILE,
+              TonyConfigurationKeys.getContainerResourcesKey());
     }
 
 
@@ -525,9 +537,6 @@ public class TonyClient implements AutoCloseable {
       String[] envs = cliParser.getOptionValues("shell_env");
       executionEnvPair.addAll(Arrays.asList(envs));
     }
-    if (!executionEnvPair.isEmpty()) {
-      tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
-    }
 
     Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, Constants.AM_NAME);
     containerEnv.putAll(dockerEnv);
@@ -549,36 +558,42 @@ public class TonyClient implements AutoCloseable {
 
     if (cliParser.hasOption("sidecar_tensorboard_log_dir")) {
       String tbLogDir = cliParser.getOptionValue("sidecar_tensorboard_log_dir");
-      tonyConf.set(TENSORBOARD_LOG_DIR, tbLogDir);
+      setSidecarTBResources(tbLogDir, executionEnvPair);
+    }
 
-      tonyConf.set(TB_INSTANCES, String.valueOf(DEFAULT_TB_INSTANCES));
-      tonyConf.set(TB_VCORE, tonyConf.get(TB_VCORE, String.valueOf(DEFAULT_TB_VCORE)));
-      tonyConf.set(TB_MEMORY, tonyConf.get(TB_MEMORY, DEFAULT_TB_MEMORY));
-      tonyConf.set(TB_GPUS, tonyConf.get(TB_GPUS, String.valueOf(DEFAULT_TB_GPUS)));
-
-      List<String> sidecarTypes = new ArrayList<>(Arrays.asList(Utils.getSidecarJobTypes(tonyConf)));
-      sidecarTypes.add(SIDECAR_TENSORBOARD_ROLE_NAME);
-      tonyConf.set(SIDECAR_JOBTYPES, StringUtils.join(sidecarTypes, ","));
-
-      String pythonInterpreter = getPythonInterpreter(pythonVenv, pythonBinaryPath);
-
-      String scriptName = "sidecar_tensorboard.py";
-      String scriptPath = getFilePathFromResource(scriptName);
-      FileSystem fs = FileSystem.get(hdfsConf);
-      appResourcesPath = new Path(fs.getHomeDirectory(), Constants.TONY_FOLDER + Path.SEPARATOR + appId.toString());
-
-      Utils.uploadFileAndSetConfResources(appResourcesPath,
-              new Path(scriptPath), scriptName, tonyConf, fs, LocalResourceType.FILE,
-              TonyConfigurationKeys.getContainerResourcesKey());
-
-      String tbCommandKey = "tony." + SIDECAR_TENSORBOARD_ROLE_NAME + ".command";
-      if (tonyConf.get(tbCommandKey) == null) {
-        String startupTBCommand = String.format("%s ../%s", pythonInterpreter, scriptName);
-        tonyConf.set(tbCommandKey, startupTBCommand);
-      }
+    if (!executionEnvPair.isEmpty()) {
+      tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
     }
 
     return true;
+  }
+
+  private void setSidecarTBResources(String tbLogDir, List<String> executionEnvPair) {
+    tonyConf.set(TENSORBOARD_LOG_DIR, tbLogDir);
+
+    tonyConf.set(TB_INSTANCES, String.valueOf(DEFAULT_TB_INSTANCES));
+    tonyConf.set(TB_VCORE, tonyConf.get(TB_VCORE, String.valueOf(DEFAULT_TB_VCORE)));
+    tonyConf.set(TB_MEMORY, tonyConf.get(TB_MEMORY, DEFAULT_TB_MEMORY));
+    tonyConf.set(TB_GPUS, tonyConf.get(TB_GPUS, String.valueOf(DEFAULT_TB_GPUS)));
+
+    List<String> sidecarTypes = new ArrayList<>(Arrays.asList(Utils.getSidecarJobTypes(tonyConf)));
+    sidecarTypes.add(SIDECAR_TB_ROLE_NAME);
+    tonyConf.set(SIDECAR_JOBTYPES, StringUtils.join(sidecarTypes, ","));
+
+    String pythonInterpreter = getPythonInterpreter(pythonVenv, pythonBinaryPath);
+
+    String scriptName = SIDECAR_TB_SCIRPT_FILE_NAME;
+    sidecarTBScriptPath = getFilePathFromResource(scriptName);
+    String tbCommandKey = "tony." + SIDECAR_TB_ROLE_NAME + ".command";
+    if (tonyConf.get(tbCommandKey) == null) {
+      String startupTBCommand = String.format("%s ../%s", pythonInterpreter, scriptName);
+      tonyConf.set(tbCommandKey, startupTBCommand);
+    }
+
+    executionEnvPair.add(String.format("%s=%s", SIDECAR_TB_LOG_DIR, tbLogDir));
+    if (System.getenv(SIDECAR_TB_TEST_KEY) != null) {
+      executionEnvPair.add(String.format("%s=%s", SIDECAR_TB_TEST_KEY, "true"));
+    }
   }
 
   static String getFilePathFromResource(String fileName) {
