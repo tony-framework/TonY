@@ -580,7 +580,10 @@ public class TonyClient implements AutoCloseable {
     sidecarTypes.add(SIDECAR_TB_ROLE_NAME);
     tonyConf.set(SIDECAR_JOBTYPES, StringUtils.join(sidecarTypes, ","));
 
-    String pythonInterpreter = getPythonInterpreter(pythonVenv, pythonBinaryPath);
+    String pythonInterpreter = "python";
+    if (pythonBinaryPath != null) {
+      pythonInterpreter = getPythonInterpreter(pythonVenv, pythonBinaryPath);
+    }
 
     String scriptName = SIDECAR_TB_SCIRPT_FILE_NAME;
     sidecarTBScriptPath = getFilePathFromResource(scriptName);
