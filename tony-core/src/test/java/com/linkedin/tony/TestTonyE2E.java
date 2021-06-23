@@ -600,7 +600,7 @@ public class TestTonyE2E  {
             "--conf", "tony.chief.instances=1",
             "--conf", "tony.ps.instances=1",
             "--conf", "tony.worker.instances=2",
-            "--conf", "tony.application.tensorboard-log-dir=/tmp",
+            "--sidecar_tensorboard_log_dir", "/tmp",
             "--conf", "tony.application.framework=tensorflow",
             "--container_env", Constants.SIDECAR_TB_TEST_KEY + "=true"
     });

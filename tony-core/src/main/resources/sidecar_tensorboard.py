@@ -23,5 +23,9 @@ if __name__ == '__main__':
         while True:
             time.sleep(10)
     else:
+        sys.argv.append("--logdir")
+        sys.argv.append(os.environ["TB_LOG_DIR"])
+        sys.argv.append("--port")
+        sys.argv.append(os.environ["TB_PORT"])
         sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
         sys.exit(run_main())

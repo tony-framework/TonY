@@ -21,15 +21,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.tony.TaskExecutor;
-import com.linkedin.tony.TonyConfigurationKeys;
 
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_GPUS;
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_MEMORY;
-import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_TB_VCORE;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_GPUS;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_INSTANCES;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_MEMORY;
-import static com.linkedin.tony.TonyConfigurationKeys.TB_VCORE;
 import static com.linkedin.tony.TonyConfigurationKeys.TENSORBOARD_LOG_DIR;
 
 public class TestMLGenericRuntime {
@@ -70,23 +62,5 @@ public class TestMLGenericRuntime {
 
         taskExecutor.setJobName("tensorboard");
         Assert.assertTrue(runtime.needReserveTBPort());
-    }
-
-    @Test
-    public void testCheckAndPrepareTBResource() {
-        Configuration conf = new Configuration(false);
-        Assert.assertTrue(runtime.checkAndPrepareTBResource(conf));
-
-        conf.set(TonyConfigurationKeys.TENSORBOARD_LOG_DIR, "hdfs://tmp");
-        Assert.assertTrue(runtime.checkAndPrepareTBResource(conf));
-        Assert.assertEquals(conf.get(TB_INSTANCES), "1");
-        Assert.assertEquals(conf.get(TB_VCORE), String.valueOf(DEFAULT_TB_VCORE));
-        Assert.assertEquals(conf.get(TB_MEMORY), DEFAULT_TB_MEMORY);
-        Assert.assertEquals(conf.get(TB_GPUS), String.valueOf(DEFAULT_TB_GPUS));
-
-        conf = new Configuration(false);
-        conf.set(TENSORBOARD_LOG_DIR, "hdfs://tmp");
-        conf.set(TB_INSTANCES, String.valueOf(2));
-        Assert.assertFalse(runtime.checkAndPrepareTBResource(conf));
     }
 }
