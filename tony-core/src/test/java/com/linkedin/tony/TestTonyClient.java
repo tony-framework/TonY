@@ -20,7 +20,6 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 
-import static com.linkedin.tony.Constants.*;
 import static org.testng.Assert.assertEquals;
 
 public class TestTonyClient {
@@ -123,7 +122,7 @@ public class TestTonyClient {
    * 1 GPU requested on a non-GPU cluster. Conf validation should fail.
    */
   @Test(expectedExceptions = RuntimeException.class,
-      expectedExceptionsMessageRegExp = "User requested 1 GPUs for job .* but GPU is not available on the cluster. " )
+      expectedExceptionsMessageRegExp = "User requested 1 GPUs for job .* but GPU is not available on the cluster. ")
   public void testValidateTonyConfNoGpuCluster() {
     Configuration conf = new Configuration();
     Map<String, ResourceInformation> resourceInformationMap = new HashMap<>();
@@ -213,7 +212,7 @@ public class TestTonyClient {
     Map<String, ResourceInformation> resourceInformationMap = new HashMap<>();
     resourceInformationMap.put("memory-mb", ResourceInformation.MEMORY_MB);
     resourceInformationMap.put("vcores", ResourceInformation.VCORES);
-    resourceInformationMap.put(GPU_URI, ResourceInformation.GPUS);
+    resourceInformationMap.put(Constants.GPU_URI, ResourceInformation.GPUS);
     ResourceUtils.initializeResourcesFromResourceInformationMap(resourceInformationMap);
   }
 }
