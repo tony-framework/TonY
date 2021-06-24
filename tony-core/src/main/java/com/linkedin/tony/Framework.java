@@ -22,6 +22,12 @@ import org.apache.hadoop.conf.Configuration;
 import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
+/**
+ * Providing a generic interface for both AM and Task executor in this Framework class.
+ * To make more clearer, let the AM and Task executors' interface separate.
+ * And any runtime including Horovod/Tensorflow runtime must implement the following
+ * interface.
+ */
 public class Framework {
 
     public interface ApplicationMasterAdapter {
