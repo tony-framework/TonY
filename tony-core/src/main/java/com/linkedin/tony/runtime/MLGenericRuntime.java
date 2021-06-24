@@ -23,174 +23,171 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.FrameworkRuntime;
+import com.linkedin.tony.AbstractFrameworkRuntime;
+import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.TonySession;
 
 import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
 
-public abstract class MLGenericRuntime implements FrameworkRuntime {
+public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
     private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
 
-    // when in AM, session should be set. In task executor, session will be null.
-    protected TonySession session;
-    protected Log log = LogFactory.getLog(this.getClass());
-    private List<String> illegalConfKeyRegexs;
-    private long lastRegisterWorkerTime = System.currentTimeMillis();
-
-    protected TaskExecutor taskExecutor;
-
-    // ===================For AM =======================
-
-    @Override
-    public String constructClusterSpec(String taskId) throws IOException {
-        assert session != null;
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(session.getClusterSpec());
+    public Framework.ApplicationMasterAdapter getAMAdapter() {
+        return new AM();
     }
 
-    @Override
-    public void destroy() {
-        // ignore
-    }
-
-    @Override
-    public void setTonySession(TonySession session) {
-        this.session = session;
-    }
-
-    @Override
-    public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
-        return true;
-    }
-
-    @Override
-    public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
-        assert session != null;
-        switch (distributedMode) {
-            case GANG:
-                int numExpectedTasks = session.getNumExpectedTasks();
-                if (session.getNumRegisteredTasks() == numExpectedTasks) {
-                    log.info("All " + numExpectedTasks + " tasks registered.");
-                    return true;
-                }
-                printTasksPeriodically();
-                return false;
-            case FCFS:
-                return true;
-            default:
-                log.error("Errors on registering to TonY AM, because of unknown distributed mode: "
-                        + distributedMode);
-                return false;
-        }
-    }
-
-    @Override
-    public boolean validateAndUpdateConfig(Configuration tonyConf) {
-        if (!validate(tonyConf)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @VisibleForTesting
-    private boolean validate(Configuration tonyConf) {
-        if (illegalConfKeyRegexs == null) {
-            return true;
-        }
-        List<String> illegalKeys = illegalConfKeyRegexs.stream()
-                .map(regex -> tonyConf.getValByRegex(regex).keySet())
-                .flatMap(x -> x.stream()).collect(Collectors.toList());
-
-        if (CollectionUtils.isNotEmpty(illegalKeys)) {
-            log.error("Not allowed to configure illegal conf in Runtime. "
-                    + "Illegal keys: " + illegalKeys);
-            return false;
-        }
-        return true;
-    }
-
-    public void setIllegalConfKeyRegexs(List<String> illegalConfKeyRegexs) {
-        this.illegalConfKeyRegexs = illegalConfKeyRegexs;
-    }
-
-    protected void printTasksPeriodically() {
-        // Periodically print a list of all tasks we are still awaiting registration from.
-        if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
-            Set<TonySession.TonyTask> unregisteredTasks = getUnregisteredTasks();
-            log.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
-                    session.getNumRegisteredTasks(), session.getNumExpectedTasks() - session.getNumRegisteredTasks()));
-            unregisteredTasks.forEach(t -> {
-                log.info(String.format("Awaiting registration from task %s %s in %s on host %s",
-                        t.getJobName(), t.getTaskIndex(),
-                        (t.getContainer() != null ? t.getContainer().getId().toString() : "none"),
-                        (t.getContainer() != null ? t.getContainer().getNodeId().getHost() : "none")));
-            });
-            lastRegisterWorkerTime = System.currentTimeMillis();
-        }
-    }
-
-    private Set<TonySession.TonyTask> getUnregisteredTasks() {
-        assert session != null;
-        return session.getTonyTasks().values().stream().flatMap(Arrays::stream)
-                .filter(task -> task != null && task.getHost() == null)
-                .collect(Collectors.toSet());
-    }
-
-    // ===================For Task Executor=======================
-
-    @Override
-    public void initTaskExecutorResource(TaskExecutor executor) {
-        this.taskExecutor = executor;
-    }
-
-    /**
-     * The tensorboard port will only be reserved on chief or sidecar tensorboard executor.
-     * Other executors will not reserve it.
-     * However, the above reserved port action will not be at the same time.
-     * If enable side-car tensorboard, port will only be reserved on it, otherwise will only be on chief executor.
-     */
-    @Override
-    public boolean needReserveTBPort() {
-        assert taskExecutor != null;
-
-        boolean enableSidecarTB = enableSidecarTB(taskExecutor.getTonyConf());
-
-        // When disable sidecar tensorboard, it will only be reserved on chief task executor.
-        if (!enableSidecarTB && taskExecutor.isChief()) {
-            return true;
-        }
-
-        // When enable sidecar tensorboard, it will only be reserved on sidecar executor.
-        if (enableSidecarTB && isSidecarTBExecutor(taskExecutor)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
-    public int run() throws Exception {
-        assert taskExecutor != null;
-        buildTaskEnv(taskExecutor);
-        return executorPythonShell(taskExecutor);
-    }
-
-    private boolean isSidecarTBExecutor(TaskExecutor taskExecutor) {
-        return SIDECAR_TB_ROLE_NAME.equals(taskExecutor.getJobName()) ? true : false;
-    }
+    abstract public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor);
 
     private boolean enableSidecarTB(Configuration tonyConf) {
         return StringUtils.isNotEmpty(tonyConf.get(TonyConfigurationKeys.TENSORBOARD_LOG_DIR));
     }
 
-    protected abstract void buildTaskEnv(TaskExecutor executor) throws Exception;
+    class AM implements Framework.ApplicationMasterAdapter {
+        protected TonySession session;
+        private List<String> illegalConfKeyRegexs;
+        private long lastRegisterWorkerTime = System.currentTimeMillis();
+
+        @Override
+        public String constructClusterSpec(String taskId) throws IOException {
+            assert session != null;
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(session.getClusterSpec());
+        }
+
+        @Override
+        public void destroy() {
+            // ignore
+        }
+
+        @Override
+        public void setTonySession(TonySession session) {
+            this.session = session;
+        }
+
+        @Override
+        public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
+            return true;
+        }
+
+        @Override
+        public boolean canStartTask(TonyConfigurationKeys.DistributedMode distributedMode, String taskId) {
+            assert session != null;
+            switch (distributedMode) {
+                case GANG:
+                    int numExpectedTasks = session.getNumExpectedTasks();
+                    if (session.getNumRegisteredTasks() == numExpectedTasks) {
+                        log.info("All " + numExpectedTasks + " tasks registered.");
+                        return true;
+                    }
+                    printTasksPeriodically();
+                    return false;
+                case FCFS:
+                    return true;
+                default:
+                    log.error("Errors on registering to TonY AM, because of unknown distributed mode: "
+                            + distributedMode);
+                    return false;
+            }
+        }
+
+        @Override
+        public boolean validateAndUpdateConfig(Configuration tonyConf) {
+            if (!validate(tonyConf)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @VisibleForTesting
+        private boolean validate(Configuration tonyConf) {
+            if (illegalConfKeyRegexs == null) {
+                return true;
+            }
+            List<String> illegalKeys = illegalConfKeyRegexs.stream()
+                    .map(regex -> tonyConf.getValByRegex(regex).keySet())
+                    .flatMap(x -> x.stream()).collect(Collectors.toList());
+
+            if (CollectionUtils.isNotEmpty(illegalKeys)) {
+                log.error("Not allowed to configure illegal conf in Runtime. "
+                        + "Illegal keys: " + illegalKeys);
+                return false;
+            }
+            return true;
+        }
+
+        public void setIllegalConfKeyRegexs(List<String> illegalConfKeyRegexs) {
+            this.illegalConfKeyRegexs = illegalConfKeyRegexs;
+        }
+
+        protected void printTasksPeriodically() {
+            // Periodically print a list of all tasks we are still awaiting registration from.
+            if (System.currentTimeMillis() - lastRegisterWorkerTime > REGISTRATION_STATUS_INTERVAL_MS) {
+                Set<TonySession.TonyTask> unregisteredTasks = getUnregisteredTasks();
+                log.info(String.format("Received registrations from %d tasks, awaiting registration from %d tasks.",
+                        session.getNumRegisteredTasks(), session.getNumExpectedTasks() - session.getNumRegisteredTasks()));
+                unregisteredTasks.forEach(t -> {
+                    log.info(String.format("Awaiting registration from task %s %s in %s on host %s",
+                            t.getJobName(), t.getTaskIndex(),
+                            (t.getContainer() != null ? t.getContainer().getId().toString() : "none"),
+                            (t.getContainer() != null ? t.getContainer().getNodeId().getHost() : "none")));
+                });
+                lastRegisterWorkerTime = System.currentTimeMillis();
+            }
+        }
+
+        private Set<TonySession.TonyTask> getUnregisteredTasks() {
+            assert session != null;
+            return session.getTonyTasks().values().stream().flatMap(Arrays::stream)
+                    .filter(task -> task != null && task.getHost() == null)
+                    .collect(Collectors.toSet());
+        }
+    }
+
+    abstract class Task implements Framework.TaskExecutorAdapter {
+        protected TaskExecutor taskExecutor;
+
+        public Task(TaskExecutor executor) {
+            this.taskExecutor = executor;
+        }
+
+        @Override
+        public boolean needReserveTBPort() {
+            assert taskExecutor != null;
+
+            boolean enableSidecarTB = enableSidecarTB(taskExecutor.getTonyConf());
+
+            // When disable sidecar tensorboard, it will only be reserved on chief task executor.
+            if (!enableSidecarTB && taskExecutor.isChief()) {
+                return true;
+            }
+
+            // When enable sidecar tensorboard, it will only be reserved on sidecar executor.
+            if (enableSidecarTB && isSidecarTBExecutor(taskExecutor)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public int run() throws Exception {
+            assert taskExecutor != null;
+
+            buildTaskEnv(taskExecutor);
+            return executorPythonShell(taskExecutor);
+        }
+
+        private boolean isSidecarTBExecutor(TaskExecutor taskExecutor) {
+            return SIDECAR_TB_ROLE_NAME.equals(taskExecutor.getJobName()) ? true : false;
+        }
+
+        protected abstract void buildTaskEnv(TaskExecutor executor) throws Exception;
+    }
 }

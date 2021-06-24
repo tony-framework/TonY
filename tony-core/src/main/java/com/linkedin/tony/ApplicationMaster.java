@@ -193,7 +193,7 @@ public class ApplicationMaster {
 
   /** Framework type, like tensorflow/pytorch/horovod **/
   private TonyConfigurationKeys.FrameworkType frameworkType;
-  private FrameworkRuntime frameworkRuntime;
+  private Framework.ApplicationMasterAdapter amRuntimeAdapter;
 
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
@@ -287,8 +287,9 @@ public class ApplicationMaster {
     frameworkType = TonyConfigurationKeys.FrameworkType.valueOf(
             tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
                     TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
-    frameworkRuntime = FrameworkRuntime.get(frameworkType);
-    if (!frameworkRuntime.validateAndUpdateConfig(tonyConf)) {
+    amRuntimeAdapter = FrameworkRuntimeProvider.getAMAdapter(frameworkType);
+
+    if (!amRuntimeAdapter.validateAndUpdateConfig(tonyConf)) {
       LOG.error("Invalid TonY conf.");
       return false;
     }
@@ -605,7 +606,7 @@ public class ApplicationMaster {
     scheduler = new TaskScheduler(session, amRMClient, localResources, resourceFs, tonyConf, jobTypeToContainerResources);
     scheduler.scheduleTasks();
 
-    frameworkRuntime.setTonySession(session);
+    amRuntimeAdapter.setTonySession(session);
   }
 
   // Reset state to prepare for retryCount.
@@ -743,7 +744,7 @@ public class ApplicationMaster {
       LOG.error("Failed to unregister application", e);
     }
 
-    frameworkRuntime.destroy();
+    amRuntimeAdapter.destroy();
     nmClientAsync.stop();
     amRMClient.stop();
     // Poll until TonyClient signals we should exit
@@ -859,7 +860,7 @@ public class ApplicationMaster {
 
     @Override
     public void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException {
-      if (!frameworkRuntime.receiveTaskCallbackInfo(taskId, callbackInfo)) {
+      if (!amRuntimeAdapter.receiveTaskCallbackInfo(taskId, callbackInfo)) {
         LOG.error("Errors on receiving task executors' callbaclk info. task id: "
                 + taskId + ", callback info: " + callbackInfo);
       }
@@ -919,8 +920,8 @@ public class ApplicationMaster {
         killChiefWorkerIfTesting(taskId);
       }
 
-      if (frameworkRuntime.canStartTask(distributedMode, taskId)) {
-        return frameworkRuntime.constructClusterSpec(taskId);
+      if (amRuntimeAdapter.canStartTask(distributedMode, taskId)) {
+        return amRuntimeAdapter.constructClusterSpec(taskId);
       }
       return null;
     }

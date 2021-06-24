@@ -70,7 +70,7 @@ public class TaskExecutor {
   private FrameworkType framework;
   private String appIdString;
 
-  private static FrameworkRuntime frameworkRuntime;
+  private static Framework.TaskExecutorAdapter taskRuntimeAdapter;
 
   @VisibleForTesting
   public TaskExecutor() { }
@@ -93,7 +93,7 @@ public class TaskExecutor {
     LOG.info("Reserved rpcPort: " + this.rpcPort.getPort());
     // With Estimator API, there is a separate lone "chief" task that runs TensorBoard.
     // With the low-level distributed API, worker 0 runs TensorBoard.
-    if (frameworkRuntime.needReserveTBPort()) {
+    if (taskRuntimeAdapter.needReserveTBPort()) {
       this.tbPort = requireNonNull(allocatePort(this.isTBServerReusingPort()));
       this.registerTensorBoardUrl();
       this.shellEnv.put(Constants.TB_PORT, String.valueOf(this.tbPort.getPort()));
@@ -170,9 +170,8 @@ public class TaskExecutor {
         executor.metricsIntervalMs,
         TimeUnit.MILLISECONDS);
 
-    assert frameworkRuntime == null;
-    frameworkRuntime = FrameworkRuntime.get(executor.framework);
-    frameworkRuntime.initTaskExecutorResource(executor);
+    assert taskRuntimeAdapter == null;
+    taskRuntimeAdapter = FrameworkRuntimeProvider.getTaskAdapter(executor.framework, executor);
 
     executor.setupPorts();
 
@@ -218,7 +217,7 @@ public class TaskExecutor {
 
     int exitCode;
     try {
-      exitCode = frameworkRuntime.run();
+      exitCode = taskRuntimeAdapter.run();
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:

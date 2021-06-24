@@ -18,25 +18,38 @@ package com.linkedin.tony.runtime;
 import java.util.Map;
 
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.util.Utils;
 
 public class TFRuntime extends MLGenericRuntime {
 
     @Override
-    public void buildTaskEnv(TaskExecutor executor) {
-        log.info("Setting up TensorFlow job...");
-        Map<String, String> executorShellEnv = executor.getShellEnv();
-        executorShellEnv.put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
-        executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
-        executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
-        executorShellEnv.put(Constants.DISTRIBUTED_MODE_NAME, executor.getDistributedMode().name());
-        if (executor.isGangMode()) {
-            executor.getShellEnv().put(Constants.CLUSTER_SPEC, String.valueOf(executor.getClusterSpec()));
-            executor.getShellEnv().put(
-                    Constants.TF_CONFIG,
-                    Utils.constructTFConfig(executor.getClusterSpec(), executor.getJobName(), executor.getTaskIndex())
-            );
+    public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
+        return new TFTaskExecutor(taskExecutor);
+    }
+
+    class TFTaskExecutor extends Task {
+
+        public TFTaskExecutor(TaskExecutor executor) {
+            super(executor);
+        }
+
+        @Override
+        protected void buildTaskEnv(TaskExecutor executor) throws Exception {
+            log.info("Setting up TensorFlow job...");
+            Map<String, String> executorShellEnv = executor.getShellEnv();
+            executorShellEnv.put(Constants.JOB_NAME, String.valueOf(executor.getJobName()));
+            executorShellEnv.put(Constants.TASK_INDEX, String.valueOf(executor.getTaskIndex()));
+            executorShellEnv.put(Constants.TASK_NUM, String.valueOf(executor.getNumTasks()));
+            executorShellEnv.put(Constants.DISTRIBUTED_MODE_NAME, executor.getDistributedMode().name());
+            if (executor.isGangMode()) {
+                executor.getShellEnv().put(Constants.CLUSTER_SPEC, String.valueOf(executor.getClusterSpec()));
+                executor.getShellEnv().put(
+                        Constants.TF_CONFIG,
+                        Utils.constructTFConfig(executor.getClusterSpec(), executor.getJobName(), executor.getTaskIndex())
+                );
+            }
         }
     }
 }

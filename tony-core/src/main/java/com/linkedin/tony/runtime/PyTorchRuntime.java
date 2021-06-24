@@ -18,22 +18,35 @@ package com.linkedin.tony.runtime;
 import java.util.Map;
 
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.util.Utils;
 
 public class PyTorchRuntime extends MLGenericRuntime {
 
     @Override
-    public void buildTaskEnv(TaskExecutor executor) throws Exception {
-        log.info("Setting up PyTorch job...");
-        String initMethod = Utils.parseClusterSpecForPytorch(executor.getClusterSpec());
-        if (initMethod == null) {
-            throw new RuntimeException("Errors on getting init method.");
+    public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
+        return new PyTorchTaskExecutor(taskExecutor);
+    }
+
+    class PyTorchTaskExecutor extends Task {
+
+        public PyTorchTaskExecutor(TaskExecutor executor) {
+            super(executor);
         }
-        log.info("Init method is: " + initMethod);
-        Map<String, String> executorShellEnv = executor.getShellEnv();
-        executorShellEnv.put(Constants.INIT_METHOD, initMethod);
-        executorShellEnv.put(Constants.RANK, String.valueOf(executor.getTaskIndex()));
-        executorShellEnv.put(Constants.WORLD, String.valueOf(executor.getNumTasks()));
+
+        @Override
+        public void buildTaskEnv(TaskExecutor executor) throws Exception {
+            log.info("Setting up PyTorch job...");
+            String initMethod = Utils.parseClusterSpecForPytorch(executor.getClusterSpec());
+            if (initMethod == null) {
+                throw new RuntimeException("Errors on getting init method.");
+            }
+            log.info("Init method is: " + initMethod);
+            Map<String, String> executorShellEnv = executor.getShellEnv();
+            executorShellEnv.put(Constants.INIT_METHOD, initMethod);
+            executorShellEnv.put(Constants.RANK, String.valueOf(executor.getTaskIndex()));
+            executorShellEnv.put(Constants.WORLD, String.valueOf(executor.getNumTasks()));
+        }
     }
 }
