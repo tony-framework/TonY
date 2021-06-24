@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.hash.Hash;
 import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.testng.annotations.Test;
