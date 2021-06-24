@@ -9,13 +9,19 @@ import com.linkedin.tony.rpc.impl.TaskStatus;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.hash.Hash;
+import org.apache.hadoop.yarn.api.records.ResourceInformation;
+import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 
+import static com.linkedin.tony.Constants.*;
 import static org.testng.Assert.assertEquals;
 
 public class TestTonyClient {
@@ -78,6 +84,7 @@ public class TestTonyClient {
       expectedExceptionsMessageRegExp = ".*amount of " + Constants.GPUS + ".*requested exceeds.*")
   public void testValidateTonyConfTooManyGpus() {
     Configuration conf = new Configuration();
+    updateGPUResourceInformation();
     conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
     conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 10);
     conf.setInt(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS), 5);
@@ -91,6 +98,7 @@ public class TestTonyClient {
       expectedExceptionsMessageRegExp = ".*amount of " + Constants.GPUS + ".*requested exceeds.*")
   public void testValidateTonyConfTooManyGpusAcrossAllTasks() {
     Configuration conf = new Configuration();
+    updateGPUResourceInformation();
     conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
     conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.PS_JOB_NAME, Constants.GPUS), 1);
     conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 3);
@@ -105,9 +113,26 @@ public class TestTonyClient {
   @Test
   public void testValidateTonyConfRequestedGpusUnderLimit() {
     Configuration conf = new Configuration();
+    updateGPUResourceInformation();
     conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
     conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 5);
     conf.setInt(TonyConfigurationKeys.getMaxTotalResourceKey(Constants.GPUS), 10);
+    TonyClient.validateTonyConf(conf);
+  }
+
+  /**
+   * 1 GPU requested on a non-GPU cluster. Conf validation should fail.
+   */
+  @Test(expectedExceptions = RuntimeException.class,
+      expectedExceptionsMessageRegExp = "User requested 1 GPUs for job .* but GPU is not available on the cluster. " )
+  public void testValidateTonyConfNoGpuCluster() {
+    Configuration conf = new Configuration();
+    Map<String, ResourceInformation> resourceInformationMap = new HashMap<>();
+    resourceInformationMap.put("memory-mb", ResourceInformation.MEMORY_MB);
+    resourceInformationMap.put("vcores", ResourceInformation.VCORES);
+    ResourceUtils.initializeResourcesFromResourceInformationMap(resourceInformationMap);
+    conf.setInt(TonyConfigurationKeys.getInstancesKey(Constants.WORKER_JOB_NAME), 5);
+    conf.setInt(TonyConfigurationKeys.getResourceKey(Constants.WORKER_JOB_NAME, Constants.GPUS), 1);
     TonyClient.validateTonyConf(conf);
   }
 
@@ -183,5 +208,13 @@ public class TestTonyClient {
 
     tasks.add(new TaskInfo("worker", "1", "url"));
     assertEquals(TonyClient.mergeTasks(tasks).trim(), "ps [1] worker [1]");
+  }
+
+  public void updateGPUResourceInformation() {
+    Map<String, ResourceInformation> resourceInformationMap = new HashMap<>();
+    resourceInformationMap.put("memory-mb", ResourceInformation.MEMORY_MB);
+    resourceInformationMap.put("vcores", ResourceInformation.VCORES);
+    resourceInformationMap.put(GPU_URI, ResourceInformation.GPUS);
+    ResourceUtils.initializeResourcesFromResourceInformationMap(resourceInformationMap);
   }
 }
