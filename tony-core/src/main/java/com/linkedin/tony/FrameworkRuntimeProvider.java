@@ -34,7 +34,7 @@ public class FrameworkRuntimeProvider {
             AbstractFrameworkRuntime runtime = null;
             try {
                 runtime = it.next();
-                runtimeServices.put(runtime.getFrameworkType(), runtime);
+                runtimeServices.put(runtime.getFrameworkType().toUpperCase(), runtime);
             } catch (Exception e) {
                 if (runtime != null) {
                     LOG.error("Errors on loading framework runtime class: " + runtime.getClass(), e);
@@ -49,20 +49,20 @@ public class FrameworkRuntimeProvider {
         // ignore
     }
 
-    public static Framework.ApplicationMasterAdapter getAMAdapter(TonyConfigurationKeys.FrameworkType frameworkType) {
-        if (!runtimeServices.containsKey(frameworkType.name())) {
+    public static Framework.ApplicationMasterAdapter getAMAdapter(String frameworkType) {
+        if (!runtimeServices.containsKey(frameworkType.toUpperCase())) {
             throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
 
-        return runtimeServices.get(frameworkType.name()).getAMAdapter();
+        return runtimeServices.get(frameworkType.toUpperCase()).getAMAdapter();
     }
 
-    public static Framework.TaskExecutorAdapter getTaskAdapter(TonyConfigurationKeys.FrameworkType frameworkType,
+    public static Framework.TaskExecutorAdapter getTaskAdapter(String frameworkType,
             TaskExecutor executor) {
-        if (!runtimeServices.containsKey(frameworkType.name())) {
+        if (!runtimeServices.containsKey(frameworkType.toUpperCase())) {
             throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
 
-        return runtimeServices.get(frameworkType.name()).getTaskAdapter(executor);
+        return runtimeServices.get(frameworkType.toUpperCase()).getTaskAdapter(executor);
     }
 }

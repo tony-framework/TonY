@@ -26,7 +26,6 @@ import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
 
-import static com.linkedin.tony.TonyConfigurationKeys.FrameworkType;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -67,7 +66,7 @@ public class TaskExecutor {
   private int hbInterval;
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
   private int numFailedHBAttempts = 0;
-  private FrameworkType framework;
+  private String frameworkType;
   private String appIdString;
 
   private static Framework.TaskExecutorAdapter taskRuntimeAdapter;
@@ -171,7 +170,7 @@ public class TaskExecutor {
         TimeUnit.MILLISECONDS);
 
     assert taskRuntimeAdapter == null;
-    taskRuntimeAdapter = FrameworkRuntimeProvider.getTaskAdapter(executor.framework, executor);
+    taskRuntimeAdapter = FrameworkRuntimeProvider.getTaskAdapter(executor.frameworkType, executor);
 
     executor.setupPorts();
 
@@ -270,8 +269,8 @@ public class TaskExecutor {
       throw new IllegalArgumentException("Task command is empty.");
     }
     LOG.info("Task command: " + taskCommand);
-    framework = FrameworkType.valueOf(
-        tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME, TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    frameworkType = tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+            TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase();
 
     metricsRPCPort = Integer.parseInt(System.getenv(Constants.METRICS_RPC_PORT));
     metricsIntervalMs = tonyConf.getInt(TonyConfigurationKeys.TASK_METRICS_UPDATE_INTERVAL_MS,
