@@ -38,6 +38,11 @@ public class StandaloneRuntime extends AbstractFrameworkRuntime {
         return new Task(taskExecutor);
     }
 
+    @Override
+    public String getFrameworkType() {
+        return TonyConfigurationKeys.FrameworkType.STANDALONE.name();
+    }
+
     class AM implements Framework.ApplicationMasterAdapter {
 
         @Override

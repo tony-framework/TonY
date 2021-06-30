@@ -15,50 +15,54 @@
  */
 package com.linkedin.tony;
 
-import com.linkedin.tony.runtime.HorovodRuntime;
-import com.linkedin.tony.runtime.MXNetRuntime;
-import com.linkedin.tony.runtime.PyTorchRuntime;
-import com.linkedin.tony.runtime.StandaloneRuntime;
-import com.linkedin.tony.runtime.TFRuntime;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.ServiceLoader;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class FrameworkRuntimeProvider {
+    private static final Log LOG = LogFactory.getLog(FrameworkRuntimeProvider.class);
+
+    private static Map<String, AbstractFrameworkRuntime> runtimeServices = new HashMap<>();
+    static {
+        ServiceLoader<AbstractFrameworkRuntime> serviceLoader = ServiceLoader.load(AbstractFrameworkRuntime.class);
+        Iterator<AbstractFrameworkRuntime> it = serviceLoader.iterator();
+        while (it.hasNext()) {
+            AbstractFrameworkRuntime runtime = null;
+            try {
+                runtime = it.next();
+                runtimeServices.put(runtime.getFrameworkType(), runtime);
+            } catch (Exception e) {
+                if (runtime != null) {
+                    LOG.error("Errors on loading framework runtime class: " + runtime.getClass(), e);
+                } else {
+                    LOG.error("Errors on loading framework runtime class.", e);
+                }
+            }
+        }
+    }
 
     private FrameworkRuntimeProvider() {
         // ignore
     }
 
     public static Framework.ApplicationMasterAdapter getAMAdapter(TonyConfigurationKeys.FrameworkType frameworkType) {
-        switch (frameworkType) {
-            case TENSORFLOW:
-                return new TFRuntime().getAMAdapter();
-            case PYTORCH:
-                return new PyTorchRuntime().getAMAdapter();
-            case MXNET:
-                return new MXNetRuntime().getAMAdapter();
-            case HOROVOD:
-                return new HorovodRuntime().getAMAdapter();
-            case STANDALONE:
-                return new StandaloneRuntime().getAMAdapter();
-            default:
-                throw new RuntimeException("Unsupported executor framework: " + frameworkType);
+        if (!runtimeServices.containsKey(frameworkType.name())) {
+            throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
+
+        return runtimeServices.get(frameworkType.name()).getAMAdapter();
     }
 
     public static Framework.TaskExecutorAdapter getTaskAdapter(TonyConfigurationKeys.FrameworkType frameworkType,
             TaskExecutor executor) {
-        switch (frameworkType) {
-            case TENSORFLOW:
-                return new TFRuntime().getTaskAdapter(executor);
-            case PYTORCH:
-                return new PyTorchRuntime().getTaskAdapter(executor);
-            case MXNET:
-                return new MXNetRuntime().getTaskAdapter(executor);
-            case HOROVOD:
-                return new HorovodRuntime().getTaskAdapter(executor);
-            case STANDALONE:
-                return new StandaloneRuntime().getTaskAdapter(executor);
-            default:
-                throw new RuntimeException("Unsupported executor framework: " + frameworkType);
+        if (!runtimeServices.containsKey(frameworkType.name())) {
+            throw new RuntimeException("Unsupported executor framework: " + frameworkType);
         }
+
+        return runtimeServices.get(frameworkType.name()).getTaskAdapter(executor);
     }
 }

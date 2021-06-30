@@ -22,4 +22,5 @@ public abstract class AbstractFrameworkRuntime {
     protected Log log = LogFactory.getLog(this.getClass());
     public abstract Framework.ApplicationMasterAdapter getAMAdapter();
     public abstract Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor);
+    public abstract String getFrameworkType();
 }
