@@ -192,7 +192,7 @@ public class ApplicationMaster {
   private int waitingClientSignalStopTimeout;
 
   /** Framework type, like tensorflow/pytorch/horovod **/
-  private TonyConfigurationKeys.FrameworkType frameworkType;
+  private String frameworkType;
   private Framework.ApplicationMasterAdapter amRuntimeAdapter;
 
   private ApplicationMaster() {
@@ -284,9 +284,8 @@ public class ApplicationMaster {
     waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
                                                   TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
 
-    frameworkType = TonyConfigurationKeys.FrameworkType.valueOf(
-            tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
-                    TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase());
+    frameworkType = tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
+            TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase();
     amRuntimeAdapter = FrameworkRuntimeProvider.getAMAdapter(frameworkType);
 
     if (!amRuntimeAdapter.validateAndUpdateConfig(tonyConf)) {

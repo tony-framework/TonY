@@ -69,6 +69,11 @@ public class HorovodRuntime extends MLGenericRuntime {
         return new HorovodTaskAdapter(taskExecutor);
     }
 
+    @Override
+    public String getFrameworkType() {
+        return TonyConfigurationKeys.FrameworkType.HOROVOD.name();
+    }
+
     class HorovodAMAdapter extends AM {
         private volatile boolean isDriverReady = false;
 

@@ -20,6 +20,7 @@ import java.util.Map;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 
 public class TFRuntime extends MLGenericRuntime {
@@ -27,6 +28,11 @@ public class TFRuntime extends MLGenericRuntime {
     @Override
     public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
         return new TFTaskExecutor(taskExecutor);
+    }
+
+    @Override
+    public String getFrameworkType() {
+        return TonyConfigurationKeys.FrameworkType.TENSORFLOW.name();
     }
 
     class TFTaskExecutor extends Task {

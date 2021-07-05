@@ -34,6 +34,11 @@ public class TestMLGenericRuntime {
             return new TestTaskExecutorAdapter(taskExecutor);
         }
 
+        @Override
+        public String getFrameworkType() {
+            return null;
+        }
+
         class TestTaskExecutorAdapter extends Task {
 
             public TestTaskExecutorAdapter(TaskExecutor executor) {

@@ -29,6 +29,11 @@ public class MXNetRuntime extends MLGenericRuntime {
         return new MXNetTaskExecutor(taskExecutor);
     }
 
+    @Override
+    public String getFrameworkType() {
+        return TonyConfigurationKeys.FrameworkType.MXNET.name();
+    }
+
     class MXNetTaskExecutor extends Task {
 
         public MXNetTaskExecutor(TaskExecutor executor) {

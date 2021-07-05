@@ -20,6 +20,7 @@ import java.util.Map;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
+import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 
 public class PyTorchRuntime extends MLGenericRuntime {
@@ -27,6 +28,11 @@ public class PyTorchRuntime extends MLGenericRuntime {
     @Override
     public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
         return new PyTorchTaskExecutor(taskExecutor);
+    }
+
+    @Override
+    public String getFrameworkType() {
+        return TonyConfigurationKeys.FrameworkType.PYTORCH.name();
     }
 
     class PyTorchTaskExecutor extends Task {
