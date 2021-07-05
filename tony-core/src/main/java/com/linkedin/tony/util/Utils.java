@@ -211,6 +211,34 @@ public class Utils {
     return;
   }
 
+  /**
+   * Uses reflection to get memory size.
+   * @param resource  the request container resource
+   * @return the memory size
+   */
+  public static long getMemorySize(Resource resource) {
+    Method method = null;
+    try {
+      method = resource.getClass().getMethod(Constants.GET_RESOURCE_MEMORY_SIZE);
+    } catch (NoSuchMethodException nsne) {
+      try {
+        method = resource.getClass().getMethod(Constants.GET_RESOURCE_MEMORY_SIZE_DEPRECATED);
+      } catch (NoSuchMethodException exception) {
+        throw new RuntimeException(exception);
+      }
+    }
+
+    try {
+      Object memorySize = method.invoke(resource);
+      if (memorySize instanceof Integer) {
+        return ((Integer) memorySize).intValue();
+      }
+      return ((Long) memorySize).longValue();
+    } catch (InvocationTargetException | IllegalAccessException e) {
+      throw new RuntimeException("Failed to invoke '" + method.getName() + "' method to get memory size", e);
+    }
+  }
+
   public static String constructUrl(String urlString) {
     if (!urlString.startsWith("http")) {
       return "http://" + urlString;
@@ -435,8 +463,17 @@ public class Utils {
    */
   public static int getNumOfRequestedGPU(Container container) {
     int numGPU = 0;
-    if (ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
-      numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
+    try {
+      Class<?> resourceUtilsClass = Class.forName(Constants.HADOOP_RESOURCES_UTILS_CLASS);
+      ResourceUtils resourceUtils = (ResourceUtils) resourceUtilsClass.newInstance();
+      Method method = resourceUtilsClass.getMethod(Constants.HADOOP_RESOURCES_UTILS_GET_RESOURCE_TYPE_METHOD);
+      Map<String, Integer> typeIndexMap = (Map<String, Integer>) method.invoke(resourceUtils);
+      if (typeIndexMap.containsKey(Constants.GPU_URI)) {
+        numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
+      }
+    } catch (ClassNotFoundException | NoSuchMethodException
+            | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+      return 0;
     }
     return numGPU;
   }

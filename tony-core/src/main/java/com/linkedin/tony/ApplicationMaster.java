@@ -1099,7 +1099,7 @@ public class ApplicationMaster {
         // Need to explicitly remove container requests from remoteRequestsTable in AMRMClient, otherwise
         // resources get double-requested (YARN-1902)
         amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
-            "", 1, container.getResource().getMemorySize(),
+            "", 1, Utils.getMemorySize(container.getResource()),
             container.getResource().getVirtualCores(),
             Utils.getNumOfRequestedGPU(container),
             container.getPriority().getPriority(),
