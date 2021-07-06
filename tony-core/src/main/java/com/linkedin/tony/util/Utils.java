@@ -389,7 +389,7 @@ public class Utils {
               TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
-      if (gpus > 0 && !ResourceUtils.getResourceTypeIndex().containsKey(Constants.GPU_URI)) {
+      if (gpus > 0 && !ResourceUtils.getResourceTypes().containsKey(Constants.GPU_URI)) {
         throw new RuntimeException(String.format("User requested %d GPUs for job '%s' but GPU is not available on the cluster. ",
             gpus, jobName));
       }
