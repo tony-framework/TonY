@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -465,7 +466,9 @@ public class Utils {
     int numGPU = 0;
     try {
       Class<?> resourceUtilsClass = Class.forName(Constants.HADOOP_RESOURCES_UTILS_CLASS);
-      ResourceUtils resourceUtils = (ResourceUtils) resourceUtilsClass.newInstance();
+      Constructor<?> constructor = resourceUtilsClass.getDeclaredConstructor();
+      constructor.setAccessible(true);
+      ResourceUtils resourceUtils = (ResourceUtils) constructor.newInstance();
       Method method = resourceUtilsClass.getMethod(Constants.HADOOP_RESOURCES_UTILS_GET_RESOURCE_TYPE_METHOD);
       Map<String, Integer> typeIndexMap = (Map<String, Integer>) method.invoke(resourceUtils);
       if (typeIndexMap.containsKey(Constants.GPU_URI)) {
