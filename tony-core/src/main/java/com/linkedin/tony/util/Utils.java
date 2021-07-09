@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -39,7 +38,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -61,12 +59,12 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
+import com.linkedin.tony.HadoopCompatibleAdapter;
 import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
@@ -218,26 +216,7 @@ public class Utils {
    * @return the memory size
    */
   public static long getMemorySize(Resource resource) {
-    Method method = null;
-    try {
-      method = resource.getClass().getMethod(Constants.GET_RESOURCE_MEMORY_SIZE);
-    } catch (NoSuchMethodException nsne) {
-      try {
-        method = resource.getClass().getMethod(Constants.GET_RESOURCE_MEMORY_SIZE_DEPRECATED);
-      } catch (NoSuchMethodException exception) {
-        throw new RuntimeException(exception);
-      }
-    }
-
-    try {
-      Object memorySize = method.invoke(resource);
-      if (memorySize instanceof Integer) {
-        return ((Integer) memorySize).intValue();
-      }
-      return ((Long) memorySize).longValue();
-    } catch (InvocationTargetException | IllegalAccessException e) {
-      throw new RuntimeException("Failed to invoke '" + method.getName() + "' method to get memory size", e);
-    }
+    return HadoopCompatibleAdapter.getMemorySize(resource);
   }
 
   public static String constructUrl(String urlString) {
@@ -418,7 +397,7 @@ public class Utils {
               TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
-      if (gpus > 0 && !ResourceUtils.getResourceTypes().containsKey(Constants.GPU_URI)) {
+      if (gpus > 0 && !HadoopCompatibleAdapter.existGPUResource()) {
         throw new RuntimeException(String.format("User requested %d GPUs for job '%s' but GPU is not available on the cluster. ",
             gpus, jobName));
       }
@@ -463,22 +442,7 @@ public class Utils {
    * the function will return zero.
    */
   public static int getNumOfRequestedGPU(Container container) {
-    int numGPU = 0;
-    try {
-      Class<?> resourceUtilsClass = Class.forName(Constants.HADOOP_RESOURCES_UTILS_CLASS);
-      Constructor<?> constructor = resourceUtilsClass.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      ResourceUtils resourceUtils = (ResourceUtils) constructor.newInstance();
-      Method method = resourceUtilsClass.getMethod(Constants.HADOOP_RESOURCES_UTILS_GET_RESOURCE_TYPE_METHOD);
-      Map<String, Integer> typeIndexMap = (Map<String, Integer>) method.invoke(resourceUtils);
-      if (typeIndexMap.containsKey(Constants.GPU_URI)) {
-        numGPU = (int) container.getResource().getResourceInformation(Constants.GPU_URI).getValue();
-      }
-    } catch (ClassNotFoundException | NoSuchMethodException
-            | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-      return 0;
-    }
-    return numGPU;
+    return HadoopCompatibleAdapter.getNumOfRequestedGPU(container);
   }
 
   private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,
@@ -815,57 +779,8 @@ public class Utils {
     }
   }
 
-  /**
-   * Parses Docker related configs and get required container launching environment.
-   * Uses reflection to support older versions of Hadoop.
-   */
   public static Map<String, String> getContainerEnvForDocker(Configuration tonyConf, String jobType) {
-    Map<String, String> containerEnv = new HashMap<>();
-    if (tonyConf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED, TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED)) {
-      String imagePath = tonyConf.get(TonyConfigurationKeys.getContainerDockerKey());
-      String jobImagePath = tonyConf.get(TonyConfigurationKeys.getDockerImageKey(jobType));
-      if (jobImagePath != null) {
-        imagePath = jobImagePath;
-      }
-      if (imagePath == null) {
-        LOG.error("Docker is enabled but " + TonyConfigurationKeys.getContainerDockerKey() + " is not set.");
-        return containerEnv;
-      } else {
-        Class containerRuntimeClass = null;
-        Class dockerRuntimeClass = null;
-        try {
-          containerRuntimeClass = Class.forName(Constants.CONTAINER_RUNTIME_CONSTANTS_CLASS);
-          dockerRuntimeClass = Class.forName(Constants.DOCKER_LINUX_CONTAINER_RUNTIME_CLASS);
-        } catch (ClassNotFoundException e) {
-          LOG.error("Docker runtime classes not found in this version ("
-                        + org.apache.hadoop.util.VersionInfo.getVersion() + ") of Hadoop.", e);
-        }
-        if (dockerRuntimeClass != null) {
-          try {
-            String containerMounts = tonyConf.get(TonyConfigurationKeys.getContainerDockerMountKey());
-            if (StringUtils.isNotEmpty(containerMounts)) {
-              String envDockerContainerMounts =
-                      (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_MOUNTS).get(null);
-              containerEnv.put(envDockerContainerMounts, containerMounts);
-            }
-
-            String envContainerType = (String) containerRuntimeClass.getField(Constants.ENV_CONTAINER_TYPE).get(null);
-            String envDockerImage = (String) dockerRuntimeClass.getField(Constants.ENV_DOCKER_CONTAINER_IMAGE).get(null);
-            containerEnv.put(envContainerType, "docker");
-            containerEnv.put(envDockerImage, imagePath);
-          } catch (NoSuchFieldException e) {
-            LOG.error("Field " + Constants.ENV_CONTAINER_TYPE + " or " + Constants.ENV_DOCKER_CONTAINER_IMAGE
-                          + " or " + Constants.ENV_DOCKER_CONTAINER_MOUNTS + " not found in "
-                          + containerRuntimeClass.getName() + " or " + dockerRuntimeClass.getName(), e);
-          } catch (IllegalAccessException e) {
-            LOG.error("Unable to access " + Constants.ENV_CONTAINER_TYPE + " or "
-                          + Constants.ENV_DOCKER_CONTAINER_IMAGE + " or " + Constants.ENV_DOCKER_CONTAINER_MOUNTS
-                          + " fields.", e);
-          }
-        }
-      }
-    }
-    return containerEnv;
+    return HadoopCompatibleAdapter.getContainerEnvForDocker(tonyConf, jobType);
   }
 
   /**
