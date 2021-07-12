@@ -6,9 +6,7 @@ package com.linkedin.tony.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.linkedin.tony.TFConfig;
-import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.tensorflow.JobContainerRequest;
 
 import java.io.File;
@@ -27,11 +25,8 @@ import java.util.TreeMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.ResourceInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 import org.testng.annotations.Test;
 
 import static com.linkedin.tony.Constants.JOBS_SUFFIX;
@@ -318,65 +313,11 @@ public class TestUtils {
   }
 
   @Test
-  public void testGetContainerEnvForDocker() {
-    Configuration conf = mock(Configuration.class);
-    when(conf.getBoolean(TonyConfigurationKeys.DOCKER_ENABLED,
-            TonyConfigurationKeys.DEFAULT_DOCKER_ENABLED))
-            .thenReturn(true);
-    assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
-            new HashMap<>());
-
-    when(conf.get(TonyConfigurationKeys
-            .getDockerImageKey("tony.worker.gpus"))).thenReturn("foo");
-    assertEquals(Utils.getContainerEnvForDocker(conf, "tony.worker.gpus"),
-        new HashMap<String, String>() {{
-          put("YARN_CONTAINER_RUNTIME_TYPE", "docker");
-          put("YARN_CONTAINER_RUNTIME_DOCKER_IMAGE", "foo");
-        }});
-  }
-
-  @Test
   public void testLinksToBeDisplayedOnPage() {
     assertEquals(Utils.linksToBeDisplayedOnPage(null), new TreeMap<>());
     Map<String, String> linksToBeDisplayed = Utils.linksToBeDisplayedOnPage("fakeJobId");
     assertEquals(linksToBeDisplayed.size(), 2);
     assertEquals(linksToBeDisplayed.get("Logs"), "/" + LOGS_SUFFIX + "/" + "fakeJobId");
     assertEquals(linksToBeDisplayed.get("Events"), "/" + JOBS_SUFFIX + "/" + "fakeJobId");
-  }
-
-  @Test
-  public void testGetNumOfRequestedGPUWithGPUAvailable() {
-    Resource resource = Resource.newInstance(256, 32);
-    Container container = mock(Container.class);
-    when(container.getResource()).thenReturn(resource);
-    // Request 0 GPUs
-    assertEquals(Utils.getNumOfRequestedGPU(container), 0);
-
-    // Request 2 GPUs.
-    resource.setResourceInformation(
-        ResourceInformation.GPU_URI, ResourceInformation.newInstance(ResourceInformation.GPU_URI, "", 2));
-    assertEquals(Utils.getNumOfRequestedGPU(container), 2);
-  }
-
-  @Test
-  public void testGetNumOfRequestedGPUWithGPUUnavailable() {
-    Container container = mock(Container.class);
-    Resource resource = Resource.newInstance(256, 32);
-    resource.setResourceInformation(
-        ResourceInformation.GPU_URI, ResourceInformation.newInstance(ResourceInformation.GPU_URI, "", 2));
-    when(container.getResource()).thenReturn(resource);  // Request 2 GPUs in the container.
-
-    Map<String, ResourceInformation> defaultResourceTypes = ResourceUtils.getResourceTypes();
-    try {
-      // Mock that GPU is not available on cluster.
-      ResourceUtils.initializeResourcesFromResourceInformationMap(ImmutableMap.of(
-          ResourceInformation.MEMORY_URI, ResourceInformation.MEMORY_MB,
-          ResourceInformation.VCORES_URI, ResourceInformation.VCORES
-      ));
-      assertEquals(Utils.getNumOfRequestedGPU(container), 0);
-    } finally {
-      // Reset to default resource types.
-      ResourceUtils.initializeResourcesFromResourceInformationMap(defaultResourceTypes);
-    }
   }
 }

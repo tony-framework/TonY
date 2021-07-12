@@ -22,6 +22,12 @@ public class Constants {
   public static final String ENV_DOCKER_CONTAINER_IMAGE = "ENV_DOCKER_CONTAINER_IMAGE";
   public static final String ENV_DOCKER_CONTAINER_MOUNTS = "ENV_DOCKER_CONTAINER_MOUNTS";
   public static final String SET_MONITOR_INTERVAL_METHOD = "setMonitorInterval";
+  public static final String GET_RESOURCE_MEMORY_SIZE = "getMemorySize";
+  public static final String GET_RESOURCE_MEMORY_SIZE_DEPRECATED = "getMemory";
+  public static final String HADOOP_RESOURCES_UTILS_CLASS =
+          "org.apache.hadoop.yarn.util.resource.ResourceUtils";
+  public static final String HADOOP_RESOURCES_UTILS_GET_RESOURCE_TYPE_INDEX_METHOD = "getResourceTypeIndex";
+  public static final String HADOOP_RESOURCES_UTILS_GET_RESOURCE_TYPES_METHOD = "getResourceTypes";
 
   // File Permission
   public static final FsPermission PERM770 = new FsPermission((short) 0770);

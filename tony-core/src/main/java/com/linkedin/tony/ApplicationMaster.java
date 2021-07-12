@@ -1099,9 +1099,9 @@ public class ApplicationMaster {
         // Need to explicitly remove container requests from remoteRequestsTable in AMRMClient, otherwise
         // resources get double-requested (YARN-1902)
         amRMClient.removeContainerRequest(Utils.setupContainerRequestForRM(new JobContainerRequest(
-            "", 1, container.getResource().getMemorySize(),
+            "", 1, HadoopCompatibleAdapter.getMemorySize(container.getResource()),
             container.getResource().getVirtualCores(),
-            Utils.getNumOfRequestedGPU(container),
+            HadoopCompatibleAdapter.getNumOfRequestedGPU(container),
             container.getPriority().getPriority(),
             getNodeLabelsExpression(container.getPriority().getPriority()),
             new ArrayList<>())));
@@ -1174,7 +1174,7 @@ public class ApplicationMaster {
        */
       String jobName = task.getJobName();
       String taskIndex = task.getTaskIndex();
-      Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, jobName);
+      Map<String, String> dockerEnv = HadoopCompatibleAdapter.getContainerEnvForDocker(tonyConf, jobName);
       containerLaunchEnv.putAll(dockerEnv);
       containerLaunchEnv.put(Constants.JOB_NAME, jobName);
       containerLaunchEnv.put(Constants.JOB_ID, appIdString);
