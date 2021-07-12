@@ -538,7 +538,7 @@ public class TonyClient implements AutoCloseable {
       executionEnvPair.addAll(Arrays.asList(envs));
     }
 
-    Map<String, String> dockerEnv = Utils.getContainerEnvForDocker(tonyConf, Constants.AM_NAME);
+    Map<String, String> dockerEnv = HadoopCompatibleAdapter.getContainerEnvForDocker(tonyConf, Constants.AM_NAME);
     containerEnv.putAll(dockerEnv);
 
     List<String> containerEnvPair = new ArrayList<>();

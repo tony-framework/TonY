@@ -210,15 +210,6 @@ public class Utils {
     return;
   }
 
-  /**
-   * Uses reflection to get memory size.
-   * @param resource  the request container resource
-   * @return the memory size
-   */
-  public static long getMemorySize(Resource resource) {
-    return HadoopCompatibleAdapter.getMemorySize(resource);
-  }
-
   public static String constructUrl(String urlString) {
     if (!urlString.startsWith("http")) {
       return "http://" + urlString;
@@ -435,14 +426,6 @@ public class Utils {
     AMRMClient.ContainerRequest containerRequest = new AMRMClient.ContainerRequest(capability, null, null, priority, true, request.getNodeLabelsExpression());
     LOG.info("Requested container ask: " + containerRequest.toString());
     return containerRequest;
-  }
-
-  /**
-   * Gets the number of requested GPU in a Container. If GPU is not available on the cluster,
-   * the function will return zero.
-   */
-  public static int getNumOfRequestedGPU(Container container) {
-    return HadoopCompatibleAdapter.getNumOfRequestedGPU(container);
   }
 
   private static void ensureStagedTasksIntegrity(List<String> prepareStageTasks, List<String> trainingStageTasks,
@@ -777,10 +760,6 @@ public class Utils {
     } else {
       LOG.info("No virtual environment uploaded.");
     }
-  }
-
-  public static Map<String, String> getContainerEnvForDocker(Configuration tonyConf, String jobType) {
-    return HadoopCompatibleAdapter.getContainerEnvForDocker(tonyConf, jobType);
   }
 
   /**
