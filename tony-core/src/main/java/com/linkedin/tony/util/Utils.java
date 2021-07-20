@@ -537,6 +537,14 @@ public class Utils {
     }
   }
 
+  public static void cleanupLocalFile(String filePath) {
+    try {
+      new File(filePath).delete();
+    } catch (Exception e) {
+      LOG.error("Failed to clean up local file: " + filePath, e);
+    }
+  }
+
   /**
    * Adds the resources in {@code resources} to the {@code resourcesMap}.
    * @param resources  List of resource paths to process. If a resource is a directory,
