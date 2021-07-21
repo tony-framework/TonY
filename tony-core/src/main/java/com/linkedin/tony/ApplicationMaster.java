@@ -278,8 +278,8 @@ public class ApplicationMaster {
     String distributedModeVal = tonyConf.get(TonyConfigurationKeys.APPLICATION_DISTRIBUTED_MODE,
             TonyConfigurationKeys.DEFAULT_APPLICATION_DISTRIBUTED_MODE);
     distributedMode = TonyConfigurationKeys.DistributedMode.valueOf(distributedModeVal.toUpperCase());
-    registrationTimeoutMs = tonyConf.getInt(TonyConfigurationKeys.CONTAINER_ALLOCATION_TIMEOUT,
-            TonyConfigurationKeys.DEFAULT_CONTAINER_ALLOCATION_TIMEOUT);
+    registrationTimeoutMs = tonyConf.getInt(TonyConfigurationKeys.CONTAINER_REGISTRATION_TIMEOUT,
+            TonyConfigurationKeys.DEFAULT_CONTAINER_REGISTRATION_TIMEOUT);
 
     waitingClientSignalStopTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_WAIT_CLIENT_STOP_TIMEOUT,
                                                   TonyConfigurationKeys.DEFAULT_AM_WAIT_CLIENT_STOP_TIMEOUT);
@@ -677,6 +677,11 @@ public class ApplicationMaster {
 
       if (!this.scheduler.dependencyCheckPassed) {
         LOG.info("Terminating application due to failure to load dependency graph");
+        break;
+      }
+
+      if (!amRuntimeAdapter.checkHealthy(tonyConf)) {
+        LOG.error("Application failed due to the runtime unhealthy.");
         break;
       }
 
