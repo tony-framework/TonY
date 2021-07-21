@@ -149,12 +149,15 @@ public class TonyClient implements AutoCloseable {
   private String sidecarTBScriptPath = null;
 
   private String tonyFinalConfPath;
+  private String tonySrcZipPath;
   private Configuration tonyConf;
   private final long clientStartTime = System.currentTimeMillis();
   private ApplicationId appId;
   private Path appResourcesPath;
   private int hbInterval;
   private int maxHbMisses;
+
+  private boolean debug = false;
 
   private CallbackHandler callbackHandler;
   private CopyOnWriteArrayList<TaskUpdateListener> listeners = new CopyOnWriteArrayList<>();
@@ -239,6 +242,7 @@ public class TonyClient implements AutoCloseable {
             tonySrcZipName, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       }
     }
+    this.tonySrcZipPath = tonySrcZipName;
 
     if (pythonVenv != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath,
@@ -433,6 +437,7 @@ public class TonyClient implements AutoCloseable {
     opts.addOption("src_dir", true, "Name of directory of source files.");
     opts.addOption("sidecar_tensorboard_log_dir", true, "Enable sidecar tensorboard");
     opts.addOption("help", false, "Print usage");
+    opts.addOption("debug", false, "Reserve tony_src_application_xxxx.zip and tony_src_xxx.zip for debug");
   }
 
   private void printUsage() {
@@ -563,6 +568,10 @@ public class TonyClient implements AutoCloseable {
 
     if (!executionEnvPair.isEmpty()) {
       tonyConf.setStrings(TonyConfigurationKeys.EXECUTION_ENV, executionEnvPair.toArray(new String[0]));
+    }
+
+    if (cliParser.hasOption("debug")) {
+      this.debug = true;
     }
 
     return true;
@@ -1294,6 +1303,10 @@ public class TonyClient implements AutoCloseable {
     } catch (IOException | InterruptedException | URISyntaxException | YarnException | ParseException e) {
       LOG.fatal("Failed to run TonyClient", e);
       result = false;
+    } finally {
+      if (!this.debug) {
+        cleanupLocalTmpFiles();
+      }
     }
     if (result) {
       LOG.info("Application completed successfully");
@@ -1301,6 +1314,15 @@ public class TonyClient implements AutoCloseable {
     }
     LOG.error("Application failed to complete successfully");
     return -1;
+  }
+
+  private void cleanupLocalTmpFiles() {
+    if (this.tonySrcZipPath != null) {
+      Utils.cleanupLocalFile(this.tonySrcZipPath);
+    }
+    if (this.tonyFinalConfPath != null) {
+      Utils.cleanupLocalFile(this.tonyFinalConfPath);
+    }
   }
 
   /**
