@@ -171,8 +171,14 @@
 
   <!-- Container configurations -->
   <property>
-    <description>Timeout, in milliseconds for allocated container registration before forcibly killing application.</description>
+    <description>Timeout, in milliseconds for containers requested from RM.</description>
     <name>tony.container.allocation.timeout</name>
+    <value>-1</value>
+  </property>
+
+  <property>
+    <description>Timeout, in milliseconds for allocated container registration before forcibly killing application.</description>
+    <name>tony.container.registration.timeout</name>
     <value>-1</value>
   </property>
 

@@ -131,9 +131,9 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
             }
 
             // When not setting container allocation timeout, it will always return false.
-            long containerAllocationTimeout = tonyConf.getLong(TonyConfigurationKeys.CONTAINER_ALLOCATION_TIMEOUT,
+            int containerAllocationTimeout = tonyConf.getInt(TonyConfigurationKeys.CONTAINER_ALLOCATION_TIMEOUT,
                     TonyConfigurationKeys.DEFAULT_CONTAINER_ALLOCATION_TIMEOUT);
-            if (containerAllocationTimeout == 0) {
+            if (containerAllocationTimeout <= 0) {
                 return false;
             }
 

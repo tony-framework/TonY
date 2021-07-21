@@ -1281,9 +1281,9 @@ public class ApplicationMaster {
       LOG.info("Jobname: " + x.getJobName() + ", index: " + x.getTaskIndex());
     });
 
-    LOG.info("Registered tasks list:");
+    LOG.debug("Registered tasks list:");
     session.getRegisteredTasks().stream().forEach(x -> {
-      LOG.info(x);
+      LOG.debug(x);
     });
 
     // When executor failed and not registering to AM, it means task failed when starting task executor process
