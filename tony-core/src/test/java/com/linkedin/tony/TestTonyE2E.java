@@ -597,7 +597,7 @@ public class TestTonyE2E  {
             "--python_venv", "tony-core/src/test/resources/test.zip",
             "--conf", "tony.worker.instances=10000",
             "--conf", "tony.worker.memory=2g",
-            "--conf", "tony.container.allocation.timeout=10000"
+            "--conf", "tony.container.allocation.timeout=1000"
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
