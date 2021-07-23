@@ -586,6 +586,23 @@ public class TestTonyE2E  {
     client.removeListener(handler);
   }
 
+  @Test
+  public void testTonyAllocationTimeoutShouldFail() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--executes", "python check_env_and_venv.py",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.worker.instances=10000",
+            "--conf", "tony.worker.memory=2g",
+            "--conf", "tony.container.allocation.timeout=10000"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+  }
+
   /**
    * When enable the sidecar tensorboard, it will start the sidecar executor(tensorboard role).
    */
