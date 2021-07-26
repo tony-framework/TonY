@@ -47,6 +47,11 @@ public class Framework {
         boolean validateAndUpdateConfig(Configuration tonyConf);
 
         /**
+         * For AM, it will check the runtime healthy periodically. If not ok, the job will fast fail.
+         */
+        boolean isHealthy(Configuration tonyConf);
+
+        /**
          * For AM, it will receive some callback info from task executor.
          * This method will be called when Application Master accepting task executors' callback info.
          * This method is suitable for the task executors that have a dependency of startup sequence,

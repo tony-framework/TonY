@@ -75,6 +75,11 @@ public class StandaloneRuntime extends AbstractFrameworkRuntime {
         }
 
         @Override
+        public boolean isHealthy(Configuration tonyConf) {
+            return true;
+        }
+
+        @Override
         public boolean receiveTaskCallbackInfo(String taskId, String callbackInfo) {
             return true;
         }

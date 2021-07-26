@@ -52,6 +52,7 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
         protected TonySession session;
         private List<String> illegalConfKeyRegexs;
         private long lastRegisterWorkerTime = System.currentTimeMillis();
+        private long runtimeInitialTime = System.currentTimeMillis();
 
         @Override
         public String constructClusterSpec(String taskId) throws IOException {
@@ -103,6 +104,46 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
             }
 
             return true;
+        }
+
+        @Override
+        public boolean isHealthy(Configuration tonyConf) {
+            /**
+             * Checking the containers allocation timeout.
+             * When using GANG distributed mode, the training cluster will not be constructed until all containers are allocated from RM.
+             * In this case, it will possibly cause deadlock when Yarn resources are not enough, refer to ISSUE:
+             * https://github.com/linkedin/TonY/issues/573.
+             * So it's necessary to release reserved container resources on AM when containers allocation timeout reached in GANG mode.
+             */
+            if (containerAllocationTimeout(tonyConf)) {
+                return false;
+            }
+            return true;
+        }
+
+        private boolean containerAllocationTimeout(Configuration tonyConf) {
+            String distributedModeVal = tonyConf.get(TonyConfigurationKeys.APPLICATION_DISTRIBUTED_MODE,
+                    TonyConfigurationKeys.DEFAULT_APPLICATION_DISTRIBUTED_MODE);
+            TonyConfigurationKeys.DistributedMode distributedMode =
+                    TonyConfigurationKeys.DistributedMode.valueOf(distributedModeVal.toUpperCase());
+            if (distributedMode != TonyConfigurationKeys.DistributedMode.GANG) {
+                return false;
+            }
+
+            // When not setting container allocation timeout, it will always return false.
+            int containerAllocationTimeout = tonyConf.getInt(TonyConfigurationKeys.CONTAINER_ALLOCATION_TIMEOUT,
+                    TonyConfigurationKeys.DEFAULT_CONTAINER_ALLOCATION_TIMEOUT);
+            if (containerAllocationTimeout <= 0) {
+                return false;
+            }
+
+            if (session.getTotalTasks() - session.getNumRegisteredTasks() > 0
+                    && System.currentTimeMillis() - runtimeInitialTime > containerAllocationTimeout) {
+                log.error("Container Allocation timeout, total required tasks number: " + session.getTotalTasks()
+                        + ", allocated tasks number: " + session.getRegisteredTasks());
+                return true;
+            }
+            return false;
         }
 
         @VisibleForTesting
