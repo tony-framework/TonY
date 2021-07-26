@@ -49,7 +49,7 @@ public class Framework {
         /**
          * For AM, it will check the runtime healthy periodically. If not ok, the job will fast fail.
          */
-        boolean checkHealthy(Configuration tonyConf);
+        boolean isHealthy(Configuration tonyConf);
 
         /**
          * For AM, it will receive some callback info from task executor.

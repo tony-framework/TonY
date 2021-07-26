@@ -680,7 +680,7 @@ public class ApplicationMaster {
         break;
       }
 
-      if (!amRuntimeAdapter.checkHealthy(tonyConf)) {
+      if (!amRuntimeAdapter.isHealthy(tonyConf)) {
         LOG.error("Application failed due to the runtime unhealthy.");
         break;
       }

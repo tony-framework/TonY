@@ -107,7 +107,7 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
         }
 
         @Override
-        public boolean checkHealthy(Configuration tonyConf) {
+        public boolean isHealthy(Configuration tonyConf) {
             /**
              * Checking the containers allocation timeout.
              * When using GANG distributed mode, the training cluster will not be constructed until all containers are allocated from RM.

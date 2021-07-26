@@ -75,7 +75,7 @@ public class StandaloneRuntime extends AbstractFrameworkRuntime {
         }
 
         @Override
-        public boolean checkHealthy(Configuration tonyConf) {
+        public boolean isHealthy(Configuration tonyConf) {
             return true;
         }
 
