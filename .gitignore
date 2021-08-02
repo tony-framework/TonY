@@ -2,6 +2,7 @@
 **/.keep
 **/generated/
 **/version-info.properties
+*.class
 *.avro
 *.iml
 *.ipr
