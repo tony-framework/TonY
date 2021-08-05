@@ -35,8 +35,6 @@ import static java.util.Objects.requireNonNull;
 public class TaskExecutor {
   private static final Log LOG = LogFactory.getLog(TaskExecutor.class);
 
-  private static final int MAX_NUM_FAILED_HB_ATTEMPTS = 5;
-
   @VisibleForTesting
   protected Configuration tonyConf = new Configuration(false);
 
@@ -65,6 +63,7 @@ public class TaskExecutor {
   private Map<String, String> shellEnv = new HashMap<>();
   private int hbInterval;
   private final ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(2);
+  private int maxConsecutiveHBMiss;
   private int numFailedHBAttempts = 0;
   private String frameworkType;
   private String appIdString;
@@ -276,6 +275,9 @@ public class TaskExecutor {
     metricsIntervalMs = tonyConf.getInt(TonyConfigurationKeys.TASK_METRICS_UPDATE_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_METRICS_UPDATE_INTERVAL_MS);
 
+    maxConsecutiveHBMiss = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
+            TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
+
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
   }
@@ -349,7 +351,7 @@ public class TaskExecutor {
         }
       } catch (Exception e) {
         LOG.error("[" + taskId + "] Failed to send Heart Beat.", e);
-        if (++numFailedHBAttempts > MAX_NUM_FAILED_HB_ATTEMPTS) {
+        if (++numFailedHBAttempts > maxConsecutiveHBMiss) {
           LOG.error("[" + taskId + "] Exceeded max number of allowed failed heart beat send attempts. "
               + "Going to stop heartbeating!");
           e.printStackTrace();
