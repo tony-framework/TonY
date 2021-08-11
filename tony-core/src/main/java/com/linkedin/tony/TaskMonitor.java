@@ -90,11 +90,11 @@ class TaskMonitor implements Runnable {
 
   @Override
   public void run() {
-    refreshMetrics();
     try {
+      refreshMetrics();
       metricsRpcClient.updateMetrics(taskType, taskIndex, metrics);
     } catch (Exception e) {
-      LOG.error("Encountered exception updating metrics", e);
+      LOG.error("Encountered exception updating/refreshing metrics", e);
     }
   }
 
