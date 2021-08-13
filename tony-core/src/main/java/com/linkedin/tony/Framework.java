@@ -19,7 +19,6 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 
-import com.linkedin.tony.tensorflow.TonySession;
 import com.linkedin.tony.util.Utils;
 
 /**

@@ -40,7 +40,7 @@ import com.linkedin.tony.horovod.DriverCallbackInfo;
 import com.linkedin.tony.horovod.HorovodClusterSpec;
 import com.linkedin.tony.horovod.HorovodDriver;
 import com.linkedin.tony.horovod.SlotInfo;
-import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.TonySession;
 import com.linkedin.tony.util.Utils;
 
 import static com.linkedin.tony.TonyConfigurationKeys.DEFAULT_HOROVOD_DEBUG_MODE_ENABLE;

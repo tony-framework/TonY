@@ -5,8 +5,7 @@
 package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.linkedin.tony.tensorflow.JobContainerRequest;
-import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.models.JobContainerRequest;
 import com.linkedin.tony.util.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;

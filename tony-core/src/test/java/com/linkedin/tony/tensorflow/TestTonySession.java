@@ -6,6 +6,8 @@ package com.linkedin.tony.tensorflow;
 
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.TonySession;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
 import org.testng.Assert;

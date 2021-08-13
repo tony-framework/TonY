@@ -14,7 +14,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.TonySession;
 
 public class TestHorovodRuntime {
     private TonySession session = new TonySession();

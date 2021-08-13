@@ -70,7 +70,7 @@ import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.horovod.HorovodClusterSpec;
 import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.tensorflow.JobContainerRequest;
+import com.linkedin.tony.models.JobContainerRequest;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
