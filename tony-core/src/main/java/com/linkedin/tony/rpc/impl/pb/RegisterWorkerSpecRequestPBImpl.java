@@ -5,8 +5,8 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.RegisterWorkerSpecRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecRequestProtoOrBuilder;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecRequestProtoOrBuilder;
 
 
 public class RegisterWorkerSpecRequestPBImpl implements RegisterWorkerSpecRequest {

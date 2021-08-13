@@ -3,12 +3,12 @@
  * See LICENSE in the project root for license information.
  */
 option java_package = "com.linkedin.tony.rpc.proto";
-option java_outer_classname = "TensorFlowCluster";
+option java_outer_classname = "TonyCluster";
 
 option java_generic_services = true;
-import "yarn_tensorflow_cluster_protos.proto";
+import "yarn_tony_cluster_protos.proto";
 
-service TensorFlowClusterService {
+service TonyClusterService {
     rpc getTaskInfos (GetTaskInfosRequestProto) returns (GetTaskInfosResponseProto);
     rpc getClusterSpec (GetClusterSpecRequestProto) returns (GetClusterSpecResponseProto);
     rpc registerWorkerSpec (RegisterWorkerSpecRequestProto) returns (RegisterWorkerSpecResponseProto);

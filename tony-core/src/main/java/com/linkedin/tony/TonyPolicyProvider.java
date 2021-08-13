@@ -5,7 +5,7 @@
 package com.linkedin.tony;
 
 import com.linkedin.tony.rpc.MetricsRpc;
-import com.linkedin.tony.rpc.TensorFlowCluster;
+import com.linkedin.tony.rpc.TonyCluster;
 import org.apache.hadoop.security.authorize.PolicyProvider;
 import org.apache.hadoop.security.authorize.Service;
 
@@ -16,7 +16,7 @@ public class TonyPolicyProvider extends PolicyProvider {
     @Override
     public Service[] getServices() {
         return new Service[]{
-            new Service("tony.cluster", TensorFlowCluster.class),
+            new Service("tony.cluster", TonyCluster.class),
             new Service("tony.metrics", MetricsRpc.class)
         };
     }

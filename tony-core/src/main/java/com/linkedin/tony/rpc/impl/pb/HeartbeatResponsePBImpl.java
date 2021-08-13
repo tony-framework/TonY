@@ -5,7 +5,7 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.HeartbeatResponse;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.HeartbeatResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.HeartbeatResponseProto;
 
 
 public class HeartbeatResponsePBImpl implements HeartbeatResponse {

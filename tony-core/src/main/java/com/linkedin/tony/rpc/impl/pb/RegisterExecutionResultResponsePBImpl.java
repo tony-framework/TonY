@@ -5,8 +5,8 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.RegisterExecutionResultResponse;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterExecutionResultResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterExecutionResultResponseProto;
 
 
 public class RegisterExecutionResultResponsePBImpl implements RegisterExecutionResultResponse {
@@ -55,7 +55,7 @@ public class RegisterExecutionResultResponsePBImpl implements RegisterExecutionR
   }
   @Override
   public String getMessage() {
-    YarnTensorFlowClusterProtos.RegisterExecutionResultResponseProtoOrBuilder p = viaProto ? proto : builder;
+    YarnTonyClusterProtos.RegisterExecutionResultResponseProtoOrBuilder p = viaProto ? proto : builder;
     if (this.message != null) {
       return this.message;
     }

@@ -6,7 +6,7 @@ package com.linkedin.tony;
 
 
 import com.linkedin.tony.rpc.MetricsRpc;
-import com.linkedin.tony.rpc.TensorFlowClusterPB;
+import com.linkedin.tony.rpc.TonyClusterPB;
 import java.lang.annotation.Annotation;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Stable;
@@ -30,7 +30,7 @@ public class TonyClientAMSecurityInfo extends SecurityInfo {
 
   @Override
   public TokenInfo getTokenInfo(Class<?> protocol, Configuration conf) {
-    if (!protocol.equals(TensorFlowClusterPB.class) && !protocol.equals(MetricsRpc.class)) {
+    if (!protocol.equals(TonyClusterPB.class) && !protocol.equals(MetricsRpc.class)) {
       return null;
     }
 
