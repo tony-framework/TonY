@@ -7,7 +7,7 @@ package com.linkedin.tony.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.TFConfig;
-import com.linkedin.tony.tensorflow.JobContainerRequest;
+import com.linkedin.tony.models.JobContainerRequest;
 
 import java.io.File;
 import java.io.IOException;

@@ -2,13 +2,11 @@
  * Copyright 2018 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony.tensorflow;
+package com.linkedin.tony;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.linkedin.tony.Constants;
-import com.linkedin.tony.TonyClient;
-import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.models.JobContainerRequest;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.util.Utils;

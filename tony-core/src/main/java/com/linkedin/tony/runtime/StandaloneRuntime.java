@@ -23,7 +23,7 @@ import com.linkedin.tony.AbstractFrameworkRuntime;
 import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.TonySession;
 import com.linkedin.tony.util.Utils;
 
 public class StandaloneRuntime extends AbstractFrameworkRuntime {

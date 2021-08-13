@@ -31,7 +31,7 @@ import com.linkedin.tony.AbstractFrameworkRuntime;
 import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.TonySession;
 
 import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
 

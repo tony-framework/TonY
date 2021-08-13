@@ -15,7 +15,7 @@ import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 import com.linkedin.tony.security.TokenCache;
-import com.linkedin.tony.tensorflow.JobContainerRequest;
+import com.linkedin.tony.models.JobContainerRequest;
 import com.linkedin.tony.util.HdfsUtils;
 import com.linkedin.tony.util.Utils;
 import com.linkedin.tony.util.VersionInfo;

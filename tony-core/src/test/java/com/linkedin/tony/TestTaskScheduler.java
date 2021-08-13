@@ -4,8 +4,8 @@
  */
 package com.linkedin.tony;
 
-import com.linkedin.tony.tensorflow.JobContainerRequest;
-import com.linkedin.tony.tensorflow.TonySession;
+import com.linkedin.tony.models.JobContainerRequest;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
