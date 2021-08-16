@@ -66,7 +66,7 @@ import com.google.common.base.Preconditions;
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.HadoopCompatibleAdapter;
 import com.linkedin.tony.LocalizableResource;
-import com.linkedin.tony.TFConfig;
+import com.linkedin.tony.TonyConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.horovod.HorovodClusterSpec;
 import com.linkedin.tony.rpc.TaskInfo;
@@ -512,8 +512,8 @@ public class Utils {
           spec.keySet().removeIf(Utils::isTFEvaluator);
       }
 
-      TFConfig tfConfig = new TFConfig(spec, jobName, taskIndex);
-      return mapper.writeValueAsString(tfConfig);
+      TonyConfig tonyConfig = new TonyConfig(spec, jobName, taskIndex);
+      return mapper.writeValueAsString(tonyConfig);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }

@@ -5,8 +5,8 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.RegisterExecutionResultRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterExecutionResultRequestProto;
 
 
 public class RegisterExecutionResultRequestPBImpl implements RegisterExecutionResultRequest {
@@ -63,7 +63,7 @@ public class RegisterExecutionResultRequestPBImpl implements RegisterExecutionRe
 
   @Override
   public int getExitCode() {
-    YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
+    YarnTonyClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
     return p.getExitCode();
   }
 
@@ -76,7 +76,7 @@ public class RegisterExecutionResultRequestPBImpl implements RegisterExecutionRe
 
   @Override
   public String getJobName() {
-    YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
+    YarnTonyClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
     if (this.jobName != null) {
       return this.jobName;
     }
@@ -98,7 +98,7 @@ public class RegisterExecutionResultRequestPBImpl implements RegisterExecutionRe
 
   @Override
   public String getJobIndex() {
-    YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
+    YarnTonyClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
     if (this.jobIndex != null) {
       return this.jobIndex;
     }
@@ -120,7 +120,7 @@ public class RegisterExecutionResultRequestPBImpl implements RegisterExecutionRe
 
   @Override
   public String getSessionId() {
-    YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
+    YarnTonyClusterProtos.RegisterExecutionResultRequestProtoOrBuilder p = viaProto ? proto : builder;
     if (this.sessionId != null) {
       return this.sessionId;
     }

@@ -6,8 +6,8 @@ package com.linkedin.tony.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.linkedin.tony.TFConfig;
 import com.linkedin.tony.models.JobContainerRequest;
+import com.linkedin.tony.TonyConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -152,7 +152,7 @@ public class TestUtils {
     String spec = "{\"worker\":[\"host0:1234\", \"host1:1234\"], \"ps\":[\"host2:1234\"]}";
     String tfConfig = Utils.constructTFConfig(spec, "worker", 1);
     ObjectMapper mapper = new ObjectMapper();
-    TFConfig config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
+    TonyConfig config = mapper.readValue(tfConfig, new TypeReference<TonyConfig>() { });
     assertEquals(config.getTask().getType(), "worker");
     assertEquals(config.getTask().getIndex(), 1);
     assertEquals(config.getCluster().get("worker").get(0), "host0:1234");
@@ -162,7 +162,7 @@ public class TestUtils {
     spec = "{\"worker\":[\"host0:1234\", \"host1:1234\"], "
             + "\"ps\":[\"host2:1234\"],\"evaluator\":[\"host3:1234\"]}";
     tfConfig = Utils.constructTFConfig(spec, "worker", 0);
-    config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
+    config = mapper.readValue(tfConfig, new TypeReference<TonyConfig>() { });
     assertEquals(config.getTask().getType(), "worker");
     assertEquals(config.getTask().getIndex(), 0);
     assertEquals(config.getCluster().size(), 2);
@@ -174,7 +174,7 @@ public class TestUtils {
     assertEquals(config.getCluster().get("ps").get(0), "host2:1234");
 
     tfConfig = Utils.constructTFConfig(spec, "evaluator", 0);
-    config = mapper.readValue(tfConfig, new TypeReference<TFConfig>() { });
+    config = mapper.readValue(tfConfig, new TypeReference<TonyConfig>() { });
     assertEquals(config.getTask().getType(), "evaluator");
     assertEquals(config.getTask().getIndex(), 0);
     assertEquals(config.getCluster().size(), 3);

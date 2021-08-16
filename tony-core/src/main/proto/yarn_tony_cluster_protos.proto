@@ -3,7 +3,7 @@
  * See LICENSE in the project root for license information.
  */
 option java_package = "com.linkedin.tony.rpc.proto";
-option java_outer_classname = "YarnTensorFlowClusterProtos";
+option java_outer_classname = "YarnTonyClusterProtos";
 
 message GetTaskInfosRequestProto {
 }

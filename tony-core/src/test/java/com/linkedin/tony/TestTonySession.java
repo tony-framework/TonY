@@ -2,11 +2,7 @@
  * Copyright 2019 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
  * See LICENSE in the project root for license information.
  */
-package com.linkedin.tony.tensorflow;
-
-import com.linkedin.tony.Constants;
-import com.linkedin.tony.TonyConfigurationKeys;
-import com.linkedin.tony.TonySession;
+package com.linkedin.tony;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.impl.pb.ContainerPBImpl;
@@ -15,6 +11,7 @@ import org.testng.annotations.Test;
 
 
 public class TestTonySession {
+  
   @Test
   public void testTaskAccounting() {
     Configuration tonyConf = new Configuration(false);

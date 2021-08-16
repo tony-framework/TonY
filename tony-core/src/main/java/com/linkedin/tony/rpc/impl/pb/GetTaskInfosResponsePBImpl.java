@@ -5,11 +5,11 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.TaskInfo;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
 import com.linkedin.tony.util.ProtoUtils;
 import com.linkedin.tony.rpc.GetTaskInfosResponse;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosResponseProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosResponseProtoOrBuilder;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetTaskInfosResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetTaskInfosResponseProtoOrBuilder;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,7 +22,7 @@ public class GetTaskInfosResponsePBImpl implements GetTaskInfosResponse {
   private Set<TaskInfo> _taskInfos = null;
 
   public GetTaskInfosResponsePBImpl() {
-    builder = YarnTensorFlowClusterProtos.GetTaskInfosResponseProto.newBuilder();
+    builder = YarnTonyClusterProtos.GetTaskInfosResponseProto.newBuilder();
   }
 
   public GetTaskInfosResponsePBImpl(GetTaskInfosResponseProto proto) {
@@ -30,7 +30,7 @@ public class GetTaskInfosResponsePBImpl implements GetTaskInfosResponse {
     viaProto = true;
   }
 
-  public YarnTensorFlowClusterProtos.GetTaskInfosResponseProto getProto() {
+  public YarnTonyClusterProtos.GetTaskInfosResponseProto getProto() {
     mergeLocalToProto();
     proto = viaProto ? proto : builder.build();
     viaProto = true;

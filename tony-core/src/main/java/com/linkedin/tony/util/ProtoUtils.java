@@ -6,7 +6,7 @@ package com.linkedin.tony.util;
 
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosResponseProto.TaskInfoProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetTaskInfosResponseProto.TaskInfoProto;
 
 
 public class ProtoUtils {

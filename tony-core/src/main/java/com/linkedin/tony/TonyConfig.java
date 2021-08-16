@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * TFConfig POJO for serialization.
  */
-public class TFConfig {
+public class TonyConfig {
 
   private Map<String, List<String>> clusterSpec;
   private Task task;
@@ -47,9 +47,9 @@ public class TFConfig {
   }
 
   // Jackson needs a default constructor
-  TFConfig() { }
+  TonyConfig() { }
 
-  public TFConfig(Map<String, List<String>> clusterSpec, String jobName, int taskIndex) {
+  public TonyConfig(Map<String, List<String>> clusterSpec, String jobName, int taskIndex) {
     this.clusterSpec = clusterSpec;
     this.task = new Task(jobName, taskIndex);
   }

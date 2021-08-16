@@ -1,6 +1,6 @@
 <FindBugsFilter>
   <Match>
-    <Source name="~.*YarnTensorFlowClusterProtos.*java"/>
+    <Source name="~.*YarnTonyClusterProtos.*java"/>
   </Match>
 </FindBugsFilter>
 

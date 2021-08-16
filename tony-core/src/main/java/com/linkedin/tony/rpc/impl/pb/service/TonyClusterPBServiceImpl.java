@@ -13,8 +13,8 @@ import com.linkedin.tony.rpc.HeartbeatResponse;
 import com.linkedin.tony.rpc.RegisterExecutionResultResponse;
 import com.linkedin.tony.rpc.RegisterTensorBoardUrlResponse;
 import com.linkedin.tony.rpc.RegisterWorkerSpecResponse;
-import com.linkedin.tony.rpc.TensorFlowCluster;
-import com.linkedin.tony.rpc.TensorFlowClusterPB;
+import com.linkedin.tony.rpc.TonyCluster;
+import com.linkedin.tony.rpc.TonyClusterPB;
 import com.linkedin.tony.rpc.impl.pb.EmptyPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecResponsePBImpl;
@@ -29,30 +29,30 @@ import com.linkedin.tony.rpc.impl.pb.RegisterTensorBoardUrlRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterTensorBoardUrlResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecResponsePBImpl;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.EmptyProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetClusterSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetClusterSpecResponseProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterExecutionResultResponseProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterTensorBoardUrlRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterTensorBoardUrlResponseProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.EmptyProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetClusterSpecRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetClusterSpecResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetTaskInfosRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterExecutionResultRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterExecutionResultResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterTensorBoardUrlRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterTensorBoardUrlResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecResponseProto;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import java.io.IOException;
 
-public class TensorFlowClusterPBServiceImpl implements TensorFlowClusterPB {
-  private TensorFlowCluster real;
+public class TonyClusterPBServiceImpl implements TonyClusterPB {
+  private TonyCluster real;
 
-  public TensorFlowClusterPBServiceImpl(TensorFlowCluster impl) {
+  public TonyClusterPBServiceImpl(TonyCluster impl) {
     this.real = impl;
   }
 
   @Override
-  public YarnTensorFlowClusterProtos.GetTaskInfosResponseProto getTaskInfos(RpcController controller,
+  public YarnTonyClusterProtos.GetTaskInfosResponseProto getTaskInfos(RpcController controller,
                                                                            GetTaskInfosRequestProto proto) throws ServiceException {
     GetTaskInfosRequestPBImpl request = new GetTaskInfosRequestPBImpl(proto);
     try {
@@ -126,8 +126,8 @@ public class TensorFlowClusterPBServiceImpl implements TensorFlowClusterPB {
   }
 
   @Override
-  public YarnTensorFlowClusterProtos.HeartbeatResponseProto taskExecutorHeartbeat(RpcController controller,
-      YarnTensorFlowClusterProtos.HeartbeatRequestProto proto) throws ServiceException {
+  public YarnTonyClusterProtos.HeartbeatResponseProto taskExecutorHeartbeat(RpcController controller,
+          YarnTonyClusterProtos.HeartbeatRequestProto proto) throws ServiceException {
     HeartbeatRequestPBImpl request = new HeartbeatRequestPBImpl(proto);
     try {
       HeartbeatResponse response = real.taskExecutorHeartbeat(request);
@@ -139,7 +139,7 @@ public class TensorFlowClusterPBServiceImpl implements TensorFlowClusterPB {
 
   @Override
   public EmptyProto registerCallbackInfo(RpcController controller,
-          YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto) throws ServiceException {
+          YarnTonyClusterProtos.RegisterCallbackInfoRequestProto proto) throws ServiceException {
     RegisterCallbackInfoRequestPBImpl request = new RegisterCallbackInfoRequestPBImpl(proto);
     try {
       Empty response = real.registerCallbackInfo(request);
