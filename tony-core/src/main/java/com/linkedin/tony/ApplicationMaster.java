@@ -1245,6 +1245,7 @@ public class ApplicationMaster {
 
       LOG.info("Container " + containerId + " for task " + task + " finished with exitStatus " + exitStatus + ".");
       session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus, diagnosticMessage);
+      hbMonitor.unregister(task);
 
       scheduler.registerDependencyCompleted(task.getJobName());
       if (ContainerExitStatus.SUCCESS != exitStatus) {
