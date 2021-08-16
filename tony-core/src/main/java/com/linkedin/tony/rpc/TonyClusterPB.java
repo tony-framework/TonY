@@ -5,10 +5,10 @@
 package com.linkedin.tony.rpc;
 
 import org.apache.hadoop.ipc.ProtocolInfo;
-import com.linkedin.tony.rpc.proto.TensorFlowCluster.TensorFlowClusterService;
+import com.linkedin.tony.rpc.proto.TonyCluster.TonyClusterService;
 
 @ProtocolInfo(
-  protocolName = "com.linkedin.tony.rpc.TensorFlowCluster",
+  protocolName = "com.linkedin.tony.rpc.TonyCluster",
   protocolVersion = 1)
-public interface TensorFlowClusterPB extends TensorFlowClusterService.BlockingInterface {
+public interface TonyClusterPB extends TonyClusterService.BlockingInterface {
 }

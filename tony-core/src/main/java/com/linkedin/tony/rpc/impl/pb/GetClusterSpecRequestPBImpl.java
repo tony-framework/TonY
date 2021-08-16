@@ -6,7 +6,7 @@ package com.linkedin.tony.rpc.impl.pb;
 
 
 import com.linkedin.tony.rpc.GetClusterSpecRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetClusterSpecRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetClusterSpecRequestProto;
 
 public class GetClusterSpecRequestPBImpl implements GetClusterSpecRequest {
   private GetClusterSpecRequestProto proto = GetClusterSpecRequestProto.getDefaultInstance();

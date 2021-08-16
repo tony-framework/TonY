@@ -14,9 +14,9 @@ import java.io.IOException;
 
 @TokenInfo(ClientToAMTokenSelector.class)
 @ProtocolInfo(
-    protocolName = "com.linkedin.tony.rpc.TensorFlowCluster",
+    protocolName = "com.linkedin.tony.rpc.TonyCluster",
     protocolVersion = 1)
-public interface TensorFlowCluster extends VersionedProtocol {
+public interface TonyCluster extends VersionedProtocol {
   long versionID = 1L;
 
   GetTaskInfosResponse getTaskInfos(GetTaskInfosRequest request) throws IOException, YarnException;

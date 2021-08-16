@@ -5,8 +5,8 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.HeartbeatRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.HeartbeatRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.HeartbeatRequestProtoOrBuilder;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.HeartbeatRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.HeartbeatRequestProtoOrBuilder;
 
 
 public class HeartbeatRequestPBImpl implements HeartbeatRequest {

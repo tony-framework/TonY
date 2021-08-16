@@ -5,7 +5,7 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.Empty;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.EmptyProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.EmptyProto;
 
 
 public class EmptyPBImpl implements Empty {

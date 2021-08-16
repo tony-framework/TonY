@@ -16,26 +16,26 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.RegisterCallbackInfoRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
 
 public class RegisterCallbackInfoRequestPBImpl implements RegisterCallbackInfoRequest {
-    YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto = YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.getDefaultInstance();
-    YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.Builder builder = null;
+    YarnTonyClusterProtos.RegisterCallbackInfoRequestProto proto = YarnTonyClusterProtos.RegisterCallbackInfoRequestProto.getDefaultInstance();
+    YarnTonyClusterProtos.RegisterCallbackInfoRequestProto.Builder builder = null;
     private boolean viaProto = false;
 
     private String taskId = null;
     private String callbackInfo = null;
 
     public RegisterCallbackInfoRequestPBImpl() {
-        builder = YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.newBuilder();
+        builder = YarnTonyClusterProtos.RegisterCallbackInfoRequestProto.newBuilder();
     }
 
-    public RegisterCallbackInfoRequestPBImpl(YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto proto) {
+    public RegisterCallbackInfoRequestPBImpl(YarnTonyClusterProtos.RegisterCallbackInfoRequestProto proto) {
         this.proto = proto;
         viaProto = true;
     }
 
-    public YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto getProto() {
+    public YarnTonyClusterProtos.RegisterCallbackInfoRequestProto getProto() {
         mergeLocalToProto();
         proto = viaProto ? proto : builder.build();
         viaProto = true;
@@ -62,14 +62,14 @@ public class RegisterCallbackInfoRequestPBImpl implements RegisterCallbackInfoRe
 
     private void maybeInitBuilder() {
         if (viaProto || builder == null) {
-            builder = YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto.newBuilder(proto);
+            builder = YarnTonyClusterProtos.RegisterCallbackInfoRequestProto.newBuilder(proto);
         }
         viaProto = false;
     }
 
     @Override
     public String getTaskId() {
-        YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProtoOrBuilder p = viaProto ? proto : builder;
+        YarnTonyClusterProtos.RegisterCallbackInfoRequestProtoOrBuilder p = viaProto ? proto : builder;
         if (this.taskId != null) {
             return this.taskId;
         }
@@ -91,7 +91,7 @@ public class RegisterCallbackInfoRequestPBImpl implements RegisterCallbackInfoRe
 
     @Override
     public String getCallbackInfo() {
-        YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProtoOrBuilder p = viaProto ? proto : builder;
+        YarnTonyClusterProtos.RegisterCallbackInfoRequestProtoOrBuilder p = viaProto ? proto : builder;
         if (this.callbackInfo != null) {
             return this.callbackInfo;
         }

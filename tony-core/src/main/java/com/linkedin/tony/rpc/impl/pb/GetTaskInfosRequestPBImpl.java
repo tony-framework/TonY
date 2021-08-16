@@ -6,13 +6,13 @@ package com.linkedin.tony.rpc.impl.pb;
 
 
 import com.linkedin.tony.rpc.GetTaskInfosRequest;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetTaskInfosRequestProto;
 
 
 public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
-  private YarnTensorFlowClusterProtos.GetTaskInfosRequestProto proto = YarnTensorFlowClusterProtos.GetTaskInfosRequestProto.getDefaultInstance();
-  private YarnTensorFlowClusterProtos.GetTaskInfosRequestProto.Builder builder = null;
+  private YarnTonyClusterProtos.GetTaskInfosRequestProto proto = YarnTonyClusterProtos.GetTaskInfosRequestProto.getDefaultInstance();
+  private YarnTonyClusterProtos.GetTaskInfosRequestProto.Builder builder = null;
   private boolean viaProto = false;
 
   private boolean rebuild = false;
@@ -21,7 +21,7 @@ public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
         builder = GetTaskInfosRequestProto.newBuilder();
     }
 
-  public GetTaskInfosRequestPBImpl(YarnTensorFlowClusterProtos.GetTaskInfosRequestProto proto) {
+  public GetTaskInfosRequestPBImpl(YarnTonyClusterProtos.GetTaskInfosRequestProto proto) {
     this.proto = proto;
     viaProto = true;
   }
@@ -35,7 +35,7 @@ public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
     viaProto = true;
   }
 
-  public YarnTensorFlowClusterProtos.GetTaskInfosRequestProto getProto() {
+  public YarnTonyClusterProtos.GetTaskInfosRequestProto getProto() {
      if (rebuild) {
        mergeLocalToProto();
      }
@@ -46,7 +46,7 @@ public class GetTaskInfosRequestPBImpl implements GetTaskInfosRequest {
 
   private void maybeInitBuilder() {
     if (viaProto || builder == null) {
-      builder = YarnTensorFlowClusterProtos.GetTaskInfosRequestProto.newBuilder(proto);
+      builder = YarnTonyClusterProtos.GetTaskInfosRequestProto.newBuilder(proto);
     }
     viaProto = false;
   }

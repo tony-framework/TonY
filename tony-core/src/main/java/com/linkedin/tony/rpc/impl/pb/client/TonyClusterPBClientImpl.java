@@ -20,8 +20,8 @@ import com.linkedin.tony.rpc.RegisterTensorBoardUrlRequest;
 import com.linkedin.tony.rpc.RegisterTensorBoardUrlResponse;
 import com.linkedin.tony.rpc.RegisterWorkerSpecRequest;
 import com.linkedin.tony.rpc.RegisterWorkerSpecResponse;
-import com.linkedin.tony.rpc.TensorFlowCluster;
-import com.linkedin.tony.rpc.TensorFlowClusterPB;
+import com.linkedin.tony.rpc.TonyCluster;
+import com.linkedin.tony.rpc.TonyClusterPB;
 import com.linkedin.tony.rpc.impl.pb.EmptyPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.GetClusterSpecResponsePBImpl;
@@ -36,11 +36,11 @@ import com.linkedin.tony.rpc.impl.pb.RegisterTensorBoardUrlRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterTensorBoardUrlResponsePBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecRequestPBImpl;
 import com.linkedin.tony.rpc.impl.pb.RegisterWorkerSpecResponsePBImpl;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetClusterSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.GetTaskInfosRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecRequestProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.HeartbeatRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetClusterSpecRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.GetTaskInfosRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecRequestProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.HeartbeatRequestProto;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -55,12 +55,12 @@ import org.apache.hadoop.yarn.ipc.RPCUtil;
 /**
  * This class is instantiated using reflection by YARN's RecordFactoryPBImpl
  */
-public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeable {
-  private TensorFlowClusterPB proxy;
+public class TonyClusterPBClientImpl implements TonyCluster, Closeable {
+  private TonyClusterPB proxy;
 
-  public TensorFlowClusterPBClientImpl(long clientVersion, InetSocketAddress addr, Configuration conf) throws IOException {
-    RPC.setProtocolEngine(conf, TensorFlowClusterPB.class, ProtobufRpcEngine.class);
-    proxy = RPC.getProxy(TensorFlowClusterPB.class, clientVersion, addr, conf);
+  public TonyClusterPBClientImpl(long clientVersion, InetSocketAddress addr, Configuration conf) throws IOException {
+    RPC.setProtocolEngine(conf, TonyClusterPB.class, ProtobufRpcEngine.class);
+    proxy = RPC.getProxy(TonyClusterPB.class, clientVersion, addr, conf);
   }
 
   @Override
@@ -105,7 +105,7 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
 
   @Override
   public RegisterTensorBoardUrlResponse registerTensorBoardUrl(RegisterTensorBoardUrlRequest request) throws YarnException, IOException {
-    YarnTensorFlowClusterProtos.RegisterTensorBoardUrlRequestProto requestProto = ((RegisterTensorBoardUrlRequestPBImpl) request).getProto();
+    YarnTonyClusterProtos.RegisterTensorBoardUrlRequestProto requestProto = ((RegisterTensorBoardUrlRequestPBImpl) request).getProto();
     try {
       return new RegisterTensorBoardUrlResponsePBImpl(proxy.registerTensorBoardUrl(null, requestProto));
     } catch (ServiceException e) {
@@ -116,7 +116,7 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
 
   @Override
   public RegisterExecutionResultResponse registerExecutionResult(RegisterExecutionResultRequest request) throws YarnException, IOException {
-    YarnTensorFlowClusterProtos.RegisterExecutionResultRequestProto requestProto = ((RegisterExecutionResultRequestPBImpl) request).getProto();
+    YarnTonyClusterProtos.RegisterExecutionResultRequestProto requestProto = ((RegisterExecutionResultRequestPBImpl) request).getProto();
     try {
       return new RegisterExecutionResultResponsePBImpl(proxy.registerExecutionResult(null, requestProto));
     } catch (ServiceException e) {
@@ -127,7 +127,7 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
 
   @Override
   public Empty finishApplication(Empty request) throws YarnException, IOException {
-    YarnTensorFlowClusterProtos.EmptyProto requestProto = ((EmptyPBImpl) request).getProto();
+    YarnTonyClusterProtos.EmptyProto requestProto = ((EmptyPBImpl) request).getProto();
     try {
       return new EmptyPBImpl(proxy.finishApplication(null, requestProto));
     } catch (ServiceException e) {
@@ -149,7 +149,7 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
 
   @Override
   public Empty registerCallbackInfo(RegisterCallbackInfoRequest request) throws YarnException, IOException {
-    YarnTensorFlowClusterProtos.RegisterCallbackInfoRequestProto requestProto = ((RegisterCallbackInfoRequestPBImpl) request).getProto();
+    YarnTonyClusterProtos.RegisterCallbackInfoRequestProto requestProto = ((RegisterCallbackInfoRequestPBImpl) request).getProto();
     try {
       return new EmptyPBImpl(proxy.registerCallbackInfo(null, requestProto));
     } catch (ServiceException e) {
@@ -160,7 +160,7 @@ public class TensorFlowClusterPBClientImpl implements TensorFlowCluster, Closeab
 
   @Override
   public long getProtocolVersion(String protocol, long version) {
-    return TensorFlowCluster.versionID;
+    return TonyCluster.versionID;
   }
 
   @Override

@@ -5,8 +5,8 @@
 package com.linkedin.tony.rpc.impl.pb;
 
 import com.linkedin.tony.rpc.RegisterTensorBoardUrlResponse;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterTensorBoardUrlResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterTensorBoardUrlResponseProto;
 
 
 public class RegisterTensorBoardUrlResponsePBImpl implements RegisterTensorBoardUrlResponse {
@@ -55,7 +55,7 @@ public class RegisterTensorBoardUrlResponsePBImpl implements RegisterTensorBoard
   }
   @Override
   public String getSpec() {
-    YarnTensorFlowClusterProtos.RegisterTensorBoardUrlResponseProtoOrBuilder p = viaProto ? proto : builder;
+    YarnTonyClusterProtos.RegisterTensorBoardUrlResponseProtoOrBuilder p = viaProto ? proto : builder;
     if (this.spec != null) {
       return this.spec;
     }

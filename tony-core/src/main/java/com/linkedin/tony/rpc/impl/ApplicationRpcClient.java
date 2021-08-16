@@ -19,7 +19,7 @@ import com.linkedin.tony.rpc.RegisterTensorBoardUrlResponse;
 import com.linkedin.tony.rpc.RegisterWorkerSpecRequest;
 import com.linkedin.tony.rpc.RegisterWorkerSpecResponse;
 import com.linkedin.tony.rpc.ApplicationRpc;
-import com.linkedin.tony.rpc.TensorFlowCluster;
+import com.linkedin.tony.rpc.TonyCluster;
 import com.linkedin.tony.rpc.TaskInfo;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -40,7 +40,7 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 
 public class ApplicationRpcClient implements ApplicationRpc {
   private RecordFactory recordFactory = RecordFactoryProvider.getRecordFactory(null);
-  private TensorFlowCluster tensorflow;
+  private TonyCluster tensorflow;
   private static ApplicationRpcClient instance = null;
   private static int port = 0;
   private static String address = "";
@@ -67,7 +67,7 @@ public class ApplicationRpcClient implements ApplicationRpc {
     }
     RetryPolicy retryPolicy = RetryPolicies.retryUpToMaximumCountWithFixedSleep(
             10, 2000, TimeUnit.MILLISECONDS);
-    this.tensorflow = getProxy(conf, rpc, ugi, address, TensorFlowCluster.class, retryPolicy);
+    this.tensorflow = getProxy(conf, rpc, ugi, address, TonyCluster.class, retryPolicy);
   }
 
   private static <T> T getProxy(final Configuration conf, final YarnRPC rpc, final UserGroupInformation user,

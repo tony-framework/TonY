@@ -6,8 +6,8 @@ package com.linkedin.tony.rpc.impl.pb;
 
 
 import com.linkedin.tony.rpc.RegisterWorkerSpecResponse;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecResponseProto;
-import com.linkedin.tony.rpc.proto.YarnTensorFlowClusterProtos.RegisterWorkerSpecResponseProtoOrBuilder;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecResponseProto;
+import com.linkedin.tony.rpc.proto.YarnTonyClusterProtos.RegisterWorkerSpecResponseProtoOrBuilder;
 
 public class RegisterWorkerSpecResponsePBImpl implements RegisterWorkerSpecResponse {
   private RegisterWorkerSpecResponseProto proto = RegisterWorkerSpecResponseProto.getDefaultInstance();
