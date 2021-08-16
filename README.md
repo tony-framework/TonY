@@ -1,5 +1,5 @@
 # TonY
-[![CircleCI](https://circleci.com/gh/linkedin/TonY/tree/master.svg?style=svg)](https://circleci.com/gh/linkedin/TonY/tree/master)
+[![CircleCI](https://circleci.com/gh/tony-framework/TonY/tree/master.svg?style=svg)](https://circleci.com/gh/linkedin/TonY/tree/master)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5080/badge)](https://bestpractices.coreinfrastructure.org/projects/5080)
 
 ![tony-logo-small](https://user-images.githubusercontent.com/544734/57793050-45b3ff00-76f5-11e9-8cc0-8ebb830b6e78.png)
