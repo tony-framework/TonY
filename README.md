@@ -13,11 +13,10 @@ machine learning jobs reliably and flexibly. For a quick overview of TonY and co
 
 ## Compatibility Notes
 
-It is recommended to run TonY with [Hadoop 3.1.1](https://hadoop.apache.org/old/releases.html#8+Aug+2018%3A+Release+3.1.1+available) and above. TonY itself is compatible with [Hadoop 2.7.4](https://hadoop.apache.org/docs/r2.7.4/) and above. If you need GPU isolation from TonY, you need [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher.
+TonY itself is compatible with [Hadoop 2.6.0](https://hadoop.apache.org/docs/r2.6.0/) (CDH5.11.0) and above. If you need GPU isolation from TonY, you need [Hadoop 2.10](https://hadoop.apache.org/docs/r2.10.0/) or higher for Hadoop 2, or [Hadoop 3.1.0](https://hortonworks.com/blog/gpus-support-in-apache-hadoop-3-1-yarn-hdp-3/) or higher for Hadoop 3.
 
 ## Build
 
-### How to build
 TonY is built using [Gradle](https://github.com/gradle/gradle). To build TonY, run:
 
     ./gradlew build
@@ -28,36 +27,75 @@ This will automatically run tests, if want to build without running tests, run:
 
 The jar required to run TonY will be located in `./tony-cli/build/libs/`.
 
-## Publishing (for admins)
-
-Follow [this guide](https://blog.sonatype.com/2010/01/how-to-generate-pgp-signatures-with-maven/) to generate a key pair using GPG. Publish your public key.
-
-Create a Nexus account at https://oss.sonatype.org/ and request access to publish to com.linkedin.tony. Here's an example Jira ticket: https://issues.sonatype.org/browse/OSSRH-47350.
-
-Configure your `~/.gradle/gradle.properties` file:
-
-```
-# signing plugin uses these
-signing.keyId=...
-signing.secretKeyRingFile=/home/<ldap>/.gnupg/secring.gpg
-signing.password=...
-
-# maven repo credentials
-mavenUser=...
-mavenPassword=...
-
-# gradle-nexus-staging-plugin uses these
-nexusUsername=<sameAsMavenUser>
-nexusPassword=<sameAsMavenPassword>
-```
-
-Now you can publish and release artifacts by running `./gradlew publish closeAndReleaseRepository`.
-
 ## Usage
 
-TonY is a Java library, so it is as simple as running a Java program. There are two ways to launch your deep learning jobs with TonY:
-- Use Docker container.
+There are two ways to launch your deep learning jobs with TonY:
 - Use a zipped Python virtual environment.
+- Use Docker container.
+
+### Use a zipped Python virtual environment
+
+The difference between this approach and the one with Docker is
+- You don't need to set up your Hadoop cluster with Docker support.
+- There is no requirement on a Docker image registry.
+
+As you know, nothing comes for free. If you don't want to bother setting your cluster with Docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the computer which builds the Python virtual environment.
+
+#### Python virtual environment in a zip
+
+    $ unzip -Z1 my-venv.zip | head -n 10
+      Python/
+      Python/bin/
+      Python/bin/rst2xml.py
+      Python/bin/wheel
+      Python/bin/rst2html5.py
+      Python/bin/rst2odt.py
+      Python/bin/rst2s5.py
+      Python/bin/pip2.7
+      Python/bin/saved_model_cli
+      Python/bin/rst2pseudoxml.pyc
+
+#### TonY jar and tony.xml
+
+    MyJob/
+      > src/
+        > models/
+          mnist_distributed.py
+      tony.xml
+      tony-cli-0.4.7-all.jar
+      my-venv.zip # The additional file you need.
+
+A similar `tony.xml` but without Docker related configurations:
+
+    $ cat tony/tony.xml
+    <configuration>
+      <property>
+        <name>tony.worker.instances</name>
+        <value>4</value>
+      </property>
+      <property>
+        <name>tony.worker.memory</name>
+        <value>4g</value>
+      </property>
+      <property>
+        <name>tony.worker.gpus</name>
+        <value>1</value>
+      </property>
+      <property>
+        <name>tony.ps.memory</name>
+        <value>3g</value>
+      </property>
+    </configuration>
+
+Then you can launch your job:
+
+    $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob" \
+                com.linkedin.tony.cli.ClusterSubmitter \
+                -executes models/mnist_distributed.py \ # relative path to model program inside the src_dir
+                -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output \
+                -python_venv my-venv.zip \
+                -python_binary_path Python/bin/python \  # relative path to the Python binary inside the my-venv.zip
+                -src_dir src
 
 ### Use a Docker container
 Note that this requires you have a properly configured Hadoop cluster with Docker support. Check this [documentation](https://hadoop.apache.org/docs/r2.9.1/hadoop-yarn/hadoop-yarn-site/DockerContainers.html) if you are unsure how to set it up. Assuming you have properly set up your Hadoop cluster with Docker container runtime, you should have already built a proper Docker image with required Hadoop configurations. The next thing you need is to install your Python dependencies inside your Docker image - TensorFlow or PyTorch.
@@ -69,7 +107,7 @@ Below is a folder structure of what you need to launch the job:
         > models/
           mnist_distributed.py
       tony.xml
-      tony-cli-0.1.5-all.jar
+      tony-cli-0.4.7-all.jar
 
 The `src/` folder would contain all your training script. The `tony.xml` is used to config your training job. Specifically for using Docker as the container runtime, your configuration should be similar to something below:
 
@@ -111,70 +149,6 @@ Now you're ready to launch your job:
             -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output' \
             -src_dir src \
             -python_binary_path /home/user_name/python_virtual_env/bin/python
-
-### Use a zipped Python virtual environment
-
-The difference between this approach and the one with Docker is
-- You don't need to set up your Hadoop cluster with Docker support.
-- There is no requirement on a Docker image registry.
-
-As you know, nothing comes for free. If you don't want to bother setting your cluster with Docker support, you'd need to prepare a zipped virtual environment for your job and your cluster should have the same OS version as the computer which builds the Python virtual environment.
-
-#### Python virtual environment in a zip
-
-    $ unzip -Z1 my-venv.zip | head -n 10
-      Python/
-      Python/bin/
-      Python/bin/rst2xml.py
-      Python/bin/wheel
-      Python/bin/rst2html5.py
-      Python/bin/rst2odt.py
-      Python/bin/rst2s5.py
-      Python/bin/pip2.7
-      Python/bin/saved_model_cli
-      Python/bin/rst2pseudoxml.pyc
-
-#### TonY jar and tony.xml
-
-    MyJob/
-      > src/
-        > models/
-          mnist_distributed.py
-      tony.xml
-      tony-cli-0.1.5-all.jar
-      my-venv.zip # The additional file you need.
-
-A similar `tony.xml` but without Docker related configurations:
-
-    $ cat tony/tony.xml
-    <configuration>
-      <property>
-        <name>tony.worker.instances</name>
-        <value>4</value>
-      </property>
-      <property>
-        <name>tony.worker.memory</name>
-        <value>4g</value>
-      </property>
-      <property>
-        <name>tony.worker.gpus</name>
-        <value>1</value>
-      </property>
-      <property>
-        <name>tony.ps.memory</name>
-        <value>3g</value>
-      </property>
-    </configuration>
-
-Then you can launch your job:
-
-    $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob" \
-                com.linkedin.tony.cli.ClusterSubmitter \
-                -executes models/mnist_distributed.py \ # relative path to model program inside the src_dir
-                -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output \
-                -python_venv my-venv.zip \
-                -python_binary_path Python/bin/python \  # relative path to the Python binary inside the my-venv.zip
-                -src_dir src
 
 ## TonY arguments
 The command line arguments are as follows:
