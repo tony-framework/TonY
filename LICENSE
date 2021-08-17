@@ -28,6 +28,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ----------------------------------------------------------------------------------------------------
+TonY License Explanation 
+
+TonY Project contributions are subject to different license requirements depending on the date 
+of contribution.  Contributions made prior to the TonY Project's donation to the Linux Foundation 
+are subject to the BSD license.  Contributions made after the TonY Project's donation to the Linux 
+Foundation (August 13, 2021) are subject to the Apache 2.0 license. 
+
+----------------------------------------------------------------------------------------------------
 popper.js
 
 The MIT License (MIT)
