@@ -19,21 +19,21 @@ hostname = os.environ['HOROVOD_HOSTNAME']
 
 job_name = os.environ['JOB_NAME']
 
-print('JOB_NAME is ' + job_name)
-
-print('Horovod envs are as follows:')
-print('controller: ' + controller)
-print('operators: ' + operators)
-print('timeout: ' + timeout)
-print('rendez_port: ' + rendez_port)
-print('rendez_addr: ' + rendez_addr)
-print('cross_rank: ' + cross_rank)
-print('cross_size: ' + cross_size)
-print('local_rank: ' + local_rank)
-print('local_size: ' + local_size)
-print('size: ' + size)
-print('rank: ' + rank)
-print('hostname: ' + hostname)
+# print('JOB_NAME is ' + job_name)
+#
+# print('Horovod envs are as follows:')
+# print('controller: ' + controller)
+# print('operators: ' + operators)
+# print('timeout: ' + timeout)
+# print('rendez_port: ' + rendez_port)
+# print('rendez_addr: ' + rendez_addr)
+# print('cross_rank: ' + cross_rank)
+# print('cross_size: ' + cross_size)
+# print('local_rank: ' + local_rank)
+# print('local_size: ' + local_size)
+# print('size: ' + size)
+# print('rank: ' + rank)
+# print('hostname: ' + hostname)
 
 
 if not (controller and job_name and operators and timeout and rendez_addr and rendez_port and cross_rank and cross_size and local_rank and local_size and size and rank):

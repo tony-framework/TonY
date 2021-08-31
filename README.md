@@ -17,6 +17,7 @@ TonY itself is compatible with [Hadoop 2.6.0](https://hadoop.apache.org/docs/r2.
 
 ## Build
 
+
 TonY is built using [Gradle](https://github.com/gradle/gradle). To build TonY, run:
 
     ./gradlew build

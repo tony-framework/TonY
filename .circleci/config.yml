@@ -17,4 +17,4 @@ jobs:
     steps:
       - checkout
       # run tests!
-      - run: ./gradlew clean check --stacktrace --info
+      - run: ./gradlew :tony-core:test --tests com.linkedin.tony.TestTonyE2E.testTonyHorovodShouldPass --stacktrace --info
