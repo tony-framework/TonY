@@ -1078,7 +1078,6 @@ public class TonyClient implements AutoCloseable {
       }
 
       if (YarnApplicationState.FINISHED == appState || YarnApplicationState.FAILED == appState) {
-        updateTaskInfoAndReturn();
         LOG.info("-----  Application finished, status of ALL tasks -----");
         // log detailed task info including URL so that users can check the URL of failed worker
         // quickly without the need to scroll up to the top to find out the URL.
@@ -1089,6 +1088,7 @@ public class TonyClient implements AutoCloseable {
             tonyConf.get(TonyConfigurationKeys.TONY_PORTAL_URL, TonyConfigurationKeys.DEFAULT_TONY_PORTAL_URL);
         Utils.printTonyPortalUrl(tonyPortalUrl, appId.toString(), LOG);
         result = FinalApplicationStatus.SUCCEEDED == finalApplicationStatus;
+        signalAMToFinish();
         break;
       }
 
@@ -1103,7 +1103,6 @@ public class TonyClient implements AutoCloseable {
       }
     }
 
-    signalAMToFinish();
     return result;
   }
 

@@ -56,6 +56,11 @@ public class MiniCluster {
     yarnClusterConf = yarnCluster.getConfig();
     hdfsClusterConf = dfsCluster.getConfiguration(0);
     yarnClusterConf.setBoolean("ipc.client.fallback-to-simple-auth-allowed", true);
+    yarnClusterConf.setInt("ipc.client.connection.maxidletime", 1000);
+    yarnClusterConf.setInt("ipc.client.connect.max.retries", 3);
+    yarnClusterConf.setInt("ipc.client.connect.retry.interval", 10);
+    yarnClusterConf.setInt("ipc.client.connect.timeout", 1000);
+    yarnClusterConf.setInt("ipc.client.connect.max.retries.on.timeouts", 3);
     hdfsClusterConf.setBoolean("ipc.client.fallback-to-simple-auth-allowed", true);
   }
 
