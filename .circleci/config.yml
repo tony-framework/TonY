@@ -16,5 +16,6 @@ jobs:
 
     steps:
       - checkout
+      - run: sudo ln -sf /usr/bin/python3 /usr/bin/python
       # run tests!
       - run: ./gradlew clean check --stacktrace --info
