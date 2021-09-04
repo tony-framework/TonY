@@ -187,25 +187,14 @@ public class TestEventHandler {
       return result;
     }).when(eventHandlerThread).interrupt();
 
-    Thread emitterThread = new Thread(() -> {
-      // Ensure thread isn't blocked on writeEvent() after calling stop()
-      while (!Thread.currentThread().isInterrupted()) {
-        eventHandlerThread.emitEvent(eEventWrapper);
-      }
-    });
-
     eventHandlerThread.start();
     eventHandlerThread.stop(jobDir, metadata);
     eventHandlerThread.join();
-
-    emitterThread.interrupt();
-    emitterThread.join();
 
     if (gotUnexpectedInterrupt[0]) {
       fail("Unexpected interrupt.");
     }
     assertTrue(!eventHandlerThread.isAlive());
-    assertTrue(!emitterThread.isAlive());
     verify(writer).close();
 
     Utils.cleanupHDFSPath(fs.getConf(), jobDir);
