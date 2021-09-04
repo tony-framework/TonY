@@ -187,17 +187,19 @@ public class TestEventHandler {
       return result;
     }).when(eventHandlerThread).interrupt();
 
-    eventHandlerThread.start();
-    eventHandlerThread.stop(jobDir, metadata);
-    eventHandlerThread.join();
+    try {
+      eventHandlerThread.start();
+      eventHandlerThread.stop(jobDir, metadata);
+      eventHandlerThread.join();
+    } finally {
+      Utils.cleanupHDFSPath(fs.getConf(), jobDir);
+    }
 
     if (gotUnexpectedInterrupt[0]) {
       fail("Unexpected interrupt.");
     }
     assertTrue(!eventHandlerThread.isAlive());
     verify(writer).close();
-
-    Utils.cleanupHDFSPath(fs.getConf(), jobDir);
   }
 
   @AfterClass
