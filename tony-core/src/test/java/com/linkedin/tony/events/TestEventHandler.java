@@ -5,11 +5,16 @@
 package com.linkedin.tony.events;
 
 import com.linkedin.tony.models.JobMetadata;
+import com.linkedin.tony.util.HistoryFileUtils;
 import com.linkedin.tony.util.Utils;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.avro.file.DataFileWriter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -22,11 +27,14 @@ import org.testng.annotations.Test;
 import static com.linkedin.tony.util.ParserUtils.parseEvents;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
+import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
-
+import org.mockito.internal.util.reflection.FieldSetter;
 
 public class TestEventHandler {
   private FileSystem fs = null;
@@ -146,8 +154,56 @@ public class TestEventHandler {
     assertEquals(eventQueue.size(), 0);
   }
 
+  @Test
+  public void testCleanUp() throws IOException, NoSuchFieldException, SecurityException,
+      TimeoutException, InterruptedException {
+    final boolean[] gotUnexpectedInterrupt = new boolean[] { false };
+    final CountDownLatch latch = new CountDownLatch(1);
+
+    DataFileWriter<Event> writer = mock(DataFileWriter.class);
+    doAnswer(invocation -> {
+      try {
+        latch.await(5, TimeUnit.SECONDS); // Should unlock after interrupt is sent
+      } catch (InterruptedException e) {
+        gotUnexpectedInterrupt[0] = true;
+      }
+      return null;
+    }).when(writer).close();
+
+    Path inProgressHistFile = new Path(jobDir, HistoryFileUtils.generateFileName(metadata));
+    fs.create(inProgressHistFile);
+    eventHandlerThread = new EventHandler(fs, eventQueue);
+    FieldSetter.setField(eventHandlerThread,
+        eventHandlerThread.getClass().getDeclaredField("dataFileWriter"),
+        writer);
+    FieldSetter.setField(eventHandlerThread,
+        eventHandlerThread.getClass().getDeclaredField("inProgressHistFile"),
+        inProgressHistFile);
+
+    eventHandlerThread = spy(eventHandlerThread);
+    doAnswer(invocation -> {
+      Object result = invocation.callRealMethod();
+      latch.countDown();
+      return result;
+    }).when(eventHandlerThread).interrupt();
+
+    try {
+      eventHandlerThread.start();
+      eventHandlerThread.stop(jobDir, metadata);
+      eventHandlerThread.join();
+    } finally {
+      Utils.cleanupHDFSPath(fs.getConf(), jobDir);
+    }
+
+    if (gotUnexpectedInterrupt[0]) {
+      fail("Unexpected interrupt.");
+    }
+    assertTrue(!eventHandlerThread.isAlive());
+    verify(writer).close();
+  }
+
   @AfterClass
   public void cleanUp() throws IOException {
-    fs.delete(jobDir, true);
+    Utils.cleanupHDFSPath(fs.getConf(), jobDir);
   }
 }
