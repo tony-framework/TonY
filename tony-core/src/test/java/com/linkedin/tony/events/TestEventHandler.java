@@ -208,11 +208,11 @@ public class TestEventHandler {
     assertTrue(!emitterThread.isAlive());
     verify(writer).close();
 
-    fs.delete(jobDir, true);
+    Utils.cleanupHDFSPath(fs.getConf(), jobDir);
   }
 
   @AfterClass
   public void cleanUp() throws IOException {
-    fs.delete(jobDir, true);
+    Utils.cleanupHDFSPath(fs.getConf(), jobDir);
   }
 }
