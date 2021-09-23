@@ -125,6 +125,12 @@
     <value>true</value>
   </property>
 
+  <property>
+    <description>Timeout, in milliseconds for the user's python processes before forcibly killing them.</description>
+    <name>tony.task.executor.execution-timeout-ms</name>
+    <value>0</value>
+  </property>
+
   <!-- AM configurations -->
   <property>
     <description>How many times a failed AM should retry.</description>
@@ -180,13 +186,6 @@
     <description>Timeout, in milliseconds for allocated container registration before forcibly killing application.</description>
     <name>tony.container.registration.timeout</name>
     <value>-1</value>
-  </property>
-
-  <!-- Worker configurations -->
-  <property>
-    <description>Timeout, in milliseconds for the user's python processes before forcibly killing them.</description>
-    <name>tony.worker.timeout</name>
-    <value>0</value>
   </property>
 
   <property>

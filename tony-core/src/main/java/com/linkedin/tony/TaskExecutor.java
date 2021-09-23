@@ -254,8 +254,8 @@ public class TaskExecutor {
     amPort = Integer.parseInt(System.getenv(Constants.AM_PORT));
 
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
-    timeOut = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
-        TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
+    timeOut = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTION_TIMEOUT,
+        TonyConfigurationKeys.DEFAULT_TASK_EXECUTION_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
     String[] shellEnvs = tonyConf.getStrings(TonyConfigurationKeys.EXECUTION_ENV);
