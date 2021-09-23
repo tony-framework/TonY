@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -116,6 +117,7 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
              * So it's necessary to release reserved container resources on AM when containers allocation timeout reached in GANG mode.
              */
             if (containerAllocationTimeout(tonyConf)) {
+                session.setFinalStatus(FinalApplicationStatus.FAILED, "Container allocation timeout.");
                 return false;
             }
             return true;
