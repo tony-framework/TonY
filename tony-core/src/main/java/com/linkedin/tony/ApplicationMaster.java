@@ -109,7 +109,7 @@ public class ApplicationMaster {
 
   // Container info
   private int amRetryCount;
-  private long workerTimeout;
+  private long executionTimeout;
   private String hdfsClasspath;
   private int amPort;
   private ByteBuffer allTokens;
@@ -256,8 +256,8 @@ public class ApplicationMaster {
 
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
                                  TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
-    workerTimeout = tonyConf.getInt(TonyConfigurationKeys.WORKER_TIMEOUT,
-        TonyConfigurationKeys.DEFAULT_WORKER_TIMEOUT);
+    executionTimeout = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTION_TIMEOUT,
+        TonyConfigurationKeys.DEFAULT_TASK_EXECUTION_TIMEOUT);
     hdfsClasspath = cliParser.getOptionValue("hdfs_classpath");
     amRetryCount = tonyConf.getInt(TonyConfigurationKeys.AM_RETRY_COUNT,
         TonyConfigurationKeys.DEFAULT_AM_RETRY_COUNT);
@@ -808,7 +808,7 @@ public class ApplicationMaster {
     String taskCommand = tonyConf.get(TonyConfigurationKeys.getExecuteCommandKey(Constants.AM_NAME),
                 tonyConf.get(TonyConfigurationKeys.getContainerExecuteCommandKey()));
     LOG.info("Executing command: " + taskCommand);
-    int exitCode = Utils.executeShell(taskCommand, workerTimeout, extraEnv);
+    int exitCode = Utils.executeShell(taskCommand, executionTimeout, extraEnv);
 
     preprocessExitCode = exitCode;
     preprocessFinished = true;

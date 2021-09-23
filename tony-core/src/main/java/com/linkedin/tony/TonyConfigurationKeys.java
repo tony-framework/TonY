@@ -167,6 +167,9 @@ public class TonyConfigurationKeys {
   public static final String TASK_GPU_METRICS_ENABLED = TONY_TASK_PREFIX + "gpu-metrics.enabled";
   public static final boolean DEFAULT_TASK_GPU_METRICS_ENABLED = true;
 
+  public static final String TASK_EXECUTION_TIMEOUT = TONY_TASK_PREFIX + "executor.execution-timeout-ms";
+  public static final int DEFAULT_TASK_EXECUTION_TIMEOUT = 0;
+
   // AM configurations
   public static final String AM_PREFIX = TONY_PREFIX + "am.";
 
@@ -262,11 +265,6 @@ public class TonyConfigurationKeys {
   public static final int DEFAULT_CONTAINER_REGISTRATION_TIMEOUT = 15 * 60 * 1000;
   public static final String CONTAINER_ALLOCATION_TIMEOUT = CONTAINER_PREFIX + "allocation.timeout";
   public static final int DEFAULT_CONTAINER_ALLOCATION_TIMEOUT = 0;
-
-  // Worker configurations
-  public static final String WORKER_PREFIX = TONY_PREFIX + "worker.";
-  public static final String WORKER_TIMEOUT = WORKER_PREFIX + "timeout";
-  public static final int DEFAULT_WORKER_TIMEOUT = 0;
 
   // Job types that we don't wait to finish
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
