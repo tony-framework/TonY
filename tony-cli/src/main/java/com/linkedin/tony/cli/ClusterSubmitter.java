@@ -57,7 +57,7 @@ public class ClusterSubmitter extends TonySubmitter {
     Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
-      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, client.getTonyConf(), fs,
+      Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, client.getTonyConf(),
           LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       LOG.info("Copying " + jarLocation + " to: " + cachedLibPath);
       boolean sanityCheck = client.init(args);

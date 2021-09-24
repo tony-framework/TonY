@@ -6,7 +6,6 @@ package com.linkedin.tony;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -16,21 +15,21 @@ import java.io.IOException;
 public class TestLocalizableResource {
   @Test
   public void testLocalResourceParsing() throws IOException, ParseException {
-    FileSystem fs = FileSystem.get(new Configuration());
-    LocalizableResource resource = new LocalizableResource("tony-core/src/test/resources/test.zip", fs);
+    Configuration conf = new Configuration();
+    LocalizableResource resource = new LocalizableResource("tony-core/src/test/resources/test.zip", conf);
     Assert.assertNotNull(resource.toLocalResource().getResource());
     Assert.assertEquals(resource.getLocalizedFileName(), "test.zip");
 
-    LocalizableResource resource2 = new LocalizableResource("tony-core/src/test/resources/test.zip::ok.123", fs);
+    LocalizableResource resource2 = new LocalizableResource("tony-core/src/test/resources/test.zip::ok.123", conf);
     Assert.assertNotNull(resource2.toLocalResource().getResource());
     Assert.assertEquals(resource2.getLocalizedFileName(), "ok.123");
 
-    LocalizableResource resource3 = new LocalizableResource("tony-core/src/test/resources/test.zip::ok#archive", fs);
+    LocalizableResource resource3 = new LocalizableResource("tony-core/src/test/resources/test.zip::ok#archive", conf);
     Assert.assertNotNull(resource3.toLocalResource().getResource());
     Assert.assertSame(resource3.toLocalResource().getType(), LocalResourceType.ARCHIVE);
     Assert.assertEquals(resource3.getLocalizedFileName(), "ok");
 
-    LocalizableResource resource4 = new LocalizableResource("tony-core/src/test/resources/test.zip#archive", fs);
+    LocalizableResource resource4 = new LocalizableResource("tony-core/src/test/resources/test.zip#archive", conf);
     Assert.assertNotNull(resource4.toLocalResource().getResource());
     Assert.assertSame(resource4.toLocalResource().getType(), LocalResourceType.ARCHIVE);
     Assert.assertEquals(resource4.getLocalizedFileName(), "test.zip");

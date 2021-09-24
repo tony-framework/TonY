@@ -5,6 +5,7 @@
 package com.linkedin.tony;
 
 import org.apache.commons.cli.ParseException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -67,12 +68,12 @@ public class LocalizableResource {
     return localizedFileName;
   }
 
-  public LocalizableResource(String completeResourceString, FileSystem fs) throws ParseException, IOException  {
+  public LocalizableResource(String completeResourceString, Configuration conf) throws ParseException, IOException  {
     this.completeResourceString = completeResourceString;
-    this.parse(fs);
+    this.parse(conf);
   }
 
-  private void parse(FileSystem fs) throws ParseException, IOException {
+  private void parse(Configuration conf) throws ParseException, IOException {
     String filePath = completeResourceString;
     resourceType = LocalResourceType.FILE;
     if (completeResourceString.toLowerCase().endsWith(Constants.ARCHIVE_SUFFIX)) {
@@ -85,6 +86,7 @@ public class LocalizableResource {
         throw new ParseException("Failed to parse file: " + completeResourceString);
     }
     sourceFilePath = new Path(tuple[0]);
+    FileSystem fs = sourceFilePath.getFileSystem(conf);
     if (isLocalFile()) {
       FileSystem localFs = FileSystem.getLocal(fs.getConf());
       sourceFileStatus = localFs.getFileStatus(sourceFilePath);
