@@ -271,12 +271,12 @@ public class TonySession {
     // short circuit and immediately stop training if a worker failed.
     if (exitCode != ContainerExitStatus.SUCCESS && exitCode != ContainerExitStatus.KILLED_BY_APPMASTER) {
       if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName) || isFailOnWorkerFailure()) {
-        trainingFinished = true;
         String diagnostic = "Exit status: " + exitCode;
         if (taskDiagnosticMsg != null) {
           diagnostic += ". Error msg: " + taskDiagnosticMsg;
         }
         setFinalStatus(FinalApplicationStatus.FAILED, diagnostic);
+        trainingFinished = true;
       }
     }
   }
@@ -348,13 +348,15 @@ public class TonySession {
     return sessionFinalMessage;
   }
 
-  public FinalApplicationStatus getFinalStatus() {
+  public synchronized FinalApplicationStatus getFinalStatus() {
     return sessionFinalStatus;
   }
 
-  public void setFinalStatus(FinalApplicationStatus status, String message) {
-    sessionFinalStatus = status;
-    sessionFinalMessage = message;
+  public synchronized void setFinalStatus(FinalApplicationStatus status, String message) {
+    if (sessionFinalStatus == FinalApplicationStatus.UNDEFINED) {
+      sessionFinalStatus = status;
+      sessionFinalMessage = message;
+    }
   }
 
   private TonyTask getTask(String jobName, String taskIndex) {
