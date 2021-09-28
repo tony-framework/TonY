@@ -106,11 +106,11 @@ public class TaskScheduler {
   private Map<String, LocalResource> getContainerResources(String jobName) {
     Map<String, LocalResource> containerResources = new ConcurrentHashMap<>(localResources);
     String[] resources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(jobName));
-    Utils.addResources(resources, containerResources, resourceFs);
+    Utils.addResources(resources, containerResources, tonyConf);
 
     // All resources available to all containers
     resources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
-    Utils.addResources(resources, containerResources, resourceFs);
+    Utils.addResources(resources, containerResources, tonyConf);
     return containerResources;
   }
 

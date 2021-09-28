@@ -528,8 +528,12 @@ public class Utils {
   }
 
   public static void cleanupHDFSPath(Configuration hdfsConf, Path path) {
-    try (FileSystem fs = FileSystem.get(hdfsConf)) {
-      if (path != null && fs.exists(path)) {
+    if (path == null) {
+      return;
+    }
+
+    try (FileSystem fs = path.getFileSystem(hdfsConf)) {
+      if (fs.exists(path)) {
         fs.delete(path, true);
       }
     } catch (IOException e) {
@@ -550,12 +554,12 @@ public class Utils {
    * @param resources  List of resource paths to process. If a resource is a directory,
    *                   its immediate files will be added.
    * @param resourcesMap  map where resource path to {@Link LocalResource} mapping will be added
-   * @param fs  {@link FileSystem} used to list the resources
+   * @param conf The Hadoop configuration
    */
-  public static void addResources(String[] resources, Map<String, LocalResource> resourcesMap, FileSystem fs) {
+  public static void addResources(String[] resources, Map<String, LocalResource> resourcesMap, Configuration conf) {
     if (null != resources) {
       for (String dir : resources) {
-        Utils.addResource(dir, resourcesMap, fs);
+        Utils.addResource(dir, resourcesMap, conf);
       }
     }
   }
@@ -565,22 +569,22 @@ public class Utils {
    * to the local resources. Note that we don't add nested files.
    * @param path the directory whose contents will be localized.
    * @param resourcesMap map where resource path to {@link LocalResource} mapping will be added
-   * @param fs the filesystem instance used to read the {@code path}.
+   * @param conf The hadoop configuration.
    */
-  public static void addResource(String path, Map<String, LocalResource> resourcesMap, FileSystem fs) {
+  public static void addResource(String path, Map<String, LocalResource> resourcesMap, Configuration conf) {
     try {
       if (path != null) {
         // Check the format of the path, if the path is of path#archive, we set resource type as ARCHIVE
-        LocalizableResource localizableResource = new LocalizableResource(path, fs);
+        LocalizableResource localizableResource = new LocalizableResource(path, conf);
         if (localizableResource.isDirectory()) {
           Path dirpath = localizableResource.getSourceFilePath();
-          FileStatus[] ls = fs.listStatus(dirpath);
+          FileStatus[] ls = dirpath.getFileSystem(conf).listStatus(dirpath);
           for (FileStatus fileStatus : ls) {
             // We only add first level files.
             if (fileStatus.isDirectory()) {
               continue;
             }
-            addResource(fileStatus.getPath().toString(), resourcesMap, fs);
+            addResource(fileStatus.getPath().toString(), resourcesMap, conf);
           }
         } else {
           resourcesMap.put(localizableResource.getLocalizedFileName(), localizableResource.toLocalResource());
@@ -690,11 +694,11 @@ public class Utils {
   }
 
   public static void uploadFileAndSetConfResources(Path hdfsPath, Path filePath, String fileName,
-                                                   Configuration tonyConf, FileSystem fs,
-                                                   LocalResourceType resourceType, String resourceKey) throws IOException {
+                                                   Configuration tonyConf, LocalResourceType resourceType,
+                                                   String resourceKey) throws IOException {
     Path dst = new Path(hdfsPath, fileName);
     HdfsUtils.copySrcToDest(filePath, dst, tonyConf);
-    fs.setPermission(dst, new FsPermission((short) 0770));
+    dst.getFileSystem(tonyConf).setPermission(dst, new FsPermission((short) 0770));
     String dstAddress = dst.toString();
     if (resourceType == LocalResourceType.ARCHIVE) {
       dstAddress += Constants.ARCHIVE_SUFFIX;

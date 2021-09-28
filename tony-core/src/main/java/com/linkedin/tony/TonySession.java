@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
@@ -121,8 +120,7 @@ public class TonySession {
 
     try {
       if (hdfsClasspathDir != null) {
-        FileSystem fs = FileSystem.get(new URI(hdfsClasspathDir), hdfsConf);
-        Utils.addResource(hdfsClasspathDir, localResources, fs);
+        Utils.addResource(hdfsClasspathDir, localResources, hdfsConf);
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

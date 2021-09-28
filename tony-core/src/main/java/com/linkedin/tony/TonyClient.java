@@ -230,28 +230,27 @@ public class TonyClient implements AutoCloseable {
 
   @VisibleForTesting
   public String processFinalTonyConf() throws IOException, ParseException {
-    FileSystem fs = FileSystem.get(hdfsConf);
     String tonySrcZipName = Utils.getTonySrcZipName(appId.toString());
     if (srcDir != null) {
       if (Utils.isArchive(srcDir)) {
         Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(srcDir),
-            tonySrcZipName, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+            tonySrcZipName, tonyConf, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       } else {
         Utils.zipFolder(Paths.get(srcDir), Paths.get(tonySrcZipName));
         Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(tonySrcZipName),
-            tonySrcZipName, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+            tonySrcZipName, tonyConf, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
       }
     }
     this.tonySrcZipPath = tonySrcZipName;
 
     if (pythonVenv != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath,
-          new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, fs, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+          new Path(pythonVenv), Constants.PYTHON_VENV_ZIP, tonyConf, LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
 
     if (sidecarTBScriptPath != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath,
-              new Path(sidecarTBScriptPath), SIDECAR_TB_SCIRPT_FILE_NAME, tonyConf, fs, LocalResourceType.FILE,
+              new Path(sidecarTBScriptPath), SIDECAR_TB_SCIRPT_FILE_NAME, tonyConf, LocalResourceType.FILE,
               TonyConfigurationKeys.getContainerResourcesKey());
     }
 
@@ -259,13 +258,13 @@ public class TonyClient implements AutoCloseable {
     URL coreSiteUrl = yarnConf.getResource(Constants.CORE_SITE_CONF);
     if (coreSiteUrl != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath, new Path(coreSiteUrl.getPath()),
-          Constants.CORE_SITE_CONF, tonyConf, fs, LocalResourceType.FILE,
+          Constants.CORE_SITE_CONF, tonyConf, LocalResourceType.FILE,
           TonyConfigurationKeys.getContainerResourcesKey());
     }
 
     addConfToResources(yarnConf, yarnConfAddress, Constants.YARN_SITE_CONF);
     addConfToResources(hdfsConf, hdfsConfAddress, Constants.HDFS_SITE_CONF);
-    processTonyConfResources(tonyConf, fs);
+    processTonyConfResources(tonyConf);
 
     // Update map reduce framework configuration so that the AM won't need to resolve it again.
     if (!hadoopFrameworkClasspath.isEmpty()) {
@@ -373,7 +372,7 @@ public class TonyClient implements AutoCloseable {
     }
     if (confSitePath != null) {
       Utils.uploadFileAndSetConfResources(appResourcesPath, confSitePath, confFileName, tonyConf,
-          FileSystem.get(hdfsConf), LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
+        LocalResourceType.FILE, TonyConfigurationKeys.getContainerResourcesKey());
     }
   }
 
@@ -707,7 +706,7 @@ public class TonyClient implements AutoCloseable {
    *  address of the uploaded file.
    **/
   @VisibleForTesting
-  public void processTonyConfResources(Configuration tonyConf, FileSystem fs) throws IOException, ParseException {
+  public void processTonyConfResources(Configuration tonyConf) throws IOException, ParseException {
     Set<String> resourceKeys = tonyConf.getValByRegex(TonyConfigurationKeys.RESOURCES_REGEX).keySet();
     for (String resourceKey : resourceKeys) {
       String[] resources = tonyConf.getStrings(resourceKey);
@@ -722,7 +721,7 @@ public class TonyClient implements AutoCloseable {
         // non-existent once
         LocalizableResource lr;
         try {
-          lr = new LocalizableResource(resource, fs);
+          lr = new LocalizableResource(resource, tonyConf);
         } catch (FileNotFoundException ex) {
           if (hdfsClasspath.contains(resource)) {
             LOG.warn("HDFS classpath does not exist for: " + resource);
@@ -747,13 +746,13 @@ public class TonyClient implements AutoCloseable {
                   localFilePath,
                   lr.getLocalizedFileName(),
                   tonyConf,
-                  fs, LocalResourceType.ARCHIVE, resourceKey);
+                  LocalResourceType.ARCHIVE, resourceKey);
             } else {
               Utils.uploadFileAndSetConfResources(appResourcesPath,
                   localFilePath,
                   lr.getLocalizedFileName(),
                   tonyConf,
-                  fs, LocalResourceType.FILE, resourceKey);
+                  LocalResourceType.FILE, resourceKey);
             }
           } else {
             // file is directory
@@ -766,7 +765,7 @@ public class TonyClient implements AutoCloseable {
                   new Path(dest.toString()),
                   lr.getLocalizedFileName(),
                   tonyConf,
-                  fs, LocalResourceType.ARCHIVE, resourceKey);
+                  LocalResourceType.ARCHIVE, resourceKey);
             } finally {
               try {
                 FileUtils.deleteDirectory(tmpDir);
@@ -872,17 +871,17 @@ public class TonyClient implements AutoCloseable {
   public ContainerLaunchContext createAMContainerSpec(long amMemory, ByteBuffer tokens) throws IOException {
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
-    FileSystem fs = FileSystem.get(hdfsConf);
+    FileSystem fs = new Path(tonyFinalConfPath).getFileSystem(hdfsConf);
     Map<String, LocalResource> localResources = new HashMap<>();
     addResource(fs, tonyFinalConfPath, LocalResourceType.FILE, Constants.TONY_FINAL_XML, localResources);
 
     // Add AM resources
     String[] amResources = tonyConf.getStrings(TonyConfigurationKeys.getResourcesKey(Constants.AM_NAME));
-    Utils.addResources(amResources, localResources, fs);
+    Utils.addResources(amResources, localResources, hdfsConf);
 
     // Add resources for all containers
     amResources = tonyConf.getStrings(TonyConfigurationKeys.getContainerResourcesKey());
-    Utils.addResources(amResources, localResources, fs);
+    Utils.addResources(amResources, localResources, hdfsConf);
 
     setAMEnvironment(localResources, fs);
 
@@ -1259,8 +1258,9 @@ public class TonyClient implements AutoCloseable {
     String[] allHdfsClasspaths = rawHdfsClasspaths.split(",");
     for (int i = 0; i < allHdfsClasspaths.length; i++) {
       String validPath = allHdfsClasspaths[i];
-      if (validPath != null && !validPath.startsWith(FileSystem.get(hdfsConf).getScheme())) {
-        validPath = FileSystem.getDefaultUri(hdfsConf) + validPath;
+      FileSystem fs = new Path(validPath).getFileSystem(hdfsConf);
+      if (validPath != null && !validPath.startsWith(fs.getScheme())) {
+        validPath = fs.getUri() + validPath;
       }
       Utils.appendConfResources(TonyConfigurationKeys.getContainerResourcesKey(), validPath, tonyConf);
       allHdfsClasspaths[i] = validPath;
