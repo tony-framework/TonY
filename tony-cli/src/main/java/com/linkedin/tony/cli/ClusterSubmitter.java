@@ -41,6 +41,8 @@ import static com.linkedin.tony.Constants.TONY_JAR_NAME;
 public class ClusterSubmitter extends TonySubmitter {
   private static final Log LOG = LogFactory.getLog(ClusterSubmitter.class);
   private TonyClient client;
+  private Path cachedLibPath;
+  private Configuration hdfsConf = new Configuration();
 
   public ClusterSubmitter(TonyClient client) {
     this.client = client;
@@ -49,12 +51,10 @@ public class ClusterSubmitter extends TonySubmitter {
   public int submit(String[] args) throws ParseException, URISyntaxException {
     LOG.info("Starting ClusterSubmitter..");
     String jarLocation = new File(ClusterSubmitter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
-    Configuration hdfsConf = new Configuration();
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + CORE_SITE_CONF));
     hdfsConf.addResource(new Path(System.getenv(HADOOP_CONF_DIR) + File.separatorChar + HDFS_SITE_CONF));
     LOG.info(hdfsConf);
     int exitCode;
-    Path cachedLibPath = null;
     try (FileSystem fs = FileSystem.get(hdfsConf)) {
       cachedLibPath = new Path(fs.getHomeDirectory(), TONY_FOLDER + Path.SEPARATOR + UUID.randomUUID().toString());
       Utils.uploadFileAndSetConfResources(cachedLibPath, new Path(jarLocation), TONY_JAR_NAME, client.getTonyConf(),
@@ -66,13 +66,7 @@ public class ClusterSubmitter extends TonySubmitter {
         return -1;
       }
       // ensure application is killed when this process terminates
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        try {
-          client.forceKillApplication();
-        } catch (YarnException | IOException e) {
-          LOG.error("Failed to kill application during shutdown.", e);
-        }
-      }));
+      addShutdownHook();
       exitCode = client.start();
     } catch (IOException e) {
       LOG.fatal("Failed to create FileSystem: ", e);
@@ -81,6 +75,18 @@ public class ClusterSubmitter extends TonySubmitter {
       Utils.cleanupHDFSPath(hdfsConf, cachedLibPath);
     }
     return exitCode;
+  }
+
+  private void addShutdownHook() {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try {
+        client.forceKillApplication();
+        client.close();
+        Utils.cleanupHDFSPath(hdfsConf, cachedLibPath);
+      } catch (YarnException | IOException e) {
+        LOG.error("Failed to kill application during shutdown.", e);
+      }
+    }));
   }
 
   public static void main(String[] args) throws ParseException, URISyntaxException {
