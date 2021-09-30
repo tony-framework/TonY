@@ -192,6 +192,13 @@ public class TonySession {
         .flatMap(entry -> Arrays.stream(entry.getValue())).filter(task -> task != null && task.isCompleted()).count();
   }
 
+  public int getNotCompletedTrackedTasks(String jobType) {
+    return (int) jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeMonitored(entry.getKey(), tonyConf))
+            .filter(entry -> entry.getKey().equals(jobType))
+            .flatMap(entry -> Arrays.stream(entry.getValue()))
+            .filter(task -> task == null || !task.isCompleted()).count();
+  }
+
   public int getNumFailedTasks() {
     return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task != null && task.isFailed()).count();
   }

@@ -334,4 +334,14 @@ public class TonyConfigurationKeys {
 
   public static final String TB_GPUS = TB_JOB_PREFIX + "gpus";
   public static final int DEFAULT_TB_GPUS = 0;
+
+  public static final String TASK_RUN_ALONE_TIMEOUT = TONY_APPLICATION_PREFIX + "([a-z]+)\\.run-alone.timeout";
+  public static final int DEFAULT_TASK_RUN_ALONE_TIMEOUT = 0;
+
+  public static String getTaskRunAloneTimeoutKey(String type) {
+    return String.format(TONY_APPLICATION_PREFIX +  "%s.run-alone.timeout", type);
+  }
+
+  public static final String TASK_SUCCEEDED_ON_RUN_ALONE_TIMEOUT_JOBTYPES =
+          TONY_APPLICATION_PREFIX + "succeeded-on-run-alone-timeout.jobtypes";
 }

@@ -459,6 +459,27 @@ public class Utils {
         .sum();
   }
 
+  public static Map<String, Long> getRunAloneJobTypesWithTimeout(Configuration conf) {
+    return conf.getValByRegex(TonyConfigurationKeys.TASK_RUN_ALONE_TIMEOUT)
+        .keySet().stream().map(Utils::getRunAloneTaskTypes)
+        .collect(Collectors.toMap(type -> type, type -> conf.getLong(TonyConfigurationKeys.getTaskRunAloneTimeoutKey(type), 0)));
+  }
+
+  public static Set<String> getSucceededOnRunAloneJobTimeout(Configuration conf) {
+    return Arrays.stream(conf.getStrings(TonyConfigurationKeys.TASK_SUCCEEDED_ON_RUN_ALONE_TIMEOUT_JOBTYPES))
+        .collect(Collectors.toSet());
+  }
+
+  private static String getRunAloneTaskTypes(String confKey) {
+    Pattern instancePattern = Pattern.compile(TonyConfigurationKeys.TASK_RUN_ALONE_TIMEOUT);
+    Matcher instanceMatcher = instancePattern.matcher(confKey);
+    if (instanceMatcher.matches()) {
+      return instanceMatcher.group(1);
+    } else {
+      return null;
+    }
+  }
+
   /**
    * Extracts TensorFlow job name from configuration key of the form "tony.*.instances".
    * @param confKey Name of the configuration key

@@ -16,6 +16,10 @@
 package com.linkedin.tony.runtime;
 
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
 import com.linkedin.tony.Constants;
 import com.linkedin.tony.Framework;
@@ -23,11 +27,18 @@ import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.util.Utils;
 
+import static com.linkedin.tony.Constants.EVALUATOR_JOB_NAME;
+
 public class TFRuntime extends MLGenericRuntime {
 
     @Override
     public Framework.TaskExecutorAdapter getTaskAdapter(TaskExecutor taskExecutor) {
         return new TFTaskExecutor(taskExecutor);
+    }
+
+    @Override
+    public Framework.ApplicationMasterAdapter getAMAdapter() {
+        return new TFApplicationMaster();
     }
 
     @Override
@@ -56,6 +67,46 @@ public class TFRuntime extends MLGenericRuntime {
                         Utils.constructTFConfig(executor.getClusterSpec(), executor.getJobName(), executor.getTaskIndex())
                 );
             }
+        }
+    }
+
+    class TFApplicationMaster extends AM {
+        private long evaluatorAloneStartTime = 0;
+
+        @Override
+        public boolean isHealthy(Configuration tonyConf) {
+            if (!super.isHealthy(tonyConf)) {
+                return false;
+            }
+
+            // If evaluator run alone and exceed timeout, job will fail and release resources.
+            Map<String, Long> jobTypes = Utils.getRunAloneJobTypesWithTimeout(tonyConf);
+            if (!jobTypes.containsKey(EVALUATOR_JOB_NAME)) {
+                return true;
+            }
+
+            int notCompletedTrackedTasks = session.getTotalTrackedTasks() - session.getNumCompletedTrackedTasks();
+            if (session.getNotCompletedTrackedTasks(EVALUATOR_JOB_NAME) == notCompletedTrackedTasks) {
+                if (evaluatorAloneStartTime == 0) {
+                    evaluatorAloneStartTime = System.currentTimeMillis();
+                } else {
+                    long timeout = jobTypes.get(EVALUATOR_JOB_NAME);
+                    if (System.currentTimeMillis() - evaluatorAloneStartTime > timeout) {
+                        Set<String> types = Utils.getSucceededOnRunAloneJobTimeout(tonyConf);
+                        if (types.contains(EVALUATOR_JOB_NAME)) {
+                            session.setFinalStatus(FinalApplicationStatus.SUCCEEDED,
+                                    "Evaluator run alone and exceed timeout, make job success due to the conf of "
+                                            + TonyConfigurationKeys.TASK_SUCCEEDED_ON_RUN_ALONE_TIMEOUT_JOBTYPES);
+                        } else {
+                            session.setFinalStatus(FinalApplicationStatus.FAILED,
+                                    "Evaluator run alone and exceed timeout, make job failed");
+                        }
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }
