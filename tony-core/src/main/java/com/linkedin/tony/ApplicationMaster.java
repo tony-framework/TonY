@@ -1002,6 +1002,12 @@ public class ApplicationMaster {
       }
     }
 
+    // To support Hadoop transparent encryption, the secret key also needs to be passed
+    // to the containers so the encrypted content can be decrypted.
+    for (Text alias : amCred.getAllSecretKeys()) {
+      containersCred.addSecretKey(alias, amCred.getSecretKey(alias));
+    }
+
     DataOutputBuffer dob = new DataOutputBuffer();
     containersCred.writeTokenStorageToStream(dob);
     allTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());

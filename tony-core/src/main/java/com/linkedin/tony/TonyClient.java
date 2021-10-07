@@ -982,10 +982,11 @@ public class TonyClient implements AutoCloseable {
       return null;
     }
     LOG.info("Running with secure cluster mode. Fetching delegation tokens..");
-    Credentials cred = new Credentials();
+    Credentials cred = new Credentials(UserGroupInformation.getCurrentUser().getCredentials());
     String fileLocation = System.getenv(UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION);
     if (fileLocation != null) {
-      cred = Credentials.readTokenStorageFile(new File(fileLocation), hdfsConf);
+      Credentials fileCredentials = Credentials.readTokenStorageFile(new File(fileLocation), hdfsConf);
+      cred.addAll(fileCredentials);
     } else {
       // Tokens have not been pre-written. We need to grab the tokens ourselves.
       LOG.info("Fetching RM delegation token..");
