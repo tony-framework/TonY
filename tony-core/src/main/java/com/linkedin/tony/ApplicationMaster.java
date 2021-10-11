@@ -175,8 +175,6 @@ public class ApplicationMaster {
   private final AbstractLivelinessMonitor<TonyTask> hbMonitor;
   private int hbInterval;
   private int maxConsecutiveHBMiss;
-  private volatile boolean taskHasMissesHB = false;
-  private Thread mainThread;
 
   /** Task Scheduler **/
   private TaskScheduler scheduler;
@@ -363,7 +361,6 @@ public class ApplicationMaster {
       return false;
     }
 
-    mainThread = Thread.currentThread();
     // Set up the builder with parameters that don't change
     JobMetadata.Builder metadataBuilder = new JobMetadata.Builder()
         .setId(appIdString)
@@ -618,7 +615,6 @@ public class ApplicationMaster {
 
     // Reset the flags that indicate failure.
     untrackedTaskFailed = false;
-    taskHasMissesHB = false;
 
     // Reset session
     session = sessionBuilder.build();
@@ -661,11 +657,6 @@ public class ApplicationMaster {
 
       if (singleNode && preprocessFinished) {
         LOG.info("Single node training finished with exit code: " + preprocessExitCode);
-        break;
-      }
-
-      if (this.taskHasMissesHB) {
-        LOG.error("Application failed due to missed heartbeats");
         break;
       }
 
@@ -1230,44 +1221,44 @@ public class ApplicationMaster {
     String msg = "Task with id [" + task.getId() + "] has missed"
         + " [" + maxConsecutiveHBMiss + "] heartbeats. Ending application!";
     LOG.error(msg);
-    taskHasMissesHB = true;
-    session.setFinalStatus(FinalApplicationStatus.FAILED, msg);
-    mainThread.interrupt();
+    handleFinishedTask(task, ContainerExitStatus.INVALID, msg);
+  }
+
+  private void handleFinishedTask(TonyTask task, int exitStatus, String diagnosticMsg) {
+    // Ignore tasks from past sessions.
+    if (task.getSessionId() != session.sessionId) {
+      return;
+    }
+    session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus, diagnosticMsg);
+    hbMonitor.unregister(task);
+
+    scheduler.registerDependencyCompleted(task.getJobName());
+    if (ContainerExitStatus.SUCCESS != exitStatus) {
+      eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
+              new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+                      task.getTaskInfo().getStatus().toString(),
+                      metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex())),
+                      diagnosticMsg), System.currentTimeMillis()));
+    } else {
+      eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
+              new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
+                      task.getTaskInfo().getStatus().toString(),
+                      metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex())), "NA"),
+              System.currentTimeMillis()));
+    }
+
+    // Detect if an untracked task has crashed to prevent application hangups.
+    boolean fastFail = Utils.isUntrackedJobType(task.getJobName(), tonyConf) && task.isFailed();
+    if (fastFail) {
+      untrackedTaskFailed = true;
+    }
   }
 
   private void processFinishedContainer(ContainerId containerId, int exitStatus, String diagnosticMessage) {
     TonyTask task = session.getTask(containerId);
     if (task != null) {
-      // Ignore tasks from past sessions.
-      if (task.getSessionId() != session.sessionId) {
-        return;
-      }
-
       LOG.info("Container " + containerId + " for task " + task + " finished with exitStatus " + exitStatus + ".");
-      session.onTaskCompleted(task.getJobName(), task.getTaskIndex(), exitStatus, diagnosticMessage);
-      hbMonitor.unregister(task);
-
-      scheduler.registerDependencyCompleted(task.getJobName());
-      if (ContainerExitStatus.SUCCESS != exitStatus) {
-        eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
-            new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
-                task.getTaskInfo().getStatus().toString(),
-                metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex())),
-                diagnosticMessage), System.currentTimeMillis()));
-      } else {
-        eventHandler.emitEvent(new Event(EventType.TASK_FINISHED,
-            new TaskFinished(task.getJobName(), Integer.parseInt(task.getTaskIndex()),
-                task.getTaskInfo().getStatus().toString(),
-                metricsRpcServer.getMetrics(task.getJobName(), Integer.parseInt(task.getTaskIndex())), "NA"),
-            System.currentTimeMillis()));
-      }
-
-      // Detect if an untracked task has crashed to prevent application hangups.
-      boolean fastFail = Utils.isUntrackedJobType(task.getJobName(), tonyConf) && task.isFailed();
-      if (fastFail) {
-        untrackedTaskFailed = true;
-      }
-
+      handleFinishedTask(task, exitStatus, diagnosticMessage);
     } else {
       LOG.warn("No task found for container : [" + containerId + "]!");
     }
