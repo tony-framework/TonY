@@ -159,7 +159,7 @@ public class ApplicationMaster {
   private boolean enablePreprocessing = false;
 
   /** Untracked jobs **/
-  private boolean untrackedTaskFailed = false;
+  private volatile boolean untrackedTaskFailed = false;
 
   /** Lifecycle control **/
   private long appTimeout;
