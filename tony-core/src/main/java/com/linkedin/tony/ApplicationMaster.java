@@ -192,6 +192,8 @@ public class ApplicationMaster {
   private String frameworkType;
   private Framework.ApplicationMasterAdapter amRuntimeAdapter;
 
+  private long allTrackedTaskFinishedTime;
+
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
@@ -620,6 +622,8 @@ public class ApplicationMaster {
     session = sessionBuilder.build();
     applicationRpcServer.reset();
     session.sessionId += 1;
+
+    allTrackedTaskFinishedTime = 0L;
   }
 
   /**
@@ -687,18 +691,10 @@ public class ApplicationMaster {
         break;
       }
 
-      int numTotalTrackedTasks = session.getTotalTrackedTasks();
-      if (numTotalTrackedTasks > 0) {
-        int numCompletedTrackedTasks = session.getNumCompletedTrackedTasks();
-        if (numCompletedTrackedTasks == numTotalTrackedTasks) {
-          Utils.printCompletedTrackedTasks(numCompletedTrackedTasks, numTotalTrackedTasks);
-          break;
-        }
-
-        // Reduce logging frequency to every 100s.
-        if (counter % 20 == 1) {
-          Utils.printCompletedTrackedTasks(numCompletedTrackedTasks, numTotalTrackedTasks);
-        }
+      // Handle job exit when all tracked tasks finished
+      if (allTrackedTaskFinished(counter)) {
+        LOG.info("Application finished due to all tracked executors finished.");
+        break;
       }
 
       // Pause before refresh job status
@@ -716,6 +712,61 @@ public class ApplicationMaster {
       LOG.info("Tony session failed: " + appMessage);
     }
     return status == FinalApplicationStatus.SUCCEEDED;
+  }
+
+  private boolean allTrackedTaskFinished(int counter) {
+    int numTotalTrackedTasks = session.getTotalTrackedTasks();
+    if (numTotalTrackedTasks > 0) {
+      int numCompletedTrackedTasks = session.getNumCompletedTrackedTasks();
+      if (numCompletedTrackedTasks == numTotalTrackedTasks) {
+        if (allTrackedTaskFinishedTime == 0L) {
+          allTrackedTaskFinishedTime = System.currentTimeMillis();
+        }
+
+        if (!waitUntrackedTaskWithTimeout()) {
+          Utils.printCompletedTrackedTasks(numCompletedTrackedTasks, numTotalTrackedTasks);
+          return true;
+        }
+      }
+
+      // Reduce logging frequency to every 100s.
+      if (counter % 20 == 1) {
+        Utils.printCompletedTrackedTasks(numCompletedTrackedTasks, numTotalTrackedTasks);
+      }
+    }
+
+    return false;
+  }
+
+  private boolean waitUntrackedTaskWithTimeout() {
+    Map<String, Long> untrackedTaskTimeoutIndex = Utils.getUntrackedTaskWithTimeouts(tonyConf);
+    if (untrackedTaskTimeoutIndex == null || untrackedTaskTimeoutIndex.size() <= 0) {
+      return false;
+    }
+
+    int finishedJobtypeSize = 0;
+    for (Map.Entry<String, Long> untrackedTask : untrackedTaskTimeoutIndex.entrySet()) {
+      String jobtype = untrackedTask.getKey();
+      Long timeout = untrackedTask.getValue();
+
+      // When untracked task finished, ignore timeout
+      if (session.isAllTasksCompletedWithJobtype(jobtype)) {
+        LOG.info("Untracked job type: [" + jobtype + "] has finished.");
+        finishedJobtypeSize += 1;
+        continue;
+      }
+
+      // If waited time > timeout, it will return false directly.
+      if (System.currentTimeMillis() - allTrackedTaskFinishedTime > timeout) {
+        LOG.info("Untracked job type: [" + jobtype + "] exceed timeout of " + timeout + " and app will finish.");
+        return false;
+      }
+    }
+
+    if (finishedJobtypeSize == untrackedTaskTimeoutIndex.size()) {
+      return false;
+    }
+    return true;
   }
 
   /**

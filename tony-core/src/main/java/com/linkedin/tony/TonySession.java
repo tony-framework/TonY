@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -190,6 +191,13 @@ public class TonySession {
   public int getNumCompletedTrackedTasks() {
     return (int) jobTasks.entrySet().stream().filter(entry -> Utils.isJobTypeMonitored(entry.getKey(), tonyConf))
         .flatMap(entry -> Arrays.stream(entry.getValue())).filter(task -> task != null && task.isCompleted()).count();
+  }
+
+  public boolean isAllTasksCompletedWithJobtype(String jobType) {
+    long taskSize = jobTasks.entrySet().stream().filter(entry -> entry.getKey().equals(jobType)).count();
+    long finishedSize = jobTasks.entrySet().stream().filter(entry -> entry.getKey().equals(jobType))
+            .flatMap(entry -> Arrays.stream(entry.getValue())).filter(task -> task != null && task.isCompleted()).count();
+    return  finishedSize == taskSize;
   }
 
   public int getNumFailedTasks() {

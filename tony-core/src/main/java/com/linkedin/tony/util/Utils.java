@@ -459,6 +459,19 @@ public class Utils {
         .sum();
   }
 
+  public static Map<String, Long> getUntrackedTaskWithTimeouts(Configuration conf) {
+    Map<String, String> map = conf.getValByRegex(TonyConfigurationKeys.UNTRACKED_JOBTYPE_TIMEOUT_REGEX);
+    return map.entrySet().stream()
+            .collect(Collectors.toMap(entry -> {
+              Matcher matcher = Pattern.compile(TonyConfigurationKeys.UNTRACKED_JOBTYPE_TIMEOUT_REGEX).matcher(entry.getKey());
+              if (matcher.matches()) {
+                return matcher.group(1);
+              } else {
+                return null;
+              }
+            }, entry -> Long.valueOf(entry.getValue())));
+  }
+
   /**
    * Extracts TensorFlow job name from configuration key of the form "tony.*.instances".
    * @param confKey Name of the configuration key

@@ -260,6 +260,17 @@ public class TestUtils {
   }
 
   @Test
+  public void testGetUntrackedTaskTimeout() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.set("tony.application.untracked.jobtypes", "ps,evaluator,worker");
+    conf.setLong("tony.application.worker.untracked.timeout", 1000);
+
+    long timeout = Utils.getUntrackedTaskWithTimeouts(conf).get("worker");
+    assertEquals(timeout, 1000);
+  }
+
+  @Test
   public void testGetNumTotalTasks() {
     Configuration conf = new Configuration();
     conf.addResource("tony-default.xml");

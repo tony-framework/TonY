@@ -270,6 +270,10 @@ public class TonyConfigurationKeys {
   public static final String UNTRACKED_JOBTYPES = TONY_APPLICATION_PREFIX + "untracked.jobtypes";
   public static final String UNTRACKED_JOBTYPES_DEFAULT = "ps";
 
+  // Specified untracked job type timeout when all tracked tasks finished
+  public static final String UNTRACKED_JOBTYPE_TIMEOUT_REGEX = TONY_APPLICATION_PREFIX + "([a-z]+)\\.untracked.timeout";
+  public static final long UNTRACKED_JOBTYPE_TIMEOUT_DEFAULT = 0;
+
   // Job types that we don't wait to finish and ignore its failure.
   public static final String SIDECAR_JOBTYPES = TONY_APPLICATION_PREFIX + "sidecar.jobtypes";
   public static final String DEFAULT_SIDECAR_JOBTYPES = SIDECAR_TB_ROLE_NAME;

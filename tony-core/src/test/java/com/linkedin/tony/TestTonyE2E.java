@@ -604,6 +604,77 @@ public class TestTonyE2E  {
   }
 
   /**
+   * Test untracked tasks specified timeout of 60s.
+   * The untracked task will block all time and it will finished until tracked task finished 60s
+   */
+  @Test
+  public void testUntrackedTaskTimeout60sShouldPass() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.ps.instances=1",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.ps.command=python sleep_all.py",
+            "--conf", "tony.worker.command=python sleep_30.py",
+            "--conf", "tony.application.untracked.jobtypes=ps",
+            "--conf", "tony.application.ps.untracked.timeout=60000"
+    });
+
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+
+  /**
+   * Test untracked tasks specified timeout of 60s.
+   * But the untracked task will exit 0 quickly
+   * This case to verify the untracked-timeout-mechanism no block job finish
+   */
+  @Test
+  public void testUntrackedTaskFinishedShouldPass() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.ps.instances=1",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.ps.command=python exit_0.py",
+            "--conf", "tony.worker.command=python sleep_30.py",
+            "--conf", "tony.application.untracked.jobtypes=ps",
+            "--conf", "tony.application.ps.untracked.timeout=60000"
+    });
+
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+  @Test
+  public void testUntrackedTaskFailedShouldFail() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.chief.instances=1",
+            "--conf", "tony.ps.instances=1",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.ps.command=python sleep_all.py",
+            "--conf", "tony.worker.command=python exit_1.py",
+            "--conf", "tony.chief.command=python sleep_30.py",
+            "--conf", "tony.application.untracked.jobtypes=ps,worker"
+    });
+
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+  }
+
+  /**
    * When enable the sidecar tensorboard, it will start the sidecar executor(tensorboard role).
    */
   @Test
