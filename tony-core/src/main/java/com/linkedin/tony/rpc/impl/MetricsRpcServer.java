@@ -4,11 +4,11 @@
  */
 package com.linkedin.tony.rpc.impl;
 
-import com.linkedin.tony.ServerPortHolder;
 import com.linkedin.tony.TonyPolicyProvider;
 import com.linkedin.tony.events.Metric;
 import com.linkedin.tony.rpc.MetricsRpc;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,20 +31,15 @@ public class MetricsRpcServer implements MetricsRpc {
   private Map<String, Map<Integer, MetricsWritable>> metricsMap = new HashMap<>();
 
   private Configuration conf;
+  private ServerSocket metricRpcSocket;
   private int metricRpcPort;
   private ClientToAMTokenSecretManager secretManager;
-
-  private ServerPortHolder serverPortHolder;
 
   public MetricsRpcServer(Configuration conf) throws IOException {
     this.conf = conf;
 
-    /**
-     * Prevent the port from being occupied, port will be kept util rpc server start
-     */
-    this.metricRpcPort = ServerPortHolder.getFreePort();
-    this.serverPortHolder = new ServerPortHolder(this.metricRpcPort);
-    this.serverPortHolder.start();
+    this.metricRpcSocket = new ServerSocket(0);
+    this.metricRpcPort = metricRpcSocket.getLocalPort();
   }
 
   public List<Metric> getMetrics(String taskType, int taskIndex) {
@@ -88,9 +83,9 @@ public class MetricsRpcServer implements MetricsRpc {
   public void start() throws IOException {
     RPC.Builder metricsServerBuilder = new RPC.Builder(conf).setProtocol(MetricsRpc.class)
             .setInstance(this).setPort(metricRpcPort).setSecretManager(secretManager);
-    serverPortHolder.close();
+    metricRpcSocket.close();
     RPC.Server metricsServer = metricsServerBuilder.build();
-    if (this.conf.getBoolean(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, false)) {
+    if (conf.getBoolean(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, false)) {
       metricsServer.refreshServiceAclWithLoadedConfiguration(conf, new TonyPolicyProvider());
     }
     metricsServer.start();
