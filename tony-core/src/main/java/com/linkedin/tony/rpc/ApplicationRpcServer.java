@@ -9,7 +9,7 @@ import com.linkedin.tony.TonyPolicyProvider;
 import com.linkedin.tony.rpc.impl.pb.service.TonyClusterPBServiceImpl;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Random;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.ipc.ProtocolSignature;
@@ -25,7 +25,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 
 public class ApplicationRpcServer extends Thread implements TonyCluster {
   private static final RecordFactory RECORD_FACTORY = RecordFactoryProvider.getRecordFactory(null);
-  private static final Random RANDOM_NUMBER_GENERATOR = new Random();
+  private ServerSocket rpcSocket;
   private final int rpcPort;
   private final String rpcAddress;
   private final ApplicationRpc appRpc;
@@ -35,9 +35,10 @@ public class ApplicationRpcServer extends Thread implements TonyCluster {
 
   public ApplicationRpcServer(String hostname, ApplicationRpc rpc, Configuration conf) throws IOException {
     this.rpcAddress = hostname;
-    ServerSocket rpcSocket = new ServerSocket(0);
+
+    this.rpcSocket = new ServerSocket(0);
     this.rpcPort = rpcSocket.getLocalPort();
-    rpcSocket.close();
+
     this.appRpc = rpc;
     this.conf = conf;
   }
@@ -127,6 +128,7 @@ public class ApplicationRpcServer extends Thread implements TonyCluster {
               translator = new TonyClusterPBServiceImpl(this);
       BlockingService service = com.linkedin.tony.rpc.proto.TonyCluster.TonyClusterService
               .newReflectiveBlockingService(translator);
+      rpcSocket.close();
       server = new RPC.Builder(conf).setProtocol(TonyClusterPB.class)
               .setInstance(service).setBindAddress(rpcAddress)
               .setPort(rpcPort) // TODO: let RPC randomly generate it

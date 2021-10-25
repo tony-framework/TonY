@@ -17,7 +17,6 @@ import com.linkedin.tony.events.EventHandler;
 import com.linkedin.tony.events.EventType;
 import com.linkedin.tony.rpc.ApplicationRpc;
 import com.linkedin.tony.rpc.ApplicationRpcServer;
-import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.MetricsRpcServer;
 import com.linkedin.tony.rpc.impl.TaskStatus;
@@ -55,13 +54,11 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
@@ -448,17 +445,13 @@ public class ApplicationMaster {
 
     // Setup application RPC server
     String amHostname = Utils.getCurrentHostName();
-    applicationRpcServer = setupRPCService(amHostname);
+    applicationRpcServer = setupAppRPCService(amHostname);
     containerEnv.put(Constants.AM_HOST, amHostname);
     containerEnv.put(Constants.AM_PORT, Integer.toString(amPort));
 
     // Setup metrics RPC server.
-    ServerSocket rpcSocket = new ServerSocket(0);
-    int metricsRpcPort = rpcSocket.getLocalPort();
-    rpcSocket.close();
-    metricsRpcServer = new MetricsRpcServer();
-    RPC.Builder metricsServerBuilder = new RPC.Builder(yarnConf).setProtocol(MetricsRpc.class)
-        .setInstance(metricsRpcServer).setPort(metricsRpcPort);
+    metricsRpcServer = new MetricsRpcServer(yarnConf);
+    int metricsRpcPort = metricsRpcServer.getMetricRpcPort();
     containerEnv.put(Constants.METRICS_RPC_PORT, Integer.toString(metricsRpcPort));
 
     // Init AMRMClient
@@ -486,7 +479,7 @@ public class ApplicationMaster {
       byte[] secret = response.getClientToAMTokenMasterKey().array();
       ClientToAMTokenSecretManager secretManager = new ClientToAMTokenSecretManager(appAttemptID, secret);
       applicationRpcServer.setSecretManager(secretManager);
-      metricsServerBuilder.setSecretManager(secretManager);
+      metricsRpcServer.setSecretManager(secretManager);
 
       // create token for application RPC server
       Token<? extends TokenIdentifier> tensorflowClusterToken = new Token<>(identifier, secretManager);
@@ -513,11 +506,7 @@ public class ApplicationMaster {
     applicationRpcServer.start();
 
     LOG.info("Starting metrics RPC server at: " + amHostname + ":" + metricsRpcPort);
-    RPC.Server metricsServer = metricsServerBuilder.build();
-    if (yarnConf.getBoolean(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION, false)) {
-      metricsServer.refreshServiceAclWithLoadedConfiguration(yarnConf, new TonyPolicyProvider());
-    }
-    metricsServer.start();
+    metricsRpcServer.start();
 
     hbMonitor.start();
 
@@ -891,7 +880,7 @@ public class ApplicationMaster {
     }
   }
 
-  private ApplicationRpcServer setupRPCService(String hostname) throws IOException {
+  private ApplicationRpcServer setupAppRPCService(String hostname) throws IOException {
     ApplicationRpcServer rpcServer = new ApplicationRpcServer(hostname, new RpcForClient(), yarnConf);
     amPort = rpcServer.getRpcPort();
     return rpcServer;
