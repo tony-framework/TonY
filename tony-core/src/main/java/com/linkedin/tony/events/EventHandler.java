@@ -86,6 +86,10 @@ public class EventHandler extends Thread {
   }
 
   public void emitEvent(Event event) {
+    if (inProgressHistFile == null) {
+      return;
+    }
+
     try {
       LOG.info("Emitting event: " + event);
       eventQueue.put(event);
@@ -100,7 +104,7 @@ public class EventHandler extends Thread {
     // If setupThread method fails to create inProgressHistFile,
     // return immediately since we don't have any file to begin with
     if (inProgressHistFile == null) {
-      LOG.warn("inProgressHistFile is null");
+      LOG.warn("Event handler will stop due to null of inProgressHistFile.");
       return;
     }
 
@@ -136,7 +140,7 @@ public class EventHandler extends Thread {
 
   public void stop(Path intermDir, JobMetadata metadata) {
     if (inProgressHistFile == null) {
-      LOG.warn("inProgressHistFile is null");
+      LOG.warn("Event handler has been stopped and no need to close it.");
       return;
     }
 
