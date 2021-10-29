@@ -1111,7 +1111,16 @@ public class ApplicationMaster {
 
     @Override
     public void onNodesUpdated(List<NodeReport> list) {
-      LOG.info("onNodesUpdated called in RMCallbackHandler");
+      StringBuilder consoleMsgBuilder =
+              new StringBuilder("Received onNodesUpdated called in RMCallbackHandler, node reports as follows.");
+      if (list == null || list.size() == 0) {
+        LOG.info(consoleMsgBuilder.toString());
+        return;
+      }
+      for (NodeReport nodeReport : list) {
+        consoleMsgBuilder.append("\nnodeId = " + nodeReport.getNodeId() + ", healthReport = " + nodeReport.getHealthReport());
+      }
+      LOG.info(consoleMsgBuilder.toString());
     }
 
     @Override
