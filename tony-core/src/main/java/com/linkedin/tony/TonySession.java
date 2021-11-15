@@ -256,7 +256,9 @@ public class TonySession {
    * Refresh task status when a TaskExecutor registers its exit code with AM.
    */
   public void onTaskCompleted(String jobName, String jobIndex, int exitCode, String taskDiagnosticMsg) {
-    LOG.info(String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode));
+    String outputLog = String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode);
+    LOG.info(outputLog);
+
     TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
     task.setExitStatus(exitCode);
@@ -271,7 +273,7 @@ public class TonySession {
     // short circuit and immediately stop training if a worker failed.
     if (exitCode != ContainerExitStatus.SUCCESS && exitCode != ContainerExitStatus.KILLED_BY_APPMASTER) {
       if (isChief(jobName, jobIndex) || shouldStopOnFailure(jobName) || isFailOnWorkerFailure()) {
-        String diagnostic = "Exit status: " + exitCode;
+        String diagnostic = outputLog + ". Exit status: " + exitCode;
         if (taskDiagnosticMsg != null) {
           diagnostic += ". Error msg: " + taskDiagnosticMsg;
         }

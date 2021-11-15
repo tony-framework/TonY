@@ -1038,21 +1038,23 @@ public class ApplicationMaster {
   private class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
     @Override
     public void onContainersCompleted(List<ContainerStatus> completedContainers) {
-      LOG.info("Completed containers: " + completedContainers.size());
+      LOG.info("onContainersCompleted called in RMCallbackHandler, completed containers size: " + completedContainers.size());
       sleepForTesting();
 
       for (ContainerStatus containerStatus : completedContainers) {
         int exitStatus = containerStatus.getExitStatus();
-        LOG.info("ContainerID = " + containerStatus.getContainerId()
-            + ", state = " + containerStatus.getState()
-            + ", exitStatus = " + exitStatus);
         String diagnostics = containerStatus.getDiagnostics();
+        String outputLog = "ContainerID = " + containerStatus.getContainerId()
+                + ", state = " + containerStatus.getState()
+                + ", exitStatus = " + exitStatus
+                + ", diagnostics = " + diagnostics;
+
         String errorInformation = null;
         if (ContainerExitStatus.SUCCESS != exitStatus) {
           errorInformation = diagnostics;
-          LOG.error(diagnostics);
+          LOG.error(outputLog);
         } else {
-          LOG.info(diagnostics);
+          LOG.info(outputLog);
         }
         processFinishedContainer(containerStatus.getContainerId(), exitStatus, errorInformation);
       }
