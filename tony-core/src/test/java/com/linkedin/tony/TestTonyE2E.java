@@ -628,6 +628,32 @@ public class TestTonyE2E  {
   }
 
   /**
+   * When chief finished, the worker will finished after 10s
+   */
+  @Test
+  public void testGroupDependencyTimeoutShouldPass() throws ParseException, IOException {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python exit_0.py",
+            "--conf", "tony.chief.instances=1",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.worker.command=python forever_not_exit.py",
+            "--conf", "tony.application.framework=tensorflow",
+            "--container_env", Constants.SIDECAR_TB_TEST_KEY + "=true",
+            "--conf", "tony.application.group.A=chief",
+            "--conf", "tony.application.group.B=worker",
+            "--conf", "tony.application.dependency.B.timeout.after.A=10",
+    });
+    client.addListener(handler);
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+    client.removeListener(handler);
+  }
+
+  /**
    * Since we are switching from passing arguments to ApplicationMaster & TaskExecutor
    * to passing tony configuration file. It is critical to make sure all fields in
    * TonyConfFinal.xml is properly set up.

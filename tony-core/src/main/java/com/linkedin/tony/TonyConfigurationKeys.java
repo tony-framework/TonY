@@ -334,4 +334,23 @@ public class TonyConfigurationKeys {
 
   public static final String TB_GPUS = TB_JOB_PREFIX + "gpus";
   public static final int DEFAULT_TB_GPUS = 0;
+
+  /**
+   * Introduce the group dependency waiting time(sec), like as follows:
+   * tony.application.group.a = worker,chief
+   * tony.application.group.b = evaluator
+   *
+   * tony.application.dependency.b.timeout.after.a = 3600
+   */
+  public static final String GROUP_REGEX = TONY_APPLICATION_PREFIX + "group\\.([A-Za-z]+)$";
+  public static final String GROUP_DEPEND_TIMEOUT_REGEX =
+      TONY_APPLICATION_PREFIX + "dependency\\.([A-Za-z]+)\\.timeout\\.after\\.([A-Za-z]+)$";
+
+  public static String getGroupKey(String groupName) {
+    return String.format(TONY_APPLICATION_PREFIX + "group.%s", groupName);
+  }
+
+  public static String getGroupDependentKey(String grp, String dependentGrp) {
+    return String.format(TONY_APPLICATION_PREFIX + "dependency.%s.timeout.after.%s", grp, dependentGrp);
+  }
 }

@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -196,6 +198,10 @@ public class TonySession {
     return (int) jobTasks.values().stream().flatMap(arr -> Arrays.stream(arr)).filter(task -> task != null && task.isFailed()).count();
   }
 
+  public List<TonyTask> getRunningTasks() {
+    return jobTasks.values().stream().flatMap(x -> Arrays.stream(x)).filter(task -> task != null && !task.isCompleted()).collect(Collectors.toList());
+  }
+
   /** Number of expected tasks that have been scheduled at current time **/
   public int getNumExpectedTasks() {
     return numExpectedTasks;
@@ -262,6 +268,7 @@ public class TonySession {
     TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
     task.setExitStatus(exitCode);
+    task.setEndTime(System.currentTimeMillis());
     // If the chief worker failed[chief or worker 0], short circuit and stop the training. Note that even though other
     // worker failures will also fail the job but we don't short circuit the training because the training can still
     // continue, while if chief worker is dead, TensorFlow training will hang.
@@ -361,7 +368,7 @@ public class TonySession {
     }
   }
 
-  private TonyTask getTask(String jobName, String taskIndex) {
+  public TonyTask getTask(String jobName, String taskIndex) {
     for (Map.Entry<String, TonyTask[]> entry : jobTasks.entrySet()) {
       TonyTask[] tasks = entry.getValue();
       for (TonyTask task : tasks) {
@@ -375,6 +382,15 @@ public class TonySession {
       }
     }
     return null;
+  }
+
+  @VisibleForTesting
+  public void addTask(TonyTask tonyTask) {
+    String jobName = tonyTask.getJobName();
+    TonyTask[] tasks = jobTasks.getOrDefault(jobName, new TonyTask[]{});
+    List<TonyTask> newTasks = new ArrayList<>(Arrays.asList(tasks));
+    newTasks.add(tonyTask);
+    jobTasks.put(jobName, newTasks.toArray(new TonyTask[newTasks.size()]));
   }
 
   /**
@@ -441,6 +457,7 @@ public class TonySession {
     private int port = -1;
     private TaskInfo taskInfo;
     private final long startTime;
+    private long endTime;
 
     /**
      * The container the task is running in. Set once a container has been allocated for the task.
@@ -503,7 +520,7 @@ public class TonySession {
       return exitStatus;
     }
 
-    synchronized void setExitStatus(int status) {
+    public synchronized void setExitStatus(int status) {
       // Only set exit status if it hasn't been set yet
       if (exitStatus == -1) {
         this.exitStatus = status;
@@ -533,6 +550,12 @@ public class TonySession {
       taskInfo = new TaskInfo(jobName, taskIndex, Utils.constructContainerUrl(container));
     }
 
+    // just for test case
+    @VisibleForTesting
+    public void setTaskInfo() {
+      taskInfo = new TaskInfo(jobName, taskIndex, "");
+    }
+
     TonyTask(String jobName, String taskIndex, int sessionId, long startTime) {
       this.jobName = jobName;
       this.taskIndex = taskIndex;
@@ -543,6 +566,14 @@ public class TonySession {
     public void addContainer(Container container) {
       setContainer(container);
       containerIdMap.put(container.getId(), this);
+    }
+
+    public long getEndTime() {
+      return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+      this.endTime = endTime;
     }
 
     /**
