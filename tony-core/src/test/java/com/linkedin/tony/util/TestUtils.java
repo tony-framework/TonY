@@ -344,7 +344,7 @@ public class TestUtils {
     conf.set("tony.application.dependency.A.timeout.after.B", "3600");
     conf.set("tony.application.dependency.B.timeout.after.C", "3600");
 
-    Map<String, Pair<String, Long>> dependenciesIndex = Utils.getGroupDependencies(conf);
+    Map<String, Pair<String, Long>> dependenciesIndex = Utils.getJobTypeDependentGrps(conf);
     assertTrue(dependenciesIndex.containsKey("A"));
     assertTrue(dependenciesIndex.containsKey("B"));
     assertEquals(dependenciesIndex.get("A").getKey(), "B");

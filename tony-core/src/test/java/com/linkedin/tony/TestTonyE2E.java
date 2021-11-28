@@ -642,10 +642,8 @@ public class TestTonyE2E  {
             "--conf", "tony.worker.instances=2",
             "--conf", "tony.worker.command=python forever_not_exit.py",
             "--conf", "tony.application.framework=tensorflow",
-            "--container_env", Constants.SIDECAR_TB_TEST_KEY + "=true",
             "--conf", "tony.application.group.A=chief",
-            "--conf", "tony.application.group.B=worker",
-            "--conf", "tony.application.dependency.B.timeout.after.A=10",
+            "--conf", "tony.application.dependency.worker.timeout.after.A=10",
     });
     client.addListener(handler);
     int exitCode = client.start();

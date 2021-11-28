@@ -462,11 +462,11 @@ public class Utils {
         .sum();
   }
 
-  public static Map<String, Pair<String, Long>> getGroupDependencies(Configuration tonyConf) {
+  public static Map<String, Pair<String, Long>> getJobTypeDependentGrps(Configuration tonyConf) {
     return tonyConf.getValByRegex(TonyConfigurationKeys.GROUP_DEPEND_TIMEOUT_REGEX).keySet().stream()
             .map(Utils::getDependentGrps)
             .map(pair -> Utils.getDependentTimeout(tonyConf, pair))
-            .collect(Collectors.toMap(Triple::getLeft, x -> Pair.of(x.getMiddle(), x.getRight())));
+            .collect(Collectors.toMap(Triple::getLeft, x -> Pair.of(x.getMiddle(), x.getRight()), (oldV, newV) -> newV));
   }
 
   private static Triple<String, String, Long> getDependentTimeout(Configuration tonyConf, Pair<String, String> pair) {

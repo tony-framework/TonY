@@ -16,6 +16,7 @@
 package com.linkedin.tony.runtime;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.CollectorInfo;
 import org.apache.hadoop.yarn.api.records.ContainerExitStatus;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -96,8 +97,8 @@ public class TestMLGenericRuntime {
     public void testGroupDependencyNoConfShouldPass() {
         Configuration conf = new Configuration();
         conf.addResource("tony-default.xml");
-        conf.set("tony.application.dependency.A.timeout.after.B", "3600");
-        conf.set("tony.application.dependency.B.timeout.after.C", "3600");
+        conf.set("tony.application.dependency.evaluator.timeout.after.B", "3600");
+        conf.set("tony.application.dependency.chief.timeout.after.C", "3600");
 
         TonySession session = buildMockSession(conf);
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
@@ -112,8 +113,7 @@ public class TestMLGenericRuntime {
         Configuration conf = new Configuration();
         conf.addResource("tony-default.xml");
         conf.set("tony.application.group.A", "worker,chief");
-        conf.set("tony.application.group.B", "evaluator");
-        conf.set("tony.application.dependency.B.timeout.after.A", "3600");
+        conf.set("tony.application.dependency.evaluator.timeout.after.A", "3600");
 
         TonySession session = buildMockSession(conf);
         TonySession.TonyTask chiefTask = session.getTask("chief", "0");
@@ -123,8 +123,8 @@ public class TestMLGenericRuntime {
         am.setTonySession(session);
         Assert.assertEquals(
                 am.groupDependencyTimeout(conf),
-                "Jobtype: evaluator in group: B runs exceeded timeout due it's dependent "
-                        + "jobtype: chief in group: A has been finished."
+                "Jobtype: evaluator runs exceeded timeout because it's dependent group: A "
+                        + "(task set: [worker,chief]) has been finished."
         );
     }
 
@@ -133,8 +133,7 @@ public class TestMLGenericRuntime {
         Configuration conf = new Configuration();
         conf.addResource("tony-default.xml");
         conf.set("tony.application.group.A", "chief");
-        conf.set("tony.application.group.B", "otherWorker");
-        conf.set("tony.application.dependency.B.timeout.after.A", "3600");
+        conf.set("tony.application.dependency.otherWorker.timeout.after.A", "3600");
 
         TonySession session = buildMockSession(conf);
         TonySession.TonyTask chiefTask = session.getTask("chief", "0");
@@ -144,7 +143,7 @@ public class TestMLGenericRuntime {
         am.setTonySession(session);
         Assert.assertEquals(
                 am.groupDependencyTimeout(conf),
-                "Jobtype: otherWorker in group: B runs exceeded timeout due it's dependent jobtype: chief in group: A has been finished."
+                "Jobtype: otherWorker runs exceeded timeout because it's dependent group: A (task set: [chief]) has been finished."
         );
     }
 
@@ -153,12 +152,10 @@ public class TestMLGenericRuntime {
         Configuration conf = new Configuration();
         conf.addResource("tony-default.xml");
         conf.set("tony.application.group.A", "chief");
-        conf.set("tony.application.group.B", "otherWorker");
-        conf.set("tony.application.dependency.B.timeout.after.A", String.valueOf(60 * 240));
+        conf.set("tony.application.dependency.otherWorker.timeout.after.A", String.valueOf(60 * 240));
 
-        conf.set("tony.application.group.C", "chief");
-        conf.set("tony.application.group.D", "otherWorker");
-        conf.set("tony.application.dependency.D.timeout.after.C", "3600");
+        conf.set("tony.application.group.B", "chief,worker");
+        conf.set("tony.application.dependency.evaluator.timeout.after.B", "3600");
 
         TonySession session = buildMockSession(conf);
         TonySession.TonyTask chiefTask = session.getTask("chief", "0");
@@ -168,17 +165,43 @@ public class TestMLGenericRuntime {
         am.setTonySession(session);
         Assert.assertEquals(
                 am.groupDependencyTimeout(conf),
-                "Jobtype: otherWorker in group: D runs exceeded timeout due it's dependent jobtype: chief in group: C has been finished."
+                "Jobtype: evaluator runs exceeded timeout because it's dependent group: B (task set: [chief,worker]) has been finished."
         );
     }
 
+    /**
+     * Test case as follows:
+     * the role of chief has been finished, and otherWorker is running and not exceed the timeout. so it should pass
+     */
     @Test
     public void testGroupDependencyWithoutTimeoutMultipleGroup() {
         Configuration conf = new Configuration();
         conf.addResource("tony-default.xml");
         conf.set("tony.application.group.A", "chief");
-        conf.set("tony.application.group.B", "otherWorker");
-        conf.set("tony.application.dependency.B.timeout.after.A", String.valueOf(60 * 240));
+        conf.set("tony.application.dependency.otherWorker.timeout.after.A", String.valueOf(60 * 240));
+
+        TonySession session = buildMockSession(conf);
+        TonySession.TonyTask chiefTask = session.getTask("chief", "0");
+        chiefTask.setEndTime(System.currentTimeMillis() - 1000 * 60 * 120);
+
+        MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
+        am.setTonySession(session);
+        Assert.assertNull(
+                am.groupDependencyTimeout(conf)
+        );
+    }
+
+    /**
+     * Test case as follows:
+     * the role of chief has finished, but otherWorker is running.
+     * And the role of evaluator depends on GroupA including chief and otherWorker, so it will not throw exception.
+     */
+    @Test
+    public void testGrpDependentWithoutTimeout() {
+        Configuration conf = new Configuration();
+        conf.addResource("tony-default.xml");
+        conf.set("tony.application.group.A", "chief,otherWorker");
+        conf.set("tony.application.dependency.evaluator.timeout.after.A", String.valueOf(60 * 240));
 
         TonySession session = buildMockSession(conf);
         TonySession.TonyTask chiefTask = session.getTask("chief", "0");

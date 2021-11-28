@@ -61,10 +61,10 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
         private long runtimeInitialTime = System.currentTimeMillis();
 
         // Group dependencies policy.
-        Map<String, List<String>> groupMembers;
-        Map<String, List<String>> memberInGroups;
+        Map<String, List<String>> grpWithMembersIndex;
+        Map<String, List<String>> taskInGrpsIndex;
         // todo: Need to support single group dependent multiple other groups
-        Map<String, Pair<String, Long>> groupDependencies;
+        Map<String, Pair<String, Long>> taskWithDependentGrpsIndex;
 
         @Override
         public String constructClusterSpec(String taskId) throws IOException {
@@ -140,11 +140,11 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
              * So if we use the configuration as follows, when evaluator is still running after timeout and
              * chief/workers are finished, the mechanism of dependency group timeout will make job failed.
              *
-             * dependency group timeout configuration as follows:
+             * Dependency group timeout configuration as follows:
              *
              * tony.application.group.A = worker,chief
-             * tony.application.group.B = evaluator
-             * tony.application.dependency.B.after.timeout.A = 3600
+             * tony.application.dependency.evaluator.timeout.after.A = 3600
+             *
              */
             String errorMsg = groupDependencyTimeout(tonyConf);
             if (errorMsg != null) {
@@ -156,22 +156,23 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
 
         @VisibleForTesting
         protected String groupDependencyTimeout(Configuration tonyConf) {
-            if (groupDependencies == null) {
-                groupDependencies = Utils.getGroupDependencies(tonyConf);
+            if (taskWithDependentGrpsIndex == null) {
+                taskWithDependentGrpsIndex = Utils.getJobTypeDependentGrps(tonyConf);
             }
-
-            if (groupDependencies == null || groupDependencies.isEmpty()) {
+            // groupDependencies is map, key: waiting role, value: pre-dependent groups and waiting timeout
+            if (taskWithDependentGrpsIndex == null || taskWithDependentGrpsIndex.isEmpty()) {
                 return null;
             }
 
-            if (groupMembers == null) {
-                groupMembers = Utils.getAllGroupJobTypes(tonyConf);
+            // groupMembers is map, key: groupName, value: its members in this group
+            if (grpWithMembersIndex == null) {
+                grpWithMembersIndex = Utils.getAllGroupJobTypes(tonyConf);
             }
 
-            if (memberInGroups == null) {
-                memberInGroups = getMemberInGroups(groupMembers);
+            // memberInGroups is map. key: jobtype name, value: in which groups
+            if (taskInGrpsIndex == null) {
+                taskInGrpsIndex = getMemberInGroups(grpWithMembersIndex);
             }
-
 
             Map<String, TonySession.TonyTask[]> allTasks = session.getTonyTasks();
             List<TonySession.TonyTask> runningTasks = session.getRunningTasks();
@@ -179,40 +180,46 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
             // Get the running jobs' type, like the tf roles of ps/worker/chief/evaluator
             Set<String> runningJobTypes = runningTasks.stream()
                     .map(TonySession.TonyTask::getJobName)
-                    .filter(jobname -> memberInGroups.containsKey(jobname))
+                    .filter(jobname -> taskWithDependentGrpsIndex.containsKey(jobname))
                     .collect(Collectors.toSet());
 
             for (String runningTaskType : runningJobTypes) {
-                for (String group : memberInGroups.get(runningTaskType)) {
-                    if (!groupDependencies.containsKey(group)) {
-                        continue;
+                Pair<String, Long> dependentGroupPair = taskWithDependentGrpsIndex.get(runningTaskType);
+                String dependentGroupName = dependentGroupPair.getKey();
+                long timeout = dependentGroupPair.getValue() * 1000;
+
+                if (!grpWithMembersIndex.containsKey(dependentGroupName)) {
+                    continue;
+                }
+
+                boolean allDependentTaskFinished = true;
+                long latestEndTimeInAllDependentTasks = 0L;
+                for (String dependentsGroupJobtype : grpWithMembersIndex.get(dependentGroupName)) {
+
+                    if (Utils.existRunningTasksWithJobtype(runningTasks, dependentsGroupJobtype)) {
+                        allDependentTaskFinished = false;
+                        break;
                     }
 
-                    Pair<String, Long> dependentGroupPair = groupDependencies.get(group);
-                    String dependentGroupName = dependentGroupPair.getKey();
-                    long timeout = dependentGroupPair.getValue() * 1000;
+                    // Find out the latest finished task in this task type, if the specified timeout exceed,
+                    // make the job fail.
+                    latestEndTimeInAllDependentTasks = Math.max(
+                            Arrays.stream(allTasks.get(dependentsGroupJobtype))
+                                    .mapToLong(x -> x.getEndTime())
+                                    .max().getAsLong(),
+                            latestEndTimeInAllDependentTasks
+                    );
+                }
 
-                    if (!groupMembers.containsKey(dependentGroupName)) {
-                        continue;
-                    }
+                if (!allDependentTaskFinished) {
+                    continue;
+                }
 
-                    for (String dependentsGroupJobtype : groupMembers.get(dependentGroupName)) {
-                        if (Utils.existRunningTasksWithJobtype(runningTasks, dependentsGroupJobtype)) {
-                            continue;
-                        }
-                        // Find out the latest finished task in this task type, if the specified timeout exceed,
-                        // make the job fail.
-                        long latestFinishedTime =
-                                Arrays.stream(allTasks.get(dependentsGroupJobtype))
-                                        .mapToLong(x -> x.getEndTime() == 0L ? System.currentTimeMillis() : x.getEndTime())
-                                        .max().getAsLong();
-
-                        if (System.currentTimeMillis() - latestFinishedTime > timeout) {
-                            return String.format("Jobtype: %s in group: %s runs exceeded timeout due it's "
-                                            + "dependent jobtype: %s in group: %s has been finished.",
-                                    runningTaskType, group, dependentsGroupJobtype, dependentGroupName);
-                        }
-                    }
+                if (System.currentTimeMillis() - latestEndTimeInAllDependentTasks > timeout) {
+                    return String.format("Jobtype: %s runs exceeded timeout because it's "
+                                    + "dependent group: %s (task set: [%s]) has been finished.",
+                            runningTaskType, dependentGroupName,
+                            StringUtils.join(grpWithMembersIndex.get(dependentGroupName), ","));
                 }
             }
 
