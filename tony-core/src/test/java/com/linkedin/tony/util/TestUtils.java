@@ -19,9 +19,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -319,5 +321,35 @@ public class TestUtils {
     assertEquals(linksToBeDisplayed.size(), 2);
     assertEquals(linksToBeDisplayed.get("Logs"), "/" + LOGS_SUFFIX + "/" + "fakeJobId");
     assertEquals(linksToBeDisplayed.get("Events"), "/" + JOBS_SUFFIX + "/" + "fakeJobId");
+  }
+
+  @Test
+  public void testGetAllGroupJobTypes() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.set("tony.application.group.A", "worker,chief");
+    conf.set("tony.application.group.B", "evaluator");
+
+    Map<String, List<String>> groupIndex = Utils.getAllGroupJobTypes(conf);
+    assertTrue(groupIndex.containsKey("A"));
+    assertTrue(groupIndex.containsKey("B"));
+    assertEquals(groupIndex.get("A"), Arrays.asList("worker", "chief"));
+    assertEquals(groupIndex.get("B"), Arrays.asList("evaluator"));
+  }
+
+  @Test
+  public void testGetGroupDependencies() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.set("tony.application.dependency.A.timeout.after.B", "3600");
+    conf.set("tony.application.dependency.B.timeout.after.C", "3600");
+
+    Map<String, Pair<String, Long>> dependenciesIndex = Utils.getJobTypeDependentGrps(conf);
+    assertTrue(dependenciesIndex.containsKey("A"));
+    assertTrue(dependenciesIndex.containsKey("B"));
+    assertEquals(dependenciesIndex.get("A").getKey(), "B");
+    assertEquals(dependenciesIndex.get("A").getValue(), Long.valueOf("3600"));
+    assertEquals(dependenciesIndex.get("B").getKey(), "C");
+    assertEquals(dependenciesIndex.get("B").getValue(), Long.valueOf("3600"));
   }
 }

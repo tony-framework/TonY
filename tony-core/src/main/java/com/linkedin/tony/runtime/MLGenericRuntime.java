@@ -16,13 +16,17 @@
 package com.linkedin.tony.runtime;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
@@ -33,6 +37,7 @@ import com.linkedin.tony.Framework;
 import com.linkedin.tony.TaskExecutor;
 import com.linkedin.tony.TonyConfigurationKeys;
 import com.linkedin.tony.TonySession;
+import com.linkedin.tony.util.Utils;
 
 import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
 
@@ -54,6 +59,12 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
         private List<String> illegalConfKeyRegexs;
         private long lastRegisterWorkerTime = System.currentTimeMillis();
         private long runtimeInitialTime = System.currentTimeMillis();
+
+        // Group dependencies policy.
+        Map<String, List<String>> grpWithMembersIndex;
+        Map<String, List<String>> taskInGrpsIndex;
+        // todo: Need to support single group dependent multiple other groups
+        Map<String, Pair<String, Long>> taskWithDependentGrpsIndex;
 
         @Override
         public String constructClusterSpec(String taskId) throws IOException {
@@ -120,7 +131,116 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
                 session.setFinalStatus(FinalApplicationStatus.FAILED, "Container allocation timeout.");
                 return false;
             }
+
+            /**
+             * Checking the task roles completion timeout when its' pre-dependency tasks finished
+             *
+             * For example, tensorflow estimator training job will include some roles of ps/worker/evaluator/chief.
+             * Actually, due to the bug of tensorflow or misusing the estimator api, sometimes evaluator will hang.
+             * So if we use the configuration as follows, when evaluator is still running after timeout and
+             * chief/workers are finished, the mechanism of dependency group timeout will make job failed.
+             *
+             * Dependency group timeout configuration as follows:
+             *
+             * tony.application.group.A = worker,chief
+             * tony.application.dependency.evaluator.timeout.after.A = 3600
+             *
+             */
+            String errorMsg = groupDependencyTimeout(tonyConf);
+            if (errorMsg != null) {
+                session.setFinalStatus(FinalApplicationStatus.FAILED, errorMsg);
+                return false;
+            }
             return true;
+        }
+
+        @VisibleForTesting
+        protected String groupDependencyTimeout(Configuration tonyConf) {
+            if (taskWithDependentGrpsIndex == null) {
+                taskWithDependentGrpsIndex = Utils.getJobTypeDependentGrps(tonyConf);
+            }
+            // groupDependencies is map, key: waiting role, value: pre-dependent groups and waiting timeout
+            if (taskWithDependentGrpsIndex == null || taskWithDependentGrpsIndex.isEmpty()) {
+                return null;
+            }
+
+            // groupMembers is map, key: groupName, value: its members in this group
+            if (grpWithMembersIndex == null) {
+                grpWithMembersIndex = Utils.getAllGroupJobTypes(tonyConf);
+            }
+
+            // memberInGroups is map. key: jobtype name, value: in which groups
+            if (taskInGrpsIndex == null) {
+                taskInGrpsIndex = getMemberInGroups(grpWithMembersIndex);
+            }
+
+            Map<String, TonySession.TonyTask[]> allTasks = session.getTonyTasks();
+            List<TonySession.TonyTask> runningTasks = session.getRunningTasks();
+
+            // Get the running jobs' type, like the tf roles of ps/worker/chief/evaluator
+            Set<String> runningJobTypes = runningTasks.stream()
+                    .map(TonySession.TonyTask::getJobName)
+                    .filter(jobname -> taskWithDependentGrpsIndex.containsKey(jobname))
+                    .collect(Collectors.toSet());
+
+            for (String runningTaskType : runningJobTypes) {
+                Pair<String, Long> dependentGroupPair = taskWithDependentGrpsIndex.get(runningTaskType);
+                String dependentGroupName = dependentGroupPair.getKey();
+                long timeout = dependentGroupPair.getValue() * 1000;
+
+                if (!grpWithMembersIndex.containsKey(dependentGroupName)) {
+                    continue;
+                }
+
+                boolean allDependentTaskFinished = true;
+                long latestEndTimeInAllDependentTasks = 0L;
+                for (String dependentsGroupJobtype : grpWithMembersIndex.get(dependentGroupName)) {
+
+                    if (Utils.existRunningTasksWithJobtype(runningTasks, dependentsGroupJobtype)) {
+                        allDependentTaskFinished = false;
+                        break;
+                    }
+
+                    // Find out the latest finished task in this task type, if the specified timeout exceed,
+                    // make the job fail.
+                    latestEndTimeInAllDependentTasks = Math.max(
+                            Arrays.stream(allTasks.get(dependentsGroupJobtype))
+                                    .mapToLong(x -> x.getEndTime())
+                                    .max().getAsLong(),
+                            latestEndTimeInAllDependentTasks
+                    );
+                }
+
+                if (!allDependentTaskFinished) {
+                    continue;
+                }
+
+                if (System.currentTimeMillis() - latestEndTimeInAllDependentTasks > timeout) {
+                    return String.format("Jobtype: %s runs exceeded timeout because it's "
+                                    + "dependent group: %s (task set: [%s]) has been finished.",
+                            runningTaskType, dependentGroupName,
+                            StringUtils.join(grpWithMembersIndex.get(dependentGroupName), ","));
+                }
+            }
+
+            return null;
+        }
+
+        private Map<String, List<String>> getMemberInGroups(Map<String, List<String>> groupMembers) {
+            /**
+             * key: job type name
+             * value: the list of groups
+             */
+            Map<String, List<String>> memberInGroups = new HashMap<>();
+            for (Map.Entry<String, List<String>> entry : groupMembers.entrySet()) {
+                String group = entry.getKey();
+                List<String> members = entry.getValue();
+                for (String member : members) {
+                    memberInGroups.putIfAbsent(member, new ArrayList<>());
+                    memberInGroups.get(member).add(group);
+                }
+            }
+            return memberInGroups;
         }
 
         private boolean containerAllocationTimeout(Configuration tonyConf) {

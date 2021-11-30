@@ -38,6 +38,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -68,6 +70,7 @@ import com.linkedin.tony.HadoopCompatibleAdapter;
 import com.linkedin.tony.LocalizableResource;
 import com.linkedin.tony.TonyConfig;
 import com.linkedin.tony.TonyConfigurationKeys;
+import com.linkedin.tony.TonySession;
 import com.linkedin.tony.horovod.HorovodClusterSpec;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.models.JobContainerRequest;
@@ -459,19 +462,66 @@ public class Utils {
         .sum();
   }
 
+  public static Map<String, Pair<String, Long>> getJobTypeDependentGrps(Configuration tonyConf) {
+    return tonyConf.getValByRegex(TonyConfigurationKeys.GROUP_DEPEND_TIMEOUT_REGEX).keySet().stream()
+            .map(Utils::getDependentGrps)
+            .map(pair -> Utils.getDependentTimeout(tonyConf, pair))
+            .collect(Collectors.toMap(Triple::getLeft, x -> Pair.of(x.getMiddle(), x.getRight()), (oldV, newV) -> newV));
+  }
+
+  private static Triple<String, String, Long> getDependentTimeout(Configuration tonyConf, Pair<String, String> pair) {
+    String grp = pair.getKey();
+    String dependentGrp = pair.getValue();
+    long timeout = tonyConf.getLong(TonyConfigurationKeys.getGroupDependentKey(grp, dependentGrp), 0L);
+    return Triple.of(grp, dependentGrp, timeout);
+  }
+
+  private static Pair<String, String> getDependentGrps(String confKey) {
+    Pattern instancePattern = Pattern.compile(TonyConfigurationKeys.GROUP_DEPEND_TIMEOUT_REGEX);
+    Matcher instanceMatcher = instancePattern.matcher(confKey);
+    if (instanceMatcher.matches()) {
+      return Pair.of(instanceMatcher.group(1), instanceMatcher.group(2));
+    }
+    return null;
+  }
+
+  public static Map<String, List<String>> getAllGroupJobTypes(Configuration conf) {
+    return conf.getValByRegex(TonyConfigurationKeys.GROUP_REGEX).keySet().stream()
+        .map(Utils::getGroupName)
+        .map(groupName -> Utils.getGroupMembers(conf, groupName))
+        .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+  }
+
+  private static Pair<String, List<String>> getGroupMembers(Configuration conf, String groupName) {
+    return Pair.of(groupName, Arrays.asList(conf.getStrings(TonyConfigurationKeys.getGroupKey(groupName))));
+  }
+
+  /**
+   * Extracts group name from configuration key of the form "tony.application.group.*".
+   * @param confKey Name of the configuration key
+   * @return group name
+   */
+  private static String getGroupName(String confKey) {
+    return getRegexKey(confKey, TonyConfigurationKeys.GROUP_REGEX);
+  }
+
+  private static String getRegexKey(String conf, String regex) {
+    Pattern instancePattern = Pattern.compile(regex);
+    Matcher instanceMatcher = instancePattern.matcher(conf);
+    if (instanceMatcher.matches()) {
+      return instanceMatcher.group(1);
+    } else {
+      return null;
+    }
+  }
+
   /**
    * Extracts TensorFlow job name from configuration key of the form "tony.*.instances".
    * @param confKey Name of the configuration key
    * @return TensorFlow job name
    */
   public static String getTaskType(String confKey) {
-    Pattern instancePattern = Pattern.compile(TonyConfigurationKeys.INSTANCES_REGEX);
-    Matcher instanceMatcher = instancePattern.matcher(confKey);
-    if (instanceMatcher.matches()) {
-      return instanceMatcher.group(1);
-    } else {
-      return null;
-    }
+    return getRegexKey(confKey, TonyConfigurationKeys.INSTANCES_REGEX);
   }
 
   public static boolean isArchive(String path) {
@@ -794,6 +844,10 @@ public class Utils {
     HorovodClusterSpec spec =
             objectMapper.readValue(clusterSpec, new TypeReference<HorovodClusterSpec>() { });
     return spec;
+  }
+
+  public static boolean existRunningTasksWithJobtype(List<TonySession.TonyTask> runningTasks, String jobtype) {
+    return runningTasks.stream().anyMatch(x -> x.getJobName().equals(jobtype));
   }
 
   private Utils() { }
