@@ -337,10 +337,9 @@ public class TonyConfigurationKeys {
 
   /**
    * Introduce the group dependency waiting time(sec), like as follows:
-   * tony.application.group.a = worker,chief
-   * tony.application.group.b = evaluator
+   * tony.application.group.A = worker,chief
    *
-   * tony.application.dependency.b.timeout.after.a = 3600
+   * tony.application.dependency.evaluator.timeout.after.A = 3600
    */
   public static final String GROUP_REGEX = TONY_APPLICATION_PREFIX + "group\\.([A-Za-z]+)$";
   public static final String GROUP_DEPEND_TIMEOUT_REGEX =
