@@ -163,6 +163,7 @@ The command line arguments are as follows:
 | shell_env          | no        | --shell_env LD_LIBRARY_PATH=/usr/local/lib64/     | Specifies key-value pairs for environment variables which will be set in your python worker/ps processes.                                                                                                         |
 | conf_file          | no        | --conf_file tony-local.xml                        | Location of a TonY configuration file, also support remote path, like `--conf_file hdfs://nameservice01/user/tony/tony-remote.xml`                                                                                |
 | conf               | no        | --conf tony.application.security.enabled=false    | Override configurations from your configuration file via command line
+| sidecar_tensorboard_log_dir | no | --sidecar_tensorboard_log_dir /hdfs/path/tensorboard_log_dir | HDFS path to tensorboard log dir, it will enable sidecar tensorboard managed by TonY. More detailed example refers to tony-examples/mnist_tensorflow module                                          |
 
 ## TonY configurations
 
@@ -211,3 +212,7 @@ For more information about TonY, check out the following:
 2. How do I configure arbitrary TensorFlow job types?
 
     Please see the [wiki](https://github.com/linkedin/TonY/wiki/TonY-Configurations#task-configuration) on TensorFlow task configuration for details.
+
+3. My tensorflow's partial workers hang when chief finished. Or evaluator hang when chief and workers finished.
+   
+   Please see the [PR#521](https://github.com/tony-framework/TonY/pull/621) on Tensorflow configuration to solve it.

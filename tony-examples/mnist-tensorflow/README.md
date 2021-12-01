@@ -113,8 +113,12 @@ We have tested this example with 3 Workers (4 GB RAM + 1 vCPU) using MultiWorke
 ### Tensorboard Usage
 TonY supports two modes(custom and sidecar) to start tensorboard.
 1. [Custom] Allow users to start tensorboard in code, more details can be found in mnist_distributed.py example.
-2. [Sidecar] Using the built-in tensorboard, it will start extra executor to running tensorboard by TonY. Only one thing to do is specify the log dir in tony xml, like as follows
+2. [Sidecar] Using the built-in sidecar tensorboard, the extra tensorboard task executor will be managed by TonY. 
+   The failure of sidecar tensorboard will not affect the entire training job. 
+   Only one thing for user to do is to specify the log dir in tony xml or in tony cli, like as follows. 
+   Tips: the conf priority in tony cli is prior to in tony xml. 
 
+tony.xml
 ```
 <configuration>
   ....
@@ -124,3 +128,12 @@ TonY supports two modes(custom and sidecar) to start tensorboard.
   </property>
 </configuration>
 ```
+tony cli
+
+    $ java -cp "`hadoop classpath --glob`:MyJob/*:MyJob/" \
+            com.linkedin.tony.cli.ClusterSubmitter \
+            -executes models/mnist_distributed.py \
+            -task_params '--input_dir /path/to/hdfs/input --output_dir /path/to/hdfs/output' \
+            -src_dir src \
+            -python_binary_path /home/user_name/python_virtual_env/bin/python
+            -sidecar_tensorboard_log_dir /path/to/hdfs/tensorboard_log_dir
