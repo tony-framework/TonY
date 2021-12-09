@@ -213,6 +213,46 @@ public class TestMLGenericRuntime {
         );
     }
 
+    /**
+     * Test case for partial tasks scheduled, but others are not.
+     * DependentGroup timeout should pass.
+     */
+    @Test
+    public void testPartialTaskScheduledShouldPass() {
+        Configuration conf = new Configuration();
+        conf.addResource("tony-default.xml");
+        conf.set("tony.application.group.A", "chief");
+        conf.set("tony.application.dependency.worker.timeout.after.A", String.valueOf(60 * 240));
+        conf.set("tony.chief.instances", "1");
+        conf.set("tony.worker.instances", "4");
+        conf.set("tony.ps.instances", "2");
+
+        TonySession session = buildPartialTaskScheduledSession(conf);
+        MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
+        am.setTonySession(session);
+        Assert.assertNull(
+                am.groupDependencyTimeout(conf)
+        );
+    }
+
+    private TonySession buildPartialTaskScheduledSession(Configuration conf) {
+        TonySession session = new TonySession.Builder().setTonyConf(conf).build();
+
+        TonySession.TonyTask worker0 = session.buildTonyTask(Constants.WORKER_JOB_NAME, "0", "localhost");
+        TonySession.TonyTask worker1 = session.buildTonyTask(Constants.WORKER_JOB_NAME, "1", "localhost");
+        TonySession.TonyTask worker2 = session.buildTonyTask(Constants.WORKER_JOB_NAME, "2", "localhost");
+
+        worker0.setTaskInfo();
+        worker1.setTaskInfo();
+        worker2.setTaskInfo();
+
+        session.addTask(worker0);
+        session.addTask(worker1);
+        session.addTask(worker2);
+
+        return session;
+    }
+
     private TonySession buildMockSession(Configuration tonyConf) {
         TonySession session = new TonySession.Builder().setTonyConf(tonyConf).build();
 
