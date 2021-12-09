@@ -156,9 +156,15 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
 
         @VisibleForTesting
         protected String groupDependencyTimeout(Configuration tonyConf) {
+            /**
+             * precheck:
+             * Is group dependency checking timeout enabled?
+             * If not, directly return null.
+             */
             if (taskWithDependentGrpsIndex == null) {
                 taskWithDependentGrpsIndex = Utils.getJobTypeDependentGrps(tonyConf);
             }
+
             // groupDependencies is map, key: waiting role, value: pre-dependent groups and waiting timeout
             if (taskWithDependentGrpsIndex == null || taskWithDependentGrpsIndex.isEmpty()) {
                 return null;
@@ -167,6 +173,15 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
             // groupMembers is map, key: groupName, value: its members in this group
             if (grpWithMembersIndex == null) {
                 grpWithMembersIndex = Utils.getAllGroupJobTypes(tonyConf);
+            }
+
+            if (grpWithMembersIndex == null || grpWithMembersIndex.isEmpty()) {
+                return null;
+            }
+
+            if (!session.allTasksScheduled()) {
+                log.info("Group dependency timeout check will be ignored until all tasks scheduled.");
+                return null;
             }
 
             // memberInGroups is map. key: jobtype name, value: in which groups
