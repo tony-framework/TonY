@@ -81,7 +81,9 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
@@ -327,11 +329,6 @@ public class TonyClient implements AutoCloseable {
       appContext.setApplicationTags(applicationTags);
     }
 
-    // Set up resource type requirements
-    Resource capability = Resource.newInstance((int) amMemory, amVCores);
-    Utils.setCapabilityGPU(capability, amGpus);
-    appContext.setResource(capability);
-
     // Set the queue to which this application is to be submitted in the RM
     String yarnQueue = tonyConf.get(TonyConfigurationKeys.YARN_QUEUE_NAME,
         TonyConfigurationKeys.DEFAULT_YARN_QUEUE_NAME);
@@ -341,10 +338,25 @@ public class TonyClient implements AutoCloseable {
     ContainerLaunchContext amSpec =
         createAMContainerSpec(this.amMemory, getTokens());
     appContext.setAMContainerSpec(amSpec);
-    String nodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
-    if (nodeLabel != null) {
-      appContext.setNodeLabelExpression(nodeLabel);
+    String appNodeLabel = tonyConf.get(TonyConfigurationKeys.APPLICATION_NODE_LABEL);
+    if (appNodeLabel != null) {
+      appContext.setNodeLabelExpression(appNodeLabel);
     }
+
+    // Set up resource type requirements
+    Resource capability = Resource.newInstance((int) amMemory, amVCores);
+    Utils.setCapabilityGPU(capability, amGpus);
+    ResourceRequest amRequest = Records.newRecord(ResourceRequest.class);
+    amRequest.setResourceName(ResourceRequest.ANY);
+    amRequest.setPriority(Priority.newInstance(0));
+    amRequest.setCapability(capability);
+    amRequest.setNumContainers(1);
+    String amNodeLabel = tonyConf.get(TonyConfigurationKeys.getNodeLabelKey(Constants.AM_NAME));
+    if (amNodeLabel != null) {
+      amRequest.setNodeLabelExpression(amNodeLabel);
+    }
+    appContext.setAMContainerResourceRequest(amRequest);
+
     LOG.info("Submitting YARN application");
     yarnClient.submitApplication(appContext);
     ApplicationReport report = yarnClient.getApplicationReport(appId);
