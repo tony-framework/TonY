@@ -443,7 +443,7 @@ public class TonySession {
       jvmArgs += " -Dlog4j2.formatMsgNoLookups=true";
       String tonyTaskExecutorJavaAgent = tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JAVA_AGENT, "");
       if (!tonyTaskExecutorJavaAgent.isEmpty()) {
-        jvmArgs += " -javaagent=" + tonyTaskExecutorJavaAgent;
+        jvmArgs += " -javaagent:" + tonyTaskExecutorJavaAgent;
       }
       return jvmArgs;
     }
