@@ -429,13 +429,23 @@ public class TonySession {
     }
 
     public Builder setTaskExecutorJVMArgs(String jvmArgs) {
-      this.jvmArgs = jvmArgs;
+      this.jvmArgs = appendDefaultJVMArgs(jvmArgs);
       return this;
     }
 
     public Builder setTonyConf(Configuration tonyConf) {
       this.tonyConf = tonyConf;
       return this;
+    }
+
+    // Appends default jvm arguments to task executor job
+    private String appendDefaultJVMArgs(String jvmArgs) {
+      jvmArgs += " -Dlog4j2.formatMsgNoLookups=true";
+      String tonyTaskExecutorJavaAgent = tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JAVA_AGENT, "");
+      if (!tonyTaskExecutorJavaAgent.isEmpty()) {
+        jvmArgs += " -javaagent=" + tonyTaskExecutorJavaAgent;
+      }
+      return jvmArgs;
     }
   }
 
