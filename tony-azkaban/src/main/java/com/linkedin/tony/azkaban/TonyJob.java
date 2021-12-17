@@ -38,6 +38,9 @@ public class TonyJob extends HadoopJavaJob {
   private static final String TONY_CONF_PREFIX = "tony.";
   public static final String TONY_APPLICATION_TAGS =
       TONY_CONF_PREFIX + "application.tags";
+  public static final String TONY_DEFAULT_JVM_OPTS = TONY_CONF_PREFIX + "default.jvm.opts";
+  public static final String TONY_TASK_AM_JVM_OPTS = TONY_CONF_PREFIX + "task.am.jvm.opts";
+  public static final String TONY_TASK_EXECUTOR_JVM_OPTS = TONY_CONF_PREFIX + "task.executor.jvm.opts";
   private String tonyXml;
   private File tonyConfFile;
   private final Configuration tonyConf;
@@ -64,7 +67,35 @@ public class TonyJob extends HadoopJavaJob {
     String applicationTags =
         HadoopJobUtils.constructHadoopTags(getJobProps(), tagKeys);
     tonyConf.set(TONY_APPLICATION_TAGS, applicationTags);
+
+    // inject default jvm options
+    updateDefaultTonyJvmOpts(tonyConf);
     return tonyConf;
+  }
+
+  private void updateDefaultTonyJvmOpts(Configuration conf) {
+    String defaultTonyJvmOpts = getJobProps().get(TONY_DEFAULT_JVM_OPTS);
+    if (defaultTonyJvmOpts == null) {
+      return;
+    }
+
+    // tony am jvm opts
+    String tonyTaskAmJvmOpts = conf.get(TONY_TASK_AM_JVM_OPTS, "");
+    if (!tonyTaskAmJvmOpts.isEmpty()) {
+      tonyTaskAmJvmOpts += " " + defaultTonyJvmOpts;
+    } else {
+      tonyTaskAmJvmOpts += defaultTonyJvmOpts;
+    }
+    conf.set(TONY_TASK_AM_JVM_OPTS, tonyTaskAmJvmOpts);
+
+    // tony executor jvm opts
+    String tonyTaskExecutorJvmOpts = conf.get(TONY_TASK_EXECUTOR_JVM_OPTS, "");
+    if (!tonyTaskExecutorJvmOpts.isEmpty()) {
+      tonyTaskExecutorJvmOpts += " " + defaultTonyJvmOpts;
+    } else {
+      tonyTaskExecutorJvmOpts += defaultTonyJvmOpts;
+    }
+    conf.set(TONY_TASK_EXECUTOR_JVM_OPTS, tonyTaskExecutorJvmOpts);
   }
 
   public Configuration getTonyJobConf() {
