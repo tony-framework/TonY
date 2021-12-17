@@ -49,7 +49,7 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_TRAINING_STAGE);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_HADOOP_LOCATION);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_HADOOP_CLASSPATH);
-    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TASK_EXECUTOR_JAVA_AGENT);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.TASK_JAVA_AGENT);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TENSORBOARD_LOG_DIR);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.PYTHON_EXEC_PATH);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_VCORE);

@@ -930,6 +930,12 @@ public class TonyClient implements AutoCloseable {
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
     // Add am jvm configuration
     String amJvm = tonyConf.get(TonyConfigurationKeys.TASK_AM_JVM_OPTS);
+    // Add default jvm configuration
+    arguments.add("-Dlog4j2.formatMsgNoLookups=true");
+    String javaAgentJvm = tonyConf.get(TonyConfigurationKEys.TASK_JAVA_AGENT);
+    if (!javaAgentJvm.isEmpty()) {
+      arguments.add("-javaagent:" + javaAgentJvm);
+    }
     if (org.apache.commons.lang3.StringUtils.isNotBlank(amJvm)) {
       arguments.add(amJvm);
     }
