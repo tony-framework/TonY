@@ -440,10 +440,9 @@ public class TonySession {
 
     // Appends default jvm arguments to task executor job
     private String appendDefaultJVMArgs(String jvmArgs) {
-      jvmArgs += " -Dlog4j2.formatMsgNoLookups=true";
-      String tonyTaskExecutorJavaAgent = tonyConf.get(TonyConfigurationKeys.TASK_EXECUTOR_JAVA_AGENT, "");
-      if (!tonyTaskExecutorJavaAgent.isEmpty()) {
-        jvmArgs += " -javaagent:" + tonyTaskExecutorJavaAgent;
+      String tonyTaskDefaultJVMOpts = tonyConf.get(TonyConfigurationKeys.TASK_DEFAULT_JVM_OPTS, "");
+      if (!tonyTaskDefaultJVMOpts.isEmpty()) {
+        jvmArgs += " " + tonyTaskDefaultJVMOpts;
       }
       return jvmArgs;
     }

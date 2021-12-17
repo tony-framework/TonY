@@ -95,6 +95,8 @@ public class TestTonyJob {
     jobProps.put(CommonJobProperties.FLOW_ID, "1");
     jobProps.put(CommonJobProperties.EXEC_ID, "0");
     jobProps.put(TonyJob.AZKABAN_WEB_HOST, "localhost");
+    jobProps.put(TonyJob.TONY_TASK_EXECUTOR_JVM_OPTS, "-Duser.jvm.opts=opts");
+    jobProps.put(TonyJob.TONY_DEFAULT_JVM_OPTS, "-Dlog4j2.formatMsgNoLookups=true");
 
     final TonyJob tonyJob = new TonyJob("test_tony_job", new Props(), jobProps, log) {
       @Override
@@ -119,6 +121,8 @@ public class TestTonyJob {
     Assert.assertEquals(parsedTags.get(CommonJobProperties.FLOW_ID), "1");
     Assert.assertEquals(parsedTags.get(CommonJobProperties.PROJECT_NAME), "unit_test");
     Assert.assertEquals(parsedTags.get(TonyJob.AZKABAN_WEB_HOST), "localhost");
+    Assert.assertEquals(conf.get(TonyJob.TONY_TASK_AM_JVM_OPTS), "-Dlog4j2.formatMsgNoLookups=true");
+    Assert.assertEquals(conf.get(TonyJob.TONY_TASK_EXECUTOR_JVM_OPTS), "-Duser.jvm.opts=opts -Dlog4j2.formatMsgNoLookups=true");
   }
 
   @Test

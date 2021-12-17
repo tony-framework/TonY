@@ -933,6 +933,10 @@ public class TonyClient implements AutoCloseable {
     if (org.apache.commons.lang3.StringUtils.isNotBlank(amJvm)) {
       arguments.add(amJvm);
     }
+    String defaultJvm = tonyConf.get(TonyConfigurationKeys.TASK_DEFAULT_JVM_OPTS, "");
+    if (!defaultJvm.isEmpty()) {
+      arguments.add(defaultJvm);
+    }
     // Set class name
     arguments.add("com.linkedin.tony.ApplicationMaster");
 
