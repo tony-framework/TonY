@@ -452,9 +452,11 @@ public class Utils {
   }
 
   public static Set<String> getAllJobTypes(Configuration conf) {
-    return conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-        .map(Utils::getTaskType)
-        .collect(Collectors.toSet());
+    synchronized (Utils.class) {
+      return conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
+              .map(Utils::getTaskType)
+              .collect(Collectors.toSet());
+    }
   }
 
   public static int getNumTotalTasks(Configuration conf) {
