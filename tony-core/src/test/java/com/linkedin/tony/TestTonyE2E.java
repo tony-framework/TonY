@@ -11,7 +11,10 @@ import com.linkedin.tony.client.CallbackHandler;
 import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
+
+import java.util.ArrayList;
 import java.util.HashSet;
+
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -28,7 +31,9 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS;
@@ -601,6 +606,60 @@ public class TestTonyE2E  {
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
+  }
+
+  @Test
+  public void testTonyAMStartupTimeoutShouldFail() throws ParseException, IOException {
+    List<CompletableFuture<Integer>> tasks = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      tasks.add(mockedTask());
+    }
+
+    TonyClient client = new TonyClient(conf);
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--executes", "python check_env_and_venv.py",
+            "--hdfs_classpath", libPath,
+            "--shell_env", "ENV_CHECK=ENV_CHECK",
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.am.memory=2g",
+            "--conf", "tony.am.startup-timeout=10000"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+
+    for (CompletableFuture<Integer> task : tasks) {
+      try {
+        task.cancel(true);
+      } catch (Exception e) {
+        // ignore
+      }
+    }
+  }
+
+  private CompletableFuture<Integer> mockedTask() {
+    return CompletableFuture.supplyAsync(() -> {
+      TonyClient client = new TonyClient(conf);
+      try {
+        client.init(new String[]{
+                "--src_dir", "tony-core/src/test/resources/scripts",
+                "--hdfs_classpath", libPath,
+                "--shell_env", "ENV_CHECK=ENV_CHECK",
+                "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+                "--python_venv", "tony-core/src/test/resources/test.zip",
+                "--conf", "tony.ps.instances=1",
+                "--conf", "tony.worker.instances=4",
+                "--conf", "tony.ps.command=python sleep_30.py",
+                "--conf", "tony.worker.command=python check_env_and_venv.py"
+        });
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      int exitCode = client.start();
+      return exitCode;
+    });
   }
 
   /**
