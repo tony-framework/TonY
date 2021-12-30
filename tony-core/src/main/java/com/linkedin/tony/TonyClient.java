@@ -144,6 +144,7 @@ public class TonyClient implements AutoCloseable {
   private String hdfsClasspath = null;
   private String executes;
   private long appTimeout;
+  private long amStartupTimeout;
   private boolean secureMode;
   private Map<String, String> containerEnv = new HashMap<>();
   private String hadoopFrameworkLocation = null;
@@ -543,6 +544,9 @@ public class TonyClient implements AutoCloseable {
 
     appTimeout = tonyConf.getInt(TonyConfigurationKeys.APPLICATION_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_APPLICATION_TIMEOUT);
+
+    amStartupTimeout = tonyConf.getInt(TonyConfigurationKeys.AM_STARTUP_TIMEOUT,
+        TonyConfigurationKeys.DEFAULT_AM_STARTUP_TIMEOUT);
 
     List<String> executionEnvPair = new ArrayList<>();
     if (tonyConf.get(TonyConfigurationKeys.EXECUTION_ENV) != null) {
@@ -1110,6 +1114,15 @@ public class TonyClient implements AutoCloseable {
         signalAMToFinish();
         break;
       }
+
+      if (amStartupTimeout > 0 && YarnApplicationState.ACCEPTED == appState
+              && System.currentTimeMillis() - clientStartTime > amStartupTimeout) {
+        LOG.info("Reached AM startup timeout for application. Killing application, ApplicationId: " + appId.getId());
+        forceKillApplication();
+        result = false;
+        break;
+      }
+
 
       if (appTimeout > 0) {
         if (System.currentTimeMillis() > (clientStartTime + appTimeout)) {
