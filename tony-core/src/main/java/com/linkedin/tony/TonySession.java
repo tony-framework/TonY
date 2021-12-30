@@ -262,10 +262,10 @@ public class TonySession {
    * Refresh task status when a TaskExecutor registers its exit code with AM.
    */
   public void onTaskCompleted(String jobName, String jobIndex, int exitCode, String taskDiagnosticMsg) {
-    String outputLog = String.format("Job %s:%s exited with %d", jobName, jobIndex, exitCode);
+    TonyTask task = getTask(jobName, jobIndex);
+    String outputLog = String.format("Job %s:%s exited with %d on host:%s", jobName, jobIndex, exitCode, task.getHost());
     LOG.info(outputLog);
 
-    TonyTask task = getTask(jobName, jobIndex);
     Preconditions.checkNotNull(task);
     task.setExitStatus(exitCode);
     task.setEndTime(System.currentTimeMillis());
