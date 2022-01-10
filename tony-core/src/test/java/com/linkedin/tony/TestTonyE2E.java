@@ -608,7 +608,7 @@ public class TestTonyE2E  {
     Assert.assertEquals(exitCode, -1);
   }
 
-  @Test
+  @Test(timeOut = 60000)
   public void testTonyAMStartupTimeoutShouldFail() throws ParseException, IOException {
     List<CompletableFuture<Integer>> tasks = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
