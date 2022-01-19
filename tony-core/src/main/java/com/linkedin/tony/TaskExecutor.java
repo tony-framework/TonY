@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -32,8 +33,10 @@ import static java.util.Objects.requireNonNull;
  * Content that we want to run in the containers. TaskExecutor will register itself with AM and fetch cluster spec from
  * AM. After the cluster spec is collected, TaskExecutor will set up local environment and start the worker task.
  */
-public class TaskExecutor {
+public class TaskExecutor implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TaskExecutor.class);
+  private static final int GENERAL_EXIT_CODE = 1;
+  public static final String MARK_LOST_CONNECTION_ENV_KEY = "MARK_TASK_EXECUTOR_LOST_CONNECTION_WITH_AM";
 
   @VisibleForTesting
   protected Configuration tonyConf = new Configuration(false);
@@ -69,6 +72,8 @@ public class TaskExecutor {
   private String appIdString;
 
   private static Framework.TaskExecutorAdapter taskRuntimeAdapter;
+
+  private volatile boolean markedAsLostConnectionWithAM = false;
 
   @VisibleForTesting
   public TaskExecutor() { }
@@ -187,21 +192,10 @@ public class TaskExecutor {
 
   public static void main(String[] unused) throws Exception {
     LOG.info("TaskExecutor is running..");
-    TaskExecutor executor = null;
-    try {
-      executor = requireNonNull(createExecutor());
-    } catch (Exception ex) {
-      if (executor != null) {
-        LOG.info("Failed to create TaskExecutor, releasing any reserved ports.");
-        executor.releasePorts();
-      }
-      throw ex;
-    }
-
-    // If not reusing port, then reserve them up until before the underlying TF process is
-    // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
-    // details.
-    if (executor != null) {
+    try (TaskExecutor executor = requireNonNull(createExecutor())) {
+      // If not reusing port, then reserve them up until before the underlying TF process is
+      // launched. See <a href="https://github.com/linkedin/TonY/issues/365">this issue</a> for
+      // details.
       if (!executor.isTFGrpcReusingPort()) {
         LOG.info("Releasing reserved RPC port before launching tensorflow process.");
         executor.releasePort(executor.rpcPort);
@@ -211,29 +205,37 @@ public class TaskExecutor {
         LOG.info("Releasing reserved TB port before launching tensorflow process.");
         executor.releasePort(executor.tbPort);
       }
-    }
 
-    int exitCode;
-    try {
-      exitCode = taskRuntimeAdapter.run();
+      CompletableFuture<Integer> childProcessFuture = CompletableFuture.supplyAsync(() -> {
+        try {
+          return taskRuntimeAdapter.run();
+        } catch (Exception e) {
+          LOG.error("Errors on running child process.", e);
+        }
+        return GENERAL_EXIT_CODE;
+      });
+
+      int exitCode;
+      while (true) {
+        if (executor.markedAsLostConnectionWithAM) {
+          exitCode = GENERAL_EXIT_CODE;
+          break;
+        }
+
+        if (childProcessFuture.isDone()) {
+          exitCode = childProcessFuture.getNow(GENERAL_EXIT_CODE);
+          break;
+        }
+      }
+
       // START - worker skew testing:
       executor.skewAndHangIfTesting();
       // END - worker skew testing:
       executor.registerExecutionResult(exitCode, executor.jobName, String.valueOf(executor.taskIndex));
-    } finally {
-      if (executor.isTFGrpcReusingPort()) {
-        LOG.info("TensorFlow process exited, releasing reserved RPC port.");
-        executor.releasePort(executor.rpcPort);
-      }
 
-      if (executor.isTBServerReusingPort()) {
-        LOG.info("Tensorflow process exited, releasing reserved TB port.");
-        executor.releasePort(executor.tbPort);
-      }
+      LOG.info("Child process exited with exit code: " + exitCode);
+      System.exit(exitCode);
     }
-
-    LOG.info("Child process exited with exit code " + exitCode);
-    System.exit(exitCode);
   }
 
   protected void initConfigs() {
@@ -278,6 +280,10 @@ public class TaskExecutor {
     maxConsecutiveHBMiss = tonyConf.getInt(TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS,
             TonyConfigurationKeys.DEFAULT_TASK_MAX_MISSED_HEARTBEATS);
 
+    // Only for test case.
+    markedAsLostConnectionWithAM = shellEnv.getOrDefault(MARK_LOST_CONNECTION_ENV_KEY, "false")
+            .equalsIgnoreCase("true");
+
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
   }
@@ -321,6 +327,19 @@ public class TaskExecutor {
     }
   }
 
+  @Override
+  public void close() throws Exception {
+    if (isTFGrpcReusingPort()) {
+      LOG.info("TensorFlow process exited, releasing reserved RPC port.");
+      releasePort(rpcPort);
+    }
+
+    if (isTBServerReusingPort()) {
+      LOG.info("Tensorflow process exited, releasing reserved TB port.");
+      releasePort(tbPort);
+    }
+  }
+
   private class Heartbeater implements Runnable {
     int hbMissCounter = 0;
     int numHbToMiss;
@@ -353,8 +372,8 @@ public class TaskExecutor {
         LOG.error("[" + taskId + "] Failed to send Heart Beat.", e);
         if (++numFailedHBAttempts > maxConsecutiveHBMiss) {
           LOG.error("[" + taskId + "] Exceeded max number of allowed failed heart beat send attempts. "
-              + "Going to stop heartbeating!");
-          e.printStackTrace();
+              + "Going to stop heartbeating!", e);
+          markedAsLostConnectionWithAM =  true;
           throw new RuntimeException(e);
         } else {
           LOG.warn("Will retry heartbeat..");
