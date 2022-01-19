@@ -51,6 +51,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1022,6 +1023,8 @@ public class ApplicationMaster {
     @Override
     public void onStartContainerError(ContainerId containerId, Throwable t) {
       LOG.error("Failed to start container " + containerId, t);
+      processFinishedContainer(containerId, ContainerExitStatus.INVALID,
+              "Errors on starting container, stacktrace as follows: \n" + ExceptionUtils.getStackTrace(t));
     }
 
     @Override
