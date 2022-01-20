@@ -459,7 +459,7 @@ public class Utils {
     }
   }
 
-  public static int getNumTotalTasks(Configuration conf) {
+  public synchronized static int getNumTotalTasks(Configuration conf) {
     return getAllJobTypes(conf).stream().mapToInt(type -> conf.getInt(TonyConfigurationKeys.getInstancesKey(type), 0))
         .sum();
   }
