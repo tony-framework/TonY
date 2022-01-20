@@ -1332,7 +1332,15 @@ public class TonyClient implements AutoCloseable {
     boolean result;
     try {
       result = run();
-    } catch (IOException | InterruptedException | URISyntaxException | YarnException | ParseException e) {
+    } catch (InterruptedException | YarnException interruptedException) {
+      try {
+        LOG.info("Force killing application due to accepting interruption semaphore.");
+        forceKillApplication();
+      } catch (Exception e) {
+        LOG.error("Errors on killing application when tony client throws exception", e);
+      }
+      result = false;
+    } catch (IOException | URISyntaxException | ParseException e) {
       LOG.fatal("Failed to run TonyClient", e);
       result = false;
     } finally {
@@ -1340,6 +1348,7 @@ public class TonyClient implements AutoCloseable {
         cleanupLocalTmpFiles();
       }
     }
+
     if (result) {
       LOG.info("Application completed successfully");
       return 0;

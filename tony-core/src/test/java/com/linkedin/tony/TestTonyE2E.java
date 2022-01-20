@@ -12,10 +12,11 @@ import com.linkedin.tony.client.TaskUpdateListener;
 import com.linkedin.tony.rpc.TaskInfo;
 import com.linkedin.tony.rpc.impl.TaskStatus;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
@@ -31,9 +32,12 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static com.linkedin.tony.TaskExecutor.MARK_LOST_CONNECTION_ENV_KEY;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
@@ -59,6 +63,7 @@ import static org.testng.Assert.assertFalse;
  * The YARN logs for the test should be in {@code <TonY>/target/MiniTonY}.
  */
 public class TestTonyE2E  {
+  private static final Log LOG = LogFactory.getLog(TestTonyE2E.class);
 
   private static class TestTonyE2EHandler implements CallbackHandler, TaskUpdateListener {
 
@@ -611,10 +616,11 @@ public class TestTonyE2E  {
 
   @Test(timeOut = 60000)
   public void testTonyAMStartupTimeoutShouldFail() throws ParseException, IOException {
-    List<CompletableFuture<Integer>> tasks = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
-      tasks.add(mockedTask());
-    }
+    /* Creating 10 jobs submitting to Yarn to make cluster fulfill. */
+    ExecutorService executorService = Executors.newFixedThreadPool(10);
+    Stream.iterate(0, n -> n + 1)
+            .limit(10)
+            .forEach(x -> mockedTask(executorService));
 
     TonyClient client = new TonyClient(conf);
     client.init(new String[]{
@@ -631,17 +637,30 @@ public class TestTonyE2E  {
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
 
-    for (CompletableFuture<Integer> task : tasks) {
-      try {
-        task.cancel(true);
-      } catch (Exception e) {
-        // ignore
+    shutdownExecutor(executorService);
+  }
+
+  private void shutdownExecutor(ExecutorService executor) {
+    executor.shutdown();
+    try {
+      // Wait a while for existing tasks to terminate
+      if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+        executor.shutdownNow(); // Cancel currently executing tasks
+        // Wait a while for tasks to respond to being cancelled
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+          LOG.error("Thread pool did not terminate");
+        }
       }
+    } catch (InterruptedException e) {
+      // (Re-)Cancel if current thread also interrupted
+      executor.shutdownNow();
+      // Preserve interrupt status
+      Thread.currentThread().interrupt();
     }
   }
 
-  private CompletableFuture<Integer> mockedTask() {
-    return CompletableFuture.supplyAsync(() -> {
+  private Future<?> mockedTask(ExecutorService service) {
+    return service.submit((Runnable) () -> {
       TonyClient client = new TonyClient(conf);
       try {
         client.init(new String[]{
@@ -655,11 +674,11 @@ public class TestTonyE2E  {
                 "--conf", "tony.ps.command=python sleep_30.py",
                 "--conf", "tony.worker.command=python check_env_and_venv.py"
         });
+        client.start();
       } catch (Exception e) {
         e.printStackTrace();
       }
-      int exitCode = client.start();
-      return exitCode;
+      return;
     });
   }
 
