@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static com.linkedin.tony.TaskExecutor.MARK_LOST_CONNECTION_ENV_KEY;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_MAX_MISSED_HEARTBEATS;
 import static org.mockito.ArgumentMatchers.any;
@@ -708,6 +709,22 @@ public class TestTonyE2E  {
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
     client.removeListener(handler);
+  }
+
+  @Test
+  public void testLostConnectionWithAMJobShouldFail() throws Exception {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python forever_not_exit.py",
+            "--conf", "tony.worker.instances=1",
+            "--conf", "tony.application.framework=tensorflow",
+            "--shell_env", MARK_LOST_CONNECTION_ENV_KEY + "=true"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
   }
 
   /**
