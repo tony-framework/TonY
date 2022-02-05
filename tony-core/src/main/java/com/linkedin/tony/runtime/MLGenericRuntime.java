@@ -40,6 +40,7 @@ import com.linkedin.tony.TonySession;
 import com.linkedin.tony.util.Utils;
 
 import static com.linkedin.tony.Constants.SIDECAR_TB_ROLE_NAME;
+import static com.linkedin.tony.TonyConfigurationKeys.getGroupDependentIgnoredKey;
 
 public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
     private static final long REGISTRATION_STATUS_INTERVAL_MS = 15 * 1000;
@@ -141,9 +142,16 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
              * chief/workers are finished, the mechanism of dependency group timeout will make job failed.
              *
              * Dependency group timeout configuration as follows:
-             *
+             * ```
              * tony.application.group.A = worker,chief
              * tony.application.dependency.evaluator.timeout.after.A = 3600
+             * ```
+             *
+             * And in some of the cases, we don't want to fail the whole job even though a dependency times out.
+             * For example, if chief succeeded and there is a worker hanging for 1 hour,
+             * users can configure the job to still pass. So it introduces the new config of
+             * `tony.application.dependency.[X].timeout.after.[GROUP].ignored = true`, and more details could be
+             * found in https://github.com/tony-framework/TonY/issues/641.
              *
              */
             String errorMsg = groupDependencyTimeout(tonyConf);
@@ -231,10 +239,20 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
                 }
 
                 if (System.currentTimeMillis() - latestEndTimeInAllDependentTasks > timeout) {
-                    return String.format("Jobtype: %s runs exceeded timeout because it's "
-                                    + "dependent group: %s (task set: [%s]) has been finished.",
-                            runningTaskType, dependentGroupName,
-                            StringUtils.join(grpWithMembersIndex.get(dependentGroupName), ","));
+
+                    String ignoredTaskTypeKey = getGroupDependentIgnoredKey(runningTaskType, dependentGroupName);
+                    boolean ignoreTimeout = tonyConf.getBoolean(ignoredTaskTypeKey, false);
+                    if (!ignoreTimeout) {
+                        return String.format("Task type: %s runs exceeded timeout because it's "
+                                        + "dependent group: %s (task set: [%s]) has been finished.",
+                                runningTaskType, dependentGroupName,
+                                StringUtils.join(grpWithMembersIndex.get(dependentGroupName), ","));
+                    }
+
+                    log.info(
+                            String.format("Task type: %s is marked as untracked.", runningJobTypes)
+                    );
+                    session.makeTaskTypeUntracked(runningTaskType);
                 }
             }
 

@@ -215,4 +215,4 @@ For more information about TonY, check out the following:
 
 3. My tensorflow's partial workers hang when chief finished. Or evaluator hang when chief and workers finished.
    
-   Please see the [PR#521](https://github.com/tony-framework/TonY/pull/621) on Tensorflow configuration to solve it.
+   Please see the [PR#521](https://github.com/tony-framework/TonY/pull/621) and [PR#641](https://github.com/tony-framework/TonY/issues/641) on Tensorflow configuration to solve it.

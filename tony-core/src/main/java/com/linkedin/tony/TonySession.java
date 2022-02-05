@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -37,6 +38,8 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static com.linkedin.tony.Constants.CHIEF_JOB_NAME;
 import static com.linkedin.tony.Constants.WORKER_JOB_NAME;
+import static com.linkedin.tony.TonyConfigurationKeys.UNTRACKED_JOBTYPES;
+import static com.linkedin.tony.util.Utils.getUntrackedJobTypes;
 
 
 /**
@@ -669,5 +672,12 @@ public class TonySession {
 
   public Set<String> getRegisteredTasks() {
     return registeredTasks;
+  }
+
+  public void makeTaskTypeUntracked(String taskType) {
+    String[] defaultUntrackedTypes = getUntrackedJobTypes(tonyConf);
+    List<String> untrackedList = Arrays.stream(defaultUntrackedTypes).collect(Collectors.toList());
+    untrackedList.add(taskType);
+    tonyConf.set(UNTRACKED_JOBTYPES, StringUtils.join(untrackedList, ","));
   }
 }
