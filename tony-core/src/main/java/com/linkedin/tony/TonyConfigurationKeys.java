@@ -349,6 +349,8 @@ public class TonyConfigurationKeys {
   public static final String GROUP_REGEX = TONY_APPLICATION_PREFIX + "group\\.([A-Za-z]+)$";
   public static final String GROUP_DEPEND_TIMEOUT_REGEX =
       TONY_APPLICATION_PREFIX + "dependency\\.([A-Za-z]+)\\.timeout\\.after\\.([A-Za-z]+)$";
+  public static final String GROUP_DEPEND_TIMEOUT_IGNORE_REGEX =
+      TONY_APPLICATION_PREFIX + "dependency\\.([A-Za-z]+)\\.timeout\\.after\\.([A-Za-z]+)$.ignored";
 
   public static String getGroupKey(String groupName) {
     return String.format(TONY_APPLICATION_PREFIX + "group.%s", groupName);
@@ -356,5 +358,9 @@ public class TonyConfigurationKeys {
 
   public static String getGroupDependentKey(String grp, String dependentGrp) {
     return String.format(TONY_APPLICATION_PREFIX + "dependency.%s.timeout.after.%s", grp, dependentGrp);
+  }
+
+  public static String getGroupDependentIgnoredKey(String roleType, String dependentGrp) {
+    return String.format(TONY_APPLICATION_PREFIX + "dependency.%s.timeout.after.%s.ignored", roleType, dependentGrp);
   }
 }

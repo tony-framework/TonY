@@ -122,8 +122,8 @@ public class TestMLGenericRuntime {
         am.setTonySession(session);
         Assert.assertEquals(
                 am.groupDependencyTimeout(conf),
-                "Jobtype: evaluator runs exceeded timeout because it's dependent group: A "
-                        + "(task set: [worker,chief]) has been finished."
+                "Task type: evaluator runs exceeded timeout because it's dependent group: "
+                        + "A (task set: [worker,chief]) has been finished."
         );
     }
 
@@ -142,7 +142,8 @@ public class TestMLGenericRuntime {
         am.setTonySession(session);
         Assert.assertEquals(
                 am.groupDependencyTimeout(conf),
-                "Jobtype: otherWorker runs exceeded timeout because it's dependent group: A (task set: [chief]) has been finished."
+                "Task type: otherWorker runs exceeded timeout because it's dependent group: "
+                        + "A (task set: [chief]) has been finished."
         );
     }
 
@@ -164,7 +165,8 @@ public class TestMLGenericRuntime {
         am.setTonySession(session);
         Assert.assertEquals(
                 am.groupDependencyTimeout(conf),
-                "Jobtype: evaluator runs exceeded timeout because it's dependent group: B (task set: [chief,worker]) has been finished."
+                "Task type: evaluator runs exceeded timeout because it's dependent group: "
+                        + "B (task set: [chief,worker]) has been finished."
         );
     }
 
@@ -233,6 +235,32 @@ public class TestMLGenericRuntime {
         Assert.assertNull(
                 am.groupDependencyTimeout(conf)
         );
+    }
+
+    /**
+     * Test case for partial tasks with ignored timeout, and it will be marked as untracked
+     * when dependency times out.
+     */
+    @Test
+    public void testTaskTimeoutWithIgnoredShouldPass() {
+        Configuration conf = new Configuration();
+        conf.addResource("tony-default.xml");
+        conf.set("tony.application.group.A", "chief");
+        conf.set("tony.application.dependency.otherWorker.timeout.after.A", "3600");
+        conf.set("tony.application.dependency.otherWorker.timeout.after.A.ignored", "true");
+
+        TonySession session = buildMockSession(conf);
+
+        TonySession.TonyTask chiefTask = session.getTask("chief", "0");
+        chiefTask.setEndTime(System.currentTimeMillis() - 1000 * 60 * 120);
+
+        MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
+        am.setTonySession(session);
+        Assert.assertNull(
+                am.groupDependencyTimeout(conf)
+        );
+
+        Assert.assertEquals(session.getTotalTasks() - session.getTotalTrackedTasks(), 3);
     }
 
     private TonySession buildPartialTaskScheduledSession(Configuration conf) {

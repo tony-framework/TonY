@@ -730,6 +730,82 @@ public class TestTonyE2E  {
     client.removeListener(handler);
   }
 
+  /**
+   * When enable the conf of "tony.application.dependency.worker.timeout.after.A.ignored=true",
+   * it should make the job succeed.
+   */
+  @Test
+  public void testTaskWithDependencyTimeoutButIgnoredShouldPass() throws Exception {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python exit_0.py",
+            "--conf", "tony.chief.instances=1",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.worker.command=python forever_not_exit.py",
+            "--conf", "tony.application.framework=tensorflow",
+            "--conf", "tony.application.group.A=chief",
+            "--conf", "tony.application.dependency.worker.timeout.after.A=10",
+            "--conf", "tony.application.dependency.worker.timeout.after.A.ignored=true",
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+  /**
+   * Test task-dependency-timeout with the task role of PS (the default untracked job type)
+   */
+  @Test
+  public void testTaskWithDependencyTimeoutButIgnoredAndWithPSShouldPass() throws Exception {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python exit_0.py",
+            "--conf", "tony.chief.instances=1",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.worker.command=python forever_not_exit.py",
+            "--conf", "tony.ps.instances=1",
+            "--conf", "tony.ps.command=python forever_not_exit.py",
+            "--conf", "tony.application.framework=tensorflow",
+            "--conf", "tony.application.group.A=chief",
+            "--conf", "tony.application.dependency.worker.timeout.after.A=10",
+            "--conf", "tony.application.dependency.worker.timeout.after.A.ignored=true",
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, 0);
+  }
+
+  /**
+   * Test task(Worker) dependency-timeout, but the role of worker exit with -1,
+   * and then this job should fail.
+   */
+  @Test
+  public void testTaskWithDependencyTimeAndIgnoredButFailedShouldPass() throws Exception {
+    client.init(new String[]{
+            "--src_dir", "tony-core/src/test/resources/scripts",
+            "--hdfs_classpath", libPath,
+            "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
+            "--python_venv", "tony-core/src/test/resources/test.zip",
+            "--executes", "python exit_0.py",
+            "--conf", "tony.chief.instances=1",
+            "--conf", "tony.worker.instances=2",
+            "--conf", "tony.worker.command=python sleep_10_and_exit_1.py",
+            "--conf", "tony.evaluator.instances=1",
+            "--conf", "tony.evaluator.command=python sleep_30.py",
+            "--conf", "tony.application.framework=tensorflow",
+            "--conf", "tony.application.group.A=chief",
+            "--conf", "tony.application.dependency.worker.timeout.after.A=5",
+            "--conf", "tony.application.dependency.worker.timeout.after.A.ignored=true",
+            "--conf", "tony.application.stop-on-failure-jobtypes=worker"
+    });
+    int exitCode = client.start();
+    Assert.assertEquals(exitCode, -1);
+  }
+
   @Test
   public void testLostConnectionWithAMJobShouldFail() throws Exception {
     client.init(new String[]{
