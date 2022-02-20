@@ -28,6 +28,7 @@ message GetTaskInfosResponseProto {
 }
 
 message GetClusterSpecRequestProto {
+    required string taskId = 1;
 }
 
 message GetClusterSpecResponseProto {

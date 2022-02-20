@@ -4,7 +4,6 @@
  */
 package com.linkedin.tony;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.linkedin.tony.events.TaskFinished;
@@ -883,9 +882,11 @@ public class ApplicationMaster {
     }
 
     @Override
-    public String getClusterSpec() throws IOException {
-      ObjectMapper objectMapper = new ObjectMapper();
-      return objectMapper.writeValueAsString(session.getClusterSpec());
+    public String getClusterSpec(String taskId) throws IOException {
+      if (amRuntimeAdapter.canStartTask(distributedMode, taskId)) {
+        return amRuntimeAdapter.constructClusterSpec(taskId);
+      }
+      return null;
     }
 
     @Override
@@ -902,10 +903,7 @@ public class ApplicationMaster {
         LOG.info("[" + taskId + "] Received Registration for HB !!");
         hbMonitor.register(task);
         killChiefWorkerIfTesting(taskId);
-      }
-
-      if (amRuntimeAdapter.canStartTask(distributedMode, taskId)) {
-        return amRuntimeAdapter.constructClusterSpec(taskId);
+        return "";
       }
       return null;
     }

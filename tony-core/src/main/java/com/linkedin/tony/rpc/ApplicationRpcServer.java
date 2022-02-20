@@ -54,7 +54,7 @@ public class ApplicationRpcServer extends Thread implements TonyCluster {
   public GetClusterSpecResponse getClusterSpec(GetClusterSpecRequest request)
           throws YarnException, IOException {
     GetClusterSpecResponse response = RECORD_FACTORY.newRecordInstance(GetClusterSpecResponse.class);
-    response.setClusterSpec(this.appRpc.getClusterSpec());
+    response.setClusterSpec(this.appRpc.getClusterSpec(request.getTaskId()));
     return response;
   }
 
