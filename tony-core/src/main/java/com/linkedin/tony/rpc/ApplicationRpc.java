@@ -16,12 +16,12 @@ public interface ApplicationRpc {
    */
   Set<TaskInfo> getTaskInfos() throws IOException, YarnException;
 
-  String getClusterSpec() throws IOException, YarnException;
   String registerWorkerSpec(String worker, String spec) throws IOException, YarnException;
+  String getClusterSpec(String taskId) throws IOException, YarnException;
+  void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException;
   String registerTensorBoardUrl(String spec) throws Exception;
   String registerExecutionResult(int exitCode, String jobName, String jobIndex, String sessionId) throws Exception;
   void finishApplication() throws YarnException, IOException;
   void taskExecutorHeartbeat(String taskId) throws YarnException, IOException;
   void reset();
-  void registerCallbackInfo(String taskId, String callbackInfo) throws YarnException, IOException;
 }

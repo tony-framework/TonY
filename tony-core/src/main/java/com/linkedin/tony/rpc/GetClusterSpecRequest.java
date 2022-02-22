@@ -5,4 +5,6 @@
 package com.linkedin.tony.rpc;
 
 public interface GetClusterSpecRequest {
+    String getTaskId();
+    void setTaskId(String taskId);
 }

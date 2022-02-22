@@ -84,9 +84,10 @@ public class ApplicationRpcClient implements ApplicationRpc {
   }
 
   @Override
-  public String getClusterSpec() throws IOException, YarnException {
-    GetClusterSpecResponse response =
-        tensorflow.getClusterSpec(recordFactory.newRecordInstance(GetClusterSpecRequest.class));
+  public String getClusterSpec(String taskId) throws IOException, YarnException {
+    GetClusterSpecRequest request = recordFactory.newRecordInstance(GetClusterSpecRequest.class);
+    request.setTaskId(taskId);
+    GetClusterSpecResponse response = tensorflow.getClusterSpec(request);
     return response.getClusterSpec();
   }
 
