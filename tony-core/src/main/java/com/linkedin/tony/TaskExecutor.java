@@ -111,17 +111,6 @@ public class TaskExecutor implements AutoCloseable {
   }
 
   /**
-   * Releases the reserved ports if any. This method has to be invoked after ports are created.
-   */
-  private void releasePorts() throws Exception {
-    try {
-      this.releasePort(this.rpcPort);
-    } finally {
-      this.releasePort(this.tbPort);
-    }
-  }
-
-  /**
    * @return true if reusing port is enabled by user, false otherwise.
    */
   private boolean isTFGrpcReusingPort() {
@@ -288,7 +277,7 @@ public class TaskExecutor implements AutoCloseable {
     Utils.initHdfsConf(hdfsConf);
   }
 
-  private String registerAndGetClusterSpec() {
+  private String registerAndGetClusterSpec() throws IOException, YarnException {
     ContainerId containerId = ContainerId.fromString(System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name()));
     String hostName = Utils.getCurrentHostName();
     LOG.info("ContainerId is: " + containerId + " HostName is: " + hostName);
@@ -299,9 +288,13 @@ public class TaskExecutor implements AutoCloseable {
 
     LOG.info("Connecting to " + amHost + ":" + amPort + " to register worker spec: " + jobName + " " + taskIndex + " "
              + hostName + ":" + this.rpcPort.getPort());
-    return Utils.pollTillNonNull(() ->
-        proxy.registerWorkerSpec(jobName + ":" + taskIndex,
-            hostName + ":" + this.rpcPort.getPort()), 3, 0);
+
+    String taskId = String.format("%s:%s", jobName, taskIndex);
+    String hostAndPort = String.format("%s:%s", hostName, rpcPort.getPort());
+
+    Utils.pollTillNonNull(() -> proxy.registerWorkerSpec(taskId, hostAndPort), 3, 0);
+
+    return Utils.pollTillNonNull(() -> proxy.getClusterSpec(taskId), 3, 0);
   }
 
   public void callbackInfoToAM(String taskId, String callbackInfo) throws IOException, YarnException {
