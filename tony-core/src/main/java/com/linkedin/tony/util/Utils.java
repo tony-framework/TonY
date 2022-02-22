@@ -97,24 +97,7 @@ public class Utils {
    * @throws IllegalArgumentException if {@code interval} or {@code timeout} is negative
    */
   public static boolean poll(Callable<Boolean> func, int interval, int timeout) {
-    Preconditions.checkArgument(interval >= 0, "Interval must be non-negative.");
-    Preconditions.checkArgument(timeout >= 0, "Timeout must be non-negative.");
-
-    int remainingTime = timeout;
-    try {
-      while (timeout == 0 || remainingTime >= 0) {
-        if (func.call()) {
-          LOG.info("Poll function finished within " + timeout + " seconds");
-          return true;
-        }
-        Thread.sleep(interval * 1000);
-        remainingTime -= interval;
-      }
-    } catch (Exception e) {
-      LOG.error("Polled function threw exception.", e);
-    }
-    LOG.warn("Function didn't return true within " + timeout + " seconds.");
-    return false;
+    return pollTillConditionReached(func, result -> result, () -> false, interval, timeout);
   }
 
   /**
@@ -130,6 +113,11 @@ public class Utils {
    * @throws IllegalArgumentException  if {@code interval} or {@code timeout} is negative
    */
   public static <T> T pollTillNonNull(Callable<T> func, int interval, int timeout) {
+    return pollTillConditionReached(func, Objects::nonNull, () -> null, interval, timeout);
+  }
+
+  public static <T> T pollTillConditionReached(Callable<T> callFunc, Function<T, Boolean> conditionFunc,
+          CallableWithoutException<T> defaultReturnedFunc, int interval, int timeout) {
     Preconditions.checkArgument(interval >= 0, "Interval must be non-negative.");
     Preconditions.checkArgument(timeout >= 0, "Timeout must be non-negative.");
 
@@ -137,8 +125,8 @@ public class Utils {
     T ret;
     try {
       while (timeout == 0 || remainingTime >= 0) {
-        ret = func.call();
-        if (ret != null) {
+        ret = callFunc.call();
+        if (conditionFunc.apply(ret)) {
           LOG.info("pollTillNonNull function finished within " + timeout + " seconds");
           return ret;
         }
@@ -149,7 +137,7 @@ public class Utils {
       LOG.error("pollTillNonNull function threw exception", e);
     }
     LOG.warn("Function didn't return non-null within " + timeout + " seconds.");
-    return null;
+    return defaultReturnedFunc.call();
   }
 
   public static String parseMemoryString(String memory) {
