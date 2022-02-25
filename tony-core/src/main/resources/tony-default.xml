@@ -137,6 +137,12 @@
     <value>0</value>
   </property>
 
+  <property>
+    <description>Timeout, in seconds for the task executor registry to AM before exit.</description>
+    <name>tony.task.executor.registry-timeout-sec</name>
+    <value>0</value>
+  </property>
+
   <!-- AM configurations -->
   <property>
     <description>How many times a failed AM should retry.</description>

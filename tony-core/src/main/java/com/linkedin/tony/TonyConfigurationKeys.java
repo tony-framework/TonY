@@ -172,6 +172,9 @@ public class TonyConfigurationKeys {
   public static final String TASK_EXECUTION_TIMEOUT = TONY_TASK_PREFIX + "executor.execution-timeout-ms";
   public static final int DEFAULT_TASK_EXECUTION_TIMEOUT = 0;
 
+  public static final String TASK_EXECUTOR_MAX_REGISTRY_SEC = TONY_TASK_PREFIX + "executor.registry-timeout-sec";
+  public static final int DEFAULT_TASK_EXECUTOR_MAX_REGISTRY_SEC = 0;
+
   // AM configurations
   public static final String AM_PREFIX = TONY_PREFIX + "am.";
 

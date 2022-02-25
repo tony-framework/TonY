@@ -66,7 +66,7 @@ public class Framework {
         boolean needReserveTBPort();
 
         default int executorPythonShell(TaskExecutor executor) throws IOException, InterruptedException {
-            return Utils.executeShell(executor.getTaskCommand(), executor.getTimeOut(), executor.getShellEnv());
+            return Utils.executeShell(executor.getTaskCommand(), executor.getExecutionTimeout(), executor.getShellEnv());
         }
     }
 }
