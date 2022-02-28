@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -20,7 +21,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
@@ -36,6 +36,8 @@ import static java.util.Objects.requireNonNull;
 public class TaskExecutor implements AutoCloseable {
   private static final Log LOG = LogFactory.getLog(TaskExecutor.class);
   private static final int GENERAL_EXIT_CODE = 1;
+  private static final int DEFAULT_REQUEST_POLL_INTERVAL = 1;
+  private static final int DEFAULT_REQUEST_POLL_TIMEOUT = 60;
   public static final String MARK_LOST_CONNECTION_ENV_KEY = "MARK_TASK_EXECUTOR_LOST_CONNECTION_WITH_AM";
 
   @VisibleForTesting
@@ -44,7 +46,7 @@ public class TaskExecutor implements AutoCloseable {
   private ServerPort rpcPort;
   private ServerPort tbPort;
 
-  private int timeOut;
+  private int executionTimeOut;
   private String amHost;
   private int amPort;
 
@@ -70,6 +72,7 @@ public class TaskExecutor implements AutoCloseable {
   private int numFailedHBAttempts = 0;
   private String frameworkType;
   private String appIdString;
+  private int registerToAMTimeout;
 
   private static Framework.TaskExecutorAdapter taskRuntimeAdapter;
 
@@ -245,7 +248,7 @@ public class TaskExecutor implements AutoCloseable {
     amPort = Integer.parseInt(System.getenv(Constants.AM_PORT));
 
     tonyConf.addResource(new Path(Constants.TONY_FINAL_XML));
-    timeOut = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTION_TIMEOUT,
+    executionTimeOut = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTION_TIMEOUT,
         TonyConfigurationKeys.DEFAULT_TASK_EXECUTION_TIMEOUT);
     hbInterval = tonyConf.getInt(TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS,
         TonyConfigurationKeys.DEFAULT_TASK_HEARTBEAT_INTERVAL_MS);
@@ -273,11 +276,14 @@ public class TaskExecutor implements AutoCloseable {
     markedAsLostConnectionWithAM = shellEnv.getOrDefault(MARK_LOST_CONNECTION_ENV_KEY, "false")
             .equalsIgnoreCase("true");
 
+    registerToAMTimeout = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTOR_MAX_REGISTRY_SEC,
+            TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_MAX_REGISTRY_SEC);
+
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
   }
 
-  private String registerAndGetClusterSpec() throws IOException, YarnException {
+  private String registerAndGetClusterSpec() throws IOException {
     ContainerId containerId = ContainerId.fromString(System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name()));
     String hostName = Utils.getCurrentHostName();
     LOG.info("ContainerId is: " + containerId + " HostName is: " + hostName);
@@ -287,25 +293,39 @@ public class TaskExecutor implements AutoCloseable {
         0, hbInterval, TimeUnit.MILLISECONDS);
 
     LOG.info("Connecting to " + amHost + ":" + amPort + " to register worker spec: " + jobName + " " + taskIndex + " "
-             + hostName + ":" + this.rpcPort.getPort());
+             + hostName + ":" + rpcPort.getPort());
 
     String taskId = String.format("%s:%s", jobName, taskIndex);
     String hostAndPort = String.format("%s:%s", hostName, rpcPort.getPort());
 
-    Utils.pollTillNonNull(() -> proxy.registerWorkerSpec(taskId, hostAndPort), 3, 0);
+    String registerToAmResult =
+            Utils.pollTillNonNull(() -> proxy.registerWorkerSpec(taskId, hostAndPort),
+                DEFAULT_REQUEST_POLL_INTERVAL, registerToAMTimeout);
+    if (registerToAmResult == null) {
+      throw new IOException("Errors on registering to AM, maybe due to the network failure.");
+    }
 
-    return Utils.pollTillNonNull(() -> proxy.getClusterSpec(taskId), 3, 0);
+    return Utils.pollForeverTillNonNull(() -> proxy.getClusterSpec(taskId), DEFAULT_REQUEST_POLL_INTERVAL);
   }
 
-  public void callbackInfoToAM(String taskId, String callbackInfo) throws IOException, YarnException {
-    proxy.registerCallbackInfo(taskId, callbackInfo);
+  public void callbackInfoToAM(String taskId, String callbackInfo) throws IOException {
+    String callbackResult = Utils.pollTillNonNull(() -> {
+      proxy.registerCallbackInfo(taskId, callbackInfo);
+      return StringUtils.EMPTY;
+    }, DEFAULT_REQUEST_POLL_INTERVAL, DEFAULT_REQUEST_POLL_TIMEOUT);
+
+    if (callbackResult == null) {
+      throw new IOException("Errors on calling back task info to AM, task id: "
+              + taskId + ", callback info: " + callbackInfo);
+    }
   }
 
   private void registerTensorBoardUrl() {
     String hostName = Utils.getCurrentHostName();
     String tbUrl = hostName + ":" + this.tbPort.getPort();
     LOG.info("TensorBoard address : " + tbUrl);
-    String response = Utils.pollTillNonNull(() -> proxy.registerTensorBoardUrl(tbUrl), 1, 60);
+    String response = Utils.pollTillNonNull(() -> proxy.registerTensorBoardUrl(tbUrl),
+            DEFAULT_REQUEST_POLL_INTERVAL, DEFAULT_REQUEST_POLL_TIMEOUT);
     if (response != null) {
       LOG.info("Register TensorBoard response: " + response);
     }
@@ -314,7 +334,8 @@ public class TaskExecutor implements AutoCloseable {
   private void registerExecutionResult(int exitCode, String jobName, String jobIndex) {
     String sessionId = System.getenv(Constants.SESSION_ID);
     String response = Utils.pollTillNonNull(
-        () -> proxy.registerExecutionResult(exitCode, jobName, jobIndex, sessionId), 1, 60);
+        () -> proxy.registerExecutionResult(exitCode, jobName, jobIndex, sessionId),
+            DEFAULT_REQUEST_POLL_INTERVAL, DEFAULT_REQUEST_POLL_TIMEOUT);
     if (response != null) {
       LOG.info("AM response for result execution run: " + response);
     }
@@ -405,8 +426,8 @@ public class TaskExecutor implements AutoCloseable {
     return shellEnv;
   }
 
-  public int getTimeOut() {
-    return timeOut;
+  public int getExecutionTimeout() {
+    return executionTimeOut;
   }
 
   public String getJobName() {

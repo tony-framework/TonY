@@ -116,6 +116,10 @@ public class Utils {
     return pollTillConditionReached(func, Objects::nonNull, () -> null, interval, timeout);
   }
 
+  public static <T> T pollForeverTillNonNull(Callable<T> func, int interval) {
+    return pollTillNonNull(func, interval, 0);
+  }
+
   public static <T> T pollTillConditionReached(Callable<T> callFunc, Function<T, Boolean> conditionFunc,
           CallableWithoutException<T> defaultReturnedFunc, int interval, int timeout) {
     Preconditions.checkArgument(interval >= 0, "Interval must be non-negative.");
