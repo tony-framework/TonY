@@ -313,13 +313,21 @@ public class Utils {
     if (env != null) {
       taskProcessBuilder.environment().putAll(env);
     }
-    Process taskProcess = taskProcessBuilder.start();
+
+    final Process taskProcess = taskProcessBuilder.start();
+
+    Thread shutdownHook = new Thread(() -> taskProcess.destroy());
+    ShutdownHookUtil.addShutdownHookThread(shutdownHook, Utils.class.getSimpleName(), LOG);
+
     if (timeout > 0) {
       taskProcess.waitFor(timeout, TimeUnit.MILLISECONDS);
     } else {
       taskProcess.waitFor();
     }
-    return taskProcess.exitValue();
+    final int exitValue = taskProcess.exitValue();
+
+    ShutdownHookUtil.removeShutdownHook(shutdownHook, Utils.class.getName(), LOG);
+    return exitValue;
   }
 
   public static String getCurrentHostName() {
