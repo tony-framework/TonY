@@ -74,11 +74,22 @@ public class TonySession {
     TASK_TYPE_CHIEF, TASK_TYPE_PARAMETER_SERVER, TASK_TYPE_OTHERS
   }
 
-  public String getTaskCommand() {
+  @VisibleForTesting
+  public String getTaskCommand(String appIdString, String applicationName, String taskName, String taskIndex) {
     StringBuilder cmd = new StringBuilder();
     cmd.append("$JAVA_HOME/bin/java ")
         .append(jvmArgs)
-        .append(" com.linkedin.tony.TaskExecutor");
+        .append(" com.linkedin.tony.TaskExecutor ")
+        .append(" appId=")
+        .append(appIdString)
+        .append(" ")
+        .append(" appName=")
+        .append(applicationName)
+        .append(" ")
+        .append(" task=")
+        .append(taskName)
+        .append(":")
+        .append(taskIndex);
     return cmd.toString();
   }
 
@@ -679,5 +690,10 @@ public class TonySession {
     List<String> untrackedList = Arrays.stream(defaultUntrackedTypes).collect(Collectors.toList());
     untrackedList.add(taskType);
     tonyConf.set(UNTRACKED_JOBTYPES, StringUtils.join(untrackedList, ","));
+  }
+
+  /** Only for test cases. */
+  protected void setJvmArgs(String jvmArgs) {
+    this.jvmArgs = jvmArgs;
   }
 }
