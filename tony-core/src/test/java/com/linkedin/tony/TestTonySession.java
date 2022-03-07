@@ -64,4 +64,15 @@ public class TestTonySession {
     Assert.assertEquals(ps1.compareTo(samePs1), 0);
     Assert.assertEquals(worker1.compareTo(sameWorker1), 0);
   }
+
+  @Test
+  public void testGetTaskCommand() {
+    Configuration tonyConf = new Configuration(false);
+    TonySession session = new TonySession.Builder().setTonyConf(tonyConf).build();
+    session.setJvmArgs("");
+
+    String commandline = session.getTaskCommand("application_1645363183601_0001", "tony_tensorflow", "ps", "1");
+    Assert.assertEquals(commandline, "$JAVA_HOME/bin/java  com.linkedin.tony.TaskExecutor  "
+            + "appId=application_1645363183601_0001  appName=tony_tensorflow  task=ps:1");
+  }
 }
