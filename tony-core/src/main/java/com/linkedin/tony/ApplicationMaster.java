@@ -96,6 +96,7 @@ public class ApplicationMaster {
    * Metadata + History Server related variables
    */
   private String appIdString;
+  private String applicationName;
   private FileSystem resourceFs; // FileSystem used to access resources for the job, like jars and zips
   private FileSystem historyFs;  // FileSystem used to write history-related files like config and events.
                                  // In some HDFS setups, operators may wish to write history files to a different
@@ -282,6 +283,9 @@ public class ApplicationMaster {
     frameworkType = tonyConf.get(TonyConfigurationKeys.FRAMEWORK_NAME,
             TonyConfigurationKeys.DEFAULT_FRAMEWORK_NAME).toUpperCase();
     amRuntimeAdapter = FrameworkRuntimeProvider.getAMAdapter(frameworkType);
+
+    applicationName = tonyConf.get(TonyConfigurationKeys.APPLICATION_NAME,
+            TonyConfigurationKeys.DEFAULT_APPLICATION_NAME);
 
     if (!amRuntimeAdapter.validateAndUpdateConfig(tonyConf)) {
       LOG.error("Invalid TonY conf.");
@@ -1191,7 +1195,7 @@ public class ApplicationMaster {
       containerLaunchEnv.put(Constants.SESSION_ID, String.valueOf(session.sessionId));
 
       List<CharSequence> arguments = new ArrayList<>(5);
-      arguments.add(session.getTaskCommand());
+      arguments.add(session.getTaskCommand(appIdString, applicationName, jobName, taskIndex));
       arguments.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
       arguments.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
       List<String> commands = ImmutableList.of(String.join(" ", arguments));
