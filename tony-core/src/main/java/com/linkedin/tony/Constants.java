@@ -94,6 +94,9 @@ public class Constants {
   public static final String AM_STDOUT_FILENAME = "amstdout.log";
   public static final String AM_STDERR_FILENAME = "amstderr.log";
 
+  public static final String TASK_EXECUTOR_EXECUTION_STDERR_FILENAME = "execution.err";
+  public static final String TASK_EXECUTOR_EXECUTION_STDOUT_FILENAME = "execution.out";
+
   public static final String HDFS_SITE_CONF = "hdfs-site.xml";
   public static final String HDFS_DEFAULT_CONF = "hdfs-default.xml";
   public static final String YARN_SITE_CONF = YarnConfiguration.YARN_SITE_CONFIGURATION_FILE;

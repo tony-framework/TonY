@@ -4,6 +4,7 @@
  */
 package com.linkedin.tony;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.tony.rpc.MetricsRpc;
 import com.linkedin.tony.rpc.impl.ApplicationRpcClient;
 import com.linkedin.tony.util.Utils;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import static java.util.Objects.requireNonNull;
 
@@ -77,6 +79,8 @@ public class TaskExecutor implements AutoCloseable {
   private static Framework.TaskExecutorAdapter taskRuntimeAdapter;
 
   private volatile boolean markedAsLostConnectionWithAM = false;
+
+  private String containerLogDir;
 
   @VisibleForTesting
   public TaskExecutor() { }
@@ -278,6 +282,8 @@ public class TaskExecutor implements AutoCloseable {
 
     registerToAMTimeout = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTOR_MAX_REGISTRY_SEC,
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_MAX_REGISTRY_SEC);
+
+    containerLogDir = System.getProperty(YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR);
 
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
@@ -483,5 +489,13 @@ public class TaskExecutor implements AutoCloseable {
 
   public void setTaskCommand(String taskCommand) {
     this.taskCommand = taskCommand;
+  }
+
+  public String getPythonStdErrFile() {
+    return String.format("%s%s%s", containerLogDir, File.separatorChar, Constants.TASK_EXECUTOR_EXECUTION_STDERR_FILENAME);
+  }
+
+  public String getPythonStdOutFile() {
+    return String.format("%s%s%s", containerLogDir, File.separatorChar, Constants.TASK_EXECUTOR_EXECUTION_STDOUT_FILENAME);
   }
 }
