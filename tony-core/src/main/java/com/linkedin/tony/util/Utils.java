@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -871,6 +872,25 @@ public class Utils {
 
   public static boolean existRunningTasksWithJobtype(List<TonySession.TonyTask> runningTasks, String jobtype) {
     return runningTasks.stream().anyMatch(x -> x.getJobName().equals(jobtype));
+  }
+
+  public static void shutdownThreadPool(ExecutorService executor) {
+    executor.shutdown();
+    try {
+      // Wait a while for existing tasks to terminate
+      if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+        executor.shutdownNow(); // Cancel currently executing tasks
+        // Wait a while for tasks to respond to being cancelled
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+          LOG.error("Thread pool did not terminate");
+        }
+      }
+    } catch (InterruptedException e) {
+      // (Re-)Cancel if current thread also interrupted
+      executor.shutdownNow();
+      // Preserve interrupt status
+      Thread.currentThread().interrupt();
+    }
   }
 
   private Utils() { }
