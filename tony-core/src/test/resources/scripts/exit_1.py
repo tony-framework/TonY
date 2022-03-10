@@ -6,6 +6,7 @@ import time
 
 
 def return_1():
+    print("hello world")
     time.sleep(1)
     return 1
 

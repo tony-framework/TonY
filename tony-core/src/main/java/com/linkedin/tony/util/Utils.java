@@ -37,6 +37,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -282,16 +283,8 @@ public class Utils {
     return opts;
   }
 
-  /**
-   * Execute a shell command.
-   * @param taskCommand the shell command to execute
-   * @param timeout the timeout to stop running the shell command
-   * @param env the environment for this shell command
-   * @return the exit code of the shell command
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  public static int executeShell(String taskCommand, long timeout, Map<String, String> env) throws IOException, InterruptedException {
+  public static int executeShell(String taskCommand, long timeout, Map<String, String> env,
+          String errorFilePath, String standardFilePath) throws IOException, InterruptedException {
     LOG.info("Executing command: " + taskCommand);
     String executablePath = taskCommand.trim().split(" ")[0];
     File executable = new File(executablePath);
@@ -306,8 +299,23 @@ public class Utils {
       taskCommand = Constants.HADOOP_CLASSPATH_COMMAND + taskCommand;
     }
     ProcessBuilder taskProcessBuilder = new ProcessBuilder("bash", "-c", taskCommand);
-    taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-    taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+
+    if (errorFilePath != null) {
+      File errFile = new File(errorFilePath);
+      FileUtils.touch(errFile);
+      taskProcessBuilder.redirectError(errFile);
+    } else {
+      taskProcessBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+    }
+
+    if (standardFilePath != null) {
+      File outFile = new File(standardFilePath);
+      FileUtils.touch(outFile);
+      taskProcessBuilder.redirectOutput(outFile);
+    } else {
+      taskProcessBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+    }
+
     // Unset MALLOC_ARENA_MAX for better performance, see https://github.com/linkedin/TonY/issues/346
     taskProcessBuilder.environment().remove("MALLOC_ARENA_MAX");
     if (env != null) {
@@ -328,6 +336,19 @@ public class Utils {
 
     ShutdownHookUtil.removeShutdownHook(shutdownHook, Utils.class.getName(), LOG);
     return exitValue;
+  }
+
+  /**
+   * Execute a shell command.
+   * @param taskCommand the shell command to execute
+   * @param timeout the timeout to stop running the shell command
+   * @param env the environment for this shell command
+   * @return the exit code of the shell command
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public static int executeShell(String taskCommand, long timeout, Map<String, String> env) throws IOException, InterruptedException {
+    return executeShell(taskCommand, timeout, env, null, null);
   }
 
   public static String getCurrentHostName() {

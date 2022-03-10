@@ -34,6 +34,7 @@ import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import static com.linkedin.tony.Constants.CHIEF_JOB_NAME;
@@ -79,6 +80,8 @@ public class TonySession {
     StringBuilder cmd = new StringBuilder();
     cmd.append("$JAVA_HOME/bin/java ")
         .append(jvmArgs)
+        .append(" -D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
+                + ApplicationConstants.LOG_DIR_EXPANSION_VAR)
         .append(" com.linkedin.tony.TaskExecutor ")
         .append(" appId=")
         .append(appIdString)

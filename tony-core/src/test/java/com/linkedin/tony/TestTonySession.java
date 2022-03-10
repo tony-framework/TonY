@@ -72,7 +72,7 @@ public class TestTonySession {
     session.setJvmArgs("");
 
     String commandline = session.getTaskCommand("application_1645363183601_0001", "tony_tensorflow", "ps", "1");
-    Assert.assertEquals(commandline, "$JAVA_HOME/bin/java  com.linkedin.tony.TaskExecutor  "
-            + "appId=application_1645363183601_0001  appName=tony_tensorflow  task=ps:1");
+    Assert.assertEquals(commandline, "$JAVA_HOME/bin/java  -Dyarn.app.container.log.dir=<LOG_DIR> "
+            + "com.linkedin.tony.TaskExecutor  appId=application_1645363183601_0001  appName=tony_tensorflow  task=ps:1");
   }
 }
