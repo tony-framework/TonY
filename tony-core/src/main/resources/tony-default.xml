@@ -431,4 +431,9 @@
     <name>tony.horovod.driver.mode.debug</name>
     <value>false</value>
   </property>
+
+  <property>
+    <name>tony.task.executor.execution.error-message-max-depth</name>
+    <value>20</value>
+  </property>
 </configuration>

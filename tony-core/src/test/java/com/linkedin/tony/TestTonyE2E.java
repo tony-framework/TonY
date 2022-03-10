@@ -14,6 +14,7 @@ import com.linkedin.tony.rpc.impl.TaskStatus;
 
 import java.util.HashSet;
 
+import com.linkedin.tony.util.Utils;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static com.linkedin.tony.TaskExecutor.MARK_LOST_CONNECTION_ENV_KEY;
@@ -637,30 +637,11 @@ public class TestTonyE2E  {
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
 
-    shutdownExecutor(executorService);
-  }
-
-  private void shutdownExecutor(ExecutorService executor) {
-    executor.shutdown();
-    try {
-      // Wait a while for existing tasks to terminate
-      if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-        executor.shutdownNow(); // Cancel currently executing tasks
-        // Wait a while for tasks to respond to being cancelled
-        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-          LOG.error("Thread pool did not terminate");
-        }
-      }
-    } catch (InterruptedException e) {
-      // (Re-)Cancel if current thread also interrupted
-      executor.shutdownNow();
-      // Preserve interrupt status
-      Thread.currentThread().interrupt();
-    }
+    Utils.shutdownThreadPool(executorService);
   }
 
   private Future<?> mockedTask(ExecutorService service) {
-    return service.submit((Runnable) () -> {
+    return service.submit(() -> {
       TonyClient client = new TonyClient(conf);
       try {
         client.init(new String[]{
@@ -806,7 +787,7 @@ public class TestTonyE2E  {
     Assert.assertEquals(exitCode, -1);
   }
 
-  @Test
+  @Test(enabled = false)
   public void testLostConnectionWithAMJobShouldFail() throws Exception {
     client.init(new String[]{
             "--src_dir", "tony-core/src/test/resources/scripts",

@@ -4,11 +4,15 @@
  */
 package com.linkedin.tony;
 
+import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 
 public class TestTaskExecutor {
@@ -27,5 +31,39 @@ public class TestTaskExecutor {
     }
     // Should throw exception since we didn't set up Task Command.
     taskExecutor.initConfigs();
+  }
+
+  @Test
+  public void testGetExecutionErrorLog() throws IOException {
+    TaskExecutor executor = new TaskExecutor();
+
+    File tmpDir = Files.createTempDir();
+    tmpDir.deleteOnExit();
+
+    executor.setContainerLogDir(tmpDir.getAbsolutePath());
+
+    String errorFile = executor.getExecutionStdErrFile();
+
+    executor.setExecutionErrorMsgOutputMaxDepth(20);
+
+    String errorContent = "hello world-1\n"
+            + "hello world-2\n"
+            + "hello world-3\n"
+            + "hello world-4\n"
+            + "hello world-5\n"
+            + "hello world-6\n"
+            + "hello world-7\n"
+            + "hello world-8\n"
+            + "hello world-9\n"
+            + "hello world-10\n";
+
+    FileUtils.writeStringToFile(new File(errorFile), errorContent);
+
+    String captureout = executor.getExecutionErrorLog();
+    Assert.assertEquals(captureout, errorContent);
+
+    executor.setExecutionErrorMsgOutputMaxDepth(5);
+    captureout = executor.getExecutionErrorLog();
+    Assert.assertEquals(5, captureout.split("\n").length);
   }
 }

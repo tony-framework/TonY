@@ -4,9 +4,13 @@
  */
 package com.linkedin.tony;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -81,6 +85,7 @@ public class TaskExecutor implements AutoCloseable {
   private volatile boolean markedAsLostConnectionWithAM = false;
 
   private String containerLogDir;
+  private int executionErrorMsgOutputMaxDepth;
 
   @VisibleForTesting
   public TaskExecutor() { }
@@ -230,7 +235,23 @@ public class TaskExecutor implements AutoCloseable {
       executor.registerExecutionResult(exitCode, executor.jobName, String.valueOf(executor.taskIndex));
 
       LOG.info("Child process exited with exit code: " + exitCode);
-      System.exit(exitCode);
+
+      if (exitCode == 0) {
+        System.exit(0);
+      }
+
+      String errorMsg = executor.getExecutionErrorLog();
+
+      try {
+        Utils.shutdownThreadPool(executor.scheduledThreadPool);
+        if (!childProcessFuture.isDone()) {
+          childProcessFuture.cancel(true);
+        }
+      } catch (Exception e) {
+        System.exit(exitCode);
+      }
+
+      throw new Exception("Execution exit code: " + exitCode + ", error messages: \n" + errorMsg);
     }
   }
 
@@ -284,6 +305,8 @@ public class TaskExecutor implements AutoCloseable {
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_MAX_REGISTRY_SEC);
 
     containerLogDir = System.getProperty(YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR);
+    executionErrorMsgOutputMaxDepth = tonyConf.getInt(TonyConfigurationKeys.TASK_EXECUTOR_EXECUTION_ERROR_MESSAGE_MAX_DEPTH,
+            TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_EXECUTION_ERROR_MESSAGE_MAX_DEPTH);
 
     Utils.initYarnConf(yarnConf);
     Utils.initHdfsConf(hdfsConf);
@@ -491,11 +514,52 @@ public class TaskExecutor implements AutoCloseable {
     this.taskCommand = taskCommand;
   }
 
-  public String getPythonStdErrFile() {
+  public String getExecutionStdErrFile() {
     return String.format("%s%s%s", containerLogDir, File.separatorChar, Constants.TASK_EXECUTOR_EXECUTION_STDERR_FILENAME);
   }
 
-  public String getPythonStdOutFile() {
+  public String getExecutionStdOutFile() {
     return String.format("%s%s%s", containerLogDir, File.separatorChar, Constants.TASK_EXECUTOR_EXECUTION_STDOUT_FILENAME);
+  }
+
+  /** Only for test case. */
+  @VisibleForTesting
+  protected void setContainerLogDir(String containerLogDir) {
+    this.containerLogDir = containerLogDir;
+  }
+
+  /** Only for test case. */
+  @VisibleForTesting
+  protected void setExecutionErrorMsgOutputMaxDepth(int executionErrorMsgOutputMaxDepth) {
+    this.executionErrorMsgOutputMaxDepth = executionErrorMsgOutputMaxDepth;
+  }
+
+  @VisibleForTesting
+  protected String getExecutionErrorLog() throws IOException {
+    String executionErrorFile = getExecutionStdErrFile();
+    File file = new File(executionErrorFile);
+    if (!file.exists()) {
+      return StringUtils.EMPTY;
+    }
+
+    try (FileInputStream inputStream = new FileInputStream(executionErrorFile);
+        BufferedReader bufferedReader =
+                new BufferedReader(new InputStreamReader(inputStream, Charset.forName("UTF-8")))) {
+      String line;
+      int lineNumber = 0;
+      StringBuilder errorMsgBuilder = new StringBuilder();
+      while (true) {
+        line = bufferedReader.readLine();
+        if (line == null) {
+          break;
+        }
+        if (lineNumber++ >= executionErrorMsgOutputMaxDepth) {
+          break;
+        }
+        errorMsgBuilder.append(line);
+        errorMsgBuilder.append("\n");
+      }
+      return errorMsgBuilder.toString();
+    }
   }
 }
