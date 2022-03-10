@@ -155,6 +155,9 @@ public class TonyConfigurationKeys {
   public static final String TASK_EXECUTOR_JVM_OPTS = TONY_TASK_PREFIX + "executor.jvm.opts";
   public static final String DEFAULT_TASK_EXECUTOR_JVM_OPTS = "-Xmx1536m";
 
+  public static final String TASK_EXECUTOR_EXECUTION_ERROR_MESSAGE_MAX_DEPTH = TONY_TASK_PREFIX + "executor.execution.error-message-max-depth";
+  public static final int DEFAULT_TASK_EXECUTOR_EXECUTION_ERROR_MESSAGE_MAX_DEPTH = 20;
+
   public static final String TASK_DEFAULT_JVM_OPTS = TONY_TASK_PREFIX + "default.jvm.opts";
 
   public static final String TASK_HEARTBEAT_INTERVAL_MS = TONY_TASK_PREFIX + "heartbeat-interval-ms";
