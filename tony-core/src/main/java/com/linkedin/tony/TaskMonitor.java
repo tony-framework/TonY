@@ -107,6 +107,14 @@ class TaskMonitor implements Runnable {
   }
 
   private void refreshMemoryBytesMetrics() {
+    /**
+     * ProcfsBasedProcessTree currently is supported only on Linux.
+     * So when running test cases on Mac, the {@code resourceCalculator}
+     * is null and should be ignored.
+     */
+    if (resourceCalculator == null) {
+      return;
+    }
     resourceCalculator.updateProcessTree();
     double memoryBytes = resourceCalculator.getRssMemorySize();
     setMaxMetrics(MAX_MEMORY_BYTES_INDEX, memoryBytes);
