@@ -168,6 +168,9 @@ public class TonyClient implements AutoCloseable {
   // For access from CLI.
   private Set<TaskInfo> taskInfos = new HashSet<>();
 
+  // Just for test cases
+  private boolean makeAppStateAlwaysAccepted = false;
+
   /**
    * Gets default hadoop application classpath from yarnConf.
    */
@@ -1070,6 +1073,10 @@ public class TonyClient implements AutoCloseable {
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
       YarnApplicationState appState = report.getYarnApplicationState();
+      // Just for test the config of `tony.am.startup-timeout`
+      if (makeAppStateAlwaysAccepted) {
+        appState = YarnApplicationState.ACCEPTED;
+      }
 
       FinalApplicationStatus finalApplicationStatus = report.getFinalApplicationStatus();
       initRpcClientAndLogAMUrl(report);
@@ -1476,4 +1483,7 @@ public class TonyClient implements AutoCloseable {
     System.exit(exitCode);
   }
 
+  public void makeAppStateAlwaysAccepted(boolean appStateAlwaysAccepted) {
+    this.makeAppStateAlwaysAccepted = appStateAlwaysAccepted;
+  }
 }

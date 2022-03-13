@@ -14,7 +14,6 @@ import com.linkedin.tony.rpc.impl.TaskStatus;
 
 import java.util.HashSet;
 
-import com.linkedin.tony.util.Utils;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,10 +33,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Stream;
 
 import static com.linkedin.tony.TaskExecutor.MARK_LOST_CONNECTION_ENV_KEY;
 import static com.linkedin.tony.TonyConfigurationKeys.TASK_HEARTBEAT_INTERVAL_MS;
@@ -614,15 +609,10 @@ public class TestTonyE2E  {
     Assert.assertEquals(exitCode, -1);
   }
 
-  @Test(timeOut = 60000)
+  @Test
   public void testTonyAMStartupTimeoutShouldFail() throws ParseException, IOException {
-    /* Creating 10 jobs submitting to Yarn to make cluster fulfill. */
-    ExecutorService executorService = Executors.newFixedThreadPool(10);
-    Stream.iterate(0, n -> n + 1)
-            .limit(10)
-            .forEach(x -> mockedTask(executorService));
-
     TonyClient client = new TonyClient(conf);
+    client.makeAppStateAlwaysAccepted(true);
     client.init(new String[]{
             "--src_dir", "tony-core/src/test/resources/scripts",
             "--executes", "python check_env_and_venv.py",
@@ -636,31 +626,6 @@ public class TestTonyE2E  {
     });
     int exitCode = client.start();
     Assert.assertEquals(exitCode, -1);
-
-    Utils.shutdownThreadPool(executorService);
-  }
-
-  private Future<?> mockedTask(ExecutorService service) {
-    return service.submit(() -> {
-      TonyClient client = new TonyClient(conf);
-      try {
-        client.init(new String[]{
-                "--src_dir", "tony-core/src/test/resources/scripts",
-                "--hdfs_classpath", libPath,
-                "--shell_env", "ENV_CHECK=ENV_CHECK",
-                "--container_env", Constants.SKIP_HADOOP_PATH + "=true",
-                "--python_venv", "tony-core/src/test/resources/test.zip",
-                "--conf", "tony.ps.instances=1",
-                "--conf", "tony.worker.instances=4",
-                "--conf", "tony.ps.command=python sleep_30.py",
-                "--conf", "tony.worker.command=python check_env_and_venv.py"
-        });
-        client.start();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-      return;
-    });
   }
 
   /**
