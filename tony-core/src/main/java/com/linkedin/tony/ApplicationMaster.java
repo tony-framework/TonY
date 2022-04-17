@@ -6,6 +6,7 @@ package com.linkedin.tony;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.linkedin.tony.dashboard.DashboardHttpServer;
 import com.linkedin.tony.events.TaskFinished;
 import com.linkedin.tony.events.TaskStarted;
 import com.linkedin.tony.models.JobMetadata;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -191,6 +191,9 @@ public class ApplicationMaster {
   private String frameworkType;
   private Framework.ApplicationMasterAdapter amRuntimeAdapter;
 
+  /** The web dashboard */
+  private DashboardHttpServer dashboardHttpServer;
+
   private ApplicationMaster() {
     hdfsConf = new Configuration(false);
     yarnConf = new Configuration(false);
@@ -319,6 +322,9 @@ public class ApplicationMaster {
             TonyConfigurationKeys.DEFAULT_TASK_EXECUTOR_JVM_OPTS));
     sessionBuilder = builder;
     session = builder.build();
+    if (dashboardHttpServer != null) {
+      dashboardHttpServer.updateTonySession(session);
+    }
   }
 
   /**
@@ -468,9 +474,24 @@ public class ApplicationMaster {
     String amHostPort;
     try {
       hostNameOrIpFromTokenConf = Utils.getHostNameOrIpFromTokenConf(yarnConf);
-      response = amRMClient.registerApplicationMaster(amHostname, amPort, null);
+      /**
+       * Start the TonY dashboard http server,
+       * register the dashboard tracking url to Yarn RM.
+       */
+      String amLogUrl = Utils.constructContainerUrl(hostNameOrIpFromTokenConf + ":"
+              + System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name()), containerId);
+      final DashboardHttpServer dashboardHttpServer = DashboardHttpServer.builder()
+              .amHostName(hostNameOrIpFromTokenConf)
+              .runtimeType(frameworkType)
+              .session(session)
+              .amLogUrl(amLogUrl)
+              .build();
+      String dashboardHttpUrl = dashboardHttpServer.start();
+      this.dashboardHttpServer = dashboardHttpServer;
+
+      response = amRMClient.registerApplicationMaster(amHostname, amPort, dashboardHttpUrl);
       amHostPort = hostNameOrIpFromTokenConf + ":" + amPort;
-    } catch (YarnException | SocketException e) {
+    } catch (Exception e) {
       LOG.error("Exception while preparing AM", e);
       return false;
     }
@@ -777,7 +798,7 @@ public class ApplicationMaster {
       String tbUrl = Utils.getCurrentHostName() + ":" + tbPort;
       proxyUrl = Utils.constructUrl(tbUrl);
       LOG.info("Registering TensorBoard url for single node training: " + tbUrl);
-      registerTensorBoardUrlToRM(tbUrl);
+      registerTensorBoardUrl(tbUrl);
       tbSocket.close();
     }
     LOG.info("Start python preprocessing");
@@ -947,7 +968,7 @@ public class ApplicationMaster {
     @Override
     public String registerTensorBoardUrl(String spec) throws Exception {
       LOG.info("Got request to update TensorBoard URL: " + spec);
-      return registerTensorBoardUrlToRM(spec);
+      return ApplicationMaster.this.registerTensorBoardUrl(spec);
     }
 
     @Override
@@ -957,22 +978,11 @@ public class ApplicationMaster {
     }
   }
 
-  private String registerTensorBoardUrlToRM(String spec) throws Exception {
-    if (spec != null && appIdString != null) {
-      try {
-        // Post YARN-7974 or Hadoop 3.1.2 release
-        // amRMClient.updateTrackingUrl(spec);
-        @SuppressWarnings("JavaReflectionMemberAccess")
-        Method method = AMRMClientAsync.class.getMethod("updateTrackingUrl", String.class);
-        method.invoke(amRMClient, spec);
-      } catch (NoSuchMethodException nsme) {
-        LOG.warn("This Hadoop version doesn't have the YARN-7974 patch, TonY won't register TensorBoard URL with"
-                 + "application's tracking URL");
-      }
-      return "SUCCEEDED";
-    } else {
-      return "FAILED";
+  private String registerTensorBoardUrl(String tbUrl) throws Exception {
+    if (dashboardHttpServer != null) {
+      dashboardHttpServer.registerTensorboardUrl(tbUrl);
     }
+    return "SUCCEEDED";
   }
 
   // Set up credentials for the containers.
