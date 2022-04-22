@@ -912,7 +912,7 @@ public class ApplicationMaster {
       if (amRuntimeAdapter.canStartTask(distributedMode, taskId)) {
         return amRuntimeAdapter.constructClusterSpec(taskId);
       }
-      return null;
+      return StringUtils.EMPTY;
     }
 
     @Override
