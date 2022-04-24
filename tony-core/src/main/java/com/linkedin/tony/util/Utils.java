@@ -118,10 +118,6 @@ public class Utils {
     return pollTillConditionReached(func, Objects::nonNull, () -> null, interval, timeout);
   }
 
-  public static <T> T pollForeverTillNonNull(Callable<T> func, int interval) {
-    return pollTillNonNull(func, interval, 0);
-  }
-
   public static <T> T pollTillConditionReached(Callable<T> callFunc, Function<T, Boolean> conditionFunc,
           CallableWithoutException<T> defaultReturnedFunc, int interval, int timeout) {
     Preconditions.checkArgument(interval >= 0, "Interval must be non-negative.");
@@ -133,16 +129,16 @@ public class Utils {
       while (timeout == 0 || remainingTime >= 0) {
         ret = callFunc.call();
         if (conditionFunc.apply(ret)) {
-          LOG.info("pollTillNonNull function finished within " + timeout + " seconds");
+          LOG.info("pollTillConditionReached function finished within " + timeout + " seconds");
           return ret;
         }
         Thread.sleep(interval * 1000);
         remainingTime -= interval;
       }
     } catch (Exception e) {
-      LOG.error("pollTillNonNull function threw exception", e);
+      LOG.error("pollTillConditionReached function threw exception", e);
     }
-    LOG.warn("Function didn't return non-null within " + timeout + " seconds.");
+    LOG.warn("Function didn't satisfy applied condition within " + timeout + " seconds.");
     return defaultReturnedFunc.call();
   }
 

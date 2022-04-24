@@ -334,7 +334,13 @@ public class TaskExecutor implements AutoCloseable {
       throw new IOException("Errors on registering to AM, maybe due to the network failure.");
     }
 
-    return Utils.pollForeverTillNonNull(() -> proxy.getClusterSpec(taskId), DEFAULT_REQUEST_POLL_INTERVAL);
+    return Utils.pollTillConditionReached(
+            () -> proxy.getClusterSpec(taskId),
+            x -> StringUtils.isNotEmpty(x),
+            () -> null,
+            DEFAULT_REQUEST_POLL_INTERVAL,
+            0
+    );
   }
 
   public void callbackInfoToAM(String taskId, String callbackInfo) throws IOException {
