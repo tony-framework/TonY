@@ -67,7 +67,7 @@ public class TonySession {
   // go straight to the cleaning phase.
   private boolean trainingFinished = false;
 
-  private Set<String> registeredTasks = new HashSet<>();
+  private Set<String> registeredTasks = ConcurrentHashMap.newKeySet();
 
   private int numExpectedTasks = 0;
 
@@ -677,7 +677,7 @@ public class TonySession {
   }
 
   public void resetRegisteredTasks() {
-    registeredTasks = new HashSet<>();
+    registeredTasks = ConcurrentHashMap.newKeySet();
   }
 
   public int getNumRegisteredTasks() {
