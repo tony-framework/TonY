@@ -14,7 +14,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,7 +66,7 @@ public class TonySession {
   // go straight to the cleaning phase.
   private boolean trainingFinished = false;
 
-  private Set<String> registeredTasks = new HashSet<>();
+  private Set<String> registeredTasks = ConcurrentHashMap.newKeySet();
 
   private int numExpectedTasks = 0;
 
@@ -677,7 +676,7 @@ public class TonySession {
   }
 
   public void resetRegisteredTasks() {
-    registeredTasks = new HashSet<>();
+    registeredTasks = ConcurrentHashMap.newKeySet();
   }
 
   public int getNumRegisteredTasks() {
