@@ -485,6 +485,7 @@ public class ApplicationMaster {
               .runtimeType(frameworkType)
               .session(session)
               .amLogUrl(amLogUrl)
+              .appId(appIdString)
               .build();
       String dashboardHttpUrl = dashboardHttpServer.start();
       this.dashboardHttpServer = dashboardHttpServer;
