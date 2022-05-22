@@ -1,0 +1,85 @@
+<!--
+Copyright 2022 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
+See LICENSE in the project root for license information.
+ -->
+<!doctype html>
+<html lang="en" class="h-100">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="TonY">
+    <title>TonY Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="${amHostPort}/static/img/TonY-icon-color.png">
+
+    <link href="${amHostPort}/static/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column h-100">
+
+<header>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                TonY Dashboard
+            </a>
+        </div>
+    </nav>
+</header>
+
+<main class="flex-shrink-0" style="margin-top: 80px;">
+    <div class="container">
+        <table class="table">
+            <tbody>
+            <tr>
+                <th scope="row">Application ID</th>
+                <td>${appId}</td>
+            </tr>
+            <tr>
+                <th scope="row">AppMaster Log URL</th>
+                <td>${appMasterLogUrl}</td>
+            </tr>
+            <tr>
+                <th scope="row">Tensorboard Log URL</th>
+                <td>${tensorboardLogUrl}</td>
+            </tr>
+            <tr>
+                <th scope="row">Runtime Type</th>
+                <td colspan="2">${runtimeType}</td>
+            </tr>
+            <tr>
+                <th scope="row">Registered Tasks</th>
+                <td colspan="2"><a style="color: red">${registeredNumber}</a>/${taskNumber}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container" style="margin-top: 40px;">
+        <h2>Executors</h2>
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">Task Executor</th>
+                <th scope="col">State</th>
+                <th scope="col">Start Time</th>
+                <th scope="col">End Time</th>
+                <th scope="col">Log URL</th>
+            </tr>
+            </thead>
+            <tbody>
+            ${tableContent}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer class="footer mt-auto py-3 bg-light">
+    <div class="container">
+        <span class="navbar-brand  align-middle" href="#">
+            <img style="width:30px" src="${amHostPort}/static/img/TonY-icon-color.png"/>
+        </span>
+        <span class="align-middle text-muted" style="float: right;">Supported By TonY. </span>
+    </div>
+</footer>
+</body>
+</html>

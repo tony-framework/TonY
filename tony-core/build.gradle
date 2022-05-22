@@ -15,6 +15,7 @@ dependencies {
   compile deps.external.jackson_databind
   compile deps.external.text
   compile deps.external.zip4j
+  compile deps.external.freemaker
   compile(deps.hadoop.common) {
     exclude group: 'org.slf4j'
   }

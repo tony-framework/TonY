@@ -15,20 +15,56 @@
  */
 package com.linkedin.tony.dashboard;
 
+import com.linkedin.tony.Constants;
+import com.linkedin.tony.TonySession;
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestDashboardHttpServer {
 
     @Test
-    public void start() throws Exception {
+    public void testServer() throws Exception {
+        Configuration tonyConf = new Configuration(false);
+        TonySession session = new TonySession.Builder().setTonyConf(tonyConf).build();
+
+        TonySession.TonyTask worker0 =
+                session.buildTonyTask(Constants.WORKER_JOB_NAME, "0", "localhost");
+        TonySession.TonyTask worker1 =
+                session.buildTonyTask(Constants.WORKER_JOB_NAME, "1", "localhost");
+        TonySession.TonyTask worker2 =
+                session.buildTonyTask(Constants.WORKER_JOB_NAME, "2", "localhost");
+
+        worker0.setTaskInfo();
+        worker1.setTaskInfo();
+        worker2.setTaskInfo();
+
+        session.addTask(worker0);
+        session.addTask(worker1);
+        session.addTask(worker2);
+
         DashboardHttpServer server = DashboardHttpServer.builder()
                 .runtimeType("tensorflow")
                 .amHostName("localhost")
                 .amLogUrl("localhost:xxxxx")
+                .session(session)
                 .build();
         server.start();
-        Thread.sleep(1000 * 5);
+
         AssertJUnit.assertTrue(server.isStarted());
+
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+        HttpGet httpget = new HttpGet("http://localhost:" + server.getServerPort() + "/");
+        CloseableHttpResponse response = httpclient.execute(httpget);
+        AssertJUnit.assertEquals(200, response.getStatusLine().getStatusCode());
+
+        AssertJUnit.assertNotNull(
+                IOUtils.toString(response.getEntity().getContent())
+        );
     }
 }
