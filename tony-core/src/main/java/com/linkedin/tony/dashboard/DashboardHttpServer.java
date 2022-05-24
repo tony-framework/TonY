@@ -201,7 +201,7 @@ public class DashboardHttpServer implements AutoCloseable {
                                             + "<td>%s</td> "
                                             + "<td>%s</td> "
                                             + "<td>%s</td> "
-                                            + "<td><a href=\"%s}\">LINK</td> "
+                                            + "<td><a href=\"%s\" target=\"_blank\">LINK</td> "
                                             + "</tr>",
                                     taskInfo.getName() + ":" + taskInfo.getIndex(),
                                     taskInfo.getStatus().name(),
