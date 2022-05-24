@@ -67,6 +67,8 @@ public class DashboardHttpServer implements AutoCloseable {
 
     private Template template;
 
+    private long startTimeMs = System.currentTimeMillis();
+
     private DashboardHttpServer(
             @Nonnull TonySession tonySession, @Nonnull String amLogUrl,
             @Nonnull String runtimeType, @Nonnull String amHostName,
@@ -175,6 +177,8 @@ public class DashboardHttpServer implements AutoCloseable {
             dataMap.put("runtimeType", runtimeType);
             dataMap.put("appId", StringUtils.defaultString(appId, ""));
             dataMap.put("amHostPort", String.format("http://%s:%s", amHostName, serverPort));
+            dataMap.put("startTime", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(startTimeMs));
+            dataMap.put("duration", getDurationFormat());
 
             int total = 0;
             int registered = 0;
@@ -217,10 +221,35 @@ public class DashboardHttpServer implements AutoCloseable {
             StringWriter writer = new StringWriter();
             template.process(dataMap, writer, ObjectWrapper.BEANS_WRAPPER);
             return writer.toString();
+        } catch (RuntimeException e) {
+            LOG.error("Errors on returning html content due to runtime exception.", e);
         } catch (Exception e) {
             LOG.error("Errors on returning html content.", e);
         }
         return "error";
+    }
+
+    private String getDurationFormat() {
+        long diff = System.currentTimeMillis() - startTimeMs;
+        long day = diff / (24 * 60 * 60 * 1000);
+        long hour = (diff / (60 * 60 * 1000) - day * 24);
+        long min = ((diff / (60 * 1000)) - day * 24 * 60 - hour * 60);
+        long sec = (diff / 1000 - day * 24 * 60 * 60 - hour * 60 * 60 - min * 60);
+
+        String durationFormat = "";
+        if (day != 0) {
+            durationFormat += day + "D ";
+        }
+        if (hour != 0) {
+            durationFormat += hour + "H ";
+        }
+        if (min != 0) {
+            durationFormat += min + "m ";
+        }
+        if (sec != 0) {
+            durationFormat += sec + "s";
+        }
+        return durationFormat;
     }
 
     /**

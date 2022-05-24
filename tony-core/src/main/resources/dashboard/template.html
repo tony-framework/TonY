@@ -28,7 +28,7 @@ See LICENSE in the project root for license information.
 
 <main class="flex-shrink-0" style="margin-top: 80px;">
     <div class="container">
-        <table class="table">
+        <table class="table table-striped">
             <tbody>
             <tr>
                 <th scope="row">Application ID</th>
@@ -44,27 +44,35 @@ See LICENSE in the project root for license information.
             </tr>
             <tr>
                 <th scope="row">Runtime Type</th>
-                <td colspan="2">${runtimeType}</td>
+                <td>${runtimeType}</td>
             </tr>
             <tr>
                 <th scope="row">Registered Tasks</th>
-                <td colspan="2"><a style="color: red">${registeredNumber}</a>/${taskNumber}</td>
+                <td><a style="color: red">${registeredNumber}</a>/${taskNumber}</td>
+            </tr>
+            <tr>
+                <th scope="row">Start Time</th>
+                <td colspan="2">${startTime}</td>
+            </tr>
+            <tr>
+                <th scope="row">Duration</th>
+                <td colspan="2">${duration}</td>
             </tr>
             </tbody>
         </table>
     </div>
 
-    <div class="container" style="margin-top: 40px;">
+    <div class="container" style="margin-top: 25px;">
         <h2>Executors</h2>
-        <table class="table table-bordered">
-            <thead>
-            <tr>
-                <th scope="col">Task Executor</th>
-                <th scope="col">State</th>
-                <th scope="col">Start Time</th>
-                <th scope="col">End Time</th>
-                <th scope="col">Log URL</th>
-            </tr>
+        <table class="table table-bordered table-hover" style="margin-top: 10px;">
+            <thead class="table-secondary">
+                <tr>
+                    <th scope="col">Task Executor</th>
+                    <th scope="col">State</th>
+                    <th scope="col">Start Time</th>
+                    <th scope="col">End Time</th>
+                    <th scope="col">Log URL</th>
+                </tr>
             </thead>
             <tbody>
             ${tableContent}
