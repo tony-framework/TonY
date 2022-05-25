@@ -393,7 +393,7 @@ public class TonyClient implements AutoCloseable {
   }
 
   private void logTrackingAndRMUrls(ApplicationReport report) {
-    LOG.info("URL to track running application (will proxy to TensorBoard once it has started): "
+    LOG.info("URL to track running application (TonY web dashboard): "
              + report.getTrackingUrl());
     LOG.info("ResourceManager web address for application: "
         + Utils.buildRMUrl(yarnConf, report.getApplicationId().toString()));
