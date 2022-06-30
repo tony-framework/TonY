@@ -1326,9 +1326,13 @@ public class ApplicationMaster {
   }
 
   private boolean registrationTimeout() {
+    if (registrationTimeoutMs <= 0) {
+      return false;
+    }
+
     Set<TonyTask> unregisteredTasks = getUnregisteredTasks();
     for (TonyTask t : unregisteredTasks) {
-      if (registrationTimeoutMs <= 0 || System.currentTimeMillis() - t.getStartTime() <= registrationTimeoutMs) {
+      if (System.currentTimeMillis() - t.getStartTime() <= registrationTimeoutMs) {
         continue;
       }
 
