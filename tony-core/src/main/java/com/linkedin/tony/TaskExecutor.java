@@ -227,6 +227,8 @@ public class TaskExecutor implements AutoCloseable {
           exitCode = childProcessFuture.getNow(GENERAL_EXIT_CODE);
           break;
         }
+
+        Thread.sleep(100L);
       }
 
       // START - worker skew testing:
