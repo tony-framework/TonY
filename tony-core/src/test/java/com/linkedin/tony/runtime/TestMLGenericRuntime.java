@@ -103,7 +103,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertNull(
-                am.groupDependencyTimeout(conf)
+                am.generateGrpDependencyTimeoutMessage(conf)
         );
     }
 
@@ -121,7 +121,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertEquals(
-                am.groupDependencyTimeout(conf),
+                am.generateGrpDependencyTimeoutMessage(conf),
                 "Task type: evaluator runs exceeded timeout because it's dependent group: "
                         + "A (task set: [worker,chief]) has been finished."
         );
@@ -141,7 +141,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertEquals(
-                am.groupDependencyTimeout(conf),
+                am.generateGrpDependencyTimeoutMessage(conf),
                 "Task type: otherWorker runs exceeded timeout because it's dependent group: "
                         + "A (task set: [chief]) has been finished."
         );
@@ -164,7 +164,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertEquals(
-                am.groupDependencyTimeout(conf),
+                am.generateGrpDependencyTimeoutMessage(conf),
                 "Task type: evaluator runs exceeded timeout because it's dependent group: "
                         + "B (task set: [chief,worker]) has been finished."
         );
@@ -188,7 +188,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertNull(
-                am.groupDependencyTimeout(conf)
+                am.generateGrpDependencyTimeoutMessage(conf)
         );
     }
 
@@ -211,7 +211,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertNull(
-                am.groupDependencyTimeout(conf)
+                am.generateGrpDependencyTimeoutMessage(conf)
         );
     }
 
@@ -233,7 +233,7 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertNull(
-                am.groupDependencyTimeout(conf)
+                am.generateGrpDependencyTimeoutMessage(conf)
         );
     }
 
@@ -257,10 +257,36 @@ public class TestMLGenericRuntime {
         MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
         am.setTonySession(session);
         Assert.assertNull(
-                am.groupDependencyTimeout(conf)
+                am.generateGrpDependencyTimeoutMessage(conf)
         );
 
         Assert.assertEquals(session.getTotalTasks() - session.getTotalTrackedTasks(), 3);
+    }
+
+    @Test
+    public void testGroupRoleNotExistShouldPass() {
+        Configuration conf = new Configuration();
+        conf.addResource("tony-default.xml");
+        conf.set("tony.application.group.A", "chief");
+        conf.set("tony.application.dependency.not-existing-role.timeout.after.A", "3600");
+
+        TonySession session = buildMockSession(conf);
+        MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
+        am.setTonySession(session);
+        Assert.assertNull(am.generateGrpDependencyTimeoutMessage(conf));
+    }
+
+    @Test
+    public void testGroupPartialDependenciesNotExistShouldPass() {
+        Configuration conf = new Configuration();
+        conf.addResource("tony-default.xml");
+        conf.set("tony.application.group.A", "not-existing-role");
+        conf.set("tony.application.dependency.otherWorker.timeout.after.A", "3600");
+
+        TonySession session = buildMockSession(conf);
+        MLGenericRuntime.AM am = (MLGenericRuntime.AM) runtime.getAMAdapter();
+        am.setTonySession(session);
+        Assert.assertNull(am.generateGrpDependencyTimeoutMessage(conf));
     }
 
     private TonySession buildPartialTaskScheduledSession(Configuration conf) {

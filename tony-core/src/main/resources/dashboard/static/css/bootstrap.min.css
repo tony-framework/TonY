@@ -1,14 +1,10 @@
-/**
-Copyright 2022 LinkedIn Corporation. All rights reserved. Licensed under the BSD-2 Clause license.
-See LICENSE in the project root for license information.
- */
-@charset "UTF-8";
 /*!
  * Bootstrap v5.2.0-beta1 (https://getbootstrap.com/)
  * Copyright 2011-2022 The Bootstrap Authors
  * Copyright 2011-2022 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
  */
+@charset "UTF-8";
 :root {
     --bs-blue: #0d6efd;
     --bs-indigo: #6610f2;
