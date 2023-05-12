@@ -16,9 +16,7 @@
 package com.linkedin.tony.runtime;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,7 +62,6 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
 
         // Group dependencies policy.
         Map<String, List<String>> grpWithMembersIndex;
-        Map<String, List<String>> taskInGrpsIndex;
         // todo: Need to support single group dependent multiple other groups
         Map<String, Pair<String, Long>> taskWithDependentGrpsIndex;
 
@@ -156,7 +153,7 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
              * found in https://github.com/tony-framework/TonY/issues/641.
              *
              */
-            String errorMsg = groupDependencyTimeout(tonyConf);
+            String errorMsg = generateGrpDependencyTimeoutMessage(tonyConf);
             if (errorMsg != null) {
                 session.setFinalStatus(FinalApplicationStatus.FAILED, errorMsg);
                 return false;
@@ -164,8 +161,12 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
             return true;
         }
 
+        /**
+         * @param tonyConf
+         * @return message. If null, it means it don't exceed timeout
+         */
         @VisibleForTesting
-        protected String groupDependencyTimeout(Configuration tonyConf) {
+        protected String generateGrpDependencyTimeoutMessage(Configuration tonyConf) {
             /**
              * precheck:
              * Is group dependency checking timeout enabled?
@@ -194,11 +195,6 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
                 return null;
             }
 
-            // memberInGroups is map. key: jobtype name, value: in which groups
-            if (taskInGrpsIndex == null) {
-                taskInGrpsIndex = getMemberInGroups(grpWithMembersIndex);
-            }
-
             Map<String, TonySession.TonyTask[]> allTasks = session.getTonyTasks();
             List<TonySession.TonyTask> runningTasks = session.getRunningTasks();
 
@@ -221,6 +217,10 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
                 long latestEndTimeInAllDependentTasks = 0L;
                 for (String dependentsGroupJobtype : grpWithMembersIndex.get(dependentGroupName)) {
 
+                    if (!allTasks.containsKey(dependentsGroupJobtype)) {
+                        continue;
+                    }
+
                     if (Utils.existRunningTasksWithJobtype(runningTasks, dependentsGroupJobtype)) {
                         allDependentTaskFinished = false;
                         break;
@@ -240,7 +240,8 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
                     continue;
                 }
 
-                if (System.currentTimeMillis() - latestEndTimeInAllDependentTasks > timeout) {
+                if (latestEndTimeInAllDependentTasks != 0L
+                        && System.currentTimeMillis() - latestEndTimeInAllDependentTasks > timeout) {
 
                     String ignoredTaskTypeKey = getGroupDependentIgnoredKey(runningTaskType, dependentGroupName);
                     boolean ignoreTimeout = tonyConf.getBoolean(ignoredTaskTypeKey, false);
@@ -259,23 +260,6 @@ public abstract class MLGenericRuntime extends AbstractFrameworkRuntime {
             }
 
             return null;
-        }
-
-        private Map<String, List<String>> getMemberInGroups(Map<String, List<String>> groupMembers) {
-            /**
-             * key: job type name
-             * value: the list of groups
-             */
-            Map<String, List<String>> memberInGroups = new HashMap<>();
-            for (Map.Entry<String, List<String>> entry : groupMembers.entrySet()) {
-                String group = entry.getKey();
-                List<String> members = entry.getValue();
-                for (String member : members) {
-                    memberInGroups.putIfAbsent(member, new ArrayList<>());
-                    memberInGroups.get(member).add(group);
-                }
-            }
-            return memberInGroups;
         }
 
         private String containerAllocationTimeout(Configuration tonyConf) {
