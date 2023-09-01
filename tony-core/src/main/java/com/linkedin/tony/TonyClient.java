@@ -1341,7 +1341,7 @@ public class TonyClient implements AutoCloseable {
       result = run();
     } catch (InterruptedException | YarnException interruptedException) {
       try {
-        LOG.info("Force killing application due to accepting interruption semaphore.");
+        LOG.info("Force killing application due to accepting interruption semaphore.", interruptedException);
         forceKillApplication();
       } catch (Exception e) {
         LOG.error("Errors on killing application when tony client throws exception", e);
