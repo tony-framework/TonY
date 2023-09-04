@@ -33,7 +33,7 @@ nexusStaging {
 }
 
 
-def hadoopVersion = "3.2.0"
+def hadoopVersion = "3.2.2"
 ext.playVersion = "2.6.20"
 ext.scalaVersionFull = System.getProperty("scala.binary.version", "2.11.12")
 ext.scalaVersion = scalaVersionFull

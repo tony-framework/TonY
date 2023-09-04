@@ -17,6 +17,25 @@ public class JobContainerRequest {
   private String nodeLabelsExpression;
   private List<String> dependsOn;
 
+  private String placementSpec;
+  private List<String> allocationTags;
+
+  public JobContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority,
+          String nodeLabelsExpression, final List<String> dependsOn, String placementSpec,
+          List<String> allocationTags) {
+    this.numInstances = numInstances;
+    this.memory = memory;
+    this.vCores = vCores;
+    this.priority = priority;
+    this.gpu = gpu;
+    this.jobName = jobName;
+    this.nodeLabelsExpression = nodeLabelsExpression;
+    this.dependsOn = dependsOn;
+    this.placementSpec = placementSpec;
+    this.allocationTags = allocationTags;
+  }
+
+
   public JobContainerRequest(String jobName, int numInstances, long memory, int vCores, int gpu, int priority,
       String nodeLabelsExpression, final List<String> dependsOn) {
     this.numInstances = numInstances;
@@ -59,5 +78,13 @@ public class JobContainerRequest {
 
   public final List<String> getDependsOn() {
     return dependsOn;
+  }
+
+  public String getPlacementSpec() {
+    return placementSpec;
+  }
+
+  public List<String> getAllocationTags() {
+    return allocationTags;
   }
 }
