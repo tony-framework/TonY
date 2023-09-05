@@ -12,7 +12,7 @@ import static org.testng.Assert.fail;
 import java.io.IOException;
 import java.net.BindException;
 import java.time.Duration;
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.testng.annotations.Test;
 
 public class TestPortAllocation {

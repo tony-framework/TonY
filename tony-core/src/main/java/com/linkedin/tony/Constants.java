@@ -158,6 +158,9 @@ public class Constants {
   public static final String VCORES = "vcores";
   public static final String GPUS = "gpus";
 
+  public static final String ALLOCATION_TAGS = "allocation-tags";
+  public static final String PLACEMENT_SPEC = "placement-spec";
+
   // pid environment variable set by YARN
   public static final String JVM_PID = "JVM_PID";
 

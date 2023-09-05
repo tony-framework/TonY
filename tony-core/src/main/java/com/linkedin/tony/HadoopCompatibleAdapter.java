@@ -18,20 +18,36 @@ package com.linkedin.tony;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.lang.StringUtils;
+import com.linkedin.tony.models.JobContainerRequest;
+import com.linkedin.tony.util.Utils;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ExecutionTypeRequest;
+import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.ResourceInformation;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.util.resource.ResourceUtils;
 
 public final class HadoopCompatibleAdapter {
     private static final Log LOG = LogFactory.getLog(HadoopCompatibleAdapter.class);
+
+    private static final AtomicLong ALLOCATE_ID_COUNTER = new AtomicLong(1);
 
     private HadoopCompatibleAdapter() {
 
@@ -155,6 +171,63 @@ public final class HadoopCompatibleAdapter {
                 | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             LOG.error("With old Hadoop version, GPU is not supported.");
             return false;
+        }
+    }
+
+    public static void constructAndAddSchedulingRequest(AMRMClientAsync<AMRMClient.ContainerRequest> amRMClient,
+            JobContainerRequest containerRequest) {
+        try {
+            List<Object> reqs = new ArrayList<>();
+            Object schedReq = constructSchedulingRequest(containerRequest);
+            LOG.info("Request schedling containers ask: " + schedReq);
+            for (int i = 0; i < containerRequest.getNumInstances(); i++) {
+                reqs.add(schedReq);
+            }
+            Method addMethod = Arrays.stream(amRMClient.getClass().getMethods())
+                    .filter(x -> x.getName().equals("addSchedulingRequests") && x.getParameterCount() == 1)
+                    .findFirst().get();
+            addMethod.invoke(amRMClient, reqs);
+        } catch (Exception e) {
+            throw new RuntimeException("Errors on adding scheduing request.", e);
+        }
+    }
+
+    private static Object constructSchedulingRequest(JobContainerRequest containerRequest) {
+        try {
+            Priority priority = Priority.newInstance(containerRequest.getPriority());
+            Resource capability = Resource.newInstance((int) containerRequest.getMemory(), containerRequest.getVCores());
+            if (containerRequest.getGPU() > 0) {
+                Utils.setCapabilityGPU(capability, containerRequest.getGPU());
+            }
+            Set<String> allocationTags = CollectionUtils.isEmpty(containerRequest.getAllocationTags())
+                    ? Collections.singleton("") : new HashSet<>(containerRequest.getAllocationTags());
+
+            Class<?> placementConstraintCls =
+                    Class.forName("org.apache.hadoop.yarn.util.constraint.PlacementConstraintParser");
+            Method parseMethod = placementConstraintCls.getMethod("parseExpression", String.class);
+
+            Object parsedObj = parseMethod.invoke(placementConstraintCls, containerRequest.getPlacementSpec());
+            Class<?> abstractConstraintCls =
+                    Class.forName("org.apache.hadoop.yarn.api.resource.PlacementConstraint$AbstractConstraint");
+
+            Object placementConstraintObj = abstractConstraintCls.getMethod("build").invoke(parsedObj);
+
+            Class<?> resourceSizingCls = Class.forName("org.apache.hadoop.yarn.api.records.ResourceSizing");
+            Method resourceSizingMethod = Arrays.stream(resourceSizingCls.getMethods())
+                    .filter(x -> x.getName().equals("newInstance") && x.getParameterCount() == 1).findFirst().get();
+            Object resourceSizingObj = resourceSizingMethod.invoke(null, capability);
+
+            Class<?> schedulingReqCls = Class.forName("org.apache.hadoop.yarn.api.records.SchedulingRequest");
+            Method newInstanceMethod = Arrays.stream(schedulingReqCls.getMethods())
+                    .filter(x -> x.getName().equals("newInstance") && x.getParameterCount() == 6).findFirst().get();
+
+            Object schedReq = newInstanceMethod.invoke(null, ALLOCATE_ID_COUNTER.incrementAndGet(), priority,
+                    ExecutionTypeRequest.newInstance(), allocationTags,
+                    resourceSizingObj, placementConstraintObj);
+
+            return schedReq;
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException("Errors on constructing scheduling requests of Yarn.", e);
         }
     }
 }

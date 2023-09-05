@@ -241,6 +241,22 @@ public class TonyConfigurationKeys {
     return String.format(TONY_PREFIX + "%s.resources", jobName);
   }
 
+  public static String getPlacementSpecKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.placement-spec", jobName);
+  }
+
+  public static String getAllocationSpecKey(String jobName) {
+    return String.format(TONY_PREFIX + "%s.allocation-tags", jobName);
+  }
+
+  public static String getContainerPlacementSpecKey() {
+    return TONY_PREFIX + "containers.placement-spec";
+  }
+
+  public static String getContainerAllocationTagsKey() {
+    return TONY_PREFIX + "containers.allocation-tags";
+  }
+
   // Resources for all containers
   public static String getContainerResourcesKey() {
     return TONY_PREFIX + "containers.resources";

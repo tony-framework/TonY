@@ -121,6 +121,39 @@ public class TestUtils {
   }
 
   @Test
+  public void testParsePlacementSpecAndAllocationTags() {
+    Configuration conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 1);
+
+    // case1: set nothing
+    Map<String, JobContainerRequest> containerRequests = Utils.parseContainerRequests(conf);
+    assertNull(containerRequests.get("worker").getPlacementSpec());
+    assertNull(containerRequests.get("worker").getAllocationTags());
+
+    // case2: set all
+    conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 1);
+    conf.setStrings("tony.worker.placement-spec", "java=true");
+    conf.setStrings("tony.worker.allocation-tags", "tony");
+    containerRequests = Utils.parseContainerRequests(conf);
+
+    assertEquals("java=true", containerRequests.get("worker").getPlacementSpec());
+    assertEquals(Arrays.asList("tony"), containerRequests.get("worker").getAllocationTags());
+
+    // case3: set nothing for job, but it will fallback to container setting
+    conf = new Configuration();
+    conf.addResource("tony-default.xml");
+    conf.setInt("tony.worker.instances", 1);
+    conf.setStrings("tony.containers.placement-spec", "java=true");
+    conf.setStrings("tony.worker.allocation-tags", "tony");
+    containerRequests = Utils.parseContainerRequests(conf);
+    assertEquals("java=true", containerRequests.get("worker").getPlacementSpec());
+    assertEquals(Arrays.asList("tony"), containerRequests.get("worker").getAllocationTags());
+  }
+
+  @Test
   public void testIsArchive() {
     ClassLoader classLoader = getClass().getClassLoader();
     File file1 = new File(classLoader.getResource("test.zip").getFile());

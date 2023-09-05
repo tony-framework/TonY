@@ -409,6 +409,17 @@ public class Utils {
               TonyConfigurationKeys.DEFAULT_VCORES);
       int gpus = conf.getInt(TonyConfigurationKeys.getResourceKey(jobName, Constants.GPUS),
               TonyConfigurationKeys.DEFAULT_GPUS);
+
+      String placementSpec = conf.get(
+              TonyConfigurationKeys.getPlacementSpecKey(jobName),
+              conf.get(TonyConfigurationKeys.getContainerPlacementSpecKey())
+      );
+      String[] allocationTagsArr = conf.getStrings(
+              TonyConfigurationKeys.getAllocationSpecKey(jobName),
+              conf.getStrings(TonyConfigurationKeys.getContainerAllocationTagsKey())
+      );
+      List<String> allocationTags = allocationTagsArr == null ? null : new ArrayList<>(Arrays.asList(allocationTagsArr));
+
       if (gpus > 0 && !HadoopCompatibleAdapter.existGPUResource()) {
         throw new RuntimeException(String.format("User requested %d GPUs for job '%s' but GPU is not available on the cluster. ",
             gpus, jobName));
@@ -431,7 +442,7 @@ public class Utils {
         // We rely on unique priority behavior to match allocation request to task in Hadoop 2.7
         containerRequests.put(jobName,
                 new JobContainerRequest(jobName, numInstances, memory, vCores, gpus, priority,
-                    nodeLabel, dependsOn));
+                    nodeLabel, dependsOn, placementSpec, allocationTags));
         priority++;
       }
     }

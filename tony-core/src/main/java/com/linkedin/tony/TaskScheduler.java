@@ -36,7 +36,6 @@ public class TaskScheduler {
   // job with dependency -> (dependent job name, number of instances for that job)
   private Map<JobContainerRequest, Map<String, Integer>> taskDependencyMap = new HashMap<>();
   private Map<String, LocalResource> localResources;
-  private Map<String, List<AMRMClient.ContainerRequest>> jobTypeToContainerRequestsMap = new HashMap<>();
   private Map<String, Map<String, LocalResource>> jobTypeToContainerResources;
 
   boolean dependencyCheckPassed = true;
@@ -90,16 +89,20 @@ public class TaskScheduler {
   }
 
   private void scheduleJob(JobContainerRequest request) {
-    AMRMClient.ContainerRequest containerAsk = Utils.setupContainerRequestForRM(request);
+    if (request.getPlacementSpec() != null) {
+      // this should use newer api of Yarn with this placement constraint feature,
+      // only be supported in hadoop 3.2.x
+      HadoopCompatibleAdapter.constructAndAddSchedulingRequest(amRMClient, request);
+    } else {
+      AMRMClient.ContainerRequest containerAsk = Utils.setupContainerRequestForRM(request);
+      for (int i = 0; i < request.getNumInstances(); i++) {
+        amRMClient.addContainerRequest(containerAsk);
+      }
+    }
+
     String jobName = request.getJobName();
-    if (!jobTypeToContainerRequestsMap.containsKey(jobName)) {
-      jobTypeToContainerRequestsMap.put(jobName, new ArrayList<>());
-      jobTypeToContainerResources.put(jobName, getContainerResources(jobName));
-    }
-    jobTypeToContainerRequestsMap.get(request.getJobName()).add(containerAsk);
-    for (int i = 0; i < request.getNumInstances(); i++) {
-      amRMClient.addContainerRequest(containerAsk);
-    }
+    jobTypeToContainerResources.putIfAbsent(jobName, getContainerResources(jobName));
+
     session.addNumExpectedTask(request.getNumInstances());
   }
 
