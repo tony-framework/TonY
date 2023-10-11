@@ -88,6 +88,7 @@ import org.apache.hadoop.yarn.security.client.ClientToAMTokenSecretManager;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 import org.apache.hadoop.yarn.util.UTCClock;
 
+import static com.linkedin.tony.TonyConfigurationKeys.APPLICATION_PLACEMENT_SPEC;
 
 public class ApplicationMaster {
   private static final Log LOG = LogFactory.getLog(ApplicationMaster.class);
@@ -490,7 +491,14 @@ public class ApplicationMaster {
       String dashboardHttpUrl = dashboardHttpServer.start();
       this.dashboardHttpServer = dashboardHttpServer;
 
-      response = amRMClient.registerApplicationMaster(amHostname, amPort, dashboardHttpUrl);
+      String appLevelPlacementConstraintSpec = tonyConf.get(APPLICATION_PLACEMENT_SPEC);
+      if (StringUtils.isNotEmpty(appLevelPlacementConstraintSpec)) {
+        response = HadoopCompatibleAdapter.registerAppMaster(amRMClient, amHostname, amPort,
+                dashboardHttpUrl, appLevelPlacementConstraintSpec);
+      } else {
+        response = amRMClient.registerApplicationMaster(amHostname, amPort, dashboardHttpUrl);
+      }
+
       amHostPort = hostNameOrIpFromTokenConf + ":" + amPort;
     } catch (Exception e) {
       LOG.error("Exception while preparing AM", e);

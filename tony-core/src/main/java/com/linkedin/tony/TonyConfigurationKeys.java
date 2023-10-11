@@ -120,6 +120,8 @@ public class TonyConfigurationKeys {
 
   public static final String APPLICATION_NODE_LABEL = TONY_APPLICATION_PREFIX + "node-label";
 
+  public static final String APPLICATION_PLACEMENT_SPEC = TONY_APPLICATION_PREFIX + "placement-spec";
+
   public static final String ENABLE_PREPROCESSING_JOB = TONY_APPLICATION_PREFIX + "enable-preprocess";
   public static final boolean DEFAULT_ENABLE_PREPROCESSING_JOB = false;
 
