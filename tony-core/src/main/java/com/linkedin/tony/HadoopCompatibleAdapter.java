@@ -35,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ExecutionTypeRequest;
 import org.apache.hadoop.yarn.api.records.Priority;
@@ -174,6 +175,30 @@ public final class HadoopCompatibleAdapter {
         }
     }
 
+    public static RegisterApplicationMasterResponse registerAppMaster(
+            AMRMClientAsync<AMRMClient.ContainerRequest> amRMClient,
+            String appHostName,
+            int appHostPort,
+            String appTrackingUrl,
+            String appLevelPlacementConstraintSpec) {
+        try {
+            Map<Set<String>, Object> placementConstraints = new HashMap<>();
+
+            placementConstraints.put(
+                    Collections.singleton(""),
+                    parsePlacementConstraintSpec(appLevelPlacementConstraintSpec)
+            );
+
+            Method method = Arrays.stream(amRMClient.getClass().getMethods())
+                    .filter(x -> x.getName().equals("registerApplicationMaster") && x.getParameterCount() == 4)
+                    .findFirst().get();
+            return (RegisterApplicationMasterResponse) method.invoke(amRMClient, appHostName, appHostPort,
+                    appTrackingUrl, placementConstraints);
+        } catch (Exception e) {
+            throw new RuntimeException("Errors on registering app master.", e);
+        }
+    }
+
     public static void constructAndAddSchedulingRequest(AMRMClientAsync<AMRMClient.ContainerRequest> amRMClient,
             JobContainerRequest containerRequest) {
         try {
@@ -192,6 +217,23 @@ public final class HadoopCompatibleAdapter {
         }
     }
 
+    private static Object parsePlacementConstraintSpec(String spec) throws Exception {
+        if (StringUtils.isEmpty(spec)) {
+            return null;
+        }
+
+        Class<?> placementConstraintCls =
+                Class.forName("org.apache.hadoop.yarn.util.constraint.PlacementConstraintParser");
+        Method parseMethod = placementConstraintCls.getMethod("parseExpression", String.class);
+
+        Object parsedObj = parseMethod.invoke(placementConstraintCls, spec);
+        Class<?> abstractConstraintCls =
+                Class.forName("org.apache.hadoop.yarn.api.resource.PlacementConstraint$AbstractConstraint");
+
+        Object placementConstraintObj = abstractConstraintCls.getMethod("build").invoke(parsedObj);
+        return placementConstraintObj;
+    }
+
     private static Object constructSchedulingRequest(JobContainerRequest containerRequest) {
         try {
             Priority priority = Priority.newInstance(containerRequest.getPriority());
@@ -202,15 +244,18 @@ public final class HadoopCompatibleAdapter {
             Set<String> allocationTags = CollectionUtils.isEmpty(containerRequest.getAllocationTags())
                     ? Collections.singleton("") : new HashSet<>(containerRequest.getAllocationTags());
 
-            Class<?> placementConstraintCls =
-                    Class.forName("org.apache.hadoop.yarn.util.constraint.PlacementConstraintParser");
-            Method parseMethod = placementConstraintCls.getMethod("parseExpression", String.class);
+            Object placementConstraintObj = parsePlacementConstraintSpec(containerRequest.getPlacementSpec());
+            if (StringUtils.isNotEmpty(containerRequest.getPlacementSpec())) {
+                Class<?> placementConstraintCls =
+                        Class.forName("org.apache.hadoop.yarn.util.constraint.PlacementConstraintParser");
+                Method parseMethod = placementConstraintCls.getMethod("parseExpression", String.class);
 
-            Object parsedObj = parseMethod.invoke(placementConstraintCls, containerRequest.getPlacementSpec());
-            Class<?> abstractConstraintCls =
-                    Class.forName("org.apache.hadoop.yarn.api.resource.PlacementConstraint$AbstractConstraint");
+                Object parsedObj = parseMethod.invoke(placementConstraintCls, containerRequest.getPlacementSpec());
+                Class<?> abstractConstraintCls =
+                        Class.forName("org.apache.hadoop.yarn.api.resource.PlacementConstraint$AbstractConstraint");
 
-            Object placementConstraintObj = abstractConstraintCls.getMethod("build").invoke(parsedObj);
+                placementConstraintObj = abstractConstraintCls.getMethod("build").invoke(parsedObj);
+            }
 
             Class<?> resourceSizingCls = Class.forName("org.apache.hadoop.yarn.api.records.ResourceSizing");
             Method resourceSizingMethod = Arrays.stream(resourceSizingCls.getMethods())
@@ -226,7 +271,7 @@ public final class HadoopCompatibleAdapter {
                     resourceSizingObj, placementConstraintObj);
 
             return schedReq;
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Errors on constructing scheduling requests of Yarn.", e);
         }
     }

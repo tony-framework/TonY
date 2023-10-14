@@ -56,6 +56,7 @@ public class TestTonyConfigurationFields extends TestConfigurationFieldsBase {
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_MEMORY);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_INSTANCES);
     configurationPropsToSkipCompare.add(TonyConfigurationKeys.TB_GPUS);
+    configurationPropsToSkipCompare.add(TonyConfigurationKeys.APPLICATION_PLACEMENT_SPEC);
   }
 
   @BeforeTest

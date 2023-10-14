@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -25,6 +27,7 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 
+import static com.linkedin.tony.TonyConfigurationKeys.APPLICATION_PLACEMENT_SPEC;
 
 public class TaskScheduler {
   private static final Log LOG = LogFactory.getLog(TaskScheduler.class);
@@ -89,9 +92,12 @@ public class TaskScheduler {
   }
 
   private void scheduleJob(JobContainerRequest request) {
-    if (request.getPlacementSpec() != null) {
+    if (request.getPlacementSpec() != null || StringUtils.isNotEmpty(tonyConf.get(APPLICATION_PLACEMENT_SPEC))) {
       // this should use newer api of Yarn with this placement constraint feature,
       // only be supported in hadoop 3.2.x
+      //
+      // Tips: the app level placement constraint spec must be together with scheduling
+      //       request api, otherwise, it is invalid.
       HadoopCompatibleAdapter.constructAndAddSchedulingRequest(amRMClient, request);
     } else {
       AMRMClient.ContainerRequest containerAsk = Utils.setupContainerRequestForRM(request);
